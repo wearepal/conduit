@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "pal-bolts"
+name = "pal_bolts"
 version = "0.1.0"
 description = ""
 authors = ["Oliver Thomas <1835492+olliethomas@users.noreply.github.com>"]
