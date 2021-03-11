@@ -1,2 +1,3 @@
 # pal-bolts
-General Lightning Bolts
+
+General PyTorch Lightning Bolts
