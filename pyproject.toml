@@ -7,9 +7,9 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-torchvision = "0.9"
-lightning-bolts = "^0.3.1"
-torch = "1.8"
+torchvision = "*0.9"
+lightning-bolts = "*0.3.1"
+torch = "*1.8"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
