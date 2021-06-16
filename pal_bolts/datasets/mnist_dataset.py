@@ -20,6 +20,8 @@ from torchvision.datasets.utils import (
     download_file_from_google_drive,
 )
 
+__all__ = ["MNIST", "FashionMNIST", "KMNIST", "EMNIST", "QMNIST"]
+
 
 class MNIST(VisionDataset):
     """`MNIST <http://yann.lecun.com/exdb/mnist/>`_ Dataset.
@@ -53,22 +55,22 @@ class MNIST(VisionDataset):
     ]
 
     @property
-    def train_labels(self):
+    def train_labels(self) -> torch.Tensor:
         warnings.warn("train_labels has been renamed targets")
         return self.targets
 
     @property
-    def test_labels(self):
+    def test_labels(self) -> torch.Tensor:
         warnings.warn("test_labels has been renamed targets")
         return self.targets
 
     @property
-    def train_data(self):
+    def train_data(self) -> torch.Tensor:
         warnings.warn("train_data has been renamed data")
         return self.data
 
     @property
-    def test_data(self):
+    def test_data(self) -> torch.Tensor:
         warnings.warn("test_data has been renamed data")
         return self.data
 
@@ -346,12 +348,12 @@ class EMNIST(MNIST):
         self.classes = self.classes_split_dict[self.split]
 
     @staticmethod
-    def _training_file(split) -> str:
-        return 'training_{}.pt'.format(split)
+    def _training_file(split: str) -> str:
+        return f'training_{split}.pt'
 
     @staticmethod
-    def _test_file(split) -> str:
-        return 'test_{}.pt'.format(split)
+    def _test_file(split: str) -> str:
+        return f'test_{split}.pt'
 
     def download(self) -> None:
         """Download the EMNIST data if it doesn't exist in processed_folder already."""
@@ -563,6 +565,7 @@ def open_maybe_compressed_file(path: Union[str, IO]) -> Union[IO, gzip.GzipFile]
     Decompression occurs when argument `path` is a string and ends with '.gz' or '.xz'.
     """
     if not isinstance(path, torch._six.string_classes):
+        assert isinstance(path, IO)
         return path
     if path.endswith('.gz'):
         return gzip.open(path, 'rb')
