@@ -79,48 +79,10 @@ show_error_codes = true
 warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
-module = "flash.*"
+module = ["flash.*", "git.*", "PIL.*", "pl_bolts.*", "scipy.*", "torchvision.*", "tqdm.*", "wandb.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "git.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "PIL.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "pl_bolts.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "pytest.*"
+module = ["pytest.*", "pytorch_lightning.*", "torch.*"]
 follow_imports = "skip"
 follow_imports_for_stubs = true
-
-[[tool.mypy.overrides]]
-module = "pytorch_lightning.*"
-follow_imports = "skip"
-follow_imports_for_stubs = true
-
-[[tool.mypy.overrides]]
-module = "scipy.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "torch.*"
-follow_imports = "skip"
-follow_imports_for_stubs = true
-
-[[tool.mypy.overrides]]
-module = "torchvision.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "tqdm.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "wandb.*"
-ignore_missing_imports = true
