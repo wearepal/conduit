@@ -5,6 +5,8 @@ from torchvision import transforms as transform_lib
 
 from pal_bolts.datasets.mnist_dataset import MNIST
 
+__all__ = ["MNISTDataModule"]
+
 
 class MNISTDataModule(VisionDataModule):
     """
@@ -58,7 +60,7 @@ class MNISTDataModule(VisionDataModule):
             drop_last: If true drops the last incomplete batch
         """
 
-        super().__init__(  # type: ignore[misc]
+        super().__init__(
             data_dir=data_dir,
             val_split=val_split,
             num_workers=num_workers,
