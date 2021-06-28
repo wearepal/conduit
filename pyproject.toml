@@ -7,9 +7,12 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-torchvision = "*"
+albumentations = "^1.0.0"
+EthicML = "*"
 lightning-bolts = {git = "https://github.com/PyTorchLightning/lightning-bolts.git", branch="master", allow-prereleases=true}
+palkit = "*"
 torch = "*"
+torchvision = "*"
 
 [tool.poetry.dev-dependencies]
 black = "*"
