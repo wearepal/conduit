@@ -188,8 +188,7 @@ class Decoder(nn.Module):
 
     @implements(nn.Module)
     def forward(self, z: Tensor, s: Tensor) -> Tensor:
-        if len(s.shape) == 1:
-            s = s.unsqueeze(-1)
+        s = s.view(-1, 1)
         zs = torch.cat([z, s], dim=1)
         return self.decoder(zs)
 

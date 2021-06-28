@@ -84,7 +84,7 @@ class ErmBaseline(pl.LightningModule):
         logits = self.forward(batch.x)
         loss = self._get_loss(logits, batch)
         tm_acc = self.val_acc if stage == "val" else self.test_acc
-        target = batch.y.unsqueeze(-1).long() if len(batch.y.shape) == 1 else batch.y.long()
+        target = batch.y.view(-1, 1).long()
         acc = tm_acc(logits >= 0, target)
         self.log_dict(
             {
@@ -95,7 +95,7 @@ class ErmBaseline(pl.LightningModule):
         return {"y": batch.y, "s": batch.s, "preds": logits.sigmoid().round().squeeze(-1)}
 
     def _get_loss(self, logits: Tensor, batch: DataBatch) -> Tensor:
-        target = batch.y.unsqueeze(-1).float() if len(batch.y.shape) == 1 else batch.y.float()
+        target = batch.y.view(-1, 1).float()
         return self._loss_fn(input=logits, target=target)
 
     def reset_parameters(self) -> None:
@@ -124,7 +124,7 @@ class ErmBaseline(pl.LightningModule):
     def training_step(self, batch: DataBatch, batch_idx: int) -> Tensor:
         logits = self.forward(batch.x)
         loss = self._get_loss(logits, batch)
-        target = batch.y.unsqueeze(-1).long() if len(batch.y.shape) == 1 else batch.y.long()
+        target = batch.y.view(-1, 1).long()
         acc = self.train_acc(logits >= 0, target)
         self.log_dict(
             {

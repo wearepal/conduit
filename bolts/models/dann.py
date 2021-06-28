@@ -100,18 +100,18 @@ class Dann(pl.LightningModule):
 
     def _inference_step(self, batch: DataBatch, stage: Stage) -> Dict[str, Tensor]:
         _s, _y = self.forward(batch.x)
-        target_s = batch.s.unsqueeze(-1).float() if len(batch.s.shape) == 1 else batch.y.float()
+        target_s = batch.s.view(-1, 1).float()
         loss_adv = self._loss_adv_fn(_s, target_s)
-        target_y = batch.y.unsqueeze(-1).float() if len(batch.y.shape) == 1 else batch.y.float()
+        target_y = batch.y.view(-1, 1).float()
         loss_clf = self._loss_clf_fn(_y, target_y)
         loss = loss_adv + loss_clf
         tm_acc_s = self.val_acc_s if stage == "val" else self.test_acc_s
         tm_acc_y = self.val_acc_y if stage == "val" else self.test_acc_y
 
-        target_y = batch.y.unsqueeze(-1).long() if len(batch.y.shape) == 1 else batch.y.long()
+        target_y = batch.y.view(-1, 1).long()
         y_acc = tm_acc_y(_y >= 0, target_y)
 
-        target_s = batch.s.unsqueeze(-1).long() if len(batch.s.shape) == 1 else batch.s.long()
+        target_s = batch.s.view(-1, 1).long()
         s_acc = tm_acc_s(_s >= 0, target_s)
         self.log_dict(
             {
@@ -152,15 +152,15 @@ class Dann(pl.LightningModule):
     @implements(pl.LightningModule)
     def training_step(self, batch: DataBatch, batch_idx: int) -> Tensor:
         _s, _y = self.forward(batch.x)
-        target_s = batch.s.unsqueeze(-1).float() if len(batch.s.shape) == 1 else batch.y.float()
+        target_s = batch.s.view(-1, 1).float()
         loss_adv = self._loss_adv_fn(_s, target_s)
-        target_y = batch.y.unsqueeze(-1).float() if len(batch.y.shape) == 1 else batch.y.float()
+        target_y = batch.y.view(-1, 1).float()
         loss_clf = self._loss_clf_fn(_y, target_y)
         loss = loss_adv + loss_clf
 
-        target_s = batch.s.unsqueeze(-1).long() if len(batch.s.shape) == 1 else batch.s.long()
+        target_s = batch.s.view(-1, 1).long()
         acc_s = self.train_acc_s(_s >= 0, target_s)
-        target_y = batch.y.unsqueeze(-1).long() if len(batch.y.shape) == 1 else batch.y.long()
+        target_y = batch.y.view(-1, 1).long()
         acc_y = self.train_acc_y(_y >= 0, target_y)
         self.log_dict(
             {

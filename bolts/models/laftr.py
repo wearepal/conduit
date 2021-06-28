@@ -109,7 +109,7 @@ class Laftr(pl.LightningModule):
         laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
         adv_loss = self._loss_adv(model_out.s, batch)
         tm_acc = self.val_acc if stage == "val" else self.train_acc
-        target = batch.y.long() if len(batch.y.shape) == 2 else batch.y.unsqueeze(-1).long()
+        target = batch.y.view(-1, 1).long()
         acc = tm_acc(model_out.y >= 0, target)
         self.log_dict(
             {
@@ -123,8 +123,8 @@ class Laftr(pl.LightningModule):
 
     def _loss_adv(self, s_pred: Tensor, batch: DataBatch) -> Tensor:
         # For Demographic Parity, for EqOpp is a different loss term.
-        s_target = batch.s.unsqueeze(-1) if len(batch.s.shape) == 1 else batch.s
-        y_target = batch.y.unsqueeze(-1) if len(batch.y.shape) == 1 else batch.y
+        s_target = batch.s.view(-1, 1)
+        y_target = batch.y.view(-1, 1)
         if self.fairness is FairnessType.DP:
             s0 = self._adv_clf_loss(s_pred[batch.s == 0], s_target[batch.s == 0])
             s1 = self._adv_clf_loss(s_pred[batch.s == 1], s_target[batch.s == 1])
@@ -154,7 +154,7 @@ class Laftr(pl.LightningModule):
         return self.adv_weight * loss
 
     def _loss_laftr(self, y_pred: Tensor, recon: Tensor, batch: DataBatch) -> Tensor:
-        target = batch.y.float() if len(batch.y.shape) == 2 else batch.y.unsqueeze(-1).float()
+        target = batch.y.view(-1, 1).float()
         clf_loss = self._clf_loss(y_pred, target)
         recon_loss = self._recon_loss(recon, batch.x)
         self.log_dict(
@@ -208,7 +208,7 @@ class Laftr(pl.LightningModule):
             model_out = self(batch.x, batch.s)
             laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
             adv_loss = self._loss_adv(model_out.s, batch)
-            target = batch.y.long() if len(batch.y.shape) == 2 else batch.y.unsqueeze(-1).long()
+            target = batch.y.view(-1, 1).long()
             acc = self.train_acc(model_out.y >= 0, target)
             self.log_dict(
                 {
@@ -225,7 +225,7 @@ class Laftr(pl.LightningModule):
             model_out = self(batch.x, batch.s)
             adv_loss = self._loss_adv(model_out.s, batch)
             laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
-            target = batch.y.long() if len(batch.y.shape) == 2 else batch.y.unsqueeze(-1).long()
+            target = batch.y.view(-1, 1).long()
             acc = self.train_acc(model_out.y >= 0, target)
             self.log_dict(
                 {
