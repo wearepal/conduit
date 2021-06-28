@@ -3,8 +3,6 @@ from collections import Sequence
 from kit import gcopy
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-import torch
-from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 
@@ -20,7 +18,6 @@ class PostHocEval(pl.Callback):
 
     def __init__(self) -> None:
         super().__init__()
-        self.optimizer: Optimizer
 
     def on_pretrain_routine_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         pl_module.classifier = pl_module.classifier.to(pl_module.device)
