@@ -67,7 +67,7 @@ exclude = '''
 [tool.isort]
 known_third_party = ["PIL", "albumentations", "ethicml", "kit", "numpy", "pandas", "pl_bolts", "pytest", "pytorch_lightning", "sklearn", "torch", "torchmetrics", "torchvision", "typing_extensions"]
 known_future_library = []
-extra_standard_library = ["dataclasses", "__future__"]
+extra_standard_library = ["dataclasses", "__future__", "typing_extensions"]
 line_length = 88
 profile = "black"
 force_sort_within_sections = "True"
