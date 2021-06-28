@@ -3,18 +3,18 @@
 from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 import ethicml.vision as emvi
-import numpy as np
-import torch
 from ethicml.vision import LdColorizer, LdTransformation
 from kit import implements
-from bolts.datasets.mnist_dataset import MNIST
+import numpy as np
 from pytorch_lightning import LightningDataModule
+import torch
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, RandomSampler, Subset, random_split
 from torchvision.transforms import transforms
 
 from bolts.datamodules.vision_datamodule import VisionBaseDataModule
 from bolts.datasets.ethicml_datasets import DataBatch
+from bolts.datasets.mnist_dataset import MNIST
 
 
 class CmnistDataModule(VisionBaseDataModule):

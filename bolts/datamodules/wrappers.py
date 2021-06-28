@@ -1,13 +1,13 @@
 """Data structure wrapper classes."""
 from typing import Any, Optional
 
+from PIL.Image import Image
 import albumentations as A
 import ethicml as em
 import ethicml.vision as emvi
 import numpy as np
 import pandas as pd
 import torch
-from PIL.Image import Image
 from torch.utils.data import Dataset
 
 from bolts.datasets.ethicml_datasets import DataBatch

@@ -4,9 +4,9 @@ from typing import Any, Optional
 
 import ethicml as em
 import ethicml.vision as emvi
-import torch
 from kit import implements
 from pytorch_lightning import LightningDataModule
+import torch
 from torch.utils.data.dataset import random_split
 from torchvision import transforms as TF
 

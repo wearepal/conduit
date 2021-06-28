@@ -4,11 +4,11 @@ from itertools import groupby
 from typing import Iterator, List, Tuple
 
 import ethicml as em
+from ethicml import DataTuple
+from ethicml.implementations.pytorch_common import _get_info
 import numpy as np
 import pandas as pd
 import torch
-from ethicml import DataTuple
-from ethicml.implementations.pytorch_common import _get_info
 from torch import Tensor
 from torch.utils.data import Dataset
 

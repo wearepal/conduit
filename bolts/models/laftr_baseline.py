@@ -1,16 +1,16 @@
 """LAFTR model."""
-import itertools
 from collections import namedtuple
 from enum import Enum
+import itertools
 from typing import Any, Dict, List, Tuple, Union
 
 import ethicml as em
+from kit import implements
 import pandas as pd
 import pytorch_lightning as pl
 import torch
-import torchmetrics
-from kit import implements
 from torch import Tensor, nn, optim
+import torchmetrics
 
 __all__ = ["Laftr"]
 

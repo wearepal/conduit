@@ -1,9 +1,9 @@
 """Fixtures."""
 from typing import List, Optional, Tuple
 
+from kit import implements
 import pytest
 import torch
-from kit import implements
 from torch import Tensor, nn
 
 
