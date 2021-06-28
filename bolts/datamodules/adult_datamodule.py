@@ -1,14 +1,14 @@
-"""COMPAS Dataset."""
+"""Adult Income Dataset."""
 from typing import Optional, Union
 
 import ethicml as em
 from ethicml.preprocessing.scaling import ScalerType
 
-from fair_bolts.datamodules.tabular_datamodule import TabularDataModule
+from bolts.datamodules.tabular_datamodule import TabularDataModule
 
 
-class CompasDataModule(TabularDataModule):
-    """COMPAS Dataset."""
+class AdultDataModule(TabularDataModule):
+    """UCI Adult Income Dataset."""
 
     def __init__(
         self,
@@ -16,8 +16,8 @@ class CompasDataModule(TabularDataModule):
         test_split: Union[float, int] = 0.2,
         num_workers: int = 0,
         batch_size: int = 32,
-        scaler: Optional[ScalerType] = None,
         seed: int = 0,
+        scaler: Optional[ScalerType] = None,
         persist_workers: bool = False,
         stratified_sampling: bool = False,
         sample_with_replacement: bool = False,
@@ -33,7 +33,7 @@ class CompasDataModule(TabularDataModule):
             stratified_sampling=stratified_sampling,
             sample_with_replacement=sample_with_replacement,
         )
-        self._em_dataset = em.compas(split="Sex")
+        self._em_dataset = em.adult(split="Sex", binarize_nationality=True)
         self.num_classes = 2
         self.num_sens = 2
 

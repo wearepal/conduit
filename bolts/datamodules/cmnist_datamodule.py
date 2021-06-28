@@ -7,14 +7,14 @@ import numpy as np
 import torch
 from ethicml.vision import LdColorizer, LdTransformation
 from kit import implements
-from pal_bolts.datasets.mnist_dataset import MNIST
+from bolts.datasets.mnist_dataset import MNIST
 from pytorch_lightning import LightningDataModule
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, RandomSampler, Subset, random_split
 from torchvision.transforms import transforms
 
-from fair_bolts.datamodules.vision_datamodule import VisionBaseDataModule
-from fair_bolts.datasets.ethicml_datasets import DataBatch
+from bolts.datamodules.vision_datamodule import VisionBaseDataModule
+from bolts.datasets.ethicml_datasets import DataBatch
 
 
 class CmnistDataModule(VisionBaseDataModule):

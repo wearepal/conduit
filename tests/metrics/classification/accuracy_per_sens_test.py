@@ -4,7 +4,7 @@ from collections import namedtuple
 import pytest
 import torch
 
-from fair_bolts.metrics.accuracy_per_sens import AccuracyPerSens
+from bolts.metrics.accuracy_per_sens import AccuracyPerSens
 
 NUM_PROCESSES = 2
 NUM_BATCHES = 10

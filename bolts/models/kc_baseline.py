@@ -4,8 +4,8 @@ from torch import Tensor
 
 __all__ = ["KC"]
 
-from fair_bolts.datasets.ethicml_datasets import DataBatch
-from fair_bolts.models.erm_baseline import ErmBaseline
+from bolts.datasets.ethicml_datasets import DataBatch
+from bolts.models.erm_baseline import ErmBaseline
 
 
 class KC(ErmBaseline):

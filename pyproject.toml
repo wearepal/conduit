@@ -1,9 +1,24 @@
 [tool.poetry]
-name = "pal_bolts"
-version = "0.1.0"
-description = ""
-authors = ["Oliver Thomas <1835492+olliethomas@users.noreply.github.com>"]
-license = "MIT"
+name = "pal-bolts"
+version = "0.0.1.dev0"
+description = "Useful PyTorch Lightning modules."
+authors = ["PAL <info@predictive-analytics-lab.com>"]
+license = "Apache License 2.0"
+packages = [
+  { include = "bolts" },
+]
+include=["bolts/py.typed"]
+classifiers=[
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Typing :: Typed",
+]
+keywords=["typing", "python", "pytorch", "pytorch-lightning", "lightning-bolts"]
+repository="https://github.com/predictive-analytics-lab/pal-bolts"
+readme="README.md"
 
 [tool.poetry.dependencies]
 python = "^3.7"

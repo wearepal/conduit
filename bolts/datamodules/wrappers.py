@@ -10,7 +10,7 @@ import torch
 from PIL.Image import Image
 from torch.utils.data import Dataset
 
-from fair_bolts.datasets.ethicml_datasets import DataBatch
+from bolts.datasets.ethicml_datasets import DataBatch
 
 
 class TiWrapper(Dataset):

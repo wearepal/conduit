@@ -14,7 +14,7 @@ from torch import Tensor, nn, optim
 
 __all__ = ["Laftr"]
 
-from fair_bolts.datasets.ethicml_datasets import DataBatch
+from bolts.datasets.ethicml_datasets import DataBatch
 
 ModelOut = namedtuple("ModelOut", ["y", "z", "s", "x"])
 FairnessType = Enum("FairnessType", "DP EO EqOp")

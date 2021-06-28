@@ -3,7 +3,7 @@ from typing import Any, Callable, Optional, Union
 from pl_bolts.datamodules.vision_datamodule import VisionDataModule
 from torchvision import transforms as transform_lib
 
-from pal_bolts.datasets.mnist_dataset import MNIST
+from bolts.datasets.mnist_dataset import MNIST
 
 __all__ = ["MNISTDataModule"]
 

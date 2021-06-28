@@ -5,10 +5,10 @@ import torch.nn.functional as F
 from pytorch_lightning import LightningDataModule
 from typing_extensions import Final, Type
 
-from fair_bolts.datamodules.adult_datamodule import AdultDataModule
-from fair_bolts.datamodules.celeba_datamodule import CelebaDataModule
-from fair_bolts.datamodules.cmnist_datamodule import CmnistDataModule
-from fair_bolts.datamodules.compas_datamodule import CompasDataModule
+from bolts.datamodules.adult_datamodule import AdultDataModule
+from bolts.datamodules.celeba_datamodule import CelebaDataModule
+from bolts.datamodules.cmnist_datamodule import CmnistDataModule
+from bolts.datamodules.compas_datamodule import CompasDataModule
 
 BATCHSIZE: Final[int] = 4
 

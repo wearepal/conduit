@@ -10,7 +10,7 @@ from torch.utils.data import ConcatDataset, Subset
 
 __all__ = ["extract_labels_from_dataset"]
 
-from fair_bolts.datamodules.wrappers import AlbumentationsDataset, TiWrapper
+from bolts.datamodules.wrappers import AlbumentationsDataset, TiWrapper
 
 _Dataset = Union[emvi.TorchImageDataset, TiWrapper]
 ExtractableDataset = Union[ConcatDataset[_Dataset], _Dataset, AlbumentationsDataset]

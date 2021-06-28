@@ -11,7 +11,7 @@ from kit import implements
 from torch import Tensor, nn, optim
 from torch.optim.lr_scheduler import _LRScheduler
 
-from fair_bolts.datasets.ethicml_datasets import DataBatch
+from bolts.datasets.ethicml_datasets import DataBatch
 
 Stage = Literal["train", "val", "test"]
 

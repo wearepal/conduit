@@ -4,7 +4,7 @@ import pytest
 import torch
 from pytorch_lightning import LightningDataModule
 
-from pal_bolts.datamodules.mnist_datamodule import MNISTDataModule
+from bolts.datamodules.mnist_datamodule import MNISTDataModule
 
 
 def _create_dm(dm_cls: Type[LightningDataModule]) -> LightningDataModule:

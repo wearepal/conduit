@@ -8,7 +8,7 @@ from kit import implements
 from kit.torch import StratifiedSampler
 from torch.utils.data import DataLoader, Dataset, Sampler
 
-from fair_bolts.datamodules.utils import extract_labels_from_dataset
+from bolts.datamodules.utils import extract_labels_from_dataset
 
 LOGGER = logging.getLogger(__name__.split(".")[-1].upper())
 

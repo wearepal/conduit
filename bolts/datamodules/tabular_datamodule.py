@@ -9,8 +9,8 @@ from pytorch_lightning import LightningDataModule
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import Dataset
 
-from fair_bolts.datamodules.base_datamodule import BaseDataModule
-from fair_bolts.datasets.ethicml_datasets import DataTupleDataset
+from bolts.datamodules.base_datamodule import BaseDataModule
+from bolts.datasets.ethicml_datasets import DataTupleDataset
 
 
 class TabularDataModule(BaseDataModule):

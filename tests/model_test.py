@@ -3,9 +3,9 @@ import pytest
 import pytorch_lightning as pl
 from torch import nn
 
-from fair_bolts.datamodules import CelebaDataModule
-from fair_bolts.models.erm_baseline import ErmBaseline
-from fair_bolts.models.laftr_baseline import Laftr
+from bolts.datamodules import CelebaDataModule
+from bolts.models.erm_baseline import ErmBaseline
+from bolts.models.laftr_baseline import Laftr
 
 
 @pytest.mark.parametrize("dm_class", [CelebaDataModule])

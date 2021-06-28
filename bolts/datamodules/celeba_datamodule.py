@@ -10,8 +10,8 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data.dataset import random_split
 from torchvision import transforms as TF
 
-from fair_bolts.datamodules.vision_datamodule import VisionBaseDataModule
-from fair_bolts.datamodules.wrappers import TiWrapper
+from bolts.datamodules.vision_datamodule import VisionBaseDataModule
+from bolts.datamodules.wrappers import TiWrapper
 
 
 class CelebaDataModule(VisionBaseDataModule):
