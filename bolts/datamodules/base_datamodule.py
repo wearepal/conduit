@@ -1,11 +1,11 @@
 """Common to all datamodules."""
-import logging
 from abc import abstractmethod
+import logging
 from typing import List, Optional, Sequence, Union
 
-import pytorch_lightning as pl
 from kit import implements
 from kit.torch import StratifiedSampler
+import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Dataset, Sampler
 
 from bolts.datamodules.utils import extract_labels_from_dataset

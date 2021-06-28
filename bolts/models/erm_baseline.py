@@ -1,15 +1,15 @@
 """ERM Baseline Model."""
 from typing import Dict, List, Tuple
-from typing_extensions import Literal
 
 import ethicml as em
+from kit import implements
 import pandas as pd
 import pytorch_lightning as pl
 import torch
-import torchmetrics
-from kit import implements
 from torch import Tensor, nn, optim
 from torch.optim.lr_scheduler import _LRScheduler
+import torchmetrics
+from typing_extensions import Literal
 
 from bolts.datasets.ethicml_datasets import DataBatch
 

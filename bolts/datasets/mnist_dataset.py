@@ -1,24 +1,24 @@
-import warnings
-from PIL import Image
-import os
-import os.path
-import numpy as np
-import torch
 import codecs
-import string
 import gzip
 import lzma
-from typing import Any, Callable, Dict, IO, List, Optional, Tuple, Union
-from typing_extensions import Final
+import os
+import os.path
+import string
+from typing import IO, Any, Callable, Dict, List, Optional, Tuple, Union
+import warnings
 
+from PIL import Image
+import numpy as np
+import torch
 from torchvision.datasets import VisionDataset
 from torchvision.datasets.utils import (
     download_and_extract_archive,
-    verify_str_arg,
-    extract_archive,
-    download_url,
     download_file_from_google_drive,
+    download_url,
+    extract_archive,
+    verify_str_arg,
 )
+from typing_extensions import Final
 
 __all__ = ["MNIST", "FashionMNIST", "KMNIST", "EMNIST", "QMNIST"]
 

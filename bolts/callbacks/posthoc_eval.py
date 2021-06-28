@@ -1,9 +1,9 @@
 from collections import Sequence
 
-import pytorch_lightning as pl
-import torch
 from kit import gcopy
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 

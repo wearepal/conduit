@@ -1,8 +1,8 @@
 from typing import Type
 
 import pytest
-import torch
 from pytorch_lightning import LightningDataModule
+import torch
 
 from bolts.datamodules.mnist_datamodule import MNISTDataModule
 

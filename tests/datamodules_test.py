@@ -1,8 +1,8 @@
 """Test DataModules."""
 import pytest
+from pytorch_lightning import LightningDataModule
 import torch
 import torch.nn.functional as F
-from pytorch_lightning import LightningDataModule
 from typing_extensions import Final, Type
 
 from bolts.datamodules.adult_datamodule import AdultDataModule
