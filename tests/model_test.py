@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 from torch import nn
 
 from bolts.datamodules import CelebaDataModule
+from bolts.models.dann import Dann
 from bolts.models.erm import ErmBaseline
 from bolts.models.laftr import Laftr
 
@@ -31,6 +32,28 @@ def test_laftr(
         recon_weight=1.0,
         clf_weight=0.0,
         adv_weight=1.0,
+        lr=1e-3,
+    )
+
+    trainer.fit(model, datamodule=dm)
+
+
+@pytest.mark.parametrize("dm_class", [CelebaDataModule])
+def test_dann(
+    enc: nn.Module, adv: nn.Module, clf: nn.Module, dm_class: pl.LightningDataModule
+) -> None:
+    """Test the Laftr model."""
+    dm = dm_class()
+    dm.prepare_data()
+    dm.setup()
+
+    trainer = pl.Trainer(fast_dev_run=True)
+
+    model = Dann(
+        enc=enc,
+        adv=adv,
+        clf=clf,
+        weight_decay=1e-8,
         lr=1e-3,
     )
 
