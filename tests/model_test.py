@@ -4,8 +4,8 @@ import pytorch_lightning as pl
 from torch import nn
 
 from bolts.datamodules import CelebaDataModule
-from bolts.models.erm_baseline import ErmBaseline
-from bolts.models.laftr_baseline import Laftr
+from bolts.models.erm import ErmBaseline
+from bolts.models.laftr import Laftr
 
 
 @pytest.mark.parametrize("dm_class", [CelebaDataModule])
