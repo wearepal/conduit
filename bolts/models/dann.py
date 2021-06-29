@@ -1,4 +1,5 @@
 """ERM Baseline Model."""
+from collections import namedtuple
 from typing import Dict, List, Optional, Tuple
 
 import ethicml as em
@@ -16,6 +17,8 @@ __all__ = ["Dann"]
 
 Stage = Literal["train", "val", "test"]
 
+DannOut = namedtuple("DannOut", ["s", "y"])
+
 
 class GradReverse(autograd.Function):
     """Gradient reversal layer."""
@@ -24,12 +27,12 @@ class GradReverse(autograd.Function):
     def forward(ctx: autograd.Function, x: Tensor, lambda_: float) -> Tensor:
         """Do GRL."""
         ctx.lambda_ = lambda_
-        return x.view_as(x)
+        return x
 
     @staticmethod
     def backward(ctx: autograd.Function, grad_output: Tensor) -> Tuple[Tensor, Optional[Tensor]]:
         """Do GRL."""
-        return grad_output.neg().mul(ctx.lambda_), None
+        return -ctx.lambda_ * grad_output, None
 
 
 def grad_reverse(features: Tensor, lambda_: float = 1.0) -> Tensor:
@@ -61,12 +64,11 @@ class Dann(pl.LightningModule):
         self._loss_adv_fn = nn.BCEWithLogitsLoss()
         self._loss_clf_fn = nn.BCEWithLogitsLoss()
 
-        self.test_acc_s = torchmetrics.Accuracy()
-        self.test_acc_y = torchmetrics.Accuracy()
-        self.train_acc_s = torchmetrics.Accuracy()
-        self.train_acc_y = torchmetrics.Accuracy()
-        self.val_acc_s = torchmetrics.Accuracy()
-        self.val_acc_y = torchmetrics.Accuracy()
+        self.accs = {
+            f"{stage}_{label}": torchmetrics.Accuracy()
+            for stage in ("train", "test", "val")
+            for label in ("s", "y")
+        }
 
     def _inference_epoch_end(
         self, output_results: List[Dict[str, Tensor]], stage: Stage
@@ -90,45 +92,41 @@ class Dann(pl.LightningModule):
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
 
-        tm_acc_s = self.val_acc_s if stage == "val" else self.test_acc_s
-        tm_acc_y = self.val_acc_y if stage == "val" else self.test_acc_y
-        acc_s = tm_acc_s.compute().item()
-        acc_y = tm_acc_y.compute().item()
-        results_dict = {f"{stage}/acc_s": acc_s, f"{stage}/acc_y": acc_y}
+        results_dict = {
+            f"{stage}/acc_{label}": self.accs[f"{stage}_{label}"].compute().item()
+            for stage in ("train", "test", "val")
+            for label in ("s", "y")
+        }
         results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
         return results_dict
 
-    def _inference_step(self, batch: DataBatch, stage: Stage) -> Dict[str, Tensor]:
-        _s, _y = self.forward(batch.x)
+    def _get_losses(self, out: DannOut, batch: DataBatch):
         target_s = batch.s.view(-1, 1).float()
-        loss_adv = self._loss_adv_fn(_s, target_s)
+        loss_adv = self._loss_adv_fn(out.s, target_s)
         target_y = batch.y.view(-1, 1).float()
-        loss_clf = self._loss_clf_fn(_y, target_y)
-        loss = loss_adv + loss_clf
-        tm_acc_s = self.val_acc_s if stage == "val" else self.test_acc_s
-        tm_acc_y = self.val_acc_y if stage == "val" else self.test_acc_y
+        loss_clf = self._loss_clf_fn(out.y, target_y)
+        return loss_adv, loss_clf, loss_adv + loss_clf
 
-        target_y = batch.y.view(-1, 1).long()
-        y_acc = tm_acc_y(_y >= 0, target_y)
+    def _inference_step(self, batch: DataBatch, stage: Stage) -> Dict[str, Tensor]:
+        model_out: DannOut = self.forward(batch.x)
+        loss_adv, loss_clf, loss = self._get_losses(model_out, batch)
+        logs = {
+            f"{stage}/loss": loss.item(),
+            f"{stage}/loss_adv": loss_adv.item(),
+            f"{stage}/loss_clf": loss_clf.item(),
+        }
 
-        target_s = batch.s.view(-1, 1).long()
-        s_acc = tm_acc_s(_s >= 0, target_s)
-        self.log_dict(
-            {
-                f"{stage}/loss": loss.item(),
-                f"{stage}/loss_adv": loss_adv.item(),
-                f"{stage}/loss_clf": loss_clf.item(),
-                f"{stage}/acc_s": s_acc,
-                f"{stage}/acc_y": y_acc,
-            }
-        )
-        return {"y": batch.y, "s": batch.s, "preds": _y.sigmoid().round().squeeze(-1)}
+        for _label in ("s", "y"):
+            tm_acc = self.accs[f"{stage}_{_label}"]
+            _target = getattr(batch, _label).view(-1, 1).long()
+            _acc = tm_acc(getattr(model_out, _label) >= 0, _target)
+            logs.update({f"{stage}/acc_{_label}": _acc})
+        self.log_dict(logs)
+        return {"y": batch.y, "s": batch.s, "preds": model_out.y.sigmoid().round().squeeze(-1)}
 
     def reset_parameters(self) -> None:
         """Reset the models."""
-        self.adv.apply(self._maybe_reset_parameters)
-        self.enc.apply(self._maybe_reset_parameters)
-        self.clf.apply(self._maybe_reset_parameters)
+        self.apply(self._maybe_reset_parameters)
 
     @implements(pl.LightningModule)
     def configure_optimizers(
@@ -151,26 +149,20 @@ class Dann(pl.LightningModule):
 
     @implements(pl.LightningModule)
     def training_step(self, batch: DataBatch, batch_idx: int) -> Tensor:
-        _s, _y = self.forward(batch.x)
-        target_s = batch.s.view(-1, 1).float()
-        loss_adv = self._loss_adv_fn(_s, target_s)
-        target_y = batch.y.view(-1, 1).float()
-        loss_clf = self._loss_clf_fn(_y, target_y)
-        loss = loss_adv + loss_clf
+        model_out: DannOut = self.forward(batch.x)
+        loss_adv, loss_clf, loss = self._get_losses(model_out, batch)
 
-        target_s = batch.s.view(-1, 1).long()
-        acc_s = self.train_acc_s(_s >= 0, target_s)
-        target_y = batch.y.view(-1, 1).long()
-        acc_y = self.train_acc_y(_y >= 0, target_y)
-        self.log_dict(
-            {
-                f"train/adv_loss": loss_adv.item(),
-                f"train/clf_loss": loss_clf.item(),
-                f"train/loss": loss.item(),
-                f"train/acc_s": acc_s,
-                f"train/acc_y": acc_y,
-            }
-        )
+        logs = {
+            f"train/adv_loss": loss_adv.item(),
+            f"train/clf_loss": loss_clf.item(),
+            f"train/loss": loss.item(),
+        }
+        for _label in ("s", "y"):
+            tm_acc = self.accs[f"train_{_label}"]
+            _target = getattr(batch, _label).view(-1, 1).long()
+            _acc = tm_acc(getattr(model_out, _label) >= 0, _target)
+            logs.update({f"train/acc_{_label}": _acc})
+        self.log_dict(logs)
         return loss
 
     @implements(pl.LightningModule)
@@ -187,7 +179,7 @@ class Dann(pl.LightningModule):
         z = self.enc(x)
         y = self.clf(z)
         s = self.adv(grad_reverse(z, lambda_=self.grl_lambda))
-        return s, y
+        return DannOut(s=s, y=y)
 
     @staticmethod
     def _maybe_reset_parameters(module: nn.Module) -> None:
