@@ -1,23 +1,20 @@
 """Tests for models."""
-import pytest
 import pytorch_lightning as pl
 from torch import nn
 
-from bolts.datamodules import CelebaDataModule
 from bolts.models.dann import Dann
 from bolts.models.erm import ErmBaseline
 from bolts.models.laftr import Laftr
 
 
-@pytest.mark.parametrize("dm_class", [CelebaDataModule])
 def test_laftr(
-    enc: nn.Module, adv: nn.Module, clf: nn.Module, dec: nn.Module, dm_class: pl.LightningDataModule
+    dummy_dm: pl.LightningDataModule,
+    enc: nn.Module,
+    adv: nn.Module,
+    clf: nn.Module,
+    dec: nn.Module,
 ) -> None:
     """Test the Laftr model."""
-    dm = dm_class()
-    dm.prepare_data()
-    dm.setup()
-
     trainer = pl.Trainer(fast_dev_run=True)
 
     model = Laftr(
@@ -35,18 +32,13 @@ def test_laftr(
         lr=1e-3,
     )
 
-    trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dummy_dm)
 
 
-@pytest.mark.parametrize("dm_class", [CelebaDataModule])
 def test_dann(
-    enc: nn.Module, adv: nn.Module, clf: nn.Module, dm_class: pl.LightningDataModule
+    dummy_dm: pl.LightningDataModule, enc: nn.Module, adv: nn.Module, clf: nn.Module
 ) -> None:
     """Test the Laftr model."""
-    dm = dm_class()
-    dm.prepare_data()
-    dm.setup()
-
     trainer = pl.Trainer(fast_dev_run=True)
 
     model = Dann(
@@ -57,16 +49,11 @@ def test_dann(
         lr=1e-3,
     )
 
-    trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dummy_dm)
 
 
-@pytest.mark.parametrize("dm_class", [CelebaDataModule])
-def test_erm(enc: nn.Module, clf: nn.Module, dm_class: pl.LightningDataModule) -> None:
+def test_erm(dummy_dm: pl.LightningDataModule, enc: nn.Module, clf: nn.Module) -> None:
     """Test the ERM model."""
-    dm = dm_class()
-    dm.prepare_data()
-    dm.setup()
-
     trainer = pl.Trainer(fast_dev_run=True)
 
     model = ErmBaseline(
@@ -77,16 +64,11 @@ def test_erm(enc: nn.Module, clf: nn.Module, dm_class: pl.LightningDataModule) -
         lr=1e-3,
     )
 
-    trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dummy_dm)
 
 
-@pytest.mark.parametrize("dm_class", [CelebaDataModule])
-def test_kc(enc: nn.Module, clf: nn.Module, dm_class: pl.LightningDataModule) -> None:
+def test_kc(dummy_dm: pl.LightningDataModule, enc: nn.Module, clf: nn.Module) -> None:
     """Test the ERM model."""
-    dm = dm_class()
-    dm.prepare_data()
-    dm.setup()
-
     trainer = pl.Trainer(fast_dev_run=True)
 
     model = ErmBaseline(
@@ -97,4 +79,4 @@ def test_kc(enc: nn.Module, clf: nn.Module, dm_class: pl.LightningDataModule) ->
         lr=1e-3,
     )
 
-    trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dummy_dm)
