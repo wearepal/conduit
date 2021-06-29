@@ -1,7 +1,6 @@
 """Datasets from EthicML."""
-from collections import namedtuple
 from itertools import groupby
-from typing import Iterator, List, Tuple
+from typing import Iterator, List, NamedTuple, Tuple
 
 import ethicml as em
 from ethicml import DataTuple
@@ -12,7 +11,12 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset
 
-DataBatch = namedtuple("DataBatch", ["x", "s", "y", "iw"])
+
+class DataBatch(NamedTuple):
+    x: Tensor
+    s: Tensor
+    y: Tensor
+    iw: Tensor
 
 
 def group_features(disc_feats: List[str]) -> Iterator[Tuple[str, Iterator[str]]]:

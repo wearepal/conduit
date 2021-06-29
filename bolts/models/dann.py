@@ -1,6 +1,5 @@
 """ERM Baseline Model."""
-from collections import namedtuple
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import ethicml as em
 from kit import implements
@@ -17,7 +16,10 @@ __all__ = ["Dann"]
 
 Stage = Literal["train", "val", "test"]
 
-DannOut = namedtuple("DannOut", ["s", "y"])
+
+class DannOut(NamedTuple):
+    s: Tensor
+    y: Tensor
 
 
 class GradReverse(autograd.Function):

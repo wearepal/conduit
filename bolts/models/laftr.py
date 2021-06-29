@@ -1,8 +1,7 @@
 """LAFTR model."""
-from collections import namedtuple
 from enum import Enum
 import itertools
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, NamedTuple, Tuple, Union
 
 import ethicml as em
 from kit import implements
@@ -16,7 +15,14 @@ __all__ = ["Laftr"]
 
 from bolts.datasets.ethicml_datasets import DataBatch
 
-ModelOut = namedtuple("ModelOut", ["y", "z", "s", "x"])
+
+class ModelOut(NamedTuple):
+    y: Tensor
+    z: Tensor
+    s: Tensor
+    x: Tensor
+
+
 FairnessType = Enum("FairnessType", "DP EO EqOp")
 
 
