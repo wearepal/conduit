@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  ci_suite:
+    runs-on: ubuntu-latest
+    env:
+      POETRY_VIRTUALENVS_CREATE: false
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+    - name: Set up Poetry cache for Python dependencies
+      uses: actions/cache@v2
+      if: startsWith(runner.os, 'Linux')
+      with:
+        path: ~/.cache/pypoetry
+        key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+        restore-keys: ${{ runner.os }}-poetry-
+    - name: Install Poetry
+      run: |
+        curl -fsS -o get-poetry.py https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py
+        python get-poetry.py -y
+        echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+        rm get-poetry.py
+    - name: Install dependencies
+      run: poetry install --no-interaction
+    - name: Format with black
+      run: |
+        python -m black --check .
+    - name: Format with isort
+      run: |
+        isort --check --diff .
+    - name: Install Additional Dependencies for Type-Checking/Tests
+      run: poetry install -E ci --no-interaction
+    - name: Check with mypy
+      run: |
+        mypy tests/
+    - name: Test with pytest
+      run: |
+        python -m pytest -vv tests/

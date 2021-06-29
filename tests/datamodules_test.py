@@ -20,6 +20,7 @@ def _create_dm(dm_cls: Type[LightningDataModule], stratified: bool) -> Lightning
     return dm
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("stratified", [True, False])
 @pytest.mark.parametrize(
     "dm_cls", [AdultDataModule, CompasDataModule, CelebaDataModule, CmnistDataModule]
@@ -38,6 +39,7 @@ def test_data_modules(dm_cls: Type[LightningDataModule], stratified: bool) -> No
     assert dm.num_sens
 
 
+@pytest.mark.slow
 def test_cache_param() -> None:
     """Test that the loader works with cache flag."""
     dm = CelebaDataModule(cache_data=True)
@@ -55,6 +57,7 @@ def test_cache_param() -> None:
     assert dm.num_sens
 
 
+@pytest.mark.slow
 def test_persist_param() -> None:
     """Test that the loader works with persist_workers flag."""
     dm = CelebaDataModule(persist_workers=True, num_workers=1)

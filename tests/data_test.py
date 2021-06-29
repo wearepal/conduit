@@ -14,6 +14,7 @@ def _create_dm(dm_cls: Type[LightningDataModule]) -> LightningDataModule:
     return dm
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("dm_cls", [MNISTDataModule])
 def test_data_modules(dm_cls: Type[LightningDataModule]) -> None:
     """Test the datamodules."""

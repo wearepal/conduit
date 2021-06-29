@@ -33,9 +33,10 @@ torchvision = "*"
 black = "*"
 isort = "*"
 mypy = "*"
+pre-commit = "*"
 pydocstyle = "*"
 pytest = "*"
-pre-commit = "^2.13.0"
+python-type-stubs = {git = "https://github.com/predictive-analytics-lab/python-type-stubs.git", branch = "main" }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -88,10 +89,35 @@ show_error_codes = true
 warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
-module = ["flash.*", "git.*", "PIL.*", "pl_bolts.*", "scipy.*", "torchvision.*", "tqdm.*", "wandb.*"]
+module = [
+    "albumentations.*",
+    "ethicml.*",
+    "flash.*",
+    "git.*",
+    "kit.*",
+    "pandas.*",
+    "PIL.*",
+    "pl_bolts.*",
+    "pytest.*",
+    "pytorch_lightning.*",
+    "scipy.*",
+    "sklearn.*",
+    "torch.*",
+    "torchmetrics.*",
+    "torchvision.*",
+    "tqdm.*",
+    "wandb.*"
+]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["pytest.*", "pytorch_lightning.*", "torch.*"]
+module = [
+    "ethicml.*",
+    "kit.*",
+    "pytest.*",
+    "pytorch_lightning.*",
+    "torch.*",
+    "torchmetrics.*"
+]
 follow_imports = "skip"
 follow_imports_for_stubs = true

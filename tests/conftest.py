@@ -3,8 +3,30 @@ from typing import List, Optional, Tuple
 
 from kit import implements
 import pytest
+import pytorch_lightning as pl
 import torch
 from torch import Tensor, nn
+from torch.utils.data import DataLoader
+
+from bolts.datasets.dummy_datasets import DummyDataset
+
+
+def pytest_addoption(parser):
+    parser.addoption("--runslow", action="store_true", default=False, help="run slow tests")
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "slow: mark test as slow to run")
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--runslow"):
+        # --runslow given in cli: do not skip slow tests
+        return
+    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)
 
 
 class Mp64x64Net(nn.Module):
@@ -188,8 +210,7 @@ class Decoder(nn.Module):
 
     @implements(nn.Module)
     def forward(self, z: Tensor, s: Tensor) -> Tensor:
-        if len(s.shape) == 1:
-            s = s.unsqueeze(-1)
+        s = s.view(-1, 1)
         zs = torch.cat([z, s], dim=1)
         return self.decoder(zs)
 
@@ -238,3 +259,14 @@ def adv() -> nn.Module:
 def clf() -> nn.Module:
     """Return a classifier."""
     return EmbeddingClf(encoding_dim=128)
+
+
+class DummyDataModule(pl.LightningDataModule):
+    def train_dataloader(self):
+        train_ds = DummyDataset((3, 64, 64), (1,), (1,), (1,), num_samples=100)
+        return DataLoader(train_ds, batch_size=1)
+
+
+@pytest.fixture(scope="session")
+def dummy_dm():
+    return DummyDataModule()

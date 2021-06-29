@@ -1,8 +1,9 @@
 """Accuracy tests."""
-from collections import namedtuple
+from typing import NamedTuple
 
 import pytest
 import torch
+from torch import Tensor
 
 from bolts.metrics.accuracy_per_sens import AccuracyPerSens
 
@@ -12,7 +13,13 @@ BATCH_SIZE = 32
 NUM_CLASSES = 5
 EXTRA_DIM = 3
 THRESHOLD = 0.5
-Input = namedtuple('Input', ["preds", "sens", "target"])
+
+
+class Input(NamedTuple):
+    preds: Tensor
+    sens: Tensor
+    target: Tensor
+
 
 _input_binary_prob = Input(
     preds=torch.rand(NUM_BATCHES, BATCH_SIZE),

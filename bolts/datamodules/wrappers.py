@@ -56,7 +56,7 @@ class AlbumentationsDataset(Dataset):
         data_type = type(data)
         if self.transform is not None:
             image = data[0]
-            if isinstance(image, Image.Image):
+            if isinstance(image, Image):
                 image = np.array(image)
             # Apply transformations
             augmented = self.transform(image=image)["image"]

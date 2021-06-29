@@ -448,7 +448,7 @@ test = ["codecov (>=2.1)", "pytest (>=6.0)", "pytest-cov (>2.10)", "flake8", "ch
 type = "git"
 url = "https://github.com/PyTorchLightning/lightning-bolts.git"
 reference = "master"
-resolved_reference = "48e75217d8c10e5726eafca2c85e795a993477e7"
+resolved_reference = "a88e78b8bfa8e071983a9d3508fe7783af7e0ea6"
 
 [[package]]
 name = "markdown"
@@ -591,7 +591,7 @@ pyparsing = ">=2.0.2"
 
 [[package]]
 name = "palkit"
-version = "0.3.1"
+version = "0.3.2"
 description = "Useful functions."
 category = "main"
 optional = false
@@ -784,6 +784,20 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
 six = ">=1.5"
 
 [[package]]
+name = "python-type-stubs"
+version = "0.1.0.dev0"
+description = "A set of type stubs for popular Python packages."
+category = "dev"
+optional = false
+python-versions = ">=3.6"
+
+[package.source]
+type = "git"
+url = "https://github.com/predictive-analytics-lab/python-type-stubs.git"
+reference = "main"
+resolved_reference = "306b657debe8b29d516dcbe249eaa0b5eeab641f"
+
+[[package]]
 name = "pytorch-lightning"
 version = "1.3.7.post0"
 description = "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers. Scale your models. Write less boilerplate."
@@ -894,7 +908,7 @@ pyasn1 = ">=0.1.3"
 
 [[package]]
 name = "scikit-image"
-version = "0.18.1"
+version = "0.18.2"
 description = "Image processing in Python"
 category = "main"
 optional = false
@@ -1237,7 +1251,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "29aafcaa4d3518148a9abcebd44179d0b4aa5696749dd80c5f12228d7d01856d"
+content-hash = "c30e73bd403342ca7e3398b804f5d66f807850e8d6deea9a1a8327b9da671432"
 
 [metadata.files]
 absl-py = [
@@ -1652,8 +1666,8 @@ packaging = [
     {file = "packaging-20.9.tar.gz", hash = "sha256:5b327ac1320dc863dca72f4514ecc086f31186744b84a230374cc1fd776feae5"},
 ]
 palkit = [
-    {file = "palkit-0.3.1-py3-none-any.whl", hash = "sha256:dda225404e1255bdf4628a69c41baaa8507bebce64eafc67d950ae02cd5c124b"},
-    {file = "palkit-0.3.1.tar.gz", hash = "sha256:6f01220cf1594c6f07dc686e164f425f1585aeb5533827b35e744b6537d8a418"},
+    {file = "palkit-0.3.2-py3-none-any.whl", hash = "sha256:68fb979c1dd1fd890f16ed0b6f92dbe694e9cc435c7cd259ddba0bdbfc3b6c30"},
+    {file = "palkit-0.3.2.tar.gz", hash = "sha256:53c2971616eebcc64acca48387d755bfe3ae6c227174c927406b2b6276fdbe0b"},
 ]
 pandas = [
     {file = "pandas-1.1.5-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:bf23a3b54d128b50f4f9d4675b3c1857a688cc6731a32f931837d72effb2698d"},
@@ -1811,6 +1825,7 @@ python-dateutil = [
     {file = "python-dateutil-2.8.1.tar.gz", hash = "sha256:73ebfe9dbf22e832286dafa60473e4cd239f8592f699aa5adaf10050e6e1823c"},
     {file = "python_dateutil-2.8.1-py2.py3-none-any.whl", hash = "sha256:75bb3f31ea686f1197762692a9ee6a7550b59fc6ca3a1f4b5d7e32fb98e2da2a"},
 ]
+python-type-stubs = []
 pytorch-lightning = [
     {file = "pytorch-lightning-1.3.7.post0.tar.gz", hash = "sha256:7790f9d7b0286571f7176074c52062760e8e8994c1875a53e75045319f28ecc2"},
     {file = "pytorch_lightning-1.3.7.post0-py3-none-any.whl", hash = "sha256:fd6da3ec36e57eb65c8a9c5e063409306bd35c7be4e6b06358cbbfeaa75b23fa"},
@@ -1931,22 +1946,25 @@ rsa = [
     {file = "rsa-4.7.2.tar.gz", hash = "sha256:9d689e6ca1b3038bc82bf8d23e944b6b6037bc02301a574935b2dd946e0353b9"},
 ]
 scikit-image = [
-    {file = "scikit-image-0.18.1.tar.gz", hash = "sha256:fbb618ca911867bce45574c1639618cdfb5d94e207432b19bc19563d80d2f171"},
-    {file = "scikit_image-0.18.1-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:1cd05c882ffb2a271a1f20b4afe937d63d55b8753c3d652f11495883a7800ebe"},
-    {file = "scikit_image-0.18.1-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:e972c628ad9ba52c298b032368e29af9bd5eeb81ce33bc2d9b039a81661c99c5"},
-    {file = "scikit_image-0.18.1-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:1256017c513e8e1b8b9da73e5fd1e605d0077bbbc8e5c8d6c2cab36400131c6c"},
-    {file = "scikit_image-0.18.1-cp37-cp37m-win32.whl", hash = "sha256:ec25e4110951d3a280421bb10dd510a082ba83d86e20d706294faf7899cdb3d5"},
-    {file = "scikit_image-0.18.1-cp37-cp37m-win_amd64.whl", hash = "sha256:2eea42706a25ae6e0cebaf1914e2ab1c04061b1f3c9966d76025d58a2e9188fc"},
-    {file = "scikit_image-0.18.1-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:76446e2402e64d7dba78eeae8aa86e92a0cafe5b1c9e6235bd8d067471ed2788"},
-    {file = "scikit_image-0.18.1-cp38-cp38-manylinux1_i686.whl", hash = "sha256:d5ad4a9b4c9797d4c4c48f45fa224c5ebff22b9b0af636c3ecb8addbb66c21e6"},
-    {file = "scikit_image-0.18.1-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:23f9178b21c752bfb4e4ea3a3fa0ff79bc5a401bc75ddb4661f2cebd1c2b0e24"},
-    {file = "scikit_image-0.18.1-cp38-cp38-win32.whl", hash = "sha256:d746540cafe7776c6d05a0b40ec744bb8d33d1ddc51faba601d26c02593d8bcc"},
-    {file = "scikit_image-0.18.1-cp38-cp38-win_amd64.whl", hash = "sha256:30447af3f5b7c9491f2d3db5bc275493d1b91bf1dd16b67e2fd79a6bb95d8ee9"},
-    {file = "scikit_image-0.18.1-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:ae6659b3a8bd4bba7e9dcbfd0064e443b32c7054bf09174749db896730fcf42e"},
-    {file = "scikit_image-0.18.1-cp39-cp39-manylinux1_i686.whl", hash = "sha256:2c058770c6ad6e0fe6c30f59970c9c65fa740ff014d121d8c341664cd792cf49"},
-    {file = "scikit_image-0.18.1-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:c700336a7f96109c74154090c5e693693a8e3fa09ed6156a5996cdc9a3bb1534"},
-    {file = "scikit_image-0.18.1-cp39-cp39-win32.whl", hash = "sha256:3515b890e771f99bbe1051a0dcfe0fc477da961da933c34f89808a0f1eeb7dc2"},
-    {file = "scikit_image-0.18.1-cp39-cp39-win_amd64.whl", hash = "sha256:5f602779258807d03e72c0a439cfb221f647e628be166fb3594397435f13c76b"},
+    {file = "scikit-image-0.18.2.tar.gz", hash = "sha256:32ff472355fbf8ab40a8e9ed685906c6c51a863f1ea8737882d26be9221631f3"},
+    {file = "scikit_image-0.18.2-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:6f6d0e79a91c62360708111951abb3a774cefac865902ea797c3b72d8ece6382"},
+    {file = "scikit_image-0.18.2-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:49a9b48bc428d2d56aaefbc042fd79c67ebc908a1cbf542e9c863c49339ca496"},
+    {file = "scikit_image-0.18.2-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:32620792e989beb2c3eb67eae38b59291be412be59ad3485ee0f67cb7b37c16f"},
+    {file = "scikit_image-0.18.2-cp37-cp37m-manylinux2014_aarch64.whl", hash = "sha256:38efc3fd9023c7849175fc18b2cc96a08629da840b6100ec5038f487fba7d34e"},
+    {file = "scikit_image-0.18.2-cp37-cp37m-win32.whl", hash = "sha256:5510b133999a45b2c8ed4c1b659fa0a1cf4ca0db949353d0f54fc6290dac4d5a"},
+    {file = "scikit_image-0.18.2-cp37-cp37m-win_amd64.whl", hash = "sha256:b3aa7230d84b12d8a4a9f0b65ee895603d27fe85366bf2b57929ba1cce2e8987"},
+    {file = "scikit_image-0.18.2-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:b21d65dcee453539fe70b5903edd8429ad9fe46233b049dd622368bad435f39e"},
+    {file = "scikit_image-0.18.2-cp38-cp38-manylinux1_i686.whl", hash = "sha256:f61d65de826abe2f5f6c171c75d2bb93df56aa4a690d1bab5911412f49b9e768"},
+    {file = "scikit_image-0.18.2-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:a4fdba1bdd883a8028ddff0b8fe8d43c8dd43360bdab6e1f40599fa210613f1d"},
+    {file = "scikit_image-0.18.2-cp38-cp38-manylinux2014_aarch64.whl", hash = "sha256:8e62228a91b770fbe89d310e833f8797f14136b9635bb67d8b780f1b8cf237e6"},
+    {file = "scikit_image-0.18.2-cp38-cp38-win32.whl", hash = "sha256:f80d16ce57e05af8e282620a23e90bb8886e5efa6eedcacb4da1c15293ba5e9a"},
+    {file = "scikit_image-0.18.2-cp38-cp38-win_amd64.whl", hash = "sha256:6d576a8249114e6169ea1c2b05a22168745eedba90b06d5765368dbd59b27c7f"},
+    {file = "scikit_image-0.18.2-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:278b0034c509d8b31a9b117837b3d45957dd3408e062ad0f2b24edeb1a460e91"},
+    {file = "scikit_image-0.18.2-cp39-cp39-manylinux2010_i686.whl", hash = "sha256:f9648093a0865150fc4ac9eaf02256afbf471a43216b0b6ee6585a4d57674563"},
+    {file = "scikit_image-0.18.2-cp39-cp39-manylinux2010_x86_64.whl", hash = "sha256:2c7e91fb3df5cc58cb13c39094a32bb2e990ced30b08ee34bf0976ff8a1ba579"},
+    {file = "scikit_image-0.18.2-cp39-cp39-manylinux2014_aarch64.whl", hash = "sha256:4f42a36e34a3e659dd5e0fe9c0b07f797f9b66680224a7f2545a564484574d78"},
+    {file = "scikit_image-0.18.2-cp39-cp39-win32.whl", hash = "sha256:66ea3bc8f53efbaf751fdae472fe1cbc55ad5e4fadbf6d3a0a268dc7e34d83b6"},
+    {file = "scikit_image-0.18.2-cp39-cp39-win_amd64.whl", hash = "sha256:74f7c5920c0b893608ef0d159a61a15e87aa9f31d2707d1ed6621a65233646cd"},
 ]
 scikit-learn = [
     {file = "scikit-learn-0.24.2.tar.gz", hash = "sha256:d14701a12417930392cd3898e9646cf5670c190b933625ebe7511b1f7d7b8736"},
