@@ -23,7 +23,7 @@ readme="README.md"
 [tool.poetry.dependencies]
 python = "^3.7"
 albumentations = "^1.0.0"
-EthicML = "*"
+EthicML = "^0.2.5"
 lightning-bolts = {git = "https://github.com/PyTorchLightning/lightning-bolts.git", branch="master", allow-prereleases=true}
 palkit = "*"
 torch = "*"

@@ -1251,7 +1251,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "c30e73bd403342ca7e3398b804f5d66f807850e8d6deea9a1a8327b9da671432"
+content-hash = "9db2715b4fe109da23ab3b791825282b4d1e1685b1f01c9f73400fe855d94ce9"
 
 [metadata.files]
 absl-py = [
