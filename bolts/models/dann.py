@@ -100,7 +100,7 @@ class Dann(pl.LightningModule):
         results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
         return results_dict
 
-    def _get_losses(self, out: DannOut, batch: DataBatch):
+    def _get_losses(self, out: DannOut, batch: DataBatch) -> Tuple[Tensor, Tensor, Tensor]:
         target_s = batch.s.view(-1, 1).float()
         loss_adv = self._loss_adv_fn(out.s, target_s)
         target_y = batch.y.view(-1, 1).float()
