@@ -444,12 +444,6 @@ loggers = ["matplotlib", "wandb", "scipy"]
 models = ["torchvision (>=0.7)", "scikit-learn (>=0.23)", "pillow", "opencv-python-headless", "gym (>=0.17.2)", "atari-py (>=0.2.0,<0.3.0)", "box2d-py (>=2.3.0,<2.4.0)"]
 test = ["codecov (>=2.1)", "pytest (>=6.0)", "pytest-cov (>2.10)", "flake8", "check-manifest", "twine (>=3.2)", "isort (>=5.6.4)", "pre-commit (>=1.0)", "mypy (>=0.790)", "yapf (>=0.29.0)", "atari-py (0.2.6)", "scikit-learn (>=0.23)"]
 
-[package.source]
-type = "git"
-url = "https://github.com/PyTorchLightning/lightning-bolts.git"
-reference = "master"
-resolved_reference = "a88e78b8bfa8e071983a9d3508fe7783af7e0ea6"
-
 [[package]]
 name = "markdown"
 version = "3.3.4"
@@ -1251,7 +1245,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "de50171211a6e1930d0c3ec419e1a2e34eec3d26a216512c3c6014442b2d9a8d"
+content-hash = "c497f35550cc2108e91f45df9d1870871824eecbb2c5064f6c3bcbb33a73f92b"
 
 [metadata.files]
 absl-py = [
@@ -1503,7 +1497,10 @@ kiwisolver = [
     {file = "kiwisolver-1.3.1-pp36-pypy36_pp73-win32.whl", hash = "sha256:401a2e9afa8588589775fe34fc22d918ae839aaaf0c0e96441c0fdbce6d8ebe6"},
     {file = "kiwisolver-1.3.1.tar.gz", hash = "sha256:950a199911a8d94683a6b10321f9345d5a3a8433ec58b217ace979e18f16e248"},
 ]
-lightning-bolts = []
+lightning-bolts = [
+    {file = "lightning-bolts-0.3.4.tar.gz", hash = "sha256:72b9c5fcc17ff85f76e27654c51951d837143ae930bbeae3e0c8880f9e7f4c5c"},
+    {file = "lightning_bolts-0.3.4-py3-none-any.whl", hash = "sha256:c5cbeb358a8d09c3bd912cd8fffdf3b435c5ac4516d6dae84a9ea3229facf39f"},
+]
 markdown = [
     {file = "Markdown-3.3.4-py3-none-any.whl", hash = "sha256:96c3ba1261de2f7547b46a00ea8463832c921d3f9d6aba3f255a6f71386db20c"},
     {file = "Markdown-3.3.4.tar.gz", hash = "sha256:31b5b491868dcc87d6c24b7e3d19a0d730d59d3e46f4eea6430a321bed387a49"},

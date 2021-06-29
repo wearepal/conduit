@@ -24,7 +24,7 @@ readme="README.md"
 python = "^3.7"
 albumentations = "^1.0.0"
 ethicml = "^0.2.5"
-lightning-bolts = {git = "https://github.com/PyTorchLightning/lightning-bolts.git", branch="master", allow-prereleases=true}
+lightning-bolts = "^0.3.4"
 palkit = "*"
 torch = "*"
 torchvision = "*"
