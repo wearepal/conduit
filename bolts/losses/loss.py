@@ -23,8 +23,8 @@ class OnlineReweightingLoss(nn.Module):
     def forward(self, logits: Tensor, targets: Tensor, subgroup_inf: Tensor) -> Tensor:
         unweighted_loss = self.loss_fn(logits, targets)
         for _y in targets.unique():
-            for _z in subgroup_inf.unique():
+            for _s in subgroup_inf.unique():
                 # compute the cardinality of each subgroup and use this to weight the sample-losses
-                mask = (targets == _y) & (subgroup_inf == _z)
+                mask = (targets == _y) & (subgroup_inf == _s)
                 unweighted_loss[mask] /= mask.sum()
         return unweighted_loss.sum()
