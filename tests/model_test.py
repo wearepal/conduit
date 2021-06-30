@@ -212,11 +212,20 @@ class EmbeddingClf(nn.Module):
 
 
 class DummyDataModule(pl.LightningDataModule):
-    def train_dataloader(self) -> DataLoader:
+    def _get_dl(self):
         from bolts.datasets.dummy_datasets import DummyDataset
 
         train_ds = DummyDataset((3, 64, 64), (1,), (1,), (1,), num_samples=100)
         return DataLoader(train_ds, batch_size=20)
+
+    def train_dataloader(self) -> DataLoader:
+        return self._get_dl()
+
+    def val_dataloader(self) -> DataLoader:
+        return self._get_dl()
+
+    def test_dataloader(self) -> DataLoader:
+        return self._get_dl()
 
 
 @pytest.mark.parametrize("fairness", ["DP", "EO", "EqOp"])
@@ -249,8 +258,9 @@ def test_laftr(fairness: str) -> None:
         adv_weight=1.0,
         lr=1e-3,
     )
-
-    trainer.fit(model, datamodule=DummyDataModule())
+    dm = DummyDataModule()
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model=model, datamodule=dm)
 
 
 def test_dann() -> None:
@@ -266,7 +276,9 @@ def test_dann() -> None:
         weight_decay=1e-8,
         lr=1e-3,
     )
-    trainer.fit(model, datamodule=DummyDataModule())
+    dm = DummyDataModule()
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model=model, datamodule=dm)
 
 
 def test_erm() -> None:
@@ -282,7 +294,9 @@ def test_erm() -> None:
         lr=1e-3,
     )
 
-    trainer.fit(model, datamodule=DummyDataModule())
+    dm = DummyDataModule()
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model=model, datamodule=dm)
 
 
 def test_kc() -> None:
@@ -298,4 +312,6 @@ def test_kc() -> None:
         lr=1e-3,
     )
 
-    trainer.fit(model, datamodule=DummyDataModule())
+    dm = DummyDataModule()
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model=model, datamodule=dm)

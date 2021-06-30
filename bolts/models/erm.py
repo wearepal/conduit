@@ -69,7 +69,7 @@ class ErmBaseline(pl.LightningModule):
         )
 
         results = em.run_metrics(
-            predictions=em.Prediction(hard=pd.Series(all_preds.detach().cpu().numpy())),
+            predictions=em.Prediction(hard=pd.Series(all_preds.argmax(-1).detach().cpu().numpy())),
             actual=dt,
             metrics=[em.Accuracy(), em.RenyiCorrelation(), em.Yanovich()],
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
@@ -85,8 +85,8 @@ class ErmBaseline(pl.LightningModule):
         logits = self.forward(batch.x)
         loss = self._get_loss(logits, batch)
         tm_acc = self.val_acc if stage == "val" else self.test_acc
-        target = batch.y.view(-1, 1).long()
-        acc = tm_acc(logits >= 0, target)
+        target = batch.y.view(-1).long()
+        acc = tm_acc(logits.argmax(-1), target)
         self.log_dict(
             {
                 f"{stage}/loss": loss.item(),
