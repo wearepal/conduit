@@ -1,6 +1,5 @@
 from typing import Literal, Optional
 
-import torch
 from torch import Tensor, nn
 import torch.nn.functional as F
 from torch.nn.modules.loss import _Loss
@@ -24,9 +23,6 @@ class CrossEntropy(nn.CrossEntropyLoss):
         self, input: Tensor, target: Tensor, instance_weight: Optional[Tensor] = None
     ) -> Tensor:
         _target = target.view(-1).long()
-        _weight = (
-            instance_weight.view(-1) if instance_weight is not None else torch.ones_like(_target)
-        )
         losses = F.cross_entropy(
             input,
             _target,
@@ -34,7 +30,9 @@ class CrossEntropy(nn.CrossEntropyLoss):
             ignore_index=self.ignore_index,
             reduction=self.reduction,
         )
-        losses *= _weight
+        if instance_weight is not None:
+            _weight = instance_weight.view(-1)
+            losses *= _weight
         if self._reduction_str == "mean":
             return losses.mean()
         if self._reduction_str == "none":
