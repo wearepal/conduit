@@ -8,12 +8,6 @@ class CrossEntropy(nn.CrossEntropyLoss):
 
 
 class ClfL1(nn.L1Loss):
-    def __init__(
-        self, out_dim: int, size_average=None, reduce=None, reduction: str = 'mean'
-    ) -> None:
-        super().__init__(size_average=size_average, reduce=reduce, reduction=reduction)
-        self.out_dim = out_dim
-
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
-        _target = target.view(-1, self.out_dim).float()
+        _target = target.view_as(input).float()
         return super().forward(input, _target)
