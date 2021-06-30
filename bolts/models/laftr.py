@@ -141,20 +141,16 @@ class Laftr(pl.LightningModule):
             loss = torch.tensor(0.0).to(self.device)
             for s, y in itertools.product([0, 1], repeat=2):
                 if len(batch.s[(batch.s == s) & (batch.y == y)]) > 0:
-                    loss += self._adv_clf_loss(
-                        s_pred[(batch.s == s) & (batch.y == y)],
-                        batch.s[(batch.s == s) & (batch.y == y)],
-                    )
+                    mask = (batch.s == s) & (batch.y == y)
+                    loss += self._adv_clf_loss(s_pred[mask], batch.s[mask])
             loss = 2 - loss
         elif self.fairness is FairnessType.EqOp:
             # TODO: How to best handle this if no +ve samples in the batch?
             loss = torch.tensor(0.0).to(self.device)
             for s in (0, 1):
                 if len(batch.s[(batch.s == s) & (batch.y == 1)]) > 0:
-                    loss += self._adv_clf_loss(
-                        s_pred[(batch.s == s) & (batch.y == 1)],
-                        batch.s[(batch.s == s) & (batch.y == 1)],
-                    )
+                    mask = (batch.s == s) & (batch.y == 1)
+                    loss += self._adv_clf_loss(s_pred[mask], batch.s[mask])
             loss = 2 - loss
         else:
             raise RuntimeError("Only DP and EO fairness accepted.")
