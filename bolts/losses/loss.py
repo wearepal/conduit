@@ -1,13 +1,44 @@
+from typing import Literal, Optional
+
 from torch import Tensor, nn
+import torch.nn.functional as F
 from torch.nn.modules.loss import _Loss
 
 __all__ = ["CrossEntropy", "OnlineReweightingLoss"]
+ReductionType = Literal["mean", "none", "sum"]
 
 
 class CrossEntropy(nn.CrossEntropyLoss):
-    def forward(self, input: Tensor, target: Tensor) -> Tensor:
+    def __init__(
+        self,
+        class_weight: Optional[Tensor] = None,
+        ignore_index: int = -100,
+        reduction: ReductionType = "mean",
+    ) -> None:
+        super().__init__(weight=class_weight, reduction="none")
+        self.ignore_index = ignore_index
+        self._reduction_str = reduction
+
+    def forward(
+        self, input: Tensor, target: Tensor, instance_weight: Optional[Tensor] = None
+    ) -> Tensor:
         _target = target.view(-1).long()
-        return super().forward(input, _target)
+        losses = F.cross_entropy(
+            input,
+            _target,
+            weight=self.weight,
+            ignore_index=self.ignore_index,
+            reduction=self.reduction,
+        )
+        if instance_weight is not None:
+            _weight = instance_weight.view(-1)
+            losses *= _weight
+        if self._reduction_str == "mean":
+            return losses.mean()
+        if self._reduction_str == "none":
+            return losses
+        if self._reduction_str == "sum":
+            return losses.sum()
 
 
 class OnlineReweightingLoss(nn.Module):

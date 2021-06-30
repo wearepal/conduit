@@ -10,6 +10,7 @@ from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
 from bolts.datasets.dummy_datasets import DummyDataset
+from bolts.models import KC
 from bolts.models.dann import Dann
 from bolts.models.erm import ErmBaseline
 from bolts.models.laftr import Laftr
@@ -312,11 +313,11 @@ def test_erm(dm: pl.LightningDataModule) -> None:
 
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
 def test_kc(dm: pl.LightningDataModule) -> None:
-    """Test the ERM model."""
+    """Test the K&C model."""
     trainer = pl.Trainer(fast_dev_run=True)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
-    model = ErmBaseline(
+    model = KC(
         enc=enc,
         clf=clf,
         weight_decay=1e-8,
