@@ -3,6 +3,7 @@ from typing import Any
 
 from PIL.Image import Image
 import albumentations as A
+import numpy as np
 from torch.utils.data import Dataset
 
 __all__ = ["AlbumentationsDataset"]

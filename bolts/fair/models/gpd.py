@@ -10,11 +10,10 @@ from torch import Tensor, nn, optim
 import torchmetrics
 from typing_extensions import Literal
 
-from bolts.datasets.ethicml_datasets import DataBatch
-
 __all__ = ["Gpd"]
 
-from bolts.losses.loss import CrossEntropy
+from bolts.fair.data import DataBatch
+from bolts.fair.losses import CrossEntropy
 
 Stage = Literal["train", "val", "test"]
 

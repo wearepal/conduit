@@ -213,7 +213,7 @@ class EmbeddingClf(nn.Module):
 
 class DummyBase(pl.LightningDataModule):
     @abstractmethod
-    def _get_dl(self):
+    def _get_dl(self) -> DataLoader:
         ...
 
     def train_dataloader(self) -> DataLoader:
@@ -227,13 +227,13 @@ class DummyBase(pl.LightningDataModule):
 
 
 class DummyDataModule(DummyBase):
-    def _get_dl(self):
+    def _get_dl(self) -> DataLoader:
         train_ds = DummyDataset((3, 64, 64), (1,), (1,), (1,), num_samples=100)
         return DataLoader(train_ds, batch_size=20)
 
 
 class DummyDataModuleDim2(DummyBase):
-    def _get_dl(self):
+    def _get_dl(self) -> DataLoader:
         train_ds = DummyDataset((3, 64, 64), (1, 1), (1, 1), (1, 1), num_samples=100)
         return DataLoader(train_ds, batch_size=20)
 
