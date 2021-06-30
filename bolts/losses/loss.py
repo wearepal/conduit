@@ -4,7 +4,6 @@ import torch
 from torch import Tensor, nn
 import torch.nn.functional as F
 from torch.nn.modules.loss import _Loss
- main
 
 __all__ = ["CrossEntropy", "OnlineReweightingLoss"]
 
@@ -59,4 +58,3 @@ class OnlineReweightingLoss(nn.Module):
                 mask = (targets == _y) & (subgroup_inf == _s)
                 unweighted_loss[mask] /= mask.sum()
         return unweighted_loss.sum()
-      
