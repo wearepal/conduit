@@ -141,10 +141,12 @@ class Laftr(pl.LightningModule):
             loss = 1 - losses.sum() / 2
         elif self.fairness is FairnessType.EO:
             unweighted_loss = self._adv_clf_loss(s_pred, batch.s)
+            count = 0
             for s, y in itertools.product([0, 1], repeat=2):
+                count += 1
                 mask = (batch.s == s) & (batch.y == y)
                 unweighted_loss[mask] /= mask.sum()
-            loss = 2 - unweighted_loss.sum() / len(list(itertools.product([0, 1], repeat=2)))
+            loss = 2 - unweighted_loss.sum() / count
         elif self.fairness is FairnessType.EqOp:
             # TODO: How to best handle this if no +ve samples in the batch?
             unweighted_loss = self._adv_clf_loss(s_pred, batch.s)
