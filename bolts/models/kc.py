@@ -13,4 +13,4 @@ class KC(ErmBaseline):
 
     @implements(ErmBaseline)
     def _get_loss(self, logits: Tensor, batch: DataBatch) -> Tensor:
-        return self._loss_fn(input=logits, target=batch.y.float(), weight=batch.iw)
+        return self._loss_fn(input=logits, target=batch.y.float(), instance_weight=batch.iw)
