@@ -126,7 +126,11 @@ class Dann(pl.LightningModule):
             _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
             logs.update({f"{stage}/acc_{_label}": _acc})
         self.log_dict(logs)
-        return {"y": batch.y, "s": batch.s, "preds": model_out.y.sigmoid().round().squeeze(-1)}
+        return {
+            "y": batch.y.view(-1),
+            "s": batch.s.view(-1),
+            "preds": model_out.y.sigmoid().round().squeeze(-1),
+        }
 
     def reset_parameters(self) -> None:
         """Reset the models."""

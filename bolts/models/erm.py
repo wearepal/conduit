@@ -93,7 +93,11 @@ class ErmBaseline(pl.LightningModule):
                 f"{stage}/{self.target}_acc": acc,
             }
         )
-        return {"y": batch.y, "s": batch.s, "preds": logits.sigmoid().round().squeeze(-1)}
+        return {
+            "y": batch.y.view(-1),
+            "s": batch.s.view(-1),
+            "preds": logits.sigmoid().round().squeeze(-1),
+        }
 
     def _get_loss(self, logits: Tensor, batch: DataBatch) -> Tensor:
         return self._loss_fn(input=logits, target=batch.y)

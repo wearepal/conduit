@@ -1,4 +1,5 @@
 """Tests for models."""
+from abc import abstractmethod
 from typing import List, Optional, Tuple
 
 from kit import implements
@@ -8,6 +9,7 @@ import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
+from bolts.datasets.dummy_datasets import DummyDataset
 from bolts.models.dann import Dann
 from bolts.models.erm import ErmBaseline
 from bolts.models.laftr import Laftr
@@ -211,12 +213,10 @@ class EmbeddingClf(nn.Module):
         return self.classifier(z)
 
 
-class DummyDataModule(pl.LightningDataModule):
+class DummyBase(pl.LightningDataModule):
+    @abstractmethod
     def _get_dl(self):
-        from bolts.datasets.dummy_datasets import DummyDataset
-
-        train_ds = DummyDataset((3, 64, 64), (1,), (1,), (1,), num_samples=100)
-        return DataLoader(train_ds, batch_size=20)
+        ...
 
     def train_dataloader(self) -> DataLoader:
         return self._get_dl()
@@ -228,8 +228,21 @@ class DummyDataModule(pl.LightningDataModule):
         return self._get_dl()
 
 
+class DummyDataModule(DummyBase):
+    def _get_dl(self):
+        train_ds = DummyDataset((3, 64, 64), (1,), (1,), (1,), num_samples=100)
+        return DataLoader(train_ds, batch_size=20)
+
+
+class DummyDataModuleDim2(DummyBase):
+    def _get_dl(self):
+        train_ds = DummyDataset((3, 64, 64), (1, 1), (1, 1), (1, 1), num_samples=100)
+        return DataLoader(train_ds, batch_size=20)
+
+
+@pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
 @pytest.mark.parametrize("fairness", ["DP", "EO", "EqOp"])
-def test_laftr(fairness: str) -> None:
+def test_laftr(dm: pl.LightningDataModule, fairness: str) -> None:
     """Test the Laftr model."""
     trainer = pl.Trainer(fast_dev_run=True)
 
@@ -258,12 +271,12 @@ def test_laftr(fairness: str) -> None:
         adv_weight=1.0,
         lr=1e-3,
     )
-    dm = DummyDataModule()
-    trainer.fit(model, datamodule=dm)
+    trainer.fit(model=model, datamodule=dm)
     trainer.test(model=model, datamodule=dm)
 
 
-def test_dann() -> None:
+@pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
+def test_dann(dm: pl.LightningDataModule) -> None:
     """Test the Laftr model."""
     trainer = pl.Trainer(fast_dev_run=True)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
@@ -276,12 +289,12 @@ def test_dann() -> None:
         weight_decay=1e-8,
         lr=1e-3,
     )
-    dm = DummyDataModule()
     trainer.fit(model, datamodule=dm)
     trainer.test(model=model, datamodule=dm)
 
 
-def test_erm() -> None:
+@pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
+def test_erm(dm: pl.LightningDataModule) -> None:
     """Test the ERM model."""
     trainer = pl.Trainer(fast_dev_run=True)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
@@ -293,13 +306,12 @@ def test_erm() -> None:
         lr_gamma=0.999,
         lr=1e-3,
     )
-
-    dm = DummyDataModule()
     trainer.fit(model, datamodule=dm)
     trainer.test(model=model, datamodule=dm)
 
 
-def test_kc() -> None:
+@pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
+def test_kc(dm: pl.LightningDataModule) -> None:
     """Test the ERM model."""
     trainer = pl.Trainer(fast_dev_run=True)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
@@ -311,7 +323,5 @@ def test_kc() -> None:
         lr_gamma=0.999,
         lr=1e-3,
     )
-
-    dm = DummyDataModule()
     trainer.fit(model, datamodule=dm)
     trainer.test(model=model, datamodule=dm)
