@@ -12,6 +12,7 @@ import torchmetrics
 from typing_extensions import Literal
 
 from bolts.datasets.ethicml_datasets import DataBatch
+from bolts.losses.loss import CrossEntropy
 
 Stage = Literal["train", "val", "test"]
 
@@ -34,7 +35,7 @@ class ErmBaseline(pl.LightningModule):
         self.enc = enc
         self.clf = clf
         self.net = nn.Sequential(self.enc, self.clf)
-        self._loss_fn = nn.BCEWithLogitsLoss()
+        self._loss_fn = CrossEntropy(reduction="mean")
 
         self._target_name = "y"
 
@@ -95,8 +96,7 @@ class ErmBaseline(pl.LightningModule):
         return {"y": batch.y, "s": batch.s, "preds": logits.sigmoid().round().squeeze(-1)}
 
     def _get_loss(self, logits: Tensor, batch: DataBatch) -> Tensor:
-        target = batch.y.view(-1, 1).float()
-        return self._loss_fn(input=logits, target=target)
+        return self._loss_fn(input=logits, target=batch.y)
 
     def reset_parameters(self) -> None:
         """Reset the models."""
@@ -124,8 +124,8 @@ class ErmBaseline(pl.LightningModule):
     def training_step(self, batch: DataBatch, batch_idx: int) -> Tensor:
         logits = self.forward(batch.x)
         loss = self._get_loss(logits, batch)
-        target = batch.y.view(-1, 1).long()
-        acc = self.train_acc(logits >= 0, target)
+        target = batch.y.view(-1).long()
+        acc = self.train_acc(logits.softmax(-1), target)
         self.log_dict(
             {
                 f"train/loss": loss.item(),

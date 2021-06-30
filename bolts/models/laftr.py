@@ -14,6 +14,7 @@ import torchmetrics
 __all__ = ["Laftr"]
 
 from bolts.datasets.ethicml_datasets import DataBatch
+from bolts.losses.loss import CrossEntropy
 
 
 class ModelOut(NamedTuple):
@@ -27,7 +28,10 @@ FairnessType = Enum("FairnessType", "DP EO EqOp")
 
 
 class Laftr(pl.LightningModule):
-    """Learning Adversarially Fair and Transferrable Representations model."""
+    """Learning Adversarially Fair and Transferrable Representations model.
+
+    The model is only defined with respect to binary S and binary Y.
+    """
 
     def __init__(
         self,
@@ -55,7 +59,7 @@ class Laftr(pl.LightningModule):
         )
         self.adv_params = self.adv.parameters()
 
-        self._clf_loss = nn.BCEWithLogitsLoss(reduction="mean")
+        self._clf_loss = CrossEntropy(reduction="mean")
         self._recon_loss = nn.L1Loss(reduction="mean")
         self._adv_clf_loss = nn.L1Loss(reduction="mean")
 
@@ -129,29 +133,27 @@ class Laftr(pl.LightningModule):
 
     def _loss_adv(self, s_pred: Tensor, batch: DataBatch) -> Tensor:
         # For Demographic Parity, for EqOpp is a different loss term.
-        s_target = batch.s.view(-1, 1)
-        y_target = batch.y.view(-1, 1)
         if self.fairness is FairnessType.DP:
-            s0 = self._adv_clf_loss(s_pred[batch.s == 0], s_target[batch.s == 0])
-            s1 = self._adv_clf_loss(s_pred[batch.s == 1], s_target[batch.s == 1])
+            s0 = self._adv_clf_loss(s_pred[batch.s == 0], batch.s[batch.s == 0])
+            s1 = self._adv_clf_loss(s_pred[batch.s == 1], batch.s[batch.s == 1])
             loss = (s0 + s1) / 2
         elif self.fairness is FairnessType.EO:
             loss = torch.tensor(0.0).to(self.device)
             for s, y in itertools.product([0, 1], repeat=2):
-                if len(batch.s[(batch.s == s) & (y_target == y)]) > 0:
+                if len(batch.s[(batch.s == s) & (batch.y == y)]) > 0:
                     loss += self._adv_clf_loss(
-                        s_pred[(s_target == s) & (y_target == y)],
-                        batch.s[(s_target == s) & (y_target == y)],
+                        s_pred[(batch.s == s) & (batch.y == y)],
+                        batch.s[(batch.s == s) & (batch.y == y)],
                     )
             loss = 2 - loss
         elif self.fairness is FairnessType.EqOp:
             # TODO: How to best handle this if no +ve samples in the batch?
             loss = torch.tensor(0.0).to(self.device)
             for s in (0, 1):
-                if len(batch.s[(s_target == s) & (y_target == 1)]) > 0:
+                if len(batch.s[(batch.s == s) & (batch.y == 1)]) > 0:
                     loss += self._adv_clf_loss(
-                        s_pred[(s_target == s) & (y_target == 1)],
-                        batch.s[(s_target == s) & (y_target == 1)],
+                        s_pred[(batch.s == s) & (batch.y == 1)],
+                        batch.s[(batch.s == s) & (batch.y == 1)],
                     )
             loss = 2 - loss
         else:
@@ -160,8 +162,7 @@ class Laftr(pl.LightningModule):
         return self.adv_weight * loss
 
     def _loss_laftr(self, y_pred: Tensor, recon: Tensor, batch: DataBatch) -> Tensor:
-        target = batch.y.view(-1, 1).float()
-        clf_loss = self._clf_loss(y_pred, target)
+        clf_loss = self._clf_loss(y_pred, batch.y)
         recon_loss = self._recon_loss(recon, batch.x)
         self.log_dict(
             {"clf_loss": self.clf_weight * clf_loss, "recon_loss": self.recon_weight * recon_loss}
@@ -214,8 +215,8 @@ class Laftr(pl.LightningModule):
             model_out = self(batch.x, batch.s)
             laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
             adv_loss = self._loss_adv(model_out.s, batch)
-            target = batch.y.view(-1, 1).long()
-            acc = self.train_acc(model_out.y >= 0, target)
+            target = batch.y.view(-1).long()
+            acc = self.train_acc(model_out.y.softmax(-1), target)
             self.log_dict(
                 {
                     f"train/loss": (laftr_loss + adv_loss).item(),
@@ -231,8 +232,8 @@ class Laftr(pl.LightningModule):
             model_out = self(batch.x, batch.s)
             adv_loss = self._loss_adv(model_out.s, batch)
             laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
-            target = batch.y.view(-1, 1).long()
-            acc = self.train_acc(model_out.y >= 0, target)
+            target = batch.y.view(-1).long()
+            acc = self.train_acc(model_out.y.softmax(-1), target)
             self.log_dict(
                 {
                     f"train/loss": (laftr_loss + adv_loss).item(),
