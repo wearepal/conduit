@@ -13,6 +13,7 @@ from bolts.datasets.dummy_datasets import DummyDataset
 from bolts.models import KC
 from bolts.models.dann import Dann
 from bolts.models.erm import ErmBaseline
+from bolts.models.gpd import Gpd
 from bolts.models.laftr import Laftr
 
 
@@ -322,6 +323,24 @@ def test_kc(dm: pl.LightningDataModule) -> None:
         clf=clf,
         weight_decay=1e-8,
         lr_gamma=0.999,
+        lr=1e-3,
+    )
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model=model, datamodule=dm)
+
+
+@pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
+def test_gpd(dm: pl.LightningDataModule) -> None:
+    """Test the K&C model."""
+    trainer = pl.Trainer(fast_dev_run=True)
+    enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
+    clf = EmbeddingClf(encoding_dim=128, out_dim=2)
+    adv = EmbeddingClf(encoding_dim=128, out_dim=2)
+    model = Gpd(
+        enc=enc,
+        clf=clf,
+        adv=adv,
+        weight_decay=1e-8,
         lr=1e-3,
     )
     trainer.fit(model, datamodule=dm)
