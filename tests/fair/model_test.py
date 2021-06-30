@@ -10,9 +10,7 @@ from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
 from bolts.fair.data.datasets import DummyDataset
-from bolts.fair.models.dann import Dann
-from bolts.fair.models.erm import ErmBaseline
-from bolts.fair.models.laftr import Laftr
+from bolts.fair.models import Dann, ErmBaseline, Laftr
 
 
 class Mp64x64Net(nn.Module):
