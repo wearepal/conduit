@@ -1,5 +1,6 @@
 """Data structure wrapper classes."""
-from typing import Any, Optional
+from __future__ import annotations
+from typing import Any
 
 from PIL.Image import Image
 import albumentations as A
@@ -46,9 +47,9 @@ class AlbumentationsDataset(Dataset):
         self.dataset = dataset
         self.transform = transform
 
-    def __len__(self) -> Optional[int]:
+    def __len__(self) -> int | None:
         if hasattr(self.dataset, "__len__"):
-            return len(self.dataset)
+            return len(self.dataset)  # type: ignore
         return None
 
     def __getitem__(self, index: int) -> Any:
