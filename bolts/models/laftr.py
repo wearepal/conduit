@@ -101,7 +101,7 @@ class Laftr(pl.LightningModule):
         )
 
         results = em.run_metrics(
-            predictions=em.Prediction(hard=pd.Series(all_preds.detach().cpu().numpy())),
+            predictions=em.Prediction(hard=pd.Series(all_preds.argmax(-1).detach().cpu().numpy())),
             actual=dt,
             metrics=[em.Accuracy(), em.RenyiCorrelation(), em.Yanovich()],
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
@@ -119,8 +119,8 @@ class Laftr(pl.LightningModule):
         laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
         adv_loss = self._loss_adv(model_out.s, batch)
         tm_acc = self.val_acc if stage == "val" else self.train_acc
-        target = batch.y.view(-1, 1).long()
-        acc = tm_acc(model_out.y >= 0, target)
+        target = batch.y.view(-1).long()
+        acc = tm_acc(model_out.y.argmax(-1), target)
         self.log_dict(
             {
                 f"{stage}/loss": (laftr_loss + adv_loss).item(),

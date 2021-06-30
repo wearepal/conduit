@@ -90,7 +90,7 @@ class Dann(pl.LightningModule):
         )
 
         results = em.run_metrics(
-            predictions=em.Prediction(hard=pd.Series(all_preds.detach().cpu().numpy())),
+            predictions=em.Prediction(hard=pd.Series(all_preds.argmax(-1).detach().cpu().numpy())),
             actual=dt,
             metrics=[em.Accuracy(), em.RenyiCorrelation(), em.Yanovich()],
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
@@ -122,8 +122,8 @@ class Dann(pl.LightningModule):
 
         for _label in ("s", "y"):
             tm_acc = self.accs[f"{stage}_{_label}"]
-            _target = getattr(batch, _label).view(-1, 1).long()
-            _acc = tm_acc(getattr(model_out, _label) >= 0, _target)
+            _target = getattr(batch, _label).view(-1).long()
+            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
             logs.update({f"{stage}/acc_{_label}": _acc})
         self.log_dict(logs)
         return {"y": batch.y, "s": batch.s, "preds": model_out.y.sigmoid().round().squeeze(-1)}
