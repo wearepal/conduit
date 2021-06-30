@@ -35,15 +35,7 @@ class PostHocEval(pl.Callback):
         trainer.fit(model, train_dataloader=train_dl)
         trainer.test(dataloaders=test_dl)
 
-    def on_train_batch_end(
-        self,
-        trainer: pl.Trainer,
-        pl_module: pl.LightningModule,
-        outputs: STEP_OUTPUT,
-        batch: Sequence,
-        batch_idx: int,
-        dataloader_idx: int,
-    ) -> None:
+    def _call_eval_loop(self, pl_module: pl.LightningModule):
         self._eval_loop(
             trainer=pl_module.eval_trainer,
             model=pl_module.classifier,
@@ -53,15 +45,19 @@ class PostHocEval(pl.Callback):
             test_dl=pl_module.datamodule.val_dataloader(),
         )
 
+    def on_train_batch_end(
+        self,
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
+        outputs: STEP_OUTPUT,
+        batch: Sequence,
+        batch_idx: int,
+        dataloader_idx: int,
+    ) -> None:
+        self._call_eval_loop(pl_module)
+
     def on_validation_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
-        self._eval_loop(
-            trainer=pl_module.eval_trainer,
-            model=pl_module.classifier,
-            train_dl=pl_module.datamodule.train_dataloader(
-                eval=True, batch_size=pl_module.batch_size_eval
-            ),
-            test_dl=pl_module.datamodule.val_dataloader(),
-        )
+        self._call_eval_loop(pl_module)
 
     def on_test_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._eval_loop(

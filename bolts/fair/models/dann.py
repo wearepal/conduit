@@ -183,7 +183,7 @@ class Dann(pl.LightningModule):
         return self._inference_step(batch=batch, stage="val")
 
     @implements(nn.Module)
-    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, x: Tensor) -> DannOut:
         z = self.enc(x)
         y = self.clf(z)
         s = self.adv(grad_reverse(z, lambda_=self.grl_lambda))

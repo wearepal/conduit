@@ -203,7 +203,7 @@ class Gpd(pl.LightningModule):
         return self._inference_step(batch=batch, stage="val")
 
     @implements(nn.Module)
-    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, x: Tensor) -> GpdOut:
         z = self.enc(x)
         y = self.clf(z)
         s = self.adv(z)
