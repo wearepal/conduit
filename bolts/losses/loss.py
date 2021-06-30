@@ -3,8 +3,10 @@ from typing import Optional
 import torch
 from torch import Tensor, nn
 import torch.nn.functional as F
+from torch.nn.modules.loss import _Loss
+ main
 
-__all__ = ["CrossEntropy"]
+__all__ = ["CrossEntropy", "OnlineReweightingLoss"]
 
 
 class CrossEntropy(nn.CrossEntropyLoss):
@@ -37,3 +39,24 @@ class CrossEntropy(nn.CrossEntropyLoss):
             return losses
         if self._reduction_str == "sum":
             return losses.sum()
+
+
+class OnlineReweightingLoss(nn.Module):
+    """Wrapper that computes a loss balanced by subgroups."""
+
+    def __init__(self, loss_fn: _Loss) -> None:
+        super().__init__()
+        # the base loss function needs to produce instance-wise losses for the
+        # reweighting (determined by subgroup cardinality) to be applied
+        loss_fn.reduction = "none"
+        self.loss_fn = loss_fn
+
+    def forward(self, logits: Tensor, targets: Tensor, subgroup_inf: Tensor) -> Tensor:
+        unweighted_loss = self.loss_fn(logits, targets)
+        for _y in targets.unique():
+            for _s in subgroup_inf.unique():
+                # compute the cardinality of each subgroup and use this to weight the sample-losses
+                mask = (targets == _y) & (subgroup_inf == _s)
+                unweighted_loss[mask] /= mask.sum()
+        return unweighted_loss.sum()
+      
