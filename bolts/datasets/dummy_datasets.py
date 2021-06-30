@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 from torch.utils.data import Dataset
 
@@ -7,7 +9,7 @@ from bolts.datasets.ethicml_datasets import DataBatch
 class DummyDataset(Dataset):
     """Generate a dummy dataset."""
 
-    def __init__(self, *shapes, num_samples: int = 10000):
+    def __init__(self, *shapes: Tuple[int, ...], num_samples: int = 10000) -> None:
         """
         Args:
             *shapes: list of shapes
@@ -17,10 +19,10 @@ class DummyDataset(Dataset):
         self.shapes = shapes
         self.num_samples = num_samples
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.num_samples
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> DataBatch:
         sample = []
         for shape in self.shapes:
             spl = torch.rand(*shape)

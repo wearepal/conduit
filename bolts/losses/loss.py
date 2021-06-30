@@ -1,5 +1,7 @@
 from torch import Tensor, nn
 
+__all__ = ["CrossEntropy", "L1"]
+
 
 class CrossEntropy(nn.CrossEntropyLoss):
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
@@ -7,7 +9,7 @@ class CrossEntropy(nn.CrossEntropyLoss):
         return super().forward(input, _target)
 
 
-class ClfL1(nn.L1Loss):
+class L1(nn.L1Loss):
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         _target = target.view_as(input).float()
         return super().forward(input, _target)

@@ -211,7 +211,7 @@ class EmbeddingClf(nn.Module):
 
 
 class DummyDataModule(pl.LightningDataModule):
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
         from bolts.datasets.dummy_datasets import DummyDataset
 
         train_ds = DummyDataset((3, 64, 64), (1,), (1,), (1,), num_samples=100)
