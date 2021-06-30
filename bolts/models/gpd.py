@@ -171,24 +171,6 @@ class Gpd(pl.LightningModule):
 
     @implements(pl.LightningModule)
     def training_step(self, batch: DataBatch, batch_idx: int) -> Tensor:
-        model_out: GpdOut = self.forward(batch.x)
-        loss_adv, loss_clf, loss = self._get_losses(model_out, batch)
-
-        logs = {
-            f"train/adv_loss": loss_adv.item(),
-            f"train/clf_loss": loss_clf.item(),
-            f"train/loss": loss.item(),
-        }
-        for _label in ("s", "y"):
-            tm_acc = self.accs[f"train_{_label}"]
-            _target = getattr(batch, _label).view(-1).long()
-            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"train/acc_{_label}": _acc})
-        self.log_dict(logs)
-        return loss
-
-    @implements(pl.LightningModule)
-    def training_step(self, batch: DataBatch, batch_idx: int) -> Tensor:
         opt = self.optimizers()
         opt.zero_grad()
 
