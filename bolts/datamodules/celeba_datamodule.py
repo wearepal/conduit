@@ -13,6 +13,8 @@ from torchvision import transforms as TF
 from bolts.datamodules.vision_datamodule import VisionBaseDataModule
 from bolts.datamodules.wrappers import TiWrapper
 
+__all__ = ["CelebaDataModule"]
+
 
 class CelebaDataModule(VisionBaseDataModule):
     """CelebA Dataset."""

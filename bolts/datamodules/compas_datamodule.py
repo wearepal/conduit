@@ -6,6 +6,8 @@ from ethicml.preprocessing.scaling import ScalerType
 
 from bolts.datamodules.tabular_datamodule import TabularDataModule
 
+__all__ = ["CompasDataModule"]
+
 
 class CompasDataModule(TabularDataModule):
     """COMPAS Dataset."""

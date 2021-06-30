@@ -6,6 +6,8 @@ from ethicml.preprocessing.scaling import ScalerType
 
 from bolts.datamodules.tabular_datamodule import TabularDataModule
 
+__all__ = ["AdultDataModule"]
+
 
 class AdultDataModule(TabularDataModule):
     """UCI Adult Income Dataset."""

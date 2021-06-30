@@ -16,6 +16,8 @@ from bolts.datamodules.vision_datamodule import VisionBaseDataModule
 from bolts.datasets.ethicml_datasets import DataBatch
 from bolts.datasets.mnist_dataset import MNIST
 
+__all__ = ["CmnistDataModule"]
+
 
 class CmnistDataModule(VisionBaseDataModule):
     """Lightning Data Module for CMNIST."""

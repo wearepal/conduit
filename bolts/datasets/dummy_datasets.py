@@ -5,6 +5,8 @@ from torch.utils.data import Dataset
 
 from bolts.datasets.ethicml_datasets import DataBatch
 
+__all__ = ["DummyDataset"]
+
 
 class DummyDataset(Dataset):
     """Generate a dummy dataset."""

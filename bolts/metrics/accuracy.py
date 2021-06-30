@@ -2,6 +2,8 @@
 import torch
 from torchmetrics import Accuracy
 
+__all__ = ["FbAccuracy"]
+
 
 class FbAccuracy(Accuracy):
     """Accuracy where sens can be passed."""

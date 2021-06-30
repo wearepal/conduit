@@ -4,6 +4,8 @@ from typing import Any
 import torch
 from torchmetrics import Accuracy
 
+__all__ = ["AccuracyPerSens"]
+
 
 class AccuracyPerSens(Accuracy):
     """Accuracy Metric."""

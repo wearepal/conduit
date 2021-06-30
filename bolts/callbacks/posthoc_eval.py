@@ -5,6 +5,8 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.utils.data import DataLoader
 
+__all__ = ["PostHocEval"]
+
 
 class PostHocEval(pl.Callback):
     """
