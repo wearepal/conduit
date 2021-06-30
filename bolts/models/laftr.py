@@ -153,7 +153,7 @@ class Laftr(pl.LightningModule):
             for s in (0, 1):
                 mask = (batch.s.view(-1) == s) & (batch.y.view(-1) == 1)
                 unweighted_loss[mask] /= mask.sum()
-            unweighted_loss[batch.y == 0] *= 0.0
+            unweighted_loss[batch.y.view(-1) == 0] *= 0.0
             loss = 2 - unweighted_loss.sum() / 2
         else:
             raise RuntimeError("Only DP and EO fairness accepted.")
