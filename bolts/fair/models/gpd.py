@@ -1,4 +1,4 @@
-"""ERM Baseline Model."""
+"""Zhang Gradient Projection Debiasing Baseline Model."""
 from typing import Dict, List, NamedTuple, Tuple
 
 import ethicml as em
