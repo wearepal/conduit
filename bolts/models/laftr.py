@@ -216,7 +216,7 @@ class Laftr(pl.LightningModule):
             laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
             adv_loss = self._loss_adv(model_out.s, batch)
             target = batch.y.view(-1).long()
-            acc = self.train_acc(model_out.y.softmax(-1), target)
+            acc = self.train_acc(model_out.y.argmax(-1), target)
             self.log_dict(
                 {
                     f"train/loss": (laftr_loss + adv_loss).item(),
@@ -233,7 +233,7 @@ class Laftr(pl.LightningModule):
             adv_loss = self._loss_adv(model_out.s, batch)
             laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
             target = batch.y.view(-1).long()
-            acc = self.train_acc(model_out.y.softmax(-1), target)
+            acc = self.train_acc(model_out.y.argmax(-1), target)
             self.log_dict(
                 {
                     f"train/loss": (laftr_loss + adv_loss).item(),

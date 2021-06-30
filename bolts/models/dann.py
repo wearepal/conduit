@@ -164,7 +164,7 @@ class Dann(pl.LightningModule):
         for _label in ("s", "y"):
             tm_acc = self.accs[f"train_{_label}"]
             _target = getattr(batch, _label).view(-1).long()
-            _acc = tm_acc(getattr(model_out, _label).softmax(-1), _target)
+            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
             logs.update({f"train/acc_{_label}": _acc})
         self.log_dict(logs)
         return loss

@@ -125,7 +125,7 @@ class ErmBaseline(pl.LightningModule):
         logits = self.forward(batch.x)
         loss = self._get_loss(logits, batch)
         target = batch.y.view(-1).long()
-        acc = self.train_acc(logits.softmax(-1), target)
+        acc = self.train_acc(logits.argmax(-1), target)
         self.log_dict(
             {
                 f"train/loss": loss.item(),
