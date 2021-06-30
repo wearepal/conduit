@@ -135,25 +135,24 @@ class Laftr(pl.LightningModule):
         # For Demographic Parity, for EqOpp is a different loss term.
         if self.fairness is FairnessType.DP:
             losses = self._adv_clf_loss(s_pred, batch.s)
-            for val in (0, 1):
-                mask = batch.s == val
+            for s in (0, 1):
+                mask = batch.s == s
                 losses[mask] /= mask.sum()
             loss = losses.sum()
         elif self.fairness is FairnessType.EO:
-            loss = torch.tensor(0.0).to(self.device)
+            unweighted_loss = self._adv_clf_loss(s_pred, batch.s)
             for s, y in itertools.product([0, 1], repeat=2):
-                if len(batch.s[(batch.s == s) & (batch.y == y)]) > 0:
-                    mask = (batch.s == s) & (batch.y == y)
-                    loss += self._adv_clf_loss(s_pred[mask], batch.s[mask])
-            loss = 2 - loss
+                mask = (batch.s == s) & (batch.y == y)
+                unweighted_loss[mask] /= mask.sum()
+            loss = 2 - unweighted_loss.sum()
         elif self.fairness is FairnessType.EqOp:
             # TODO: How to best handle this if no +ve samples in the batch?
-            loss = torch.tensor(0.0).to(self.device)
+            unweighted_loss = self._adv_clf_loss(s_pred, batch.s)
             for s in (0, 1):
-                if len(batch.s[(batch.s == s) & (batch.y == 1)]) > 0:
-                    mask = (batch.s == s) & (batch.y == 1)
-                    loss += self._adv_clf_loss(s_pred[mask], batch.s[mask])
-            loss = 2 - loss
+                mask = (batch.s == s) & (batch.y == 1)
+                unweighted_loss[mask] /= mask.sum()
+            unweighted_loss[batch.y == 0] *= 0.0
+            loss = 2 - unweighted_loss.sum()
         else:
             raise RuntimeError("Only DP and EO fairness accepted.")
         self.log(f"{self.fairness}_adv_loss", self.adv_weight * loss)

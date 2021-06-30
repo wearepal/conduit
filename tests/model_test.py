@@ -2,6 +2,7 @@
 from typing import List, Optional, Tuple
 
 from kit import implements
+import pytest
 import pytorch_lightning as pl
 import torch
 from torch import Tensor, nn
@@ -218,7 +219,8 @@ class DummyDataModule(pl.LightningDataModule):
         return DataLoader(train_ds, batch_size=20)
 
 
-def test_laftr() -> None:
+@pytest.mark.parametrize("fairness", ["DP", "EO", "EqOp"])
+def test_laftr(fairness: str) -> None:
     """Test the Laftr model."""
     trainer = pl.Trainer(fast_dev_run=True)
 
@@ -241,7 +243,7 @@ def test_laftr() -> None:
         weight_decay=1e-8,
         lr_gamma=0.999,
         disc_steps=1,
-        fairness="DP",
+        fairness=fairness,
         recon_weight=1.0,
         clf_weight=0.0,
         adv_weight=1.0,
