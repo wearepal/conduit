@@ -14,6 +14,8 @@ from bolts.datasets.ethicml_datasets import DataBatch
 
 __all__ = ["Dann"]
 
+from bolts.losses.loss import CrossEntropy
+
 Stage = Literal["train", "val", "test"]
 
 
@@ -63,8 +65,8 @@ class Dann(pl.LightningModule):
         self.enc = enc
         self.clf = clf
 
-        self._loss_adv_fn = nn.BCEWithLogitsLoss()
-        self._loss_clf_fn = nn.BCEWithLogitsLoss()
+        self._loss_adv_fn = CrossEntropy()
+        self._loss_clf_fn = CrossEntropy()
 
         self.accs = {
             f"{stage}_{label}": torchmetrics.Accuracy()
@@ -161,8 +163,8 @@ class Dann(pl.LightningModule):
         }
         for _label in ("s", "y"):
             tm_acc = self.accs[f"train_{_label}"]
-            _target = getattr(batch, _label).view(-1, 1).long()
-            _acc = tm_acc(getattr(model_out, _label) >= 0, _target)
+            _target = getattr(batch, _label).view(-1).long()
+            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
             logs.update({f"train/acc_{_label}": _acc})
         self.log_dict(logs)
         return loss
