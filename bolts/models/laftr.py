@@ -61,7 +61,7 @@ class Laftr(pl.LightningModule):
 
         self._clf_loss = CrossEntropy(reduction="mean")
         self._recon_loss = nn.L1Loss(reduction="mean")
-        self._adv_clf_loss = nn.L1Loss(reduction="mean")
+        self._adv_clf_loss = nn.L1Loss(reduction="none")
 
         self.disc_steps = disc_steps
         self.fairness = FairnessType[fairness]
@@ -134,9 +134,11 @@ class Laftr(pl.LightningModule):
     def _loss_adv(self, s_pred: Tensor, batch: DataBatch) -> Tensor:
         # For Demographic Parity, for EqOpp is a different loss term.
         if self.fairness is FairnessType.DP:
-            s0 = self._adv_clf_loss(s_pred[batch.s == 0], batch.s[batch.s == 0])
-            s1 = self._adv_clf_loss(s_pred[batch.s == 1], batch.s[batch.s == 1])
-            loss = (s0 + s1) / 2
+            losses = self._adv_clf_loss(s_pred, batch.s)
+            for val in (0, 1):
+                mask = batch.s == val
+                losses[mask] /= mask.sum()
+            loss = losses.sum()
         elif self.fairness is FairnessType.EO:
             loss = torch.tensor(0.0).to(self.device)
             for s, y in itertools.product([0, 1], repeat=2):
