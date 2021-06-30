@@ -138,13 +138,13 @@ class Laftr(pl.LightningModule):
             for s in (0, 1):
                 mask = batch.s == s
                 losses[mask] /= mask.sum()
-            loss = losses.sum()
+            loss = 1 - losses.sum() / len((0, 1))
         elif self.fairness is FairnessType.EO:
             unweighted_loss = self._adv_clf_loss(s_pred, batch.s)
             for s, y in itertools.product([0, 1], repeat=2):
                 mask = (batch.s == s) & (batch.y == y)
                 unweighted_loss[mask] /= mask.sum()
-            loss = 2 - unweighted_loss.sum()
+            loss = 2 - unweighted_loss.sum() / len(list(itertools.product([0, 1], repeat=2)))
         elif self.fairness is FairnessType.EqOp:
             # TODO: How to best handle this if no +ve samples in the batch?
             unweighted_loss = self._adv_clf_loss(s_pred, batch.s)
@@ -152,7 +152,7 @@ class Laftr(pl.LightningModule):
                 mask = (batch.s == s) & (batch.y == 1)
                 unweighted_loss[mask] /= mask.sum()
             unweighted_loss[batch.y == 0] *= 0.0
-            loss = 2 - unweighted_loss.sum()
+            loss = 2 - unweighted_loss.sum() / len((0, 1))
         else:
             raise RuntimeError("Only DP and EO fairness accepted.")
         self.log(f"{self.fairness}_adv_loss", self.adv_weight * loss)
