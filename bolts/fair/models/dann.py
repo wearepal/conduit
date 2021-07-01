@@ -8,6 +8,7 @@ import pytorch_lightning as pl
 import torch
 from torch import Tensor, autograd, nn, optim
 import torchmetrics
+from torchmetrics import MetricCollection
 from typing_extensions import Literal
 
 from bolts.fair.data.structures import DataBatch
@@ -68,11 +69,13 @@ class Dann(pl.LightningModule):
         self._loss_adv_fn = CrossEntropy()
         self._loss_clf_fn = CrossEntropy()
 
-        self.accs = {
-            f"{stage}_{label}": torchmetrics.Accuracy()
-            for stage in ("train", "test", "val")
-            for label in ("s", "y")
-        }
+        self.accs = MetricCollection(
+            {
+                f"{stage}_{label}": torchmetrics.Accuracy()
+                for stage in ("train", "test", "val")
+                for label in ("s", "y")
+            }
+        )
 
     def _inference_epoch_end(
         self, output_results: List[Dict[str, Tensor]], stage: Stage
