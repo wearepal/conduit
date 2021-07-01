@@ -29,12 +29,12 @@ from bolts.data.datasets.utils import (
     load_image,
 )
 
-__all__ = ["IsicDataset", "IsicAttrs"]
+__all__ = ["ISIC", "ISICAttrs"]
 
 LOGGER = logging.getLogger(__name__)
 
 
-class IsicAttrs(Enum):
+class ISICAttrs(Enum):
     """Attributes available for the ISIC dataset."""
 
     histo = auto()
@@ -45,7 +45,7 @@ class IsicAttrs(Enum):
 T = TypeVar("T")
 
 
-class IsicDataset(Dataset):
+class ISIC(Dataset):
     """PyTorch Dataset for the ISIC 2018 dataset from
     'Skin Lesion Analysis Toward Melanoma Detection 2018: A Challenge Hosted by the International
     Skin Imaging Collaboration (ISIC)',"""
@@ -58,8 +58,8 @@ class IsicDataset(Dataset):
         root: str | Path,
         download: bool = True,
         max_samples: int = 25_000,  # default is the number of samples used for the NSLB paper
-        sens_attr: IsicAttrs = IsicAttrs.histo,
-        target_attr: IsicAttrs = IsicAttrs.malignant,
+        sens_attr: ISICAttrs = ISICAttrs.histo,
+        target_attr: ISICAttrs = ISICAttrs.malignant,
         transform: ImageTform = A.Compose([A.Normalize(), ToTensorV2()]),
     ) -> None:
         super().__init__()
