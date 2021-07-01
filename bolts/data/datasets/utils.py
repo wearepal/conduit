@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import Callable, NamedTuple, Union, get_args, overload
+from typing import Callable, NamedTuple, Union, overload
 
 from PIL import Image
 import albumentations as A
@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 from torch import Tensor
-from typing_extensions import Literal
+from typing_extensions import Literal, get_args
 
 __all__ = [
     "AlbumentationsTform",
