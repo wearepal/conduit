@@ -1,27 +1,21 @@
-"""
-from typing import Type
+from __future__ import annotations
 
 import pytest
-from pytorch_lightning import LightningDataModule
-import torch
+from torchvision import transforms as TF
+from torchvision.datasets import VisionDataset
 
-from bolts.datamodules.mnist_datamodule import MNISTDataModule
-
-
-def _create_dm(dm_cls: Type[LightningDataModule]) -> LightningDataModule:
-    dm = dm_cls(batch_size=2)
-    dm.prepare_data()
-    dm.setup()
-    return dm
+from bolts.data.datasets import ISIC, MNIST
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("dm_cls", [MNISTDataModule])
-def test_data_modules(dm_cls: Type[LightningDataModule]) -> None:
-    ""Test the datamodules.""
-    dm = _create_dm(dm_cls)
-    loader = dm.train_dataloader()
-    img, _ = next(iter(loader))
-    assert img.size() == torch.Size([2, *dm.size()])
-    assert dm.num_classes
-"""
+@pytest.mark.parametrize("ds_cls", [MNIST, ISIC])
+def test_mnist(ds_cls: type[VisionDataset]) -> None:
+    """Basic test for datasets.
+    Confirms that the datasets can be instantiated and have a functional __getitem__ method.
+    """
+    transform = TF.ToTensor()
+    ds = ds_cls(root=".")
+    train_ds = MNIST(root=".", train=True, transform=transform)
+    test_ds = MNIST(root=".", train=True, transform=transform)
+    for ds in (train_ds, test_ds):
+        ds[0]
