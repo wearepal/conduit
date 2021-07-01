@@ -10,7 +10,7 @@ from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
 from bolts.fair.data.datasets import DummyDataset
-from bolts.fair.models import Dann, ErmBaseline, Laftr
+from bolts.fair.models import KC, Dann, ErmBaseline, Gpd, Laftr
 
 
 class Mp64x64Net(nn.Module):
@@ -213,7 +213,7 @@ class EmbeddingClf(nn.Module):
 
 class DummyBase(pl.LightningDataModule):
     @abstractmethod
-    def _get_dl(self):
+    def _get_dl(self) -> DataLoader:
         ...
 
     def train_dataloader(self) -> DataLoader:
@@ -227,13 +227,13 @@ class DummyBase(pl.LightningDataModule):
 
 
 class DummyDataModule(DummyBase):
-    def _get_dl(self):
+    def _get_dl(self) -> DataLoader:
         train_ds = DummyDataset((3, 64, 64), (1,), (1,), (1,), num_samples=100)
         return DataLoader(train_ds, batch_size=20)
 
 
 class DummyDataModuleDim2(DummyBase):
-    def _get_dl(self):
+    def _get_dl(self) -> DataLoader:
         train_ds = DummyDataset((3, 64, 64), (1, 1), (1, 1), (1, 1), num_samples=100)
         return DataLoader(train_ds, batch_size=20)
 
@@ -319,6 +319,24 @@ def test_kc(dm: pl.LightningDataModule) -> None:
         clf=clf,
         weight_decay=1e-8,
         lr_gamma=0.999,
+        lr=1e-3,
+    )
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model=model, datamodule=dm)
+
+
+@pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
+def test_gpd(dm: pl.LightningDataModule) -> None:
+    """Test the K&C model."""
+    trainer = pl.Trainer(fast_dev_run=True)
+    enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
+    clf = EmbeddingClf(encoding_dim=128, out_dim=2)
+    adv = EmbeddingClf(encoding_dim=128, out_dim=2)
+    model = Gpd(
+        enc=enc,
+        clf=clf,
+        adv=adv,
+        weight_decay=1e-8,
         lr=1e-3,
     )
     trainer.fit(model, datamodule=dm)

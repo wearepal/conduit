@@ -1,8 +1,9 @@
-from typing import Literal, Optional
+from typing import Optional
 
 from torch import Tensor, nn
 import torch.nn.functional as F
 from torch.nn.modules.loss import _Loss
+from typing_extensions import Literal
 
 __all__ = ["CrossEntropy", "OnlineReweightingLoss"]
 ReductionType = Literal["mean", "none", "sum"]

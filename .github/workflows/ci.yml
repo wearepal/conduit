@@ -38,8 +38,6 @@ jobs:
     - name: Format with isort
       run: |
         isort --check --diff .
-    - name: Install Additional Dependencies for Type-Checking/Tests
-      run: poetry install -E ci --no-interaction
     - name: Check with mypy
       run: |
         mypy tests/
