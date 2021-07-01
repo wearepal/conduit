@@ -18,13 +18,14 @@ def pytest_collection_modifyitems(config: Any, items: Any) -> None:
     if config.getoption("--runslow"):
         # --runslow given in cli: do not skip slow tests
         return
-    if config.getoption("--rungpu"):
-        # --runslow given in cli: do not skip slow tests
-        return
     skip_slow = pytest.mark.skip(reason="need --runslow option to run")
-    skip_gpu = pytest.mark.skip(reason="need --rungpu option to run")
     for item in items:
         if "slow" in item.keywords:
             item.add_marker(skip_slow)
+    if config.getoption("--rungpu"):
+        # --runslow given in cli: do not skip slow tests
+        return
+    skip_gpu = pytest.mark.skip(reason="need --rungpu option to run")
+    for item in items:
         if "gpu" in item.keywords:
             item.add_marker(skip_gpu)
