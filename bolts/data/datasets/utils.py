@@ -58,7 +58,7 @@ ImageTform = Union[AlbumentationsTform, PillowTform]
 def infer_il_backend(transform: ImageTform | None) -> ImageLoadingBackend:
     """Infer which image-loading backend to use based on the type of the image-transform."""
     # Default to openccv is transform is None as numpy arrays are generally
-    # more ractable
+    # more tractable
     if transform is None or isinstance(transform, get_args(AlbumentationsTform)):
         return "opencv"
     return "pillow"
