@@ -14,7 +14,7 @@ __all__ = [
     "AlbumentationsTform",
     "ImageLoadingBackend",
     "ImageTform",
-    "PilllowTform",
+    "PillowTform",
     "infer_il_backend",
     "load_image",
     "RawImage",
