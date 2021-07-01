@@ -273,10 +273,65 @@ def test_laftr(dm: pl.LightningDataModule, fairness: str) -> None:
     trainer.test(model=model, datamodule=dm)
 
 
+@pytest.mark.gpu
+@pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
+@pytest.mark.parametrize("fairness", ["DP", "EO", "EqOp"])
+def test_laftr_gpu(dm: pl.LightningDataModule, fairness: str) -> None:
+    """Test the Laftr model."""
+    trainer = pl.Trainer(fast_dev_run=True, gpus=1)
+
+    enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
+    adv = EmbeddingClf(encoding_dim=128, out_dim=1)
+    clf = EmbeddingClf(encoding_dim=128, out_dim=2)
+    dec = Decoder(
+        input_shape=(3, 64, 64),
+        initial_hidden_channels=64,
+        levels=3,
+        encoding_dim=128 + 1,
+        decoding_dim=3,
+        decoder_out_act=nn.Tanh(),
+    )
+    model = Laftr(
+        enc=enc,
+        dec=dec,
+        adv=adv,
+        clf=clf,
+        weight_decay=1e-8,
+        lr_gamma=0.999,
+        disc_steps=1,
+        fairness=fairness,
+        recon_weight=1.0,
+        clf_weight=0.0,
+        adv_weight=1.0,
+        lr=1e-3,
+    )
+    trainer.fit(model=model, datamodule=dm)
+    trainer.test(model=model, datamodule=dm)
+
+
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
 def test_dann(dm: pl.LightningDataModule) -> None:
     """Test the Laftr model."""
     trainer = pl.Trainer(fast_dev_run=True)
+    enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
+    adv = EmbeddingClf(encoding_dim=128, out_dim=2)
+    clf = EmbeddingClf(encoding_dim=128, out_dim=2)
+    model = Dann(
+        enc=enc,
+        adv=adv,
+        clf=clf,
+        weight_decay=1e-8,
+        lr=1e-3,
+    )
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model=model, datamodule=dm)
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
+def test_dann_gpu(dm: pl.LightningDataModule) -> None:
+    """Test the DANN model."""
+    trainer = pl.Trainer(fast_dev_run=True, gpus=1)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     adv = EmbeddingClf(encoding_dim=128, out_dim=2)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
@@ -308,6 +363,24 @@ def test_erm(dm: pl.LightningDataModule) -> None:
     trainer.test(model=model, datamodule=dm)
 
 
+@pytest.mark.gpu
+@pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
+def test_erm_gpu(dm: pl.LightningDataModule) -> None:
+    """Test the ERM model."""
+    trainer = pl.Trainer(fast_dev_run=True, gpus=1)
+    enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
+    clf = EmbeddingClf(encoding_dim=128, out_dim=2)
+    model = ErmBaseline(
+        enc=enc,
+        clf=clf,
+        weight_decay=1e-8,
+        lr_gamma=0.999,
+        lr=1e-3,
+    )
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model=model, datamodule=dm)
+
+
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
 def test_kc(dm: pl.LightningDataModule) -> None:
     """Test the K&C model."""
@@ -325,10 +398,47 @@ def test_kc(dm: pl.LightningDataModule) -> None:
     trainer.test(model=model, datamodule=dm)
 
 
+@pytest.mark.gpu
+@pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
+def test_kc_gpu(dm: pl.LightningDataModule) -> None:
+    """Test the K&C model."""
+    trainer = pl.Trainer(fast_dev_run=True, gpus=1)
+    enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
+    clf = EmbeddingClf(encoding_dim=128, out_dim=2)
+    model = KC(
+        enc=enc,
+        clf=clf,
+        weight_decay=1e-8,
+        lr_gamma=0.999,
+        lr=1e-3,
+    )
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model=model, datamodule=dm)
+
+
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
 def test_gpd(dm: pl.LightningDataModule) -> None:
     """Test the K&C model."""
     trainer = pl.Trainer(fast_dev_run=True)
+    enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
+    clf = EmbeddingClf(encoding_dim=128, out_dim=2)
+    adv = EmbeddingClf(encoding_dim=128, out_dim=2)
+    model = Gpd(
+        enc=enc,
+        clf=clf,
+        adv=adv,
+        weight_decay=1e-8,
+        lr=1e-3,
+    )
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model=model, datamodule=dm)
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
+def test_gpd_gpu(dm: pl.LightningDataModule) -> None:
+    """Test the K&C model."""
+    trainer = pl.Trainer(fast_dev_run=True, gpus=1)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
     adv = EmbeddingClf(encoding_dim=128, out_dim=2)
