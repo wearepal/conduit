@@ -73,7 +73,7 @@ class BinarySample(NamedTuple):
 
 class TernarySample(NamedTuple):
     x: Tensor | np.ndarray | Image.Image
-    s: Tensor | float
+    z: Tensor | float
     y: Tensor | float
 
 

@@ -296,4 +296,4 @@ class ISIC(VisionDataset):
         image = load_image(self.x[index], backend=self._il_backend)
         image = apply_image_transform(image=image, transform=self.transform)
         target = self.y[index]
-        return TernarySample(x=image, s=self.z[index], y=target)
+        return TernarySample(x=image, z=self.z[index], y=target)
