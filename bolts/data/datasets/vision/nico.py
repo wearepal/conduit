@@ -76,7 +76,7 @@ class NICO(VisionDataset):
         return all((self._base_dir / sc).exists() for sc in get_args(NicoSuperclass))
 
     def _download_and_unzip_data(self) -> None:
-        """Attempt to download data if files cannot be found in the base folder."""
+        """Attempt to download data if files cannot be found in the root directory."""
 
         if self._check_unzipped():
             LOGGER.info("Files already downloaded and unzipped.")
