@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import requests
 import torch
-from torch.utils.data.dataset import Dataset
+from torchvision.datasets import VisionDataset
 from tqdm import tqdm
 
 from bolts.data.datasets.utils import (
@@ -45,7 +45,7 @@ class ISICAttrs(Enum):
 T = TypeVar("T")
 
 
-class ISIC(Dataset):
+class ISIC(VisionDataset):
     """PyTorch Dataset for the ISIC 2018 dataset from
     'Skin Lesion Analysis Toward Melanoma Detection 2018: A Challenge Hosted by the International
     Skin Imaging Collaboration (ISIC)',"""
@@ -55,16 +55,16 @@ class ISIC(Dataset):
 
     def __init__(
         self,
-        root: str | Path,
+        root: str,
         download: bool = True,
         max_samples: int = 25_000,  # default is the number of samples used for the NSLB paper
         sens_attr: ISICAttrs = ISICAttrs.histo,
         target_attr: ISICAttrs = ISICAttrs.malignant,
         transform: ImageTform = A.Compose([A.Normalize(), ToTensorV2()]),
     ) -> None:
-        super().__init__()
+        super().__init__(root=root, transform=transform)
 
-        self.root = Path(root)
+        self.root = Path(self.root)
         self.download = download
         self._data_dir = self.root / "ISIC"
         self._processed_dir = self._data_dir / "processed"
@@ -89,7 +89,6 @@ class ISIC(Dataset):
         self.s = torch.as_tensor(self.metadata[sens_attr.name], dtype=torch.int32)
         self.y = torch.as_tensor(self.metadata[target_attr.name], dtype=torch.int32)
 
-        self.transform = transform
         self._il_backend: ImageLoadingBackend = infer_il_backend(self.transform)
 
     def _check_downloaded(self) -> bool:
