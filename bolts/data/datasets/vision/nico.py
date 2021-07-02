@@ -120,7 +120,6 @@ class NICO(VisionDataset):
             images.extend(self._base_dir.glob(f"**/*.{ext}"))
         images = [str(image.relative_to(self._base_dir)) for image in images]
         filepaths = pd.Series(images)
-        breakpoint()
         metadata = cast(
             pd.DataFrame,
             filepaths.str.split("/", expand=True).rename(
