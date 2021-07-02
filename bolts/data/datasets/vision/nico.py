@@ -114,7 +114,7 @@ class NICO(VisionDataset):
             raise RuntimeError('Dataset corrupted; try deleting it and redownloading it.')
 
     def _extract_metadata(self) -> None:
-        """Extract concept/context/superclass information from the image filepaths and save to csv."""
+        """Extract concept/context/superclass information from the image filepaths and it save to csv."""
         images = []
         for ext in ("jpg", "jpeg", "png"):
             images.extend(self._base_dir.glob(f"**/*.{ext}"))
