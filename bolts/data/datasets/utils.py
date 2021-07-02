@@ -47,7 +47,7 @@ def load_image(filepath: Path | str, backend: ImageLoadingBackend = "opencv") ->
             filepath = str(filepath)
         image = cv2.imread(filepath)  # type: ignore
         if image is None:
-            raise OSError(f"Image-file could not be read from location '{filepath}")
+            raise OSError(f"Image-file could not be read from location '{filepath}'")
         return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # type: ignore
     return Image.open(filepath)
 
