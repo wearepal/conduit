@@ -76,7 +76,7 @@ class ISIC(VisionDataset):
             )
 
         self.metadata = pd.read_csv(self._processed_dir / "labels.csv")
-        # Divide up the dataframe into it's constituent arrays because indexing with pandas is
+        # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # considerably slower than indexing with numpy/torch
         self.x = self.metadata["path"].values
         self.z = torch.as_tensor(self.metadata[context_attr], dtype=torch.int32)

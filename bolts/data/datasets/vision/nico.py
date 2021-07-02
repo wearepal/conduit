@@ -64,8 +64,8 @@ class NICO(VisionDataset):
         self.metadata = pd.read_csv(self._base_dir / "metadata.csv")
         if superclass is not None:
             self.metadata = self.metadata[self.metadata["superclass"] == superclass]
-        # # Divide up the dataframe into it's constituent arrays because indexing with pandas is
-        # # substantially slower than tindexing with numpy/torch
+        # # Divide up the dataframe into its constituent arrays because indexing with pandas is
+        # # substantially slower than indexing with numpy/torch
         self.x = self.metadata["filepath"].values
         self.z = torch.as_tensor(self.metadata["context_le"], dtype=torch.int32)
         self.y = torch.as_tensor(self.metadata["concept_le"], dtype=torch.int32)
