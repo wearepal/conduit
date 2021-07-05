@@ -3,7 +3,7 @@ from torch import nn
 
 from bolts.callbacks import PostHocEval
 from bolts.fair.models import ErmBaseline
-from tests.fair.model_test import DummyDataModule, Encoder
+from tests.fair.model_test import DummyDataModule, Encoder  # type: ignore[import]
 
 
 def test_post_hoc_eval() -> None:
