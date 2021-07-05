@@ -13,7 +13,7 @@ def test_post_hoc_eval() -> None:
     clf = nn.Sequential(nn.Flatten(), nn.Linear(128, 2))
     dm = DummyDataModule()
     model = ErmBaseline(enc=enc, clf=clf, weight_decay=1e-8, lr=1e-3, lr_gamma=0.999)
-    model.classifier = model.clf
+    model.eval_classifier = nn.Sequential(nn.Flatten(), nn.Linear(128, 2))
     model.encoder = model.enc
     model.clf_epochs = 1
     model.datamodule = dm

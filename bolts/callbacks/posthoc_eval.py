@@ -21,7 +21,7 @@ class EvalModule(pl.LightningModule):
     def __init__(self, enc: nn.Module, clf: nn.Module) -> None:
         super().__init__()
         self.enc = enc
-        self.clf = gcopy(clf)
+        self.clf = clf
         self._loss = nn.CrossEntropyLoss()
 
         self._train_acc = torchmetrics.Accuracy()
@@ -70,7 +70,7 @@ class PostHocEval(pl.Callback):
     """
     Trains and evaluates an auxillary classifier model.
     Your model should have:
-        - ``self.classifier``
+        - ``self.eval_classifier``
         - ``self.encoder``
         - ``self.datamodule``
         - ``self.clf_epochs``
@@ -86,6 +86,7 @@ class PostHocEval(pl.Callback):
             max_epochs=pl_module.clf_epochs,
             callbacks=[cb for cb in trainer.callbacks if not isinstance(cb, PostHocEval)],
         )
+        self.eval_clf = EvalModule(enc=pl_module.encoder, clf=pl_module.eval_classifier)
 
     def _eval_loop(
         self,
@@ -98,10 +99,10 @@ class PostHocEval(pl.Callback):
         trainer.test(test_dataloaders=test_dl)
 
     def _call_eval_loop(self, pl_module: pl.LightningModule) -> None:
-        pl_module.reset_parameters()
+        self.eval_clf.reset_parameters()
         self._eval_loop(
             trainer=pl_module.eval_trainer,
-            model=EvalModule(enc=pl_module.encoder, clf=pl_module.classifier),
+            model=self.eval_clf,
             train_dl=pl_module.datamodule.train_dataloader(),
             test_dl=pl_module.datamodule.val_dataloader(),
         )
@@ -121,10 +122,10 @@ class PostHocEval(pl.Callback):
         self._call_eval_loop(pl_module)
 
     def on_test_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
-        pl_module.reset_parameters()
+        self.eval_clf.reset_parameters()
         self._eval_loop(
             trainer=pl_module.eval_trainer,
-            model=EvalModule(enc=pl_module.encoder, clf=pl_module.classifier),
+            model=self.eval_clf,
             train_dl=pl_module.datamodule.train_dataloader(),
             test_dl=pl_module.datamodule.test_dataloader(),
         )
