@@ -95,6 +95,7 @@ module = [
     "cv2.*",
     "ethicml.*",
     "flash.*",
+    "gdown.*",
     "git.*",
     "kit.*",
     "pandas.*",

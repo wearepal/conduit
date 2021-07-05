@@ -1,7 +1,7 @@
 from __future__ import annotations
 import logging
 from pathlib import Path
-from typing import ClassVar, cast
+from typing import ClassVar, List, cast
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -47,7 +47,7 @@ class NICO(VisionDataset):
     ) -> None:
         super().__init__(root=root, transform=transform)
 
-        self.root = Path(self.root)
+        self.root: Path = Path(self.root)
         self.download = download
         self._base_dir = self.root / self._BASE_FOLDER
         self._metadata_path = self._base_dir / "metadata.csv"
@@ -117,7 +117,7 @@ class NICO(VisionDataset):
 
     def _extract_metadata(self) -> None:
         """Extract concept/context/superclass information from the image filepaths and it save to csv."""
-        images = []
+        images: List[Path] = []
         for ext in ("jpg", "jpeg", "png"):
             images.extend(self._base_dir.glob(f"**/*.{ext}"))
         images = [str(image.relative_to(self._base_dir)) for image in images]
