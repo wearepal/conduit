@@ -53,7 +53,7 @@ def load_image(filepath: Path | str, backend: ImageLoadingBackend = "opencv") ->
 
 
 AlbumentationsTform = Union[A.Compose, A.BasicTransform]
-PillowTform = Callable[[Union[Image.Image, Tensor]], Union[Tensor, Image.Image]]
+PillowTform = Callable[[Image.Image], Union[Tensor, Image.Image]]
 ImageTform = Union[AlbumentationsTform, PillowTform]
 
 
@@ -73,18 +73,21 @@ class BinarySample(NamedTuple):
 
 class TernarySample(NamedTuple):
     x: Tensor | np.ndarray | Image.Image
-    z: Tensor | float
+    s: Tensor | float
     y: Tensor | float
 
 
 def apply_image_transform(
     image: RawImage, transform: ImageTform
 ) -> np.ndarray | Image.Image | Tensor:
-    # If the image is a numpy array,  the opencv was inferred as the image-loading
-    # backend and the transformation is derived from albumentations
-    if transform is None:
-        if isinstance(image, np.ndarray):
-            image = transform(image=image)["image"]
+    # If the image is a numpy array,  then opencv was inferred as the image-loading
+    # backend and the transformation comes from albumentations
+    image_ = image
+    if transform is not None:
+        if isinstance(transform, (A.Compose, A.BasicTransform)):
+            if isinstance(image, np.ndarray):
+                image_ = transform(image=image)["image"]
         else:
-            image = transform(image)
-    return image
+            if isinstance(image, Image.Image):
+                image_ = transform(image)
+    return image_

@@ -67,7 +67,7 @@ class NICO(VisionDataset):
         # # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # # substantially slower than indexing with numpy/torch
         self.x = self.metadata["filepath"].values
-        self.z = torch.as_tensor(self.metadata["context_le"], dtype=torch.int32)
+        self.s = torch.as_tensor(self.metadata["context_le"], dtype=torch.int32)
         self.y = torch.as_tensor(self.metadata["concept_le"], dtype=torch.int32)
 
         self._il_backend: ImageLoadingBackend = infer_il_backend(self.transform)
@@ -149,4 +149,4 @@ class NICO(VisionDataset):
         image = load_image(self._base_dir / self.x[index], backend=self._il_backend)
         image = apply_image_transform(image=image, transform=self.transform)
         target = self.y[index]
-        return TernarySample(x=image, z=self.z[index], y=target)
+        return TernarySample(x=image, s=self.s[index], y=target)
