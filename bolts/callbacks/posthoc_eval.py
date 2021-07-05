@@ -1,5 +1,4 @@
-from collections import Sequence
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Sequence
 
 from kit import gcopy
 import pytorch_lightning as pl

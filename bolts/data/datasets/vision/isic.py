@@ -5,7 +5,7 @@ import logging
 import os
 from pathlib import Path
 import shutil
-from typing import ClassVar, Final, List, TypeVar
+from typing import ClassVar, List, TypeVar
 import zipfile
 
 from PIL import Image
@@ -18,7 +18,7 @@ import requests
 import torch
 from torchvision.datasets import VisionDataset
 from tqdm import tqdm
-from typing_extensions import Literal
+from typing_extensions import Final, Literal
 
 from bolts.data.datasets.utils import (
     ImageLoadingBackend,
