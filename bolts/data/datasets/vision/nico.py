@@ -5,6 +5,7 @@ from typing import ClassVar, cast
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+import gdown
 import pandas as pd
 import torch
 from torchvision.datasets import VisionDataset
@@ -33,7 +34,6 @@ class NICO(VisionDataset):
 
     _FILE_ID: ClassVar[str] = "1RlspK4FkbrvZEzh-tyXBJMZyvs1DM0cP"  # File ID
     _MD5: ClassVar[str] = "6f21e6484fec0b3a8ef87f0d3115ce93"  # MD5 checksum
-    _FILENAME: ClassVar[str] = "NICO.zip"  # Filename
     _BASE_FOLDER: ClassVar[str] = "NICO"
 
     transform: ImageTform
@@ -85,14 +85,16 @@ class NICO(VisionDataset):
         if self._base_dir.with_suffix(".zip").exists():
             self._check_integrity()
         else:
-            from torchvision.datasets.utils import download_file_from_google_drive
 
             # Create the specified root directory if it doesn't already exist
             self.root.mkdir(parents=True, exist_ok=True)
             # -------------------------- Download the data ---------------------------
             LOGGER.info("Downloading the data from Google Drive.")
-            download_file_from_google_drive(
-                file_id=self._FILE_ID, root=str(self.root), filename=self._FILENAME, md5=self._MD5
+            gdown.cached_download(
+                url=f"https://drive.google.com/uc?id={self._FILE_ID}",
+                path=self._base_dir.with_suffix(".zip"),
+                quiet=False,
+                md5=self._MD5,
             )
             self._check_integrity()
         # ------------------------------ Unzip the data ------------------------------
@@ -108,7 +110,7 @@ class NICO(VisionDataset):
     def _check_integrity(self) -> None:
         from torchvision.datasets.utils import check_integrity
 
-        fpath = self.root / self._FILENAME
+        fpath = self._base_dir.with_suffix(".zip")
         ext = fpath.suffix
         if not ext in [".zip", ".7z"] and check_integrity(str(fpath), self._MD5):
             raise RuntimeError('Dataset corrupted; try deleting it and redownloading it.')
