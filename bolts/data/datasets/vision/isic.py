@@ -5,7 +5,7 @@ import logging
 import os
 from pathlib import Path
 import shutil
-from typing import ClassVar, List, TypeVar
+from typing import ClassVar, Final, List, TypeVar
 import zipfile
 
 from PIL import Image
@@ -35,6 +35,8 @@ LOGGER = logging.getLogger(__name__)
 
 IsicAttr = Literal["histo", "malignant", "patch"]
 T = TypeVar("T")
+METADATA_FILENAME: Final[str] = "metadata.csv"
+LABELS_FILENAME: Final[str] = "labels.csv"
 
 
 class ISIC(VisionDataset):
@@ -75,7 +77,7 @@ class ISIC(VisionDataset):
                 "Have you downloaded it?"
             )
 
-        self.metadata = pd.read_csv(self._processed_dir / "labels.csv")
+        self.metadata = pd.read_csv(self._processed_dir / LABELS_FILENAME)
         # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # considerably slower than indexing with numpy/torch
         self.x = self.metadata["path"].values
@@ -85,11 +87,11 @@ class ISIC(VisionDataset):
         self._il_backend: ImageLoadingBackend = infer_il_backend(self.transform)
 
     def _check_downloaded(self) -> bool:
-        return (self._raw_dir / "images").exists() and (self._raw_dir / "metadata.csv").exists()
+        return (self._raw_dir / "images").exists() and (self._raw_dir / METADATA_FILENAME).exists()
 
     def _check_processed(self) -> bool:
         return (self._processed_dir / "ISIC-images").exists() and (
-            self._processed_dir / "labels.csv"
+            self._processed_dir / LABELS_FILENAME
         ).exists()
 
     @staticmethod
@@ -132,15 +134,16 @@ class ISIC(VisionDataset):
 
         metadata_df = pd.DataFrame(entries)
         metadata_df = metadata_df.set_index("_id")
-        metadata_df.to_csv(self._raw_dir / "metadata.csv")
+        metadata_df.to_csv(self._raw_dir / METADATA_FILENAME)
         return metadata_df
 
     def _download_isic_images(self) -> None:
         """Given the metadata CSV, downloads the ISIC images."""
-        metadata_path = self._raw_dir / "metadata.csv"
+        metadata_path = self._raw_dir / METADATA_FILENAME
         if not metadata_path.is_file():
             raise FileNotFoundError(
-                "metadata.csv not downloaded. " "Run 'download_isic_data` before this function."
+                f"{METADATA_FILENAME} not downloaded. "
+                f"Run 'download_isic_data` before this function."
             )
         metadata_df = pd.read_csv(metadata_path)
         metadata_df = metadata_df.set_index("_id")
@@ -172,10 +175,10 @@ class ISIC(VisionDataset):
         """Preprocesses the raw ISIC metadata."""
         self._processed_dir.mkdir(exist_ok=True)
 
-        metadata_path = self._raw_dir / "metadata.csv"
+        metadata_path = self._raw_dir / METADATA_FILENAME
         if not metadata_path.is_file():
             raise FileNotFoundError(
-                "metadata.csv not found while preprocessing ISIC dataset. "
+                f"{METADATA_FILENAME} not found while preprocessing ISIC dataset. "
                 "Run `download_isic_metadata` and `download_isic_images` before "
                 "calling `preprocess_isic_metadata`."
             )
@@ -194,7 +197,7 @@ class ISIC(VisionDataset):
             + labels_df["name"]
             + ".jpg"
         )
-        labels_df.to_csv(self._processed_dir / "labels.csv")
+        labels_df.to_csv(self._processed_dir / LABELS_FILENAME)
 
     def _preprocess_isic_images(self) -> None:
         """Preprocesses the images."""
@@ -205,7 +208,7 @@ class ISIC(VisionDataset):
                 "Raw ISIC images not found. Run `download_isic_images` before "
                 "calling `preprocess_isic_images`."
             )
-        labels_df = pd.read_csv(self._processed_dir / "labels.csv")
+        labels_df = pd.read_csv(self._processed_dir / LABELS_FILENAME)
         labels_df = labels_df.set_index("_id")
 
         self._processed_dir.mkdir(exist_ok=True)
@@ -253,7 +256,7 @@ class ISIC(VisionDataset):
         labels_df["patch"] = None
         labels_df.loc[patch_mask, "patch"] = 1
         labels_df.loc[~patch_mask, "patch"] = 0
-        assert not any(patch is None for patch in labels_df["patch"])
+        assert all(patch is not None for patch in labels_df["patch"])
         return labels_df
 
     def _download_data(self) -> None:
@@ -265,7 +268,7 @@ class ISIC(VisionDataset):
             return
         # Create the directory and any required ancestors if not already existent
         self._data_dir.mkdir(exist_ok=True, parents=True)
-        LOGGER.info(f"Downloading metadata into {str(self._raw_dir / 'metadata.csv')}...")
+        LOGGER.info(f"Downloading metadata into {str(self._raw_dir / METADATA_FILENAME)}...")
         self._download_isic_metadata()
         LOGGER.info(
             f"Downloading data into {str(self._raw_dir)} for up to {self.max_samples} samples..."
@@ -280,7 +283,7 @@ class ISIC(VisionDataset):
             return
         LOGGER.info(
             f"Preprocessing metadata (adding columns, removing uncertain diagnoses) and saving into "
-            f"{str(self._processed_dir / 'labels.csv')}..."
+            f"{str(self._processed_dir / LABELS_FILENAME)}..."
         )
         self._preprocess_isic_metadata()
         LOGGER.info(

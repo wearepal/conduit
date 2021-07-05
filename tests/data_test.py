@@ -14,8 +14,6 @@ def test_datasets(ds_cls: type[VisionDataset]) -> None:
     Confirms that the datasets can be instantiated and have a functional __getitem__ method.
     """
     transform = T.ToTensor()
-    ds = ds_cls(root=".")
-    train_ds = MNIST(root=".", train=True, transform=transform)
-    test_ds = MNIST(root=".", train=True, transform=transform)
-    for ds in (train_ds, test_ds):
-        ds[0]
+    ds = ds_cls(root=".", transform=transform)
+    for _ds in ds:
+        assert _ds[0] is not None
