@@ -91,6 +91,7 @@ warn_unused_ignores = true
 [[tool.mypy.overrides]]
 module = [
     "albumentations.*",
+    "cv2.*",
     "ethicml.*",
     "flash.*",
     "git.*",
@@ -100,6 +101,7 @@ module = [
     "pl_bolts.*",
     "pytest.*",
     "pytorch_lightning.*",
+    "requests.*",
     "scipy.*",
     "sklearn.*",
     "torch.*",
@@ -114,6 +116,7 @@ ignore_missing_imports = true
 module = [
     "ethicml.*",
     "kit.*",
+    "numpy.typing.*",
     "pytest.*",
     "pytorch_lightning.*",
     "torch.*",

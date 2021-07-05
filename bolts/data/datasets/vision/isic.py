@@ -6,7 +6,7 @@ import logging
 import os
 from pathlib import Path
 import shutil
-from typing import ClassVar, TypeVar
+from typing import ClassVar, List, TypeVar
 import zipfile
 
 from PIL import Image
@@ -64,7 +64,7 @@ class ISIC(VisionDataset):
     ) -> None:
         super().__init__(root=root, transform=transform)
 
-        self.root = Path(self.root)
+        self.root: Path = Path(self.root)
         self.download = download
         self._data_dir = self.root / "ISIC"
         self._processed_dir = self._data_dir / "processed"
@@ -223,7 +223,7 @@ class ISIC(VisionDataset):
                 with zipfile.ZipFile(file, "r") as zip_ref:
                     zip_ref.extractall(self._processed_dir)
                     pbar.update()
-        images = []
+        images: List[Path] = []
         for ext in ("jpg", "jpeg", "png"):
             images.extend(self._processed_dir.glob(f"**/*.{ext}"))
         with tqdm(total=len(images), desc="Processing images", colour=self._pbar_col) as pbar:

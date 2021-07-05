@@ -8,8 +8,14 @@ import torch
 from torch import Tensor, nn
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
+import torchmetrics
 
 __all__ = ["PostHocEval"]
+
+
+class EvalTuple(NamedTuple):
+    x: Tensor
+    y: Tensor
 
 
 class EvalModule(pl.LightningModule):
@@ -19,9 +25,16 @@ class EvalModule(pl.LightningModule):
         self.clf = gcopy(clf)
         self._loss = nn.CrossEntropyLoss()
 
-    def training_step(self, batch: NamedTuple, batch_idx: int) -> STEP_OUTPUT:
+        self._train_acc = torchmetrics.Accuracy()
+        self._test_acc = torchmetrics.Accuracy()
+
+    def training_step(self, batch: EvalTuple, batch_idx: int) -> STEP_OUTPUT:
         y = self(batch.x)
-        return self._loss(y, batch.y.view(-1).long())
+        _tgt = batch.y.flatten().long()
+        self._train_acc(y.argmax(-1), _tgt)
+        loss = self._loss(y, _tgt)
+        self.log_dict({"eval/train_acc": self._train_acc, "eval/train_loss": loss})
+        return loss
 
     def forward(self, x: Tensor) -> Tensor:
         with torch.no_grad():
@@ -29,26 +42,28 @@ class EvalModule(pl.LightningModule):
             z = self.enc(x)
         return self.clf(z)
 
-    def test_step(self, batch: NamedTuple, batch_idx: int) -> Optional[STEP_OUTPUT]:
+    def test_step(self, batch: EvalTuple, batch_idx: int) -> Optional[STEP_OUTPUT]:
         logits = self(batch.x)
+        self._test_acc(logits.argmax(-1), batch.y.flatten().long())
         return {
-            "y": batch.y.view(-1),
-            "preds": logits.sigmoid().round().squeeze(-1),
+            "y": batch.y.flatten(),
+            "preds": logits.argmax(-1).squeeze(-1),
         }
 
     def test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         torch.cat([_r["y"] for _r in outputs], 0)
         torch.cat([_r["preds"] for _r in outputs], 0)
+        self.log("eval/test_acc", self._test_acc)
 
     @staticmethod
     def _maybe_reset_parameters(module: nn.Module) -> None:
         if hasattr(module, 'reset_parameters'):
             module.reset_parameters()  # type: ignore
 
-    def reset_parameters(self):
+    def reset_parameters(self) -> None:
         self.clf.apply(self._maybe_reset_parameters)
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> torch.optim.Optimizer:
         return AdamW(self.clf.parameters())
 
 
@@ -83,7 +98,7 @@ class PostHocEval(pl.Callback):
         trainer.fit(model, train_dataloader=train_dl)
         trainer.test(test_dataloaders=test_dl)
 
-    def _call_eval_loop(self, pl_module: pl.LightningModule):
+    def _call_eval_loop(self, pl_module: pl.LightningModule) -> None:
         pl_module.reset_parameters()
         self._eval_loop(
             trainer=pl_module.eval_trainer,

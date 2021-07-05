@@ -6,7 +6,7 @@ from bolts.fair.models import ErmBaseline
 from tests.fair.model_test import DummyDataModule, Encoder
 
 
-def test_post_hoc_eval():
+def test_post_hoc_eval() -> None:
     """Test the post hoc eval callback."""
     trainer = pl.Trainer(max_steps=1)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
