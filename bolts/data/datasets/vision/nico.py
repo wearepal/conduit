@@ -192,3 +192,4 @@ def _preprocess_nico(path: Path) -> None:
                     )
                     counter += 1
                     image_path.rename(new_name)
+                    
