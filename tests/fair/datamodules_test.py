@@ -1,4 +1,6 @@
 """Test DataModules."""
+from pathlib import Path
+
 import pytest
 from pytorch_lightning import LightningDataModule
 import torch
@@ -16,7 +18,17 @@ BATCHSIZE: Final[int] = 4
 
 
 def _create_dm(dm_cls: Type[LightningDataModule], stratified: bool) -> LightningDataModule:
-    dm = dm_cls(batch_size=BATCHSIZE, stratified_sampling=stratified)
+    try:
+        dm = dm_cls(
+            batch_size=BATCHSIZE,
+            stratified_sampling=stratified,
+            data_dir=Path("~/Data").expanduser(),
+        )
+    except:
+        dm = dm_cls(
+            batch_size=BATCHSIZE,
+            stratified_sampling=stratified,
+        )
     dm.prepare_data()
     dm.setup()
     return dm

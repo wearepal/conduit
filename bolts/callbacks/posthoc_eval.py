@@ -39,9 +39,7 @@ class PostHocEval(pl.Callback):
         self._eval_loop(
             trainer=pl_module.eval_trainer,
             model=pl_module.classifier,
-            train_dl=pl_module.datamodule.train_dataloader(
-                eval=True, batch_size=pl_module.batch_size_eval
-            ),
+            train_dl=pl_module.datamodule.train_dataloader(),
             test_dl=pl_module.datamodule.val_dataloader(),
         )
 
@@ -63,8 +61,6 @@ class PostHocEval(pl.Callback):
         self._eval_loop(
             trainer=pl_module.eval_trainer,
             model=pl_module.classifier,
-            train_dl=pl_module.datamodule.train_dataloader(
-                eval=True, batch_size=pl_module.batch_size_eval
-            ),
+            train_dl=pl_module.datamodule.train_dataloader(),
             test_dl=pl_module.datamodule.test_dataloader(),
         )
