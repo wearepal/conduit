@@ -87,7 +87,6 @@ def apply_image_transform(
         if isinstance(transform, (A.Compose, A.BasicTransform)):
             if isinstance(image, np.ndarray):
                 image_ = transform(image=image)["image"]
-        else:
-            if isinstance(image, Image.Image):
-                image_ = transform(image)
+        elif isinstance(image, Image.Image):
+            image_ = transform(image)
     return image_

@@ -73,31 +73,30 @@ class BaseDataModule(pl.LightningDataModule):
 
     @implements(pl.LightningDataModule)
     def train_dataloader(self, shuffle: bool = False, drop_last: bool = True) -> DataLoader:
-        if self.stratified_sampling:
-            from bolts.fair.data import extract_labels_from_dataset
-
-            s_all, y_all = extract_labels_from_dataset(self._train_data)
-            group_ids = (y_all * len(s_all.unique()) + s_all).squeeze()
-            num_groups = len(group_ids.unique())
-            num_samples_per_group = self.batch_size // num_groups
-            if self.batch_size % num_groups:
-                LOGGER.info(
-                    f"For stratified sampling, the batch size must be a multiple of the number of groups."
-                    "Since the batch size is not integer divisible by the number of groups ({num_groups}),"
-                    "the batch size is being reduced to {num_samples_per_group * num_groups}."
-                )
-            batch_sampler = StratifiedSampler(
-                group_ids.squeeze().tolist(),
-                num_samples_per_group=num_samples_per_group,
-                replacement=self.sample_with_replacement,
-            )
-            return self.make_dataloader(
-                self.train_data, batch_sampler=batch_sampler, shuffle=False, drop_last=False
-            )
-        else:
+        if not self.stratified_sampling:
             return self.make_dataloader(
                 self.train_data, shuffle=True, drop_last=drop_last, batch_sampler=None
             )
+        from bolts.fair.data import extract_labels_from_dataset
+
+        s_all, y_all = extract_labels_from_dataset(self._train_data)
+        group_ids = (y_all * len(s_all.unique()) + s_all).squeeze()
+        num_groups = len(group_ids.unique())
+        num_samples_per_group = self.batch_size // num_groups
+        if self.batch_size % num_groups:
+            LOGGER.info(
+                f"For stratified sampling, the batch size must be a multiple of the number of groups."
+                "Since the batch size is not integer divisible by the number of groups ({num_groups}),"
+                "the batch size is being reduced to {num_samples_per_group * num_groups}."
+            )
+        batch_sampler = StratifiedSampler(
+            group_ids.squeeze().tolist(),
+            num_samples_per_group=num_samples_per_group,
+            replacement=self.sample_with_replacement,
+        )
+        return self.make_dataloader(
+            self.train_data, batch_sampler=batch_sampler, shuffle=False, drop_last=False
+        )
 
     @implements(pl.LightningDataModule)
     def val_dataloader(self, shuffle: bool = False, drop_last: bool = False) -> DataLoader:

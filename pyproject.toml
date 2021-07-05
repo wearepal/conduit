@@ -67,7 +67,7 @@ exclude = '''
 )
 '''
 [tool.isort]
-known_third_party = ["PIL", "albumentations", "ethicml", "kit", "numpy", "pandas", "pytest", "pytorch_lightning", "sklearn", "torch", "torchmetrics", "torchvision", "typing_extensions"]
+known_third_party = ["PIL", "albumentations", "cv2", "ethicml", "gdown", "kit", "numpy", "pandas", "pytest", "pytorch_lightning", "requests", "sklearn", "torch", "torchmetrics", "torchvision", "tqdm", "typing_extensions"]
 known_future_library = []
 extra_standard_library = ["dataclasses", "__future__", "typing_extensions"]
 line_length = 88
@@ -92,8 +92,10 @@ warn_unused_ignores = true
 [[tool.mypy.overrides]]
 module = [
     "albumentations.*",
+    "cv2.*",
     "ethicml.*",
     "flash.*",
+    "gdown.*",
     "git.*",
     "kit.*",
     "pandas.*",
@@ -101,6 +103,7 @@ module = [
     "pl_bolts.*",
     "pytest.*",
     "pytorch_lightning.*",
+    "requests.*",
     "scipy.*",
     "sklearn.*",
     "torch.*",
@@ -115,6 +118,7 @@ ignore_missing_imports = true
 module = [
     "ethicml.*",
     "kit.*",
+    "numpy.typing.*",
     "pytest.*",
     "pytorch_lightning.*",
     "torch.*",

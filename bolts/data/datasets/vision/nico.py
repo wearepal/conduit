@@ -1,7 +1,7 @@
 from __future__ import annotations
 import logging
 from pathlib import Path
-from typing import ClassVar, cast
+from typing import ClassVar, List, cast
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -47,7 +47,7 @@ class NICO(VisionDataset):
     ) -> None:
         super().__init__(root=root, transform=transform)
 
-        self.root = Path(self.root)
+        self.root: Path = Path(self.root)
         self.download = download
         self._base_dir = self.root / self._BASE_FOLDER
         self._metadata_path = self._base_dir / "metadata.csv"
@@ -82,10 +82,7 @@ class NICO(VisionDataset):
             LOGGER.info("Files already downloaded and unzipped.")
             return
 
-        if self._base_dir.with_suffix(".zip").exists():
-            self._check_integrity()
-        else:
-
+        if not self._base_dir.with_suffix(".zip").exists():
             # Create the specified root directory if it doesn't already exist
             self.root.mkdir(parents=True, exist_ok=True)
             # -------------------------- Download the data ---------------------------
@@ -96,7 +93,7 @@ class NICO(VisionDataset):
                 quiet=False,
                 md5=self._MD5,
             )
-            self._check_integrity()
+        self._check_integrity()
         # ------------------------------ Unzip the data ------------------------------
         import zipfile
 
@@ -112,12 +109,12 @@ class NICO(VisionDataset):
 
         fpath = self._base_dir.with_suffix(".zip")
         ext = fpath.suffix
-        if not ext in [".zip", ".7z"] and check_integrity(str(fpath), self._MD5):
+        if ext not in [".zip", ".7z"] and check_integrity(str(fpath), self._MD5):
             raise RuntimeError('Dataset corrupted; try deleting it and redownloading it.')
 
     def _extract_metadata(self) -> None:
         """Extract concept/context/superclass information from the image filepaths and it save to csv."""
-        images = []
+        images: List[Path] = []
         for ext in ("jpg", "jpeg", "png"):
             images.extend(self._base_dir.glob(f"**/*.{ext}"))
         images = [str(image.relative_to(self._base_dir)) for image in images]
@@ -170,11 +167,10 @@ def _preprocess_nico(path: Path) -> None:
         superclass_dir = path / superclass
         for class_dir in superclass_dir.glob("*"):
             for context_dir in class_dir.glob("*"):
-                images_paths = []
+                images_paths: List[Path] = []
                 for ext in ("jpg", "jpeg", "png", "gif"):
                     images_paths.extend(context_dir.glob(f"**/*.{ext}"))
-                counter = 0
-                for image_path in images_paths:
+                for counter, image_path in enumerate(images_paths):
                     if image_path.suffix == ".gif":
                         image = Image.open(image_path).convert("RGBA")
                         new_image_path = image_path.with_suffix(".jpg")
@@ -190,6 +186,4 @@ def _preprocess_nico(path: Path) -> None:
                     new_name = (
                         image_path.parent / f"{concept}_{context}_{counter:04}.{image_path.suffix}"
                     )
-                    counter += 1
                     image_path.rename(new_name)
-                    
