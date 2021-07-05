@@ -28,6 +28,7 @@ lightning-bolts = "^0.3.4"
 palkit = "*"
 torch = "*"
 torchvision = "*"
+gdown = "^3.13.0"
 
 [tool.poetry.dev-dependencies]
 black = "*"
