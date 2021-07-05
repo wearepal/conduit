@@ -40,12 +40,19 @@ class Celeba(VisionDataset):
         self.base = Path(root) / CELEBA_BASE_FOLDER
         super().__init__(root=str(self.base), transform=transform)
 
-        self.download = download
         self.superclass = superclass
         self.subclass = subclass
-        self._img_dir = self.base / "img_align_celeba"
 
-        if self.download:
+        dataset, self._img_dir = em.celeba(
+            download_dir=root,
+            label=superclass,
+            sens_attr=subclass,
+            download=False,  # we'll download manually
+            check_integrity=False,  # we'll check manually
+        )
+        assert dataset is not None, "could not load CelebA"
+
+        if download:
             self._download_and_unzip_data()
         elif not self._check_unzipped():
             raise RuntimeError(
@@ -53,14 +60,6 @@ class Celeba(VisionDataset):
             )
 
         # load meta data
-        dataset, _ = em.celeba(
-            download_dir=root,
-            label=superclass,
-            sens_attr=subclass,
-            download=False,
-            check_integrity=False,
-        )
-        assert dataset is not None, "could not load CelebA"
         data_tup = dataset.load(labels_as_features=True)
         self.metadata = data_tup.x
 
@@ -90,13 +89,8 @@ class Celeba(VisionDataset):
                 path=str(self.base / filename),
                 quiet=False,
                 md5=md5,
+                postprocess=gdown.extractall,
             )
-        # ------------------------------ Unzip the data ------------------------------
-        import zipfile
-
-        LOGGER.info("Unzipping the data; this may take a while.")
-        with zipfile.ZipFile(self.base / "img_align_celeba.zip", "r") as fhandle:
-            fhandle.extractall(str(self.base))
 
         assert self._check_unzipped()
 
