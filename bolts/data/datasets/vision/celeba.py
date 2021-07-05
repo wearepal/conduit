@@ -4,8 +4,8 @@ from pathlib import Path
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
-from ethicml import CELEBA_BASE_FOLDER, CELEBA_FILE_LIST, CelebAttrs
 import ethicml as em
+from ethicml import CELEBA_BASE_FOLDER, CELEBA_FILE_LIST, CelebAttrs
 import gdown
 import torch
 from torchvision.datasets import VisionDataset
