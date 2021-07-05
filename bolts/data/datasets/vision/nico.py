@@ -152,3 +152,43 @@ class NICO(VisionDataset):
         image = apply_image_transform(image=image, transform=self.transform)
         target = self.y[index]
         return TernarySample(x=image, s=self.s[index], y=target)
+
+
+def _preprocess_nico(path: Path) -> None:
+    """
+    Preprocess the original NICO data.
+    This preprocessing entails two things:
+        1) Renaming the files according to their concept/context/order of appearance.
+        This renaming was necessary as some of the file-names were too long
+        to be unzipped.
+        2) Converting any GIFs into JPEGs by extracting the first frame.
+    Note that this preprocessing will be performed **in-place**, overwriting the original data.
+    """
+    from PIL import Image
+
+    for superclass in ("animals", "vehicles"):
+        superclass_dir = path / superclass
+        for class_dir in superclass_dir.glob("*"):
+            for context_dir in class_dir.glob("*"):
+                images_paths = []
+                for ext in ("jpg", "jpeg", "png", "gif"):
+                    images_paths.extend(context_dir.glob(f"**/*.{ext}"))
+                counter = 0
+                for image_path in images_paths:
+                    if image_path.suffix == ".gif":
+                        image = Image.open(image_path).convert("RGBA")
+                        new_image_path = image_path.with_suffix(".jpg")
+
+                        background = Image.new('RGBA', image.size, (255, 255, 255))
+                        new_image = Image.alpha_composite(background, image).convert("RGB")
+                        new_image.save(new_image_path, "JPEG")
+                        image_path.unlink()
+                        image_path = new_image_path
+
+                    concept = image_path.parent.parent.stem
+                    context = image_path.parent.stem
+                    new_name = (
+                        image_path.parent / f"{concept}_{context}_{counter:04}.{image_path.suffix}"
+                    )
+                    counter += 1
+                    image_path.rename(new_name)
