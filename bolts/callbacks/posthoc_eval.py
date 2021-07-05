@@ -19,7 +19,7 @@ class EvalTuple(NamedTuple):
 
 
 class EvalModule(pl.LightningModule):
-    def __init__(self, enc: nn.Module, clf: nn.Module):
+    def __init__(self, enc: nn.Module, clf: nn.Module) -> None:
         super().__init__()
         self.enc = enc
         self.clf = gcopy(clf)
