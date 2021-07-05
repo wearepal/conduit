@@ -1,6 +1,5 @@
 from __future__ import annotations
 from collections.abc import Iterable, Iterator
-from enum import Enum, auto
 from itertools import islice
 import logging
 import os
@@ -19,6 +18,7 @@ import requests
 import torch
 from torchvision.datasets import VisionDataset
 from tqdm import tqdm
+from typing_extensions import Literal
 
 from bolts.data.datasets.utils import (
     ImageLoadingBackend,
@@ -29,19 +29,11 @@ from bolts.data.datasets.utils import (
     load_image,
 )
 
-__all__ = ["ISIC", "ISICAttrs"]
+__all__ = ["ISIC"]
 
 LOGGER = logging.getLogger(__name__)
 
-
-class ISICAttrs(Enum):
-    """Attributes available for the ISIC dataset."""
-
-    histo = auto()
-    malignant = auto()
-    patch = auto()
-
-
+IsicAttr = Literal["histo", "malignant", "patch"]
 T = TypeVar("T")
 
 
@@ -52,14 +44,15 @@ class ISIC(VisionDataset):
 
     _pbar_col: ClassVar[str] = "#fac000"
     _rest_api_url: ClassVar[str] = "https://isic-archive.com/api/v1"
+    transform: ImageTform
 
     def __init__(
         self,
         root: str,
         download: bool = True,
         max_samples: int = 25_000,  # default is the number of samples used for the NSLB paper
-        sens_attr: ISICAttrs = ISICAttrs.histo,
-        target_attr: ISICAttrs = ISICAttrs.malignant,
+        context_attr: IsicAttr = "histo",
+        target_attr: IsicAttr = "malignant",
         transform: ImageTform = A.Compose([A.Normalize(), ToTensorV2()]),
     ) -> None:
         super().__init__(root=root, transform=transform)
@@ -83,11 +76,11 @@ class ISIC(VisionDataset):
             )
 
         self.metadata = pd.read_csv(self._processed_dir / "labels.csv")
-        # Divide up the dataframe into it's constituent arrays because indexing with pandas is
+        # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # considerably slower than indexing with numpy/torch
         self.x = self.metadata["path"].values
-        self.s = torch.as_tensor(self.metadata[sens_attr.name], dtype=torch.int32)
-        self.y = torch.as_tensor(self.metadata[target_attr.name], dtype=torch.int32)
+        self.s = torch.as_tensor(self.metadata[context_attr], dtype=torch.int32)
+        self.y = torch.as_tensor(self.metadata[target_attr], dtype=torch.int32)
 
         self._il_backend: ImageLoadingBackend = infer_il_backend(self.transform)
 
@@ -224,7 +217,7 @@ class ISIC(VisionDataset):
                     zip_ref.extractall(self._processed_dir)
                     pbar.update()
         images: List[Path] = []
-        for ext in ("jpg", "jpeg", "png"):
+        for ext in ("jpg", "jpeg", "png", "gif"):
             images.extend(self._processed_dir.glob(f"**/*.{ext}"))
         with tqdm(total=len(images), desc="Processing images", colour=self._pbar_col) as pbar:
             for image_path in images:

@@ -46,12 +46,14 @@ def load_image(filepath: Path | str, backend: ImageLoadingBackend = "opencv") ->
             # cv2 can only read string filepaths
             filepath = str(filepath)
         image = cv2.imread(filepath)  # type: ignore
+        if image is None:
+            raise OSError(f"Image-file could not be read from location '{filepath}'")
         return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # type: ignore
     return Image.open(filepath)
 
 
 AlbumentationsTform = Union[A.Compose, A.BasicTransform]
-PillowTform = Callable[[Union[Image.Image, Tensor]], Union[Tensor, Image.Image]]
+PillowTform = Callable[[Image.Image], Union[Tensor, Image.Image]]
 ImageTform = Union[AlbumentationsTform, PillowTform]
 
 
@@ -78,11 +80,14 @@ class TernarySample(NamedTuple):
 def apply_image_transform(
     image: RawImage, transform: ImageTform
 ) -> np.ndarray | Image.Image | Tensor:
-    # If the image is a numpy array,  the opencv was inferred as the image-loading
-    # backend and the transformation is derived from albumentations
-    if transform is None:
-        if isinstance(image, np.ndarray):
-            image = transform(image=image)["image"]
+    # If the image is a numpy array,  then opencv was inferred as the image-loading
+    # backend and the transformation comes from albumentations
+    image_ = image
+    if transform is not None:
+        if isinstance(transform, (A.Compose, A.BasicTransform)):
+            if isinstance(image, np.ndarray):
+                image_ = transform(image=image)["image"]
         else:
-            image = transform(image)
-    return image
+            if isinstance(image, Image.Image):
+                image_ = transform(image)
+    return image_

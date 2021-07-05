@@ -28,6 +28,7 @@ lightning-bolts = "^0.3.4"
 palkit = "*"
 torch = "*"
 torchvision = "*"
+gdown = "^3.13.0"
 
 [tool.poetry.dev-dependencies]
 black = "*"
@@ -66,7 +67,7 @@ exclude = '''
 )
 '''
 [tool.isort]
-known_third_party = ["PIL", "albumentations", "cv2", "ethicml", "kit", "numpy", "pandas", "pytest", "pytorch_lightning", "requests", "sklearn", "torch", "torchmetrics", "torchvision", "tqdm", "typing_extensions"]
+known_third_party = ["PIL", "albumentations", "cv2", "ethicml", "gdown", "kit", "numpy", "pandas", "pytest", "pytorch_lightning", "requests", "sklearn", "torch", "torchmetrics", "torchvision", "tqdm", "typing_extensions"]
 known_future_library = []
 extra_standard_library = ["dataclasses", "__future__", "typing_extensions"]
 line_length = 88
