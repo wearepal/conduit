@@ -64,8 +64,8 @@ class Celeba(VisionDataset):
         self.metadata = data_tup.x
 
         self.x = self.metadata["filename"].to_numpy(copy=True)
-        self.s = torch.as_tensor(data_tup.s, dtype=torch.int32)
-        self.y = torch.as_tensor(data_tup.y, dtype=torch.int32)
+        self.s = torch.as_tensor(data_tup.s.to_numpy(), dtype=torch.int32).view(-1)
+        self.y = torch.as_tensor(data_tup.y.to_numpy(), dtype=torch.int32).view(-1)
 
         self._il_backend: ImageLoadingBackend = infer_il_backend(self.transform)
 
@@ -89,7 +89,7 @@ class Celeba(VisionDataset):
                 path=str(self.base / filename),
                 quiet=False,
                 md5=md5,
-                postprocess=gdown.extractall,
+                postprocess=gdown.extractall if filename.endswith(".zip") else None,
             )
 
         assert self._check_unzipped()
