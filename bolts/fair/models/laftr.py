@@ -113,7 +113,7 @@ class Laftr(pl.LightningModule):
         model_out = self(batch.x, batch.s)
         laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
         adv_loss = self._loss_adv(model_out.s, batch)
-        tm_acc = self.val_acc if stage == "val" else self.train_acc
+        tm_acc = self.val_acc if stage == "val" else self.test_acc
         target = batch.y.view(-1).long()
         tm_acc(model_out.y.argmax(-1), target)
         self.log_dict(
