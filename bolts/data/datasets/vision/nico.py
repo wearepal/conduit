@@ -150,7 +150,7 @@ class NICO(VisionDataset):
         train_props: dict[str | int, dict[str | int, float]] | None = None,
         seed: int | None = None,
     ) -> tuple[Subset, Subset]:
-        """Split the data randomly or according to the train proportions for specified context/concept pairs."""
+        """Split the data into train/test sets with the option to condition on concept/context."""
         # Initialise the random-number generator
         rng = np.random.default_rng(seed)
         # List to store the idnices of the samples apportioned to the train set
