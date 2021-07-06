@@ -75,10 +75,6 @@ class Celeba(VisionDataset):
     def _download_and_unzip_data(self) -> None:
         """Attempt to download data if files cannot be found in the base directory."""
 
-        if self._check_unzipped():
-            LOGGER.info("Files already downloaded and unzipped.")
-            return
-
         # Create the specified base directory if it doesn't already exist
         self.base.mkdir(parents=True, exist_ok=True)
         # -------------------------- Download the data ---------------------------
