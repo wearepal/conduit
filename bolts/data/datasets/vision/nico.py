@@ -144,7 +144,7 @@ class NICO(VisionDataset):
             metadata[f"{col}_le"] = metadata[col].factorize()[0]
         return metadata
 
-    def split(
+    def train_test_split(
         self,
         default_train_prop: float,
         train_props: dict[str | int, dict[str | int, float]] | None = None,
