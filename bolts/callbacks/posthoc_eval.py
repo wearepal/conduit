@@ -105,7 +105,10 @@ class PostHocEval(pl.Callback):
         test_dl: DataLoader,
     ) -> None:
         trainer.fit(model, train_dataloader=train_dl)
-        trainer.test(test_dataloaders=test_dl)
+        if trainer.fast_dev_run:
+            trainer.test(model=model, test_dataloaders=test_dl)
+        else:
+            trainer.test(test_dataloaders=test_dl)
 
     def _call_eval_loop(self, pl_module: pl.LightningModule) -> None:
         self.eval_clf.reset_parameters()
