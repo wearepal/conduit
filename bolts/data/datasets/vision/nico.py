@@ -166,7 +166,7 @@ class NICO(VisionDataset):
                 # Allow the context to be speicifed either by its name or its label-encoding
                 _col = f"context_le" if isinstance(_context, int) else "context"
                 if _context not in self.metadata[_col].unique():
-                    raise ValueError(f"Encountered invalid cotext value '{_context}'.")
+                    raise ValueError(f"'{_context}' is not a valid context.")
                 # Condition the mask on the context
                 _mask = _mask & (self.metadata[_col] == _context).to_numpy()
             # Compute the overall size of the concept/context subset
@@ -187,7 +187,7 @@ class NICO(VisionDataset):
                 # Allow the concept to be speicifed either by its name or its label-encoding
                 col = f"concept_le" if isinstance(concept, int) else "concept"
                 if concept not in self.metadata[col].unique():
-                    raise ValueError(f"Encountered invalid concept value '{concept}'.")
+                    raise ValueError(f"'{concept}' is not a valid concept.")
                 concept_mask = (self.metadata[col] == concept).to_numpy()
                 # Specifying proportions at the context/concept level, rather than concept-wide
                 if isinstance(value, dict):
