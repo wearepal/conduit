@@ -148,9 +148,11 @@ class NICO(VisionDataset):
         self,
         default_train_prop: float,
         train_props: dict[str | int, dict[str | int, float]] | None = None,
+        seed: int | None = None,
     ) -> tuple[Subset, Subset]:
         """Split the data randomly or according to the train proportions for specified context/concept pairs."""
 
+        rng = np.random.default_rng(seed)
         # List to store the idnices of the samples apportioned to the train set
         # - those for the test set will be computed by complement
         train_inds: list[int] = []
@@ -174,7 +176,7 @@ class NICO(VisionDataset):
             # Compute the size of the train split
             _train_subset_size = round(_train_prop * _subset_size)
             # Sample the train indices (without replacement)
-            _train_inds = np.random.choice(
+            _train_inds = rng.choice(
                 np.nonzero(_mask)[0], size=_train_subset_size, replace=False
             ).tolist()
             # Mark the sampled indices as 'visited'
