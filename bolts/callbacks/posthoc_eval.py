@@ -1,4 +1,4 @@
-from typing import NamedTuple, Optional, Sequence
+from typing import List, NamedTuple, Optional, Sequence
 
 from kit import gcopy
 import pytorch_lightning as pl
@@ -10,6 +10,8 @@ from torch.utils.data import DataLoader
 import torchmetrics
 
 __all__ = ["PostHocEval"]
+
+from typing_extensions import Type
 
 
 class EvalTuple(NamedTuple):
@@ -77,14 +79,21 @@ class PostHocEval(pl.Callback):
         - ``self.trainer''
     """
 
-    def __init__(self) -> None:
+    def __init__(self, callbacks_to_ignore: Optional[List[Type[pl.Callback]]] = None) -> None:
         super().__init__()
+        self.ignored_callbacks = (
+            tuple(callbacks_to_ignore) if callbacks_to_ignore is not None else ()
+        )
 
     def on_pretrain_routine_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         pl_module.eval_trainer = gcopy(
             trainer,
             max_epochs=pl_module.clf_epochs,
-            callbacks=[cb for cb in trainer.callbacks if not isinstance(cb, PostHocEval)],
+            callbacks=[
+                cb
+                for cb in trainer.callbacks
+                if not isinstance(cb, (PostHocEval,) + self.ignored_callbacks)
+            ],
         )
         self.eval_clf = EvalModule(enc=pl_module.encoder, clf=pl_module.eval_classifier)
 
