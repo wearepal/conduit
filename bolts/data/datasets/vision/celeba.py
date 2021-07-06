@@ -88,7 +88,8 @@ class Celeba(VisionDataset):
                 postprocess=gdown.extractall if filename.endswith(".zip") else None,
             )
 
-        assert self._check_unzipped()
+        if not self._check_unzipped():
+            raise RuntimeError("Data seems to be downloaded but not unzipped. Download again?")
 
     def __len__(self) -> int:
         return len(self.x)
