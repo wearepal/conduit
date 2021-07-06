@@ -133,13 +133,13 @@ class Laftr(pl.LightningModule):
     def _loss_adv(self, s_pred: Tensor, batch: DataBatch) -> Tensor:
         # For Demographic Parity, for EqOpp is a different loss term.
         if self.fairness is FairnessType.DP:
-            losses = self._adv_clf_loss(s_pred, batch.s.view(-1))
+            losses = self._adv_clf_loss(s_pred, batch.s.view(-1, 1))
             for s in (0, 1):
                 mask = batch.s.view(-1) == s
                 losses[mask] /= mask.sum()
             loss = 1 - losses.sum() / 2
         elif self.fairness is FairnessType.EO:
-            unweighted_loss = self._adv_clf_loss(s_pred, batch.s.view(-1))
+            unweighted_loss = self._adv_clf_loss(s_pred, batch.s.view(-1, 1))
             count = 0
             for s, y in itertools.product([0, 1], repeat=2):
                 count += 1
@@ -148,7 +148,7 @@ class Laftr(pl.LightningModule):
             loss = 2 - unweighted_loss.sum() / count
         elif self.fairness is FairnessType.EqOp:
             # TODO: How to best handle this if no +ve samples in the batch?
-            unweighted_loss = self._adv_clf_loss(s_pred, batch.s)
+            unweighted_loss = self._adv_clf_loss(s_pred, batch.s.view(-1, 1))
             for s in (0, 1):
                 mask = (batch.s.view(-1) == s) & (batch.y.view(-1) == 1)
                 unweighted_loss[mask] /= mask.sum()
