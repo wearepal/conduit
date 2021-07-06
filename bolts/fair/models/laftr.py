@@ -54,11 +54,6 @@ class Laftr(pl.LightningModule):
         self.adv = adv
         self.clf = clf
 
-        self.laftr_params = itertools.chain(
-            [*self.enc.parameters(), *self.dec.parameters(), *self.clf.parameters()]
-        )
-        self.adv_params = self.adv.parameters()
-
         self._clf_loss = CrossEntropy(reduction="mean")
         self._recon_loss = nn.L1Loss(reduction="mean")
         self._adv_clf_loss = nn.L1Loss(reduction="none")
@@ -176,8 +171,13 @@ class Laftr(pl.LightningModule):
     def configure_optimizers(
         self,
     ) -> Tuple[List[optim.Optimizer], List[optim.lr_scheduler.ExponentialLR]]:
-        opt_laftr = optim.AdamW(self.laftr_params, lr=self.lr, weight_decay=self.weight_decay)
-        opt_adv = optim.AdamW(self.adv_params, lr=self.lr, weight_decay=self.weight_decay)
+        laftr_params = itertools.chain(
+            [*self.enc.parameters(), *self.dec.parameters(), *self.clf.parameters()]
+        )
+        adv_params = self.adv.parameters()
+
+        opt_laftr = optim.AdamW(laftr_params, lr=self.lr, weight_decay=self.weight_decay)
+        opt_adv = optim.AdamW(adv_params, lr=self.lr, weight_decay=self.weight_decay)
 
         sched_laftr = optim.lr_scheduler.ExponentialLR(optimizer=opt_laftr, gamma=self.lr_gamma)
         sched_adv = optim.lr_scheduler.ExponentialLR(optimizer=opt_adv, gamma=self.lr_gamma)
