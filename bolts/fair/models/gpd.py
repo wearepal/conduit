@@ -139,8 +139,8 @@ class Gpd(pl.LightningModule):
         for _label in ("s", "y"):
             tm_acc = self.accs[f"{stage}_{_label}"]
             _target = getattr(batch, _label).view(-1).long()
-            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"{stage}/acc_{_label}": _acc})
+            tm_acc(getattr(model_out, _label).argmax(-1), _target)
+            logs.update({f"{stage}/acc_{_label}": tm_acc})
         self.log_dict(logs)
         return {
             "y": batch.y.view(-1),
@@ -191,8 +191,8 @@ class Gpd(pl.LightningModule):
         for _label in ("s", "y"):
             tm_acc = self.accs[f"train_{_label}"]
             _target = getattr(batch, _label).view(-1).long()
-            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"train/acc_{_label}": _acc})
+            tm_acc(getattr(model_out, _label).argmax(-1), _target)
+            logs.update({f"train/acc_{_label}": tm_acc})
         self.log_dict(logs)
         opt.step()
 

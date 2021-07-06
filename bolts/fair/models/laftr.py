@@ -120,13 +120,13 @@ class Laftr(pl.LightningModule):
         adv_loss = self._loss_adv(model_out.s, batch)
         tm_acc = self.val_acc if stage == "val" else self.train_acc
         target = batch.y.view(-1).long()
-        acc = tm_acc(model_out.y.argmax(-1), target)
+        tm_acc(model_out.y.argmax(-1), target)
         self.log_dict(
             {
                 f"{stage}/loss": (laftr_loss + adv_loss).item(),
                 f"{stage}/model_loss": laftr_loss.item(),
                 f"{stage}/adv_loss": adv_loss.item(),
-                f"{stage}/{self.target}_acc": acc,
+                f"{stage}/{self.target}_acc": tm_acc,
             }
         )
         return {
@@ -219,12 +219,12 @@ class Laftr(pl.LightningModule):
             laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
             adv_loss = self._loss_adv(model_out.s, batch)
             target = batch.y.view(-1).long()
-            acc = self.train_acc(model_out.y.argmax(-1), target)
+            self.train_acc(model_out.y.argmax(-1), target)
             self.log_dict(
                 {
                     f"train/loss": (laftr_loss + adv_loss).item(),
                     f"train/model_loss": laftr_loss.item(),
-                    f"train/acc": acc,
+                    f"train/acc": self.train_acc,
                 }
             )
             return laftr_loss + adv_loss
@@ -236,12 +236,12 @@ class Laftr(pl.LightningModule):
             adv_loss = self._loss_adv(model_out.s, batch)
             laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
             target = batch.y.view(-1).long()
-            acc = self.train_acc(model_out.y.argmax(-1), target)
+            self.train_acc(model_out.y.argmax(-1), target)
             self.log_dict(
                 {
                     f"train/loss": (laftr_loss + adv_loss).item(),
                     f"train/adv_loss": adv_loss.item(),
-                    f"train/acc": acc,
+                    f"train/acc": self.train_acc,
                 }
             )
             return -(laftr_loss + adv_loss)
