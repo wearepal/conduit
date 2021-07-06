@@ -6,8 +6,11 @@ from typing import ClassVar, List, cast
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import gdown
+from kit import implements
+import numpy as np
 import pandas as pd
 import torch
+from torch.utils.data import Subset
 from torchvision.datasets import VisionDataset
 from typing_extensions import Literal, get_args
 
@@ -66,7 +69,7 @@ class NICO(VisionDataset):
             self.metadata = self.metadata[self.metadata["superclass"] == superclass]
         # # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # # substantially slower than indexing with numpy/torch
-        self.x = self.metadata["filepath"].values
+        self.x = self.metadata["filepath"].to_numpy()
         self.s = torch.as_tensor(self.metadata["context_le"], dtype=torch.int32)
         self.y = torch.as_tensor(self.metadata["concept_le"], dtype=torch.int32)
 
@@ -114,11 +117,11 @@ class NICO(VisionDataset):
 
     def _extract_metadata(self) -> None:
         """Extract concept/context/superclass information from the image filepaths and it save to csv."""
-        images: List[Path] = []
+        image_paths: list[Path] = []
         for ext in ("jpg", "jpeg", "png"):
-            images.extend(self._base_dir.glob(f"**/*.{ext}"))
-        images = [str(image.relative_to(self._base_dir)) for image in images]
-        filepaths = pd.Series(images)
+            image_paths.extend(self._base_dir.glob(f"**/*.{ext}"))
+        image_paths_str = [str(image.relative_to(self._base_dir)) for image in image_paths]
+        filepaths = pd.Series(image_paths_str)
         metadata = cast(
             pd.DataFrame,
             filepaths.str.split("/", expand=True).rename(
@@ -141,9 +144,76 @@ class NICO(VisionDataset):
             metadata[f"{col}_le"] = metadata[col].factorize()[0]
         return metadata
 
+    def split(
+        self,
+        default_train_prop: float,
+        train_props: dict[str | int, dict[str | int, float]] | None = None,
+    ) -> tuple[Subset, Subset]:
+        """Split the data randomly or according to the train proportions for specified context/concept pairs."""
+
+        # List to store the idnices of the samples apportioned to the trainin set
+        # - those for the test set will be computed by complement
+        train_inds: list[int] = []
+        # Track which indices have been sampled for either split
+        unvisited = np.ones(len(self), dtype=np.bool_)
+
+        def _get_train_inds(
+            _mask: np.ndarray,
+            _context: str | int | None = None,
+            _train_prop: float = default_train_prop,
+        ) -> list[int]:
+            if _context is not None:
+                # Allow the context to be speicifed either by its name or its label-encoding
+                _col = f"context_le" if isinstance(_context, int) else "context"
+                if _context not in self.metadata[_col].unique():
+                    raise ValueError(f"Encountered invalid cotext value '{_context}'.")
+                # Condition the mask on the context
+                _mask = _mask & (self.metadata[_col] == _context).to_numpy()
+            # Compute the overall size of the concept/context subset
+            _subset_size = np.count_nonzero(_mask)
+            # Compute the size of the train split
+            _train_subset_size = round(_train_prop * _subset_size)
+            # Sample the train indices (without replacement)
+            _train_inds = np.random.choice(
+                np.nonzero(_mask)[0], size=_train_subset_size, replace=False
+            ).tolist()
+            # Mark the sampled indices as 'visited'
+            unvisited[_mask] = False
+
+            return _train_inds
+
+        if train_props is not None:
+            for concept, value in train_props.items():
+                # Allow the concept to be speicifed either by its name or its label-encoding
+                col = f"concept_le" if isinstance(concept, int) else "concept"
+                if concept not in self.metadata[col].unique():
+                    raise ValueError(f"Encountered invalid concept value '{concept}'.")
+                concept_mask = (self.metadata[col] == concept).to_numpy()
+                # Specifying proportions at the context/concept level, rather than concept-wide
+                if isinstance(value, dict):
+                    for context, train_prop in value.items():
+                        train_inds.extend(
+                            _get_train_inds(
+                                _mask=concept_mask, _context=context, _train_prop=train_prop
+                            )
+                        )
+                # Split at the class level (without conditioning on contexts)
+                else:
+                    train_inds.extend(
+                        _get_train_inds(_mask=concept_mask, _context=None, _train_prop=value)
+                    )
+        # Apportion anu remaining samples to the training set using default_train_prop
+        train_inds.extend(_get_train_inds(_mask=unvisited, _train_prop=default_train_prop))
+        # Compute the test indices by complement of the train indices
+        test_inds = list(set(range(len(self))) - set(train_inds))
+
+        return Subset(self, indices=train_inds), Subset(self, test_inds)
+
+    @implements(VisionDataset)
     def __len__(self) -> int:
         return len(self.x)
 
+    @implements(VisionDataset)
     def __getitem__(self, index: int) -> TernarySample:
         image = load_image(self._base_dir / self.x[index], backend=self._il_backend)
         image = apply_image_transform(image=image, transform=self.transform)

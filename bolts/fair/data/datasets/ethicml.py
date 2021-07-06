@@ -81,7 +81,7 @@ class DataTupleDatasetBase(Dataset):
             s=pd.DataFrame(self.s, columns=["s"]),
             y=pd.DataFrame(self.y, columns=["y"]),
         )
-        self.iws = torch.tensor(em.compute_instance_weights(dt)["instance weights"].values)
+        self.iws = torch.tensor(em.compute_instance_weights(dt)["instance weights"].to_numpy())
 
     def __len__(self) -> int:
         return self.s.shape[0]
