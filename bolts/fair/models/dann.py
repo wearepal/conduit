@@ -101,7 +101,6 @@ class Dann(pl.LightningModule):
 
         results_dict = {
             f"{stage}/acc_{label}": self.accs[f"{stage}_{label}"].compute().item()
-            for stage in ("train", "test", "val")
             for label in ("s", "y")
         }
         results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
