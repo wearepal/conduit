@@ -151,7 +151,7 @@ class NICO(VisionDataset):
     ) -> tuple[Subset, Subset]:
         """Split the data randomly or according to the train proportions for specified context/concept pairs."""
 
-        # List to store the idnices of the samples apportioned to the trainin set
+        # List to store the idnices of the samples apportioned to the train set
         # - those for the test set will be computed by complement
         train_inds: list[int] = []
         # Track which indices have been sampled for either split
