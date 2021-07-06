@@ -157,7 +157,7 @@ class NICO(VisionDataset):
         # Track which indices have been sampled for either split
         unvisited = np.ones(len(self), dtype=np.bool_)
 
-        def _get_train_inds(
+        def _sample_train_inds(
             _mask: np.ndarray,
             _context: str | int | None = None,
             _train_prop: float = default_train_prop,
@@ -193,17 +193,17 @@ class NICO(VisionDataset):
                 if isinstance(value, dict):
                     for context, train_prop in value.items():
                         train_inds.extend(
-                            _get_train_inds(
+                            _sample_train_inds(
                                 _mask=concept_mask, _context=context, _train_prop=train_prop
                             )
                         )
                 # Split at the class level (without conditioning on contexts)
                 else:
                     train_inds.extend(
-                        _get_train_inds(_mask=concept_mask, _context=None, _train_prop=value)
+                        _sample_train_inds(_mask=concept_mask, _context=None, _train_prop=value)
                     )
         # Apportion anu remaining samples to the training set using default_train_prop
-        train_inds.extend(_get_train_inds(_mask=unvisited, _train_prop=default_train_prop))
+        train_inds.extend(_sample_train_inds(_mask=unvisited, _train_prop=default_train_prop))
         # Compute the test indices by complement of the train indices
         test_inds = list(set(range(len(self))) - set(train_inds))
 
