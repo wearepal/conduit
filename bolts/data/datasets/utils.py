@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import Callable, NamedTuple, Union, overload
+from typing import Callable, Union, overload
 
 from PIL import Image
 import albumentations as A
@@ -18,8 +18,6 @@ __all__ = [
     "infer_il_backend",
     "load_image",
     "RawImage",
-    "BinarySample",
-    "TernarySample",
     "apply_image_transform",
 ]
 
@@ -66,19 +64,8 @@ def infer_il_backend(transform: ImageTform | None) -> ImageLoadingBackend:
     return "pillow"
 
 
-class BinarySample(NamedTuple):
-    x: Tensor | np.ndarray | Image.Image
-    y: Tensor | float
-
-
-class TernarySample(NamedTuple):
-    x: Tensor | np.ndarray | Image.Image
-    s: Tensor | float
-    y: Tensor | float
-
-
 def apply_image_transform(
-    image: RawImage, transform: ImageTform
+    image: RawImage, transform: ImageTform | None
 ) -> np.ndarray | Image.Image | Tensor:
     # If the image is a numpy array,  then opencv was inferred as the image-loading
     # backend and the transformation comes from albumentations

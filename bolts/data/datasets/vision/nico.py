@@ -1,33 +1,36 @@
 from __future__ import annotations
+from enum import Enum, auto
 import logging
 from pathlib import Path
-from typing import ClassVar, cast
+from typing import ClassVar, NamedTuple, Optional, cast
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import gdown
-from kit import implements
+from kit import implements, parsable
 import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Subset
 from torchvision.datasets import VisionDataset
-from typing_extensions import Literal, get_args
 
 from bolts.data.datasets.utils import (
     ImageLoadingBackend,
     ImageTform,
-    TernarySample,
     apply_image_transform,
     infer_il_backend,
     load_image,
 )
+from bolts.data.structures import TernarySample, TrainTestSplit
 
-__all__ = ["NICO"]
+__all__ = ["NICO", "NicoSuperclass"]
 
 LOGGER = logging.getLogger(__name__)
 
-NicoSuperclass = Literal["animals", "vehicles"]
+
+class NicoSuperclass(Enum):
+    animals = auto()
+    vehicles = auto()
 
 
 class NICO(VisionDataset):
@@ -41,12 +44,13 @@ class NICO(VisionDataset):
 
     transform: ImageTform
 
+    @parsable
     def __init__(
         self,
         root: str,
         download: bool = True,
-        transform: ImageTform = A.Compose([A.Normalize(), ToTensorV2()]),
-        superclass: NicoSuperclass | None = "animals",
+        transform: Optional[ImageTform] = None,
+        superclass: Optional[NicoSuperclass] = NicoSuperclass.animals,
     ) -> None:
         super().__init__(root=root, transform=transform)
 
@@ -80,7 +84,7 @@ class NICO(VisionDataset):
         )
 
         if superclass is not None:
-            self.metadata = self.metadata[self.metadata["superclass"] == superclass]
+            self.metadata = self.metadata[self.metadata["superclass"] == superclass.name]
         # # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # # substantially slower than indexing with numpy/torch
         self.x = self.metadata["filepath"].to_numpy()
@@ -90,7 +94,7 @@ class NICO(VisionDataset):
         self._il_backend: ImageLoadingBackend = infer_il_backend(self.transform)
 
     def _check_unzipped(self) -> bool:
-        return all((self._base_dir / sc).exists() for sc in get_args(NicoSuperclass))
+        return all((self._base_dir / sc.name).exists() for sc in NicoSuperclass)
 
     def _download_and_unzip_data(self) -> None:
         """Attempt to download data if files cannot be found in the root directory."""
@@ -163,7 +167,7 @@ class NICO(VisionDataset):
         default_train_prop: float,
         train_props: dict[str | int, dict[str | int, float]] | None = None,
         seed: int | None = None,
-    ) -> tuple[Subset, Subset]:
+    ) -> TrainTestSplit:
         """Split the data into train/test sets with the option to condition on concept/context."""
         # Initialise the random-number generator
         rng = np.random.default_rng(seed)
@@ -233,9 +237,11 @@ class NICO(VisionDataset):
         # Apportion any remaining samples to the training set using default_train_prop
         train_inds.extend(_sample_train_inds(_mask=unvisited, _train_prop=default_train_prop))
         # Compute the test indices by complement of the train indices
+        train_data = Subset(self, indices=train_inds)
         test_inds = list(set(range(len(self))) - set(train_inds))
+        test_data = Subset(self, indices=test_inds)
 
-        return Subset(self, indices=train_inds), Subset(self, indices=test_inds)
+        return TrainTestSplit(train=train_data, test=test_data)
 
     @implements(VisionDataset)
     def __len__(self) -> int:

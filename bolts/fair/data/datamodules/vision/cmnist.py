@@ -15,12 +15,12 @@ from torchvision.transforms import transforms
 from bolts.data import MNIST
 from bolts.fair.data.structures import DataBatch
 
-from .base import VisionBaseDataModule
+from .base import BaseVisionDataModule
 
 __all__ = ["CmnistDataModule"]
 
 
-class CmnistDataModule(VisionBaseDataModule):
+class CmnistDataModule(BaseVisionDataModule):
     """Lightning Data Module for CMNIST."""
 
     def __init__(

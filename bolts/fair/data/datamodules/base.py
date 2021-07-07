@@ -1,17 +1,20 @@
 """Common to all datamodules."""
-from abc import abstractmethod
 import logging
-from typing import List, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 from kit import implements
 from kit.torch import StratifiedSampler
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Dataset, Sampler
 
+from bolts.data.datamodules import BaseDataModule as _BaseDataModule
+
 LOGGER = logging.getLogger(__name__.split(".")[-1].upper())
 
+__all__ = ["BaseDataModule"]
 
-class BaseDataModule(pl.LightningDataModule):
+
+class BaseDataModule(_BaseDataModule):
     """Base DataModule of both Tabular and Vision DataModules."""
 
     def __init__(
@@ -26,31 +29,17 @@ class BaseDataModule(pl.LightningDataModule):
         stratified_sampling: bool,
         sample_with_replacement: bool,
     ):
-        super().__init__()
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.val_split = val_split
-        self.test_split = test_split
-        self.seed = seed
-        self.persist_workers = persist_workers
-        self.pin_memory = pin_memory
+        super().__init__(
+            batch_size=batch_size,
+            num_workers=num_workers,
+            val_split=val_split,
+            test_split=test_split,
+            seed=seed,
+            persist_workers=persist_workers,
+            pin_memory=pin_memory,
+        )
         self.stratified_sampling = stratified_sampling
         self.sample_with_replacement = sample_with_replacement
-
-    @staticmethod
-    def _get_splits(train_len: int, val_split: Union[int, float]) -> List[int]:
-        """Computes split lengths for train and validation set."""
-        if isinstance(val_split, int):
-            train_len -= val_split
-            splits = [train_len, val_split]
-        elif isinstance(val_split, float):
-            val_len = int(val_split * train_len)
-            train_len -= val_len
-            splits = [train_len, val_len]
-        else:
-            raise ValueError(f"Unsupported type {type(val_split)}")
-
-        return splits
 
     def make_dataloader(
         self,
@@ -97,26 +86,3 @@ class BaseDataModule(pl.LightningDataModule):
         return self.make_dataloader(
             self.train_data, batch_sampler=batch_sampler, shuffle=False, drop_last=False
         )
-
-    @implements(pl.LightningDataModule)
-    def val_dataloader(self, shuffle: bool = False, drop_last: bool = False) -> DataLoader:
-        return self.make_dataloader(self.val_data)
-
-    @implements(pl.LightningDataModule)
-    def test_dataloader(self, shuffle: bool = False, drop_last: bool = False) -> DataLoader:
-        return self.make_dataloader(self.test_data)
-
-    @property
-    @abstractmethod
-    def train_data(self) -> Dataset:
-        ...
-
-    @property
-    @abstractmethod
-    def val_data(self) -> Dataset:
-        ...
-
-    @property
-    @abstractmethod
-    def test_data(self) -> Dataset:
-        ...

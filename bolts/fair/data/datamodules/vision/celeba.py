@@ -4,26 +4,28 @@ from typing import Any, Optional
 
 import ethicml as em
 import ethicml.vision as emvi
-from kit import implements
+from kit import implements, parsable
+from kit.torch import prop_random_split
 from pytorch_lightning import LightningDataModule
 import torch
 from torch.utils.data.dataset import random_split
-from torchvision import transforms as TF
+from torchvision import transforms as T
 
 from bolts.fair.data.datasets import TiWrapper
 
-from .base import VisionBaseDataModule
+from .base import BaseVisionDataModule
 
 __all__ = ["CelebaDataModule"]
 
 
-class CelebaDataModule(VisionBaseDataModule):
-    """CelebA Dataset."""
+class CelebaDataModule(BaseVisionDataModule):
+    """Fairness-oriented CelebA data-module."""
 
+    @parsable
     def __init__(
         self,
         data_dir: Optional[str] = None,
-        image_size: int = 64,
+        image_size: int = 224,
         batch_size: int = 32,
         num_workers: int = 0,
         val_split: float = 0.2,
@@ -79,10 +81,10 @@ class CelebaDataModule(VisionBaseDataModule):
             check_integrity=True,
         )
 
-        tform_ls = [TF.Resize(self.image_size), TF.CenterCrop(self.image_size)]
-        tform_ls.append(TF.ToTensor())
-        tform_ls.append(TF.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)))
-        transform = TF.Compose(tform_ls)
+        tform_ls = [T.Resize(self.image_size), T.CenterCrop(self.image_size)]
+        tform_ls.append(T.ToTensor())
+        tform_ls.append(T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)))
+        transform = T.Compose(tform_ls)
 
         assert dataset is not None
         all_data = TiWrapper(
@@ -94,17 +96,6 @@ class CelebaDataModule(VisionBaseDataModule):
         if self.cache_data:
             all_data.__getitem__ = lru_cache(None)(all_data.__getitem__)  # type: ignore[assignment]
 
-        num_train_val, num_test = self._get_splits(int(len(all_data)), self.test_split)
-        num_train, num_val = self._get_splits(num_train_val, self.val_split)
-
-        g_cpu = torch.Generator()
-        g_cpu = g_cpu.manual_seed(self.seed)
-        self._train_data, self._val_data, self._test_data = random_split(
-            all_data,
-            lengths=(
-                num_train,
-                num_val,
-                len(all_data) - num_train - num_val,
-            ),
-            generator=g_cpu,
+        self.val_data, self.test_data, self.train_data = prop_random_split(
+            dataset=all_data, props=(self.val_pcnt, self.test_pcnt), seed=self.seed
         )
