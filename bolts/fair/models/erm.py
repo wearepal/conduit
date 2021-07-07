@@ -7,7 +7,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from torch import Tensor, nn, optim
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, _LRScheduler
 import torchmetrics
 from typing_extensions import Literal
 
@@ -26,24 +26,25 @@ class ErmBaseline(pl.LightningModule):
         clf: nn.Module,
         lr: float,
         weight_decay: float,
-        lr_gamma: float,
+        lr_initial_restart: int = 10,
+        lr_restart_mult: int = 2,
     ) -> None:
         super().__init__()
-        self.learning_rate = lr
-        self.lr_gamma = lr_gamma
-        self.weight_decay = weight_decay
         self.enc = enc
         self.clf = clf
         self.net = nn.Sequential(self.enc, self.clf)
-        self._loss_fn = CrossEntropy(reduction="mean")
+
+        self.learning_rate = lr
+        self.weight_decay = weight_decay
+        self.lr_initial_restart = lr_initial_restart
+        self.lr_restart_mult = lr_restart_mult
 
         self._target_name = "y"
+        self._loss_fn = CrossEntropy(reduction="mean")
 
         self.test_acc = torchmetrics.Accuracy()
         self.train_acc = torchmetrics.Accuracy()
         self.val_acc = torchmetrics.Accuracy()
-
-        self.batch_norm = True  # TODO: fixme
 
     @property
     def target(self) -> str:
@@ -111,8 +112,14 @@ class ErmBaseline(pl.LightningModule):
     def configure_optimizers(
         self,
     ) -> Tuple[List[optim.Optimizer], List[_LRScheduler]]:
-        opt = optim.AdamW(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
-        sched = optim.lr_scheduler.ExponentialLR(optimizer=opt, gamma=self.lr_gamma)
+        opt = optim.AdamW(
+            self.parameters(),
+            lr=self.learning_rate,
+            weight_decay=self.weight_decay,
+        )
+        sched = CosineAnnealingWarmRestarts(
+            optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
+        )
         return [opt], [sched]
 
     @implements(pl.LightningModule)

@@ -12,7 +12,7 @@ def test_post_hoc_eval() -> None:
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = nn.Sequential(nn.Flatten(), nn.Linear(128, 2))
     dm = DummyDataModule()
-    model = ErmBaseline(enc=enc, clf=clf, weight_decay=1e-8, lr=1e-3, lr_gamma=0.999)
+    model = ErmBaseline(enc=enc, clf=clf, weight_decay=1e-8, lr=1e-3)
     model.eval_classifier = nn.Sequential(nn.Flatten(), nn.Linear(128, 2))
     model.encoder = model.enc
     model.clf_epochs = 1

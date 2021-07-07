@@ -7,6 +7,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from torch import Tensor, autograd, nn, optim
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, _LRScheduler
 import torchmetrics
 from torchmetrics import MetricCollection
 from typing_extensions import Literal
@@ -56,11 +57,16 @@ class Dann(pl.LightningModule):
         lr: float,
         weight_decay: float,
         grl_lambda: float = 1.0,
+        lr_initial_restart: int = 10,
+        lr_restart_mult: int = 2,
     ) -> None:
         super().__init__()
         self.grl_lambda = grl_lambda
         self.learning_rate = lr
         self.weight_decay = weight_decay
+
+        self.lr_initial_restart = lr_initial_restart
+        self.lr_restart_mult = lr_restart_mult
 
         self.adv = adv
         self.enc = enc
@@ -141,12 +147,16 @@ class Dann(pl.LightningModule):
     @implements(pl.LightningModule)
     def configure_optimizers(
         self,
-    ) -> optim.Optimizer:
-        return optim.AdamW(
+    ) -> Tuple[List[optim.Optimizer], List[_LRScheduler]]:
+        opt = optim.AdamW(
             self.parameters(),
             lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
+        sched = CosineAnnealingWarmRestarts(
+            optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
+        )
+        return [opt], [sched]
 
     @implements(pl.LightningModule)
     def test_epoch_end(self, output_results: List[Dict[str, Tensor]]) -> None:

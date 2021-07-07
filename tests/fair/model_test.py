@@ -261,7 +261,6 @@ def test_laftr(dm: pl.LightningDataModule, fairness: str) -> None:
         adv=adv,
         clf=clf,
         weight_decay=1e-8,
-        lr_gamma=0.999,
         disc_steps=1,
         fairness=fairness,
         recon_weight=1.0,
@@ -297,7 +296,6 @@ def test_laftr_gpu(dm: pl.LightningDataModule, fairness: str) -> None:
         adv=adv,
         clf=clf,
         weight_decay=1e-8,
-        lr_gamma=0.999,
         disc_steps=1,
         fairness=fairness,
         recon_weight=1.0,
@@ -356,7 +354,6 @@ def test_erm(dm: pl.LightningDataModule) -> None:
         enc=enc,
         clf=clf,
         weight_decay=1e-8,
-        lr_gamma=0.999,
         lr=1e-3,
     )
     trainer.fit(model, datamodule=dm)
@@ -374,7 +371,6 @@ def test_erm_gpu(dm: pl.LightningDataModule) -> None:
         enc=enc,
         clf=clf,
         weight_decay=1e-8,
-        lr_gamma=0.999,
         lr=1e-3,
     )
     trainer.fit(model, datamodule=dm)
@@ -391,7 +387,6 @@ def test_kc(dm: pl.LightningDataModule) -> None:
         enc=enc,
         clf=clf,
         weight_decay=1e-8,
-        lr_gamma=0.999,
         lr=1e-3,
     )
     trainer.fit(model, datamodule=dm)
@@ -409,7 +404,6 @@ def test_kc_gpu(dm: pl.LightningDataModule) -> None:
         enc=enc,
         clf=clf,
         weight_decay=1e-8,
-        lr_gamma=0.999,
         lr=1e-3,
     )
     trainer.fit(model, datamodule=dm)
