@@ -75,12 +75,15 @@ class NICODataModule(VisionDataModule):
     def setup(self, stage: Optional[Stage] = None) -> None:
         all_data = NICO(root=self.root, superclass=self.superclass, transform=None)
 
+        train_val_prop = 1 - self.test_prop
         train_val_data, test_data = all_data.train_test_split(
-            default_train_prop=1 - self.test_prop,
+            default_train_prop=train_val_prop,
             train_props=self.class_train_props,
             seed=self.seed,
         )
-        val_data, train_data = prop_random_split(dataset=train_val_data, props=self.val_prop)
+        val_data, train_data = prop_random_split(
+            dataset=train_val_data, props=self.val_prop / train_val_prop
+        )
         self._train_data = ImageTransformer(train_data, transform=self._augmentations(train=True))
         self._val_data = ImageTransformer(val_data, transform=self._augmentations(train=False))
         self._test_data = ImageTransformer(test_data, transform=self._augmentations(train=False))
