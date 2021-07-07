@@ -204,7 +204,7 @@ class NICO(VisionDataset):
                     train_inds.extend(
                         _sample_train_inds(_mask=concept_mask, _context=None, _train_prop=value)
                     )
-        # Apportion anu remaining samples to the training set using default_train_prop
+        # Apportion any remaining samples to the training set using default_train_prop
         train_inds.extend(_sample_train_inds(_mask=unvisited, _train_prop=default_train_prop))
         # Compute the test indices by complement of the train indices
         test_inds = list(set(range(len(self))) - set(train_inds))
