@@ -28,7 +28,7 @@ class TiWrapper(Dataset):
             s=pd.DataFrame(ti.s.cpu().numpy(), columns=["s"]),
             y=pd.DataFrame(ti.y.cpu().numpy(), columns=["y"]),
         )
-        self.iws = torch.tensor(em.compute_instance_weights(dt)["instance weights"].values)
+        self.iws = torch.tensor(em.compute_instance_weights(dt)["instance weights"].to_numpy())
 
     def __getitem__(self, index: int) -> DataBatch:
         x, s, y = self.ti[index]
