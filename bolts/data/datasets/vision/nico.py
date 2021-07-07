@@ -235,7 +235,7 @@ class NICO(VisionDataset):
         # Compute the test indices by complement of the train indices
         test_inds = list(set(range(len(self))) - set(train_inds))
 
-        return Subset(self, indices=train_inds), Subset(self, test_inds)
+        return Subset(self, indices=train_inds), Subset(self, indices=test_inds)
 
     @implements(VisionDataset)
     def __len__(self) -> int:
