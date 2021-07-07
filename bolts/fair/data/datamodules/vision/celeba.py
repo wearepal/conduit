@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 import ethicml as em
 import ethicml.vision as emvi
-from kit import implements
+from kit import implements, parsable
 from pytorch_lightning import LightningDataModule
 import torch
 from torch.utils.data.dataset import random_split
@@ -20,6 +20,7 @@ __all__ = ["CelebaDataModule"]
 class CelebaDataModule(VisionBaseDataModule):
     """CelebA Dataset."""
 
+    @parsable
     def __init__(
         self,
         data_dir: Optional[str] = None,
