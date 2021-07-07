@@ -1,7 +1,7 @@
 from __future__ import annotations
 import logging
 from pathlib import Path
-from typing import ClassVar, List, cast
+from typing import ClassVar, cast
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -65,6 +65,20 @@ class NICO(VisionDataset):
             )
 
         self.metadata = pd.read_csv(self._base_dir / "metadata.csv")
+        self.class_tree = (
+            self.metadata[["concept", "context"]]
+            .drop_duplicates()
+            .groupby("concept")
+            .agg(set)
+            .to_dict()["context"]
+        )
+        self.concept_label_decoder = (
+            self.metadata[["concept", "concept_le"]].set_index("concept_le").to_dict()["concept"]
+        )
+        self.context_label_decoder = (
+            self.metadata[["context", "context_le"]].set_index("context_le").to_dict()["context"]
+        )
+
         if superclass is not None:
             self.metadata = self.metadata[self.metadata["superclass"] == superclass]
         # # Divide up the dataframe into its constituent arrays because indexing with pandas is
@@ -162,15 +176,22 @@ class NICO(VisionDataset):
         def _sample_train_inds(
             _mask: np.ndarray,
             _context: str | int | None = None,
+            _concept: str | None = None,
             _train_prop: float = default_train_prop,
         ) -> list[int]:
+            if _context is not None and _concept is None:
+                raise ValueError("Concept must be specified if context is.")
             if _context is not None:
                 # Allow the context to be speicifed either by its name or its label-encoding
-                _col = f"context_le" if isinstance(_context, int) else "context"
-                if _context not in self.metadata[_col].unique():
-                    raise ValueError(f"'{_context}' is not a valid context.")
+                _context = (
+                    self.context_label_decoder(_context) if isinstance(_context, int) else _context
+                )
+                if _context not in self.class_tree[_concept]:
+                    raise ValueError(
+                        f"'{_context}' is not a valid context for concept '{_concept}'."
+                    )
                 # Condition the mask on the context
-                _mask = _mask & (self.metadata[_col] == _context).to_numpy()
+                _mask = _mask & (self.metadata["context"] == _context).to_numpy()
             # Compute the overall size of the concept/context subset
             _subset_size = np.count_nonzero(_mask)
             # Compute the size of the train split
@@ -187,16 +208,21 @@ class NICO(VisionDataset):
         if train_props is not None:
             for concept, value in train_props.items():
                 # Allow the concept to be speicifed either by its name or its label-encoding
-                col = f"concept_le" if isinstance(concept, int) else "concept"
-                if concept not in self.metadata[col].unique():
+                concept = (
+                    self.concept_label_decoder[concept] if isinstance(concept, int) else concept
+                )
+                if concept not in self.class_tree.keys():
                     raise ValueError(f"'{concept}' is not a valid concept.")
-                concept_mask = (self.metadata[col] == concept).to_numpy()
+                concept_mask = (self.metadata["concept"] == concept).to_numpy()
                 # Specifying proportions at the context/concept level, rather than concept-wide
                 if isinstance(value, dict):
                     for context, train_prop in value.items():
                         train_inds.extend(
                             _sample_train_inds(
-                                _mask=concept_mask, _context=context, _train_prop=train_prop
+                                _mask=concept_mask,
+                                _concept=concept,
+                                _context=context,
+                                _train_prop=train_prop,
                             )
                         )
                 # Split at the class level (without conditioning on contexts)
@@ -239,7 +265,7 @@ def _preprocess_nico(path: Path) -> None:
         superclass_dir = path / superclass
         for class_dir in superclass_dir.glob("*"):
             for context_dir in class_dir.glob("*"):
-                images_paths: List[Path] = []
+                images_paths: list[Path] = []
                 for ext in ("jpg", "jpeg", "png", "gif"):
                     images_paths.extend(context_dir.glob(f"**/*.{ext}"))
                 for counter, image_path in enumerate(images_paths):
