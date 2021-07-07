@@ -153,7 +153,7 @@ class NICO(VisionDataset):
         """Split the data into train/test sets with the option to condition on concept/context."""
         # Initialise the random-number generator
         rng = np.random.default_rng(seed)
-        # List to store the idnices of the samples apportioned to the train set
+        # List to store the indices of the samples apportioned to the train set
         # - those for the test set will be computed by complement
         train_inds: list[int] = []
         # Track which indices have been sampled for either split
