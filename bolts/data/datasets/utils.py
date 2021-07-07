@@ -67,13 +67,14 @@ def infer_il_backend(transform: ImageTform | None) -> ImageLoadingBackend:
 def apply_image_transform(
     image: RawImage, transform: ImageTform | None
 ) -> np.ndarray | Image.Image | Tensor:
-    # If the image is a numpy array,  then opencv was inferred as the image-loading
-    # backend and the transformation comes from albumentations
     image_ = image
     if transform is not None:
         if isinstance(transform, (A.Compose, A.BasicTransform)):
+            if isinstance(image, Image.Image):
+                image = np.array(image)
+            image_ = transform(image=image)["image"]
+        else:
             if isinstance(image, np.ndarray):
-                image_ = transform(image=image)["image"]
-        elif isinstance(image, Image.Image):
+                image = Image.fromarray(image)
             image_ = transform(image)
     return image_
