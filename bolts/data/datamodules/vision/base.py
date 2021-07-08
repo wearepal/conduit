@@ -7,6 +7,7 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 from bolts.data.datamodules import BaseDataModule
+from bolts.data.datasets.utils import AlbumentationsTform
 from bolts.data.structures import InputSize, NormalizationValues
 
 __all__ = ["VisionDataModule", "TrainAugMode"]
@@ -74,7 +75,7 @@ class VisionDataModule(BaseDataModule):
 
     def _augmentations(self, train: bool) -> A.Compose:
         # Base augmentations (augmentations that are applied to all splits of the data)
-        augs: list[A.ImageOnlyTransform | A.Compose] = [self._base_augmentations]
+        augs: list[AlbumentationsTform] = [self._base_augmentations]
         # Add training augmentations on top of base augmentations
         if train:
             augs.append(self._train_augmentations)
