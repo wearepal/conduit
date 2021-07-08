@@ -1,7 +1,8 @@
 """LAFTR model."""
+from __future__ import annotations
 from enum import Enum
 import itertools
-from typing import Any, Dict, List, NamedTuple, Tuple, Union
+from typing import Any, Dict, List, NamedTuple, Tuple
 
 import ethicml as em
 from kit import implements
@@ -12,6 +13,9 @@ from torch import Tensor, nn, optim
 import torchmetrics
 
 __all__ = ["Laftr"]
+
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, _LRScheduler
+from typing_extensions import Literal
 
 from bolts.fair.data.structures import DataBatch
 from bolts.fair.losses import CrossEntropy
@@ -37,7 +41,6 @@ class Laftr(pl.LightningModule):
         self,
         lr: float,
         weight_decay: float,
-        lr_gamma: float,
         disc_steps: int,
         fairness: str,
         recon_weight: float,
@@ -47,6 +50,10 @@ class Laftr(pl.LightningModule):
         dec: nn.Module,
         adv: nn.Module,
         clf: nn.Module,
+        lr_initial_restart: int = 10,
+        lr_restart_mult: int = 2,
+        lr_sched_interval: Literal["step", "epoch"] = "epoch",
+        lr_sched_freq: int = 1,
     ):
         super().__init__()
         self.enc = enc
@@ -61,8 +68,11 @@ class Laftr(pl.LightningModule):
         self.disc_steps = disc_steps
         self.fairness = FairnessType[fairness]
         self.lr = lr
-        self.lr_gamma = lr_gamma
         self.weight_decay = weight_decay
+        self.lr_initial_restart = lr_initial_restart
+        self.lr_restart_mult = lr_restart_mult
+        self.lr_sched_interval = lr_sched_interval
+        self.lr_sched_freq = lr_sched_freq
 
         self.clf_weight = clf_weight
         self.adv_weight = adv_weight
@@ -169,7 +179,7 @@ class Laftr(pl.LightningModule):
     @implements(pl.LightningModule)
     def configure_optimizers(
         self,
-    ) -> Tuple[List[optim.Optimizer], List[optim.lr_scheduler.ExponentialLR]]:
+    ) -> Tuple[List[optim.Optimizer], List[_LRScheduler]]:
         laftr_params = itertools.chain(
             [*self.enc.parameters(), *self.dec.parameters(), *self.clf.parameters()]
         )
@@ -178,8 +188,20 @@ class Laftr(pl.LightningModule):
         opt_laftr = optim.AdamW(laftr_params, lr=self.lr, weight_decay=self.weight_decay)
         opt_adv = optim.AdamW(adv_params, lr=self.lr, weight_decay=self.weight_decay)
 
-        sched_laftr = optim.lr_scheduler.ExponentialLR(optimizer=opt_laftr, gamma=self.lr_gamma)
-        sched_adv = optim.lr_scheduler.ExponentialLR(optimizer=opt_adv, gamma=self.lr_gamma)
+        sched_laftr = {
+            "scheduler": CosineAnnealingWarmRestarts(
+                optimizer=opt_laftr, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
+            ),
+            "interval": self.lr_sched_interval,
+            "frequency": self.lr_sched_freq,
+        }
+        sched_adv = {
+            "scheduler": CosineAnnealingWarmRestarts(
+                optimizer=opt_adv, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
+            ),
+            "interval": self.lr_sched_interval,
+            "frequency": self.lr_sched_freq,
+        }
 
         return [opt_laftr, opt_adv], [sched_laftr, sched_adv]
 
@@ -264,7 +286,7 @@ class Laftr(pl.LightningModule):
         return ModelOut(y=y_pred, z=embedding, x=recon, s=s_pred)
 
     @staticmethod
-    def set_requires_grad(nets: Union[nn.Module, List[nn.Module]], requires_grad: bool) -> None:
+    def set_requires_grad(nets: nn.Module | List[nn.Module], requires_grad: bool) -> None:
         """Change if gradients are tracked."""
         if not isinstance(nets, list):
             nets = [nets]

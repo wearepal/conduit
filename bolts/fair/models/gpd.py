@@ -7,6 +7,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from torch import Tensor, nn, optim
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, _LRScheduler
 import torchmetrics
 from torchmetrics import MetricCollection
 from typing_extensions import Literal
@@ -68,10 +69,18 @@ class Gpd(pl.LightningModule):
         clf: nn.Module,
         lr: float,
         weight_decay: float,
+        lr_initial_restart: int = 10,
+        lr_restart_mult: int = 2,
+        lr_sched_interval: Literal["step", "epoch"] = "epoch",
+        lr_sched_freq: int = 1,
     ) -> None:
         super().__init__()
         self.learning_rate = lr
         self.weight_decay = weight_decay
+        self.lr_initial_restart = lr_initial_restart
+        self.lr_restart_mult = lr_restart_mult
+        self.lr_sched_interval = lr_sched_interval
+        self.lr_sched_freq = lr_sched_freq
 
         self.adv = adv
         self.enc = enc
@@ -153,12 +162,16 @@ class Gpd(pl.LightningModule):
     @implements(pl.LightningModule)
     def configure_optimizers(
         self,
-    ) -> optim.Optimizer:
-        return optim.AdamW(
+    ) -> Tuple[List[optim.Optimizer], List[_LRScheduler]]:
+        opt = optim.AdamW(
             self.parameters(),
             lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
+        sched = CosineAnnealingWarmRestarts(
+            optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
+        )
+        return [opt], [sched]
 
     @implements(pl.LightningModule)
     def test_epoch_end(self, output_results: List[Dict[str, Tensor]]) -> None:
@@ -170,7 +183,7 @@ class Gpd(pl.LightningModule):
         return self._inference_step(batch=batch, stage="test")
 
     @implements(pl.LightningModule)
-    def training_step(self, batch: DataBatch, batch_idx: int) -> Tensor:
+    def training_step(self, batch: DataBatch, batch_idx: int) -> None:
         opt = self.optimizers()
         opt.zero_grad()
 
@@ -193,6 +206,13 @@ class Gpd(pl.LightningModule):
             logs.update({f"train/acc_{_label}": _acc})
         self.log_dict(logs)
         opt.step()
+
+        if self.lr_sched_interval == "step" and self.global_step % self.lr_sched_freq == 0:
+            sch = self.lr_schedulers()
+            sch.step()
+        if self.lr_sched_interval == "epoch" and self.trainer.is_last_batch:
+            sch = self.lr_schedulers()
+            sch.step()
 
     @implements(pl.LightningModule)
     def validation_epoch_end(self, output_results: List[Dict[str, Tensor]]) -> None:
