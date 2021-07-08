@@ -10,6 +10,7 @@ from kit.torch import prop_random_split
 from pytorch_lightning import LightningDataModule
 from torchvision import transforms as T
 
+from bolts.common import Stage
 from bolts.fair.data.datasets import TiWrapper
 
 from .base import VisionDataModule
