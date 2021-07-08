@@ -16,7 +16,7 @@ from typing_inspect import get_args
 from bolts.common import Stage
 from bolts.fair.data import DataBatch
 from bolts.fair.losses import CrossEntropy
-from bolts.fair.models import LRScheduler, SchedInterval
+from bolts.fair.models.utils import LRScheduler, SchedInterval
 
 __all__ = ["Gpd"]
 
