@@ -30,14 +30,15 @@ class BaseDataModule(_BaseDataModule):
         stratified_sampling: bool,
         sample_with_replacement: bool,
     ):
-        super().__init__()
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.val_split = val_split
-        self.test_split = test_split
-        self.seed = seed
-        self.persist_workers = persist_workers
-        self.pin_memory = pin_memory
+        super().__init__(
+            batch_size=batch_size,
+            val_prop=val_split,
+            test_prop=test_split,
+            num_workers=num_workers,
+            seed=seed,
+            persist_workers=persist_workers,
+            pin_memory=pin_memory,
+        )
         self.stratified_sampling = stratified_sampling
         self.sample_with_replacement = sample_with_replacement
 

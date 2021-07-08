@@ -12,10 +12,10 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
 from torchmetrics import MetricCollection
 
-from bolts.common import Stage
+from bolts.common import Stage, get_args
 from bolts.fair.data import DataBatch
 from bolts.fair.losses import CrossEntropy
-from bolts.fair.models import LRScheduler
+from bolts.fair.models import LRScheduler, SchedInterval
 
 __all__ = ["Gpd"]
 
@@ -71,7 +71,7 @@ class Gpd(pl.LightningModule):
         weight_decay: float,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
-        lr_sched_interval: Literal["step", "epoch"] = "epoch",
+        lr_sched_interval: SchedInterval = "epoch",
         lr_sched_freq: int = 1,
     ) -> None:
         super().__init__()
@@ -92,7 +92,7 @@ class Gpd(pl.LightningModule):
         self.accs = MetricCollection(
             {
                 f"{stage}_{label}": torchmetrics.Accuracy()
-                for stage in ("train", "test", "val")
+                for stage in get_args(Stage)
                 for label in ("s", "y")
             }
         )
@@ -200,7 +200,7 @@ class Gpd(pl.LightningModule):
         compute_grad(model=self.clf, loss=loss_clf)
 
         for _label in ("s", "y"):
-            tm_acc = self.accs[f"train_{_label}"]
+            tm_acc = self.accs[f"fit_{_label}"]
             _target = getattr(batch, _label).view(-1).long()
             _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
             logs.update({f"train/acc_{_label}": _acc})
@@ -216,12 +216,12 @@ class Gpd(pl.LightningModule):
 
     @implements(pl.LightningModule)
     def validation_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
-        results_dict = self._inference_epoch_end(output_results=output_results, stage="val")
+        results_dict = self._inference_epoch_end(output_results=output_results, stage="validate")
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
     def validation_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
-        return self._inference_step(batch=batch, stage="val")
+        return self._inference_step(batch=batch, stage="validate")
 
     @implements(nn.Module)
     def forward(self, x: Tensor) -> GpdOut:

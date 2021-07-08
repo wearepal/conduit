@@ -28,7 +28,7 @@ class ErmBaseline(pl.LightningModule):
         weight_decay: float,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
-        lr_sched_interval: Literal["step", "epoch"] = "epoch",
+        lr_sched_interval: SchedInterval = "epoch",
         lr_sched_freq: int = 1,
     ) -> None:
         super().__init__()
@@ -80,7 +80,7 @@ class ErmBaseline(pl.LightningModule):
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
 
-        tm_acc = self.val_acc if stage == "val" else self.test_acc
+        tm_acc = self.val_acc if stage == "validate" else self.test_acc
         results_dict = {f"{stage}/acc": tm_acc.compute()}
         results_dict.update({f"{stage}/{self.target}_{k}": v for k, v in results.items()})
         return results_dict
@@ -88,7 +88,7 @@ class ErmBaseline(pl.LightningModule):
     def _inference_step(self, batch: DataBatch, stage: Stage) -> dict[str, Tensor]:
         logits = self.forward(batch.x)
         loss = self._get_loss(logits, batch)
-        tm_acc = self.val_acc if stage == "val" else self.test_acc
+        tm_acc = self.val_acc if stage == "validate" else self.test_acc
         target = batch.y.view(-1).long()
         _acc = tm_acc(logits.argmax(-1), target)
         self.log_dict(
@@ -154,12 +154,12 @@ class ErmBaseline(pl.LightningModule):
 
     @implements(pl.LightningModule)
     def validation_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
-        results_dict = self._inference_epoch_end(output_results=output_results, stage="val")
+        results_dict = self._inference_epoch_end(output_results=output_results, stage="validate")
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
     def validation_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
-        return self._inference_step(batch=batch, stage="val")
+        return self._inference_step(batch=batch, stage="validate")
 
     @implements(nn.Module)
     def forward(self, x: Tensor) -> Tensor:
