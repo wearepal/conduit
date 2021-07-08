@@ -5,15 +5,12 @@ import logging
 from pathlib import Path
 from typing import ClassVar, Optional
 
-from ethicml.data.vision_data.celeba import CelebAttrs as CelebAttrsEM
 import gdown
 from kit import implements
 import numpy as np
 import pandas as pd
 import torch
 from torchvision.datasets import VisionDataset
-from typing_extensions import TypeGuard
-from typing_inspect import get_args
 
 from bolts.data.datasets.utils import (
     ImageLoadingBackend,
@@ -70,11 +67,6 @@ class CelebAttr(Enum):
     Wearing_Necklace = auto()
     Wearing_Necktie = auto()
     Young = auto()
-
-
-def check_valid_celeba_attr(attr: CelebAttr | str) -> TypeGuard[CelebAttrsEM]:
-    str_attr = attr if isinstance(attr, str) else attr.name
-    return str_attr in get_args(CelebAttrsEM)
 
 
 class CelebASplit(Enum):
