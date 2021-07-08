@@ -1,6 +1,6 @@
 """Colorised MNIST datamodule."""
-
-from typing import Dict, Iterator, List, Optional, Tuple, Union
+from __future__ import annotations
+from typing import Dict, Iterator, List, Optional
 
 import ethicml.vision as emvi
 from ethicml.vision import LdColorizer, LdTransformation
@@ -149,7 +149,7 @@ class LdAugmentedDataset(Dataset):
         num_classes: int,
         num_colours: int,
         li_augmentation: bool = False,
-        base_augmentations: Optional[List] = None,
+        base_augmentations: List | None = None,
         correlation: float = 1.0,
     ) -> None:
         self.source_dataset = self._validate_dataset(source_dataset)
@@ -178,7 +178,7 @@ class LdAugmentedDataset(Dataset):
         return len(self.dataset)
 
     @staticmethod
-    def _validate_dataset(dataset: Union[Dataset, DataLoader]) -> Dataset:
+    def _validate_dataset(dataset: Dataset | DataLoader) -> Dataset:
         if isinstance(dataset, DataLoader):
             dataset = dataset.dataset
         elif not isinstance(dataset, Dataset):
@@ -200,7 +200,7 @@ class LdAugmentedDataset(Dataset):
         return Subset(self.source_dataset, inds)
 
     @staticmethod
-    def _validate_data(*args: Union[Tensor, int]) -> Iterator[Tuple[Tensor, Tensor, Tensor]]:
+    def _validate_data(*args: Tensor | int) -> Iterator[tuple[Tensor, Tensor, Tensor]]:
         for arg in args:
             if not isinstance(arg, torch.Tensor):
                 dtype = torch.long if isinstance(arg, int) else torch.float32
@@ -209,7 +209,7 @@ class LdAugmentedDataset(Dataset):
                 arg = arg.view(-1)
             yield arg
 
-    def __getitem__(self, index: int) -> Tuple[Tensor, ...]:
+    def __getitem__(self, index: int) -> tuple[Tensor, ...]:
         return self._subroutine(self.dataset.__getitem__(index))
 
     def _augment(self, x: Tensor, label: Tensor) -> Tensor:
@@ -218,7 +218,7 @@ class LdAugmentedDataset(Dataset):
 
         return x
 
-    def _subroutine(self, data: Tuple[Tensor, Tensor]) -> DataBatch:
+    def _subroutine(self, data: tuple[Tensor, Tensor]) -> DataBatch:
 
         x, y = data
         s = y % self.num_colours

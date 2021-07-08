@@ -2,7 +2,7 @@
 from __future__ import annotations
 from enum import Enum
 import itertools
-from typing import Any, Dict, List, NamedTuple, Tuple
+from typing import Any, Mapping, NamedTuple
 
 import ethicml as em
 from kit import implements
@@ -14,11 +14,12 @@ import torchmetrics
 
 __all__ = ["Laftr"]
 
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, _LRScheduler
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from typing_extensions import Literal
 
 from bolts.fair.data.structures import DataBatch
 from bolts.fair.losses import CrossEntropy
+from bolts.fair.models.utils import LRScheduler, SchedInterval
 
 
 class ModelOut(NamedTuple):
@@ -92,7 +93,7 @@ class Laftr(pl.LightningModule):
     def target(self, target: str) -> None:
         self._target_name = target
 
-    def _inference_epoch_end(self, output_results: List[Dict[str, Tensor]], stage: str) -> None:
+    def _inference_epoch_end(self, output_results: list[Mapping[str, Tensor]], stage: str) -> None:
         all_y = torch.cat([_r["y"] for _r in output_results], 0)
         all_s = torch.cat([_r["s"] for _r in output_results], 0)
         all_preds = torch.cat([_r["preds"] for _r in output_results], 0)
@@ -118,7 +119,7 @@ class Laftr(pl.LightningModule):
 
         self.log_dict(results_dict)
 
-    def _inference_step(self, batch: DataBatch, stage: str) -> Dict[str, Tensor]:
+    def _inference_step(self, batch: DataBatch, stage: str) -> dict[str, Tensor]:
         model_out = self(batch.x, batch.s)
         laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
         adv_loss = self._loss_adv(model_out.s, batch)
@@ -179,7 +180,7 @@ class Laftr(pl.LightningModule):
     @implements(pl.LightningModule)
     def configure_optimizers(
         self,
-    ) -> Tuple[List[optim.Optimizer], List[_LRScheduler]]:
+    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | SchedInterval]]]:
         laftr_params = itertools.chain(
             [*self.enc.parameters(), *self.dec.parameters(), *self.clf.parameters()]
         )
@@ -224,11 +225,11 @@ class Laftr(pl.LightningModule):
             optimizer.step(closure=optimizer_closure)
 
     @implements(pl.LightningModule)
-    def test_epoch_end(self, output_results: List[Dict[str, Tensor]]) -> None:
+    def test_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
         self._inference_epoch_end(output_results=output_results, stage="test")
 
     @implements(pl.LightningModule)
-    def test_step(self, batch: DataBatch, batch_idx: int) -> Dict[str, Tensor]:
+    def test_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
         return self._inference_step(batch=batch, stage="test")
 
     @implements(pl.LightningModule)
@@ -270,11 +271,11 @@ class Laftr(pl.LightningModule):
             raise RuntimeError("There should only be 2 optimizers, but 3rd received.")
 
     @implements(pl.LightningModule)
-    def validation_epoch_end(self, output_results: List[Dict[str, Tensor]]) -> None:
+    def validation_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
         self._inference_epoch_end(output_results=output_results, stage="val")
 
     @implements(pl.LightningModule)
-    def validation_step(self, batch: DataBatch, batch_idx: int) -> Dict[str, Tensor]:
+    def validation_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
         return self._inference_step(batch=batch, stage="val")
 
     @implements(nn.Module)
@@ -286,7 +287,7 @@ class Laftr(pl.LightningModule):
         return ModelOut(y=y_pred, z=embedding, x=recon, s=s_pred)
 
     @staticmethod
-    def set_requires_grad(nets: nn.Module | List[nn.Module], requires_grad: bool) -> None:
+    def set_requires_grad(nets: nn.Module | list[nn.Module], requires_grad: bool) -> None:
         """Change if gradients are tracked."""
         if not isinstance(nets, list):
             nets = [nets]

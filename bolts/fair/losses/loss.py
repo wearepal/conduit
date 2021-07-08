@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Optional
 
 from kit import parsable
@@ -23,7 +24,7 @@ class CrossEntropy(nn.CrossEntropyLoss):
         self._reduction_str = reduction
 
     def forward(
-        self, input: Tensor, target: Tensor, instance_weight: Optional[Tensor] = None
+        self, input: Tensor, target: Tensor, instance_weight: Tensor | None = None
     ) -> Tensor:
         _target = target.view(-1).long()
         losses = F.cross_entropy(

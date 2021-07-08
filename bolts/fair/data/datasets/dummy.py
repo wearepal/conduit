@@ -1,4 +1,4 @@
-from typing import Tuple
+from __future__ import annotations
 
 import torch
 from torch.utils.data import Dataset
@@ -11,7 +11,7 @@ __all__ = ["DummyDataset"]
 class DummyDataset(Dataset):
     """Generate a dummy dataset."""
 
-    def __init__(self, *shapes: Tuple[int, ...], num_samples: int = 10000) -> None:
+    def __init__(self, *shapes: tuple[int, ...], num_samples: int = 10000) -> None:
         """
         Args:
             *shapes: list of shapes

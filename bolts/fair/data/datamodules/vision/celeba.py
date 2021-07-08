@@ -1,4 +1,5 @@
 """CelebA DataModule."""
+from __future__ import annotations
 from functools import lru_cache
 from typing import Any, Optional
 
@@ -71,7 +72,7 @@ class CelebaDataModule(VisionBaseDataModule):
         )
 
     @implements(LightningDataModule)
-    def setup(self, stage: Optional[str] = None) -> None:
+    def setup(self, stage: str | None = None) -> None:
         dataset, base_dir = em.celeba(
             download_dir=self.data_dir,
             label=self.y_label,

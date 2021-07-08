@@ -1,7 +1,8 @@
 """Common to all datamodules."""
+from __future__ import annotations
 from abc import abstractmethod
 import logging
-from typing import List, Optional, Sequence, Union
+from typing import Sequence
 
 from kit import implements
 from kit.torch import StratifiedSampler
@@ -17,8 +18,8 @@ class BaseDataModule(pl.LightningDataModule):
     def __init__(
         self,
         batch_size: int,
-        val_split: Union[float, int],
-        test_split: Union[float, int],
+        val_split: float | int,
+        test_split: float | int,
         num_workers: int,
         seed: int,
         persist_workers: bool,
@@ -38,7 +39,7 @@ class BaseDataModule(pl.LightningDataModule):
         self.sample_with_replacement = sample_with_replacement
 
     @staticmethod
-    def _get_splits(train_len: int, val_split: Union[int, float]) -> List[int]:
+    def _get_splits(train_len: int, val_split: int | float) -> list[int]:
         """Computes split lengths for train and validation set."""
         if isinstance(val_split, int):
             train_len -= val_split
@@ -57,7 +58,7 @@ class BaseDataModule(pl.LightningDataModule):
         ds: Dataset,
         shuffle: bool = False,
         drop_last: bool = False,
-        batch_sampler: Optional[Sampler[Sequence[int]]] = None,
+        batch_sampler: Sampler[Sequence[int]] | None = None,
     ) -> DataLoader:
         """Make DataLoader."""
         return DataLoader(
