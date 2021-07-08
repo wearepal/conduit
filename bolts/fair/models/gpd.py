@@ -196,7 +196,7 @@ class Gpd(pl.LightningModule):
             f"train/clf_loss": loss_clf.item(),
             f"train/loss": loss.item(),
         }
-        compute_proj_grads(model=self.enc, loss_p=loss_adv, loss_a=loss_clf, alpha=1.0)
+        compute_proj_grads(model=self.enc, loss_p=loss_clf, loss_a=loss_adv, alpha=1.0)
         compute_grad(model=self.adv, loss=loss_adv)
         compute_grad(model=self.clf, loss=loss_clf)
 
