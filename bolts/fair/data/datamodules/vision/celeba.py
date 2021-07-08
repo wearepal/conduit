@@ -4,19 +4,27 @@ from functools import lru_cache
 from typing import Any, Optional
 
 import ethicml as em
+from ethicml.data.vision_data.celeba import CelebAttrs
 import ethicml.vision as emvi
 from kit import implements, parsable
 from kit.torch import prop_random_split
 from pytorch_lightning import LightningDataModule
 from torchvision import transforms as T
+from typing_extensions import TypeGuard
+from typing_inspect import get_args
 
 from bolts.common import Stage
-from bolts.data.datasets.vision.celeba import CelebAttr, check_valid_celeba_attr
+from bolts.data.datasets.vision.celeba import CelebAttr
 from bolts.fair.data.datasets import TiWrapper
 
 from .base import VisionDataModule
 
 __all__ = ["CelebaDataModule"]
+
+
+def _check_valid_celeba_attr(attr: CelebAttr | str) -> TypeGuard[CelebAttrs]:
+    str_attr = attr if isinstance(attr, str) else attr.name
+    return str_attr in get_args(CelebAttrs)
 
 
 class CelebaDataModule(VisionDataModule):
@@ -60,8 +68,8 @@ class CelebaDataModule(VisionDataModule):
         self.num_sens = 2
         self.cache_data = cache_data
 
-        assert check_valid_celeba_attr(y_label.name)
-        assert check_valid_celeba_attr(s_label.name)
+        assert _check_valid_celeba_attr(y_label.name)
+        assert _check_valid_celeba_attr(s_label.name)
         self.y_label = y_label.name
         self.s_label = s_label.name
 
