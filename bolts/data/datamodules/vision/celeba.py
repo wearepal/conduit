@@ -70,7 +70,7 @@ class CelebADataModule(VisionDataModule):
 
     @implements(LightningDataModule)
     def setup(self, stage: Optional[Stage] = None) -> None:
-        # Split data according to the pre-defined split indices
+        # Split the data according to the pre-defined split indices
         if self.use_predefined_splits:
             train_data, val_data, test_data = (
                 CelebA(root=self.root, superclass=self.superclass, transform=None, split=split)
