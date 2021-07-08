@@ -15,6 +15,7 @@ import torchmetrics
 __all__ = ["Laftr"]
 
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, _LRScheduler
+from typing_extensions import Literal
 
 from bolts.fair.data.structures import DataBatch
 from bolts.fair.losses import CrossEntropy
@@ -51,6 +52,8 @@ class Laftr(pl.LightningModule):
         clf: nn.Module,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
+        lr_sched_interval: Literal["step", "epoch"] = "epoch",
+        lr_sched_freq: int = 1,
     ):
         super().__init__()
         self.enc = enc
@@ -68,6 +71,8 @@ class Laftr(pl.LightningModule):
         self.weight_decay = weight_decay
         self.lr_initial_restart = lr_initial_restart
         self.lr_restart_mult = lr_restart_mult
+        self.lr_sched_interval = lr_sched_interval
+        self.lr_sched_freq = lr_sched_freq
 
         self.clf_weight = clf_weight
         self.adv_weight = adv_weight
@@ -184,12 +189,20 @@ class Laftr(pl.LightningModule):
         opt_laftr = optim.AdamW(laftr_params, lr=self.lr, weight_decay=self.weight_decay)
         opt_adv = optim.AdamW(adv_params, lr=self.lr, weight_decay=self.weight_decay)
 
-        sched_laftr = CosineAnnealingWarmRestarts(
-            optimizer=opt_laftr, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
-        )
-        sched_adv = CosineAnnealingWarmRestarts(
-            optimizer=opt_adv, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
-        )
+        sched_laftr = {
+            "scheduler": CosineAnnealingWarmRestarts(
+                optimizer=opt_laftr, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
+            ),
+            "interval": self.lr_sched_interval,
+            "frequency": self.lr_sched_freq,
+        }
+        sched_adv = {
+            "scheduler": CosineAnnealingWarmRestarts(
+                optimizer=opt_adv, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
+            ),
+            "interval": self.lr_sched_interval,
+            "frequency": self.lr_sched_freq,
+        }
 
         return [opt_laftr, opt_adv], [sched_laftr, sched_adv]
 

@@ -71,12 +71,16 @@ class Gpd(pl.LightningModule):
         weight_decay: float,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
+        lr_sched_interval: Literal["step", "epoch"] = "epoch",
+        lr_sched_freq: int = 1,
     ) -> None:
         super().__init__()
         self.learning_rate = lr
         self.weight_decay = weight_decay
         self.lr_initial_restart = lr_initial_restart
         self.lr_restart_mult = lr_restart_mult
+        self.lr_sched_interval = lr_sched_interval
+        self.lr_sched_freq = lr_sched_freq
 
         self.adv = adv
         self.enc = enc
@@ -119,7 +123,6 @@ class Gpd(pl.LightningModule):
 
         results_dict = {
             f"{stage}/acc_{label}": self.accs[f"{stage}_{label}"].compute().item()
-            for stage in ("train", "test", "val")
             for label in ("s", "y")
         }
         results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
@@ -205,7 +208,10 @@ class Gpd(pl.LightningModule):
         self.log_dict(logs)
         opt.step()
 
-        if self.trainer.is_last_batch:
+        if self.lr_sched_interval == "step" and self.global_step % self.lr_sched_freq == 0:
+            sch = self.lr_schedulers()
+            sch.step()
+        if self.lr_sched_interval == "epoch" and self.trainer.is_last_batch:
             sch = self.lr_schedulers()
             sch.step()
 

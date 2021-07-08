@@ -28,6 +28,8 @@ class ErmBaseline(pl.LightningModule):
         weight_decay: float,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
+        lr_sched_interval: Literal["step", "epoch"] = "epoch",
+        lr_sched_freq: int = 1,
     ) -> None:
         super().__init__()
         self.enc = enc
@@ -38,6 +40,8 @@ class ErmBaseline(pl.LightningModule):
         self.weight_decay = weight_decay
         self.lr_initial_restart = lr_initial_restart
         self.lr_restart_mult = lr_restart_mult
+        self.lr_sched_interval = lr_sched_interval
+        self.lr_sched_freq = lr_sched_freq
 
         self._target_name = "y"
         self._loss_fn = CrossEntropy(reduction="mean")
@@ -117,9 +121,13 @@ class ErmBaseline(pl.LightningModule):
             lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
-        sched = CosineAnnealingWarmRestarts(
-            optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
-        )
+        sched = {
+            "scheduler": CosineAnnealingWarmRestarts(
+                optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
+            ),
+            "interval": self.lr_sched_interval,
+            "frequency": self.lr_sched_freq,
+        }
         return [opt], [sched]
 
     @implements(pl.LightningModule)
