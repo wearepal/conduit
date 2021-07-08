@@ -1,5 +1,6 @@
 from typing import Optional
 
+from kit import parsable
 from torch import Tensor, nn
 import torch.nn.functional as F
 from torch.nn.modules.loss import _Loss
@@ -10,6 +11,7 @@ ReductionType = Literal["mean", "none", "sum"]
 
 
 class CrossEntropy(nn.CrossEntropyLoss):
+    @parsable
     def __init__(
         self,
         class_weight: Optional[Tensor] = None,
