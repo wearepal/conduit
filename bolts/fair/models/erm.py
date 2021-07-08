@@ -10,13 +10,11 @@ import torch
 from torch import Tensor, nn, optim
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
-from typing_extensions import Literal
 
+from bolts.common import Stage
 from bolts.fair.data.structures import DataBatch
 from bolts.fair.losses import CrossEntropy
 from bolts.fair.models.utils import LRScheduler, SchedInterval
-
-Stage = Literal["train", "val", "test"]
 
 
 class ErmBaseline(pl.LightningModule):

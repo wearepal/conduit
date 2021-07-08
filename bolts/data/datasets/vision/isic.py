@@ -23,11 +23,11 @@ from typing_extensions import Final, Literal
 from bolts.data.datasets.utils import (
     ImageLoadingBackend,
     ImageTform,
-    TernarySample,
     apply_image_transform,
     infer_il_backend,
     load_image,
 )
+from bolts.data.structures import TernarySample
 
 __all__ = ["ISIC"]
 

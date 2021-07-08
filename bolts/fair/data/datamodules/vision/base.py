@@ -6,9 +6,11 @@ from torch.utils.data import Dataset
 
 from bolts.fair.data.datamodules import BaseDataModule
 
+__all__ = ["VisionDataModule"]
 
-class VisionBaseDataModule(BaseDataModule):
-    """Base DataModule for this project."""
+
+class VisionDataModule(BaseDataModule):
+    """Base class for fairness-centric, vision-based data-modules."""
 
     def __init__(
         self,
