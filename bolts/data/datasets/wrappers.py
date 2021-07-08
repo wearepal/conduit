@@ -1,18 +1,23 @@
 from __future__ import annotations
 from typing import Any
 
-from PIL.Image import Image
 import albumentations as A
-import numpy as np
 from torch.utils.data import Dataset
 
-__all__ = ["AlbumentationsDataset"]
+from bolts.data.datasets.utils import ImageTform, apply_image_transform
+
+__all__ = ["ImageTransformer"]
 
 
-class AlbumentationsDataset(Dataset):
-    """Wrapper class for interfacing between pillow-based datasets and albumentations."""
+class ImageTransformer(Dataset):
+    """
+    Wrapper class for applying image transformations.
 
-    def __init__(self, dataset: Dataset, transform: A.Compose) -> None:
+    Useful when wanting to have different transformations for different subsets of the data
+    that share the same underlying dataset.
+    """
+
+    def __init__(self, dataset: Dataset, transform: ImageTform | None) -> None:
         self.dataset = dataset
         self.transform = transform
 
@@ -23,12 +28,8 @@ class AlbumentationsDataset(Dataset):
 
     def __getitem__(self, index: int) -> Any:
         data = self.dataset[index]
-        data_type = type(data)
         if self.transform is not None:
-            image = data[0]
-            if isinstance(image, Image):
-                image = np.array(image)
-            # Apply transformations
-            augmented = self.transform(image=image)["image"]
-            data = data_type(augmented, *data[1:])
+            data_type = type(data)
+            transformed = apply_image_transform(image=data[0], transform=self.transform)
+            data = data_type(transformed, *data[1:])
         return data

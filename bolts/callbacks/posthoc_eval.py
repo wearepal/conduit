@@ -8,10 +8,9 @@ from torch import Tensor, nn
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 import torchmetrics
+from typing_extensions import Type
 
 __all__ = ["PostHocEval"]
-
-from typing_extensions import Type
 
 
 class EvalTuple(NamedTuple):

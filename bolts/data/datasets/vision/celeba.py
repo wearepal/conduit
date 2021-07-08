@@ -1,25 +1,27 @@
 from __future__ import annotations
 import logging
 from pathlib import Path
+from typing import Dict, Union
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import ethicml as em
-from ethicml import CELEBA_BASE_FOLDER, CELEBA_FILE_LIST, CelebAttrs
+from ethicml import CELEBA_BASE_FOLDER, CELEBA_FILE_LIST, LabelGroup
 import gdown
+from kit import implements, parsable
 import torch
 from torchvision.datasets import VisionDataset
 
 from bolts.data.datasets.utils import (
     ImageLoadingBackend,
     ImageTform,
-    TernarySample,
     apply_image_transform,
     infer_il_backend,
     load_image,
 )
+from bolts.data.structures import TernarySample
 
-__all__ = ["Celeba", "CelebAttrs"]
+__all__ = ["Celeba"]
 
 LOGGER = logging.getLogger(__name__)
 
@@ -29,13 +31,14 @@ class Celeba(VisionDataset):
 
     transform: ImageTform
 
+    @parsable
     def __init__(
         self,
         root: str,
         download: bool = True,
         transform: ImageTform = A.Compose([A.Normalize(), ToTensorV2()]),
-        superclass: CelebAttrs = "Smiling",
-        subclass: CelebAttrs = "Male",
+        superclass: str = "Smiling",
+        subclass: Union[str, Dict[str, LabelGroup]] = "Male",
     ) -> None:
         self.base = Path(root) / CELEBA_BASE_FOLDER
         super().__init__(root=str(self.base), transform=transform)
@@ -45,8 +48,8 @@ class Celeba(VisionDataset):
 
         dataset, self._img_dir = em.celeba(
             download_dir=root,
-            label=superclass,
-            sens_attr=subclass,
+            label=superclass,  # type: ignore
+            sens_attr=subclass,  # type: ignore
             download=False,  # we'll download manually
             check_integrity=False,  # we'll check manually
         )
@@ -91,9 +94,11 @@ class Celeba(VisionDataset):
         if not self._check_unzipped():
             raise RuntimeError("Data seems to be downloaded but not unzipped. Download again?")
 
+    @implements(VisionDataset)
     def __len__(self) -> int:
         return len(self.x)
 
+    @implements(VisionDataset)
     def __getitem__(self, index: int) -> TernarySample:
         image = load_image(self._img_dir / self.x[index], backend=self._il_backend)
         image = apply_image_transform(image=image, transform=self.transform)

@@ -1,4 +1,4 @@
-"""ERM Baseline Model."""
+"""DANN (Domain Adversarial Neural Network) model."""
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import ethicml as em
@@ -10,15 +10,12 @@ from torch import Tensor, autograd, nn, optim
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, _LRScheduler
 import torchmetrics
 from torchmetrics import MetricCollection
-from typing_extensions import Literal
 
+from bolts.common import Stage
 from bolts.fair.data.structures import DataBatch
-
-__all__ = ["Dann"]
-
 from bolts.fair.losses import CrossEntropy
 
-Stage = Literal["train", "val", "test"]
+__all__ = ["Dann"]
 
 
 class DannOut(NamedTuple):

@@ -9,13 +9,13 @@ import torch
 from torch import Tensor
 from torch.utils.data import ConcatDataset, Subset
 
-from bolts.data import AlbumentationsDataset
+from bolts.data import ImageTransformer
 from bolts.fair.data.datasets import TiWrapper
 
 __all__ = ["extract_labels_from_dataset"]
 
 _Dataset = Union[emvi.TorchImageDataset, TiWrapper]
-ExtractableDataset = Union[ConcatDataset[_Dataset], _Dataset, AlbumentationsDataset]
+ExtractableDataset = Union[ConcatDataset[_Dataset], _Dataset, ImageTransformer]
 
 
 @lru_cache(typed=True)
@@ -35,7 +35,7 @@ def extract_labels_from_dataset(dataset: ExtractableDataset) -> tuple[Tensor, Te
         return _s, _y
 
     try:
-        if isinstance(dataset, AlbumentationsDataset):
+        if isinstance(dataset, ImageTransformer):
             dataset = dataset.dataset
         if isinstance(dataset, (ConcatDataset)):
             s_all_ls, y_all_ls = [], []
