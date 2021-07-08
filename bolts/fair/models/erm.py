@@ -81,8 +81,7 @@ class ErmBaseline(pl.LightningModule):
         )
 
         tm_acc = self.val_acc if stage == "val" else self.test_acc
-        acc = tm_acc.compute().item()
-        results_dict = {f"{stage}/acc": acc}
+        results_dict = {f"{stage}/acc": tm_acc.compute()}
         results_dict.update({f"{stage}/{self.target}_{k}": v for k, v in results.items()})
         return results_dict
 
@@ -91,11 +90,11 @@ class ErmBaseline(pl.LightningModule):
         loss = self._get_loss(logits, batch)
         tm_acc = self.val_acc if stage == "val" else self.test_acc
         target = batch.y.view(-1).long()
-        tm_acc(logits.argmax(-1), target)
+        _acc = tm_acc(logits.argmax(-1), target)
         self.log_dict(
             {
                 f"{stage}/loss": loss.item(),
-                f"{stage}/{self.target}_acc": tm_acc,
+                f"{stage}/{self.target}_acc": _acc,
             }
         )
         return {
@@ -144,11 +143,11 @@ class ErmBaseline(pl.LightningModule):
         logits = self.forward(batch.x)
         loss = self._get_loss(logits, batch)
         target = batch.y.view(-1).long()
-        self.train_acc(logits.argmax(-1), target)
+        _acc = self.train_acc(logits.argmax(-1), target)
         self.log_dict(
             {
                 f"train/loss": loss.item(),
-                f"train/acc": self.train_acc,
+                f"train/acc": _acc,
             }
         )
         return loss

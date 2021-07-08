@@ -113,8 +113,7 @@ class Laftr(pl.LightningModule):
         )
 
         tm_acc = self.val_acc if stage == "val" else self.test_acc
-        acc = tm_acc.compute().item()
-        results_dict = {f"{stage}/acc": acc}
+        results_dict = {f"{stage}/acc": tm_acc.compute()}
         results_dict.update({f"{stage}/{self.target}_{k}": v for k, v in results.items()})
 
         self.log_dict(results_dict)
@@ -125,13 +124,13 @@ class Laftr(pl.LightningModule):
         adv_loss = self._loss_adv(model_out.s, batch)
         tm_acc = self.val_acc if stage == "val" else self.test_acc
         target = batch.y.view(-1).long()
-        tm_acc(model_out.y.argmax(-1), target)
+        _acc = tm_acc(model_out.y.argmax(-1), target)
         self.log_dict(
             {
                 f"{stage}/loss": (laftr_loss + adv_loss).item(),
                 f"{stage}/model_loss": laftr_loss.item(),
                 f"{stage}/adv_loss": adv_loss.item(),
-                f"{stage}/{self.target}_acc": tm_acc,
+                f"{stage}/{self.target}_acc": _acc,
             }
         )
         return {
@@ -241,12 +240,12 @@ class Laftr(pl.LightningModule):
             laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
             adv_loss = self._loss_adv(model_out.s, batch)
             target = batch.y.view(-1).long()
-            self.train_acc(model_out.y.argmax(-1), target)
+            _acc = self.train_acc(model_out.y.argmax(-1), target)
             self.log_dict(
                 {
                     f"train/loss": (laftr_loss + adv_loss).item(),
                     f"train/model_loss": laftr_loss.item(),
-                    f"train/acc": self.train_acc,
+                    f"train/acc": _acc,
                 }
             )
             return laftr_loss + adv_loss
@@ -258,12 +257,12 @@ class Laftr(pl.LightningModule):
             adv_loss = self._loss_adv(model_out.s, batch)
             laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
             target = batch.y.view(-1).long()
-            self.train_acc(model_out.y.argmax(-1), target)
+            _acc = self.train_acc(model_out.y.argmax(-1), target)
             self.log_dict(
                 {
                     f"train/loss": (laftr_loss + adv_loss).item(),
                     f"train/adv_loss": adv_loss.item(),
-                    f"train/acc": self.train_acc,
+                    f"train/acc": _acc,
                 }
             )
             return -(laftr_loss + adv_loss)

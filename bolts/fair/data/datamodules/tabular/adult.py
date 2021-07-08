@@ -3,6 +3,7 @@ from typing import Optional, Union
 
 import ethicml as em
 from ethicml.preprocessing.scaling import ScalerType
+from kit import parsable
 
 from .base import TabularDataModule
 
@@ -12,6 +13,7 @@ __all__ = ["AdultDataModule"]
 class AdultDataModule(TabularDataModule):
     """UCI Adult Income Dataset."""
 
+    @parsable
     def __init__(
         self,
         val_split: Union[float, int] = 0.2,
