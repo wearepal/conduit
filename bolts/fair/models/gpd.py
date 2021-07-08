@@ -9,14 +9,12 @@ import torch
 from torch import Tensor, nn, optim
 import torchmetrics
 from torchmetrics import MetricCollection
-from typing_extensions import Literal
 
-__all__ = ["Gpd"]
-
+from bolts.common import Stage
 from bolts.fair.data import DataBatch
 from bolts.fair.losses import CrossEntropy
 
-Stage = Literal["train", "val", "test"]
+__all__ = ["Gpd"]
 
 
 def compute_proj_grads(*, model: nn.Module, loss_p: Tensor, loss_a: Tensor, alpha: float) -> None:

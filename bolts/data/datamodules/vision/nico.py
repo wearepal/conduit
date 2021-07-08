@@ -1,4 +1,4 @@
-"""CelebA DataModule."""
+"""Nico data-module."""
 from typing import Any, Optional
 
 import albumentations as A
@@ -6,7 +6,7 @@ from kit import implements, parsable
 from kit.torch import prop_random_split
 from pytorch_lightning import LightningDataModule
 
-from bolts.data.datamodules.common import Stage
+from bolts.common import Stage
 from bolts.data.datasets.vision.nico import NICO, NicoSuperclass
 from bolts.data.datasets.wrappers import ImageTransformer
 

@@ -21,8 +21,8 @@ class BaseDataModule(pl.LightningDataModule):
     def __init__(
         self,
         batch_size: int,
-        val_prop: Union[float, int],
-        test_prop: Union[float, int],
+        val_prop: float,
+        test_prop: float,
         num_workers: int,
         seed: int,
         persist_workers: bool,

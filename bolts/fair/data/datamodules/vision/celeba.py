@@ -1,4 +1,5 @@
 """CelebA DataModule."""
+from __future__ import annotations
 from functools import lru_cache
 from typing import Any, Optional
 
@@ -7,18 +8,16 @@ import ethicml.vision as emvi
 from kit import implements, parsable
 from kit.torch import prop_random_split
 from pytorch_lightning import LightningDataModule
-import torch
-from torch.utils.data.dataset import random_split
 from torchvision import transforms as T
 
 from bolts.fair.data.datasets import TiWrapper
 
-from .base import BaseVisionDataModule
+from .base import VisionDataModule
 
 __all__ = ["CelebaDataModule"]
 
 
-class CelebaDataModule(BaseVisionDataModule):
+class CelebaDataModule(VisionDataModule):
     """Fairness-oriented CelebA data-module."""
 
     @parsable
@@ -38,7 +37,7 @@ class CelebaDataModule(BaseVisionDataModule):
         pin_memory: bool = True,
         stratified_sampling: bool = False,
         sample_with_replacement: bool = False,
-    ):
+    ) -> None:
         super().__init__(
             data_dir=data_dir,
             batch_size=batch_size,
@@ -72,7 +71,7 @@ class CelebaDataModule(BaseVisionDataModule):
         )
 
     @implements(LightningDataModule)
-    def setup(self, stage: Optional[str] = None) -> None:
+    def setup(self, stage: Stage | None = None) -> None:
         dataset, base_dir = em.celeba(
             download_dir=self.data_dir,
             label=self.y_label,
