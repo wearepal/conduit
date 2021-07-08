@@ -11,8 +11,9 @@ from torch import Tensor, autograd, nn, optim
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
 from torchmetrics import MetricCollection
+from typing_inspect import get_args
 
-from bolts.common import Stage, get_args
+from bolts.common import Stage
 from bolts.fair.data.structures import DataBatch
 from bolts.fair.losses import CrossEntropy
 from bolts.fair.models.utils import LRScheduler, SchedInterval
