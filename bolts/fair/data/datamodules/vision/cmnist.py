@@ -4,7 +4,7 @@ from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 import ethicml.vision as emvi
 from ethicml.vision import LdColorizer, LdTransformation
-from kit import implements
+from kit import implements, parsable
 import numpy as np
 from pytorch_lightning import LightningDataModule
 import torch
@@ -23,6 +23,7 @@ __all__ = ["CmnistDataModule"]
 class CmnistDataModule(VisionDataModule):
     """Lightning Data Module for CMNIST."""
 
+    @parsable
     def __init__(
         self,
         data_dir: Optional[str] = None,

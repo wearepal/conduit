@@ -94,10 +94,18 @@ _input_multidim_multiclass = Input(
 )
 
 
-@pytest.mark.parametrize('sens', [0, 1, 2])
+@pytest.mark.parametrize('sens', [0, 1])
 def test_acc(sens: int) -> None:
     """Test the Accuracy per sens metric runs."""
     acc = AccuracyPerSens(sens)
-    acc(_input_binary.preds, _input_binary.sens, _input_binary.target)
+    _ = acc(_input_binary.preds, _input_binary.sens, _input_binary.target)
+    _acc = acc.compute()
+    print(getattr(_acc, "__name__", acc.__class__.__name__).lower())
+
+
+@pytest.mark.parametrize('sens', range(NUM_CLASSES))
+def test_acc_gt_binary(sens: int) -> None:
+    """Test the Accuracy per sens metric runs."""
+    acc = AccuracyPerSens(sens)
+    _ = acc(_input_multiclass.preds, _input_multiclass.sens, _input_binary.target)
     acc.compute()
-    print(getattr(acc, "__name__", acc.__class__.__name__).lower())

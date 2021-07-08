@@ -97,8 +97,7 @@ class Dann(pl.LightningModule):
         )
 
         results_dict = {
-            f"{stage}/acc_{label}": self.accs[f"{stage}_{label}"].compute().item()
-            for label in ("s", "y")
+            f"{stage}/acc_{label}": self.accs[f"{stage}_{label}"].compute() for label in ("s", "y")
         }
         results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
         return results_dict
@@ -122,8 +121,8 @@ class Dann(pl.LightningModule):
         for _label in ("s", "y"):
             tm_acc = self.accs[f"{stage}_{_label}"]
             _target = getattr(batch, _label).view(-1).long()
-            tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"{stage}/acc_{_label}": tm_acc})
+            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
+            logs.update({f"{stage}/acc_{_label}": _acc})
         self.log_dict(logs)
         return {
             "y": batch.y.view(-1),
