@@ -11,6 +11,7 @@ from pytorch_lightning import LightningDataModule
 from torchvision import transforms as T
 
 from bolts.common import Stage
+from bolts.data.datasets.vision.celeba import CelebAttr, check_valid_celeba_attr
 from bolts.fair.data.datasets import TiWrapper
 
 from .base import VisionDataModule
@@ -30,8 +31,8 @@ class CelebaDataModule(VisionDataModule):
         num_workers: int = 0,
         val_split: float = 0.2,
         test_split: float = 0.2,
-        y_label: str = "Smiling",
-        s_label: str = "Male",
+        y_label: CelebAttr = CelebAttr.Smiling,
+        s_label: CelebAttr = CelebAttr.Male,
         seed: int = 0,
         persist_workers: bool = False,
         cache_data: bool = False,
@@ -57,13 +58,16 @@ class CelebaDataModule(VisionDataModule):
         self.dims = (3, self.image_size, self.image_size)
         self.num_classes = 2
         self.num_sens = 2
-        self.y_label = y_label
-        self.s_label = s_label
         self.cache_data = cache_data
+
+        assert check_valid_celeba_attr(y_label.name)
+        assert check_valid_celeba_attr(s_label.name)
+        self.y_label = y_label.name
+        self.s_label = s_label.name
 
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
-        _, _ = em.celeba(
+        em.celeba(
             download_dir=self.data_dir,
             label=self.y_label,
             sens_attr=self.s_label,
@@ -80,6 +84,7 @@ class CelebaDataModule(VisionDataModule):
             download=False,
             check_integrity=True,
         )
+        all_data = Celeba(root=root)
 
         tform_ls = [T.Resize(self.image_size), T.CenterCrop(self.image_size)]
         tform_ls.append(T.ToTensor())
