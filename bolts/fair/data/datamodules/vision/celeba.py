@@ -92,7 +92,6 @@ class CelebaDataModule(VisionDataModule):
             download=False,
             check_integrity=True,
         )
-        all_data = Celeba(root=root)
 
         tform_ls = [T.Resize(self.image_size), T.CenterCrop(self.image_size)]
         tform_ls.append(T.ToTensor())
