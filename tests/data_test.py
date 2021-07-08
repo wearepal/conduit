@@ -1,4 +1,5 @@
 from __future__ import annotations
+from pathlib import Path
 
 import pytest
 from torchvision import transforms as T
@@ -14,6 +15,6 @@ def test_datasets(ds_cls: type[VisionDataset]) -> None:
     Confirms that the datasets can be instantiated and have a functional __getitem__ method.
     """
     transform = T.ToTensor()
-    ds = ds_cls(root=".", transform=transform)
+    ds = ds_cls(root=Path("~/Data").expanduser(), transform=transform)
     for _ds in ds:
         assert _ds[0] is not None
