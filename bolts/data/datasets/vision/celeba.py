@@ -132,7 +132,7 @@ class CelebA(VisionDataset):
             )
 
         if split is None:
-            mask = slice(None)
+            skiprows = None
         else:
             # splits: information about which samples belong to train, val or test
             splits = (
@@ -142,15 +142,14 @@ class CelebA(VisionDataset):
                 .to_numpy()
                 .squeeze()
             )
-            mask = splits == split.value
+            skiprows = (splits != split.value).nonzero()[0] + 2
         attrs = pd.read_csv(
             self.base / "list_attr_celeba.txt",
             delim_whitespace=True,
             header=1,
             usecols=[superclass.name, subclass.name],
-        ).iloc[
-            mask
-        ]  # type: ignore
+            skiprows=skiprows,
+        )
 
         self.x = np.array(attrs.index)
         self.s = torch.tensor(attrs[subclass.name])
