@@ -2,7 +2,7 @@
 from typing import Dict, List, Tuple
 
 import ethicml as em
-from kit import implements, parsable
+from kit import implements
 import pandas as pd
 import pytorch_lightning as pl
 import torch
