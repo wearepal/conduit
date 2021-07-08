@@ -1,5 +1,6 @@
 """ERM Baseline Model."""
-from typing import Dict, List, Tuple
+from __future__ import annotations
+from typing import Mapping
 
 import ethicml as em
 from kit import implements
@@ -7,12 +8,13 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from torch import Tensor, nn, optim
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, _LRScheduler
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
 
 from bolts.common import Stage
 from bolts.fair.data.structures import DataBatch
 from bolts.fair.losses import CrossEntropy
+from bolts.fair.models.utils import LRScheduler, SchedInterval
 
 
 class ErmBaseline(pl.LightningModule):
@@ -26,7 +28,7 @@ class ErmBaseline(pl.LightningModule):
         weight_decay: float,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
-        lr_sched_interval: Literal["step", "epoch"] = "epoch",
+        lr_sched_interval: SchedInterval = "epoch",
         lr_sched_freq: int = 1,
     ) -> None:
         super().__init__()
@@ -57,8 +59,8 @@ class ErmBaseline(pl.LightningModule):
         self._target_name = target
 
     def _inference_epoch_end(
-        self, output_results: List[Dict[str, Tensor]], stage: Stage
-    ) -> Dict[str, Tensor]:
+        self, output_results: list[Mapping[str, Tensor]], stage: Stage
+    ) -> dict[str, Tensor]:
         all_y = torch.cat([_r["y"] for _r in output_results], 0)
         all_s = torch.cat([_r["s"] for _r in output_results], 0)
         all_preds = torch.cat([_r["preds"] for _r in output_results], 0)
@@ -78,15 +80,15 @@ class ErmBaseline(pl.LightningModule):
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
 
-        tm_acc = self.val_acc if stage == "val" else self.test_acc
+        tm_acc = self.val_acc if stage == "validate" else self.test_acc
         results_dict = {f"{stage}/acc": tm_acc.compute()}
         results_dict.update({f"{stage}/{self.target}_{k}": v for k, v in results.items()})
         return results_dict
 
-    def _inference_step(self, batch: DataBatch, stage: Stage) -> Dict[str, Tensor]:
+    def _inference_step(self, batch: DataBatch, stage: Stage) -> dict[str, Tensor]:
         logits = self.forward(batch.x)
         loss = self._get_loss(logits, batch)
-        tm_acc = self.val_acc if stage == "val" else self.test_acc
+        tm_acc = self.val_acc if stage == "validate" else self.test_acc
         target = batch.y.view(-1).long()
         _acc = tm_acc(logits.argmax(-1), target)
         self.log_dict(
@@ -112,7 +114,7 @@ class ErmBaseline(pl.LightningModule):
     @implements(pl.LightningModule)
     def configure_optimizers(
         self,
-    ) -> Tuple[List[optim.Optimizer], List[_LRScheduler]]:
+    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | SchedInterval]]]:
         opt = optim.AdamW(
             self.parameters(),
             lr=self.learning_rate,
@@ -128,12 +130,12 @@ class ErmBaseline(pl.LightningModule):
         return [opt], [sched]
 
     @implements(pl.LightningModule)
-    def test_epoch_end(self, output_results: List[Dict[str, Tensor]]) -> None:
+    def test_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
         results_dict = self._inference_epoch_end(output_results=output_results, stage="test")
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
-    def test_step(self, batch: DataBatch, batch_idx: int) -> Dict[str, Tensor]:
+    def test_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
         return self._inference_step(batch=batch, stage="test")
 
     @implements(pl.LightningModule)
@@ -151,13 +153,13 @@ class ErmBaseline(pl.LightningModule):
         return loss
 
     @implements(pl.LightningModule)
-    def validation_epoch_end(self, output_results: List[Dict[str, Tensor]]) -> None:
-        results_dict = self._inference_epoch_end(output_results=output_results, stage="val")
+    def validation_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
+        results_dict = self._inference_epoch_end(output_results=output_results, stage="validate")
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
-    def validation_step(self, batch: DataBatch, batch_idx: int) -> Dict[str, Tensor]:
-        return self._inference_step(batch=batch, stage="val")
+    def validation_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
+        return self._inference_step(batch=batch, stage="validate")
 
     @implements(nn.Module)
     def forward(self, x: Tensor) -> Tensor:

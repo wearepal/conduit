@@ -1,6 +1,6 @@
 """Common components for an EthicML vision datamodule."""
+from __future__ import annotations
 import os
-from typing import Optional, Union
 
 from torch.utils.data import Dataset
 
@@ -14,11 +14,11 @@ class VisionDataModule(BaseDataModule):
 
     def __init__(
         self,
-        data_dir: Optional[str],
+        data_dir: str | None,
         batch_size: int,
         num_workers: int,
-        val_split: Union[float, int],
-        test_split: Union[float, int],
+        val_split: float | int,
+        test_split: float | int,
         y_dim: int,
         s_dim: int,
         seed: int,
@@ -43,9 +43,9 @@ class VisionDataModule(BaseDataModule):
         self.s_dim = s_dim
         self.seed = seed
 
-        self._train_data: Optional[Dataset] = None
-        self._test_data: Optional[Dataset] = None
-        self._val_data: Optional[Dataset] = None
+        self._train_data: Dataset | None = None
+        self._test_data: Dataset | None = None
+        self._val_data: Dataset | None = None
 
     @property
     def train_data(self) -> Dataset:

@@ -96,6 +96,6 @@ class CelebaDataModule(VisionDataModule):
         if self.cache_data:
             all_data.__getitem__ = lru_cache(None)(all_data.__getitem__)  # type: ignore[assignment]
 
-        self.val_data, self.test_data, self.train_data = prop_random_split(
+        self._val_data, self._test_data, self._train_data = prop_random_split(
             dataset=all_data, props=(self.val_pcnt, self.test_pcnt), seed=self.seed
         )

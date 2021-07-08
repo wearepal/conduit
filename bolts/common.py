@@ -4,4 +4,5 @@ from typing_extensions import Literal
 
 __all__ = ["Stage"]
 
+
 Stage = Literal["fit", "validate", "test"]

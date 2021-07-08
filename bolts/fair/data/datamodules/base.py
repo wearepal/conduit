@@ -1,6 +1,7 @@
 """Common to all datamodules."""
+from __future__ import annotations
 import logging
-from typing import Optional, Sequence, Union
+from typing import Sequence
 
 from kit import implements
 from kit.torch import StratifiedSampler
@@ -20,8 +21,8 @@ class BaseDataModule(_BaseDataModule):
     def __init__(
         self,
         batch_size: int,
-        val_split: Union[float, int],
-        test_split: Union[float, int],
+        val_split: float | int,
+        test_split: float | int,
         num_workers: int,
         seed: int,
         persist_workers: bool,
@@ -31,9 +32,9 @@ class BaseDataModule(_BaseDataModule):
     ):
         super().__init__(
             batch_size=batch_size,
+            val_prop=val_split,
+            test_prop=test_split,
             num_workers=num_workers,
-            val_split=val_split,
-            test_split=test_split,
             seed=seed,
             persist_workers=persist_workers,
             pin_memory=pin_memory,
@@ -46,7 +47,7 @@ class BaseDataModule(_BaseDataModule):
         ds: Dataset,
         shuffle: bool = False,
         drop_last: bool = False,
-        batch_sampler: Optional[Sampler[Sequence[int]]] = None,
+        batch_sampler: Sampler[Sequence[int]] | None = None,
     ) -> DataLoader:
         """Make DataLoader."""
         return DataLoader(
