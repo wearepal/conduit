@@ -88,7 +88,7 @@ class FairMixup(pl.LightningModule):
         # Smoothness Regularization
         gradx = torch.autograd.grad(ops, inputs, create_graph=True)[0].view(inputs.shape[0], -1)
         x_d = (x_b - x_a).view(inputs.size(0), -1)
-        grad_inn = (gradx * x_d).sum(1).view(-1)
+        grad_inn = (gradx * x_d).sum(1).flatten()
         loss_grad = torch.abs(grad_inn.mean())
 
         loss = loss_sup + lam * loss_grad
