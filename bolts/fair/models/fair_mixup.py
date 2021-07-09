@@ -237,7 +237,7 @@ class FairMixup(pl.LightningModule):
                 xal.append(x_a)
                 sal.append(s_a.unsqueeze(-1).float())
                 yal.append(y_a.unsqueeze(-1).float())
-                idx = torch.randint(batch_s1.shape[0], (1,))
+                idx = torch.randint(batch_s1.size(0), (1,))
                 x_b = batch_s1[idx, :].squeeze(0)
                 xbl.append(x_b)
                 sbl.append(torch.ones_like(s_a).unsqueeze(-1).float())
