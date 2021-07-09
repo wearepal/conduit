@@ -10,7 +10,7 @@ from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
 from bolts.fair.data.datasets import DummyDataset
-from bolts.fair.models import KC, Dann, ErmBaseline, Gpd, Laftr
+from bolts.fair.models import KC, Dann, ErmBaseline, FairMixup, Gpd, Laftr
 
 
 class Mp64x64Net(nn.Module):
@@ -336,6 +336,22 @@ def test_dann_gpu(dm: pl.LightningDataModule) -> None:
     model = Dann(
         enc=enc,
         adv=adv,
+        clf=clf,
+        weight_decay=1e-8,
+        lr=1e-3,
+    )
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model=model, datamodule=dm)
+
+
+@pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
+def test_fairmixup(dm: pl.LightningDataModule) -> None:
+    """Test the Laftr model."""
+    trainer = pl.Trainer(fast_dev_run=True)
+    enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
+    clf = EmbeddingClf(encoding_dim=128, out_dim=2)
+    model = FairMixup(
+        enc=enc,
         clf=clf,
         weight_decay=1e-8,
         lr=1e-3,
