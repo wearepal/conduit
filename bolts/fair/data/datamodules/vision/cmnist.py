@@ -93,7 +93,7 @@ class CmnistDataModule(VisionDataModule):
         self._filter(train_data)
         self._filter(test_data)
 
-        val_data, train_data = prop_random_split(train_data, props=(self.val_prop,), seed=self.seed)
+        val_data, train_data = prop_random_split(train_data, props=self.val_prop, seed=self.seed)
 
         colorizer = LdColorizer(
             scale=self.scale,
