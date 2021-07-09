@@ -1,6 +1,5 @@
 """LAFTR model."""
 from __future__ import annotations
-from enum import Enum
 import itertools
 from typing import Any, Mapping, NamedTuple
 
@@ -17,6 +16,7 @@ __all__ = ["Laftr"]
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from typing_extensions import Literal
 
+from bolts.common import FairnessType
 from bolts.fair.data.structures import DataBatch
 from bolts.fair.losses import CrossEntropy
 from bolts.fair.models.utils import LRScheduler, SchedInterval
@@ -27,9 +27,6 @@ class ModelOut(NamedTuple):
     z: Tensor
     s: Tensor
     x: Tensor
-
-
-FairnessType = Enum("FairnessType", "DP EO EqOp")
 
 
 class Laftr(pl.LightningModule):

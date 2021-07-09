@@ -13,7 +13,7 @@ from torch.distributions import Beta
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
 
-from bolts.common import Stage
+from bolts.common import FairnessType, Stage
 from bolts.fair.data import DataBatch
 from bolts.fair.losses import CrossEntropy
 from bolts.fair.models import LRScheduler, SchedInterval
@@ -28,6 +28,7 @@ class FairMixup(pl.LightningModule):
         clf: nn.Module,
         lr: float,
         weight_decay: float,
+        fairness: str,
         mixup_lambda: float | None = None,
         alpha: float = 1.0,
         lr_initial_restart: int = 10,
@@ -41,6 +42,7 @@ class FairMixup(pl.LightningModule):
         self.net = nn.Sequential(self.enc, self.clf)
         self._loss_fn = CrossEntropy()
 
+        self.fairness = FairnessType[fairness]
         self.mixup_lambda = mixup_lambda
         self.alpha = alpha
         self._target_name = "y"
@@ -66,7 +68,11 @@ class FairMixup(pl.LightningModule):
 
     def training_step(self, batch: DataBatch, batch_idx: int) -> STEP_OUTPUT:
         inputs, x_a, x_b, targets_a, targets_b, _, _, lam, mixup_stats = self.mixup_data(
-            batch=batch, device=self.device, mix_lambda=self.mixup_lambda, alpha=self.alpha
+            batch=batch,
+            device=self.device,
+            mix_lambda=self.mixup_lambda,
+            alpha=self.alpha,
+            fairness=self.fairness,
         )
 
         logits = self.net(inputs)
@@ -204,6 +210,7 @@ class FairMixup(pl.LightningModule):
         device: torch.device,
         mix_lambda: Optional[float],
         alpha: float,
+        fairness: FairnessType,
     ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, dict[str, float]]:
         '''Returns mixed inputs, pairs of targets, and lambda'''
         lam = (
@@ -216,11 +223,20 @@ class FairMixup(pl.LightningModule):
             else torch.tensor([mix_lambda]).to(device)
         )
 
-        batch_s0 = batch.x[batch.s.view(-1) == 0].to(device)
-        batch_s1 = batch.x[batch.s.view(-1) == 1].to(device)
-
+        batch_x_s0 = batch.x[batch.s.view(-1) == 0].to(device)
+        batch_x_s1 = batch.x[batch.s.view(-1) == 1].to(device)
         batch_y_s0 = batch.y[batch.s.view(-1) == 0].to(device)
         batch_y_s1 = batch.y[batch.s.view(-1) == 1].to(device)
+
+        batch_x_s0_y0 = batch.x[(batch.s.view(-1) == 0) & (batch.y.view(-1) == 0)].to(device)
+        batch_x_s1_y0 = batch.x[(batch.s.view(-1) == 1) & (batch.y.view(-1) == 0)].to(device)
+        batch_x_s0_y1 = batch.x[(batch.s.view(-1) == 0) & (batch.y.view(-1) == 1)].to(device)
+        batch_x_s1_y1 = batch.x[(batch.s.view(-1) == 1) & (batch.y.view(-1) == 1)].to(device)
+
+        batch_s_s0_y0 = batch.s[(batch.s.view(-1) == 0) & (batch.y.view(-1) == 0)].to(device)
+        batch_s_s1_y0 = batch.s[(batch.s.view(-1) == 1) & (batch.y.view(-1) == 0)].to(device)
+        batch_s_s0_y1 = batch.s[(batch.s.view(-1) == 0) & (batch.y.view(-1) == 1)].to(device)
+        batch_s_s1_y1 = batch.s[(batch.s.view(-1) == 1) & (batch.y.view(-1) == 1)].to(device)
 
         xal = []
         xbl = []
@@ -233,21 +249,32 @@ class FairMixup(pl.LightningModule):
             xal.append(x_a)
             sal.append(s_a.unsqueeze(-1).float())
             yal.append(y_a.unsqueeze(-1).float())
-            if s_a == 0:
-                idx = torch.randint(batch_s1.size(0), (1,))
-                x_b = batch_s1[idx, :].squeeze(0)
+            if fairness is FairnessType.DP:
+                idx = torch.randint(eval(f"batch_x_s{1-int(s_a)}").size(0), (1,))
+                x_b = eval(f"batch_x_s{1-int(s_a)}")[idx, :].squeeze(0)
                 xbl.append(x_b)
-                sbl.append(torch.ones_like(s_a).unsqueeze(-1).float())
-                y_b = batch_y_s1[idx].float()
+                sbl.append((torch.ones_like(s_a) * (1 - s_a)).unsqueeze(-1).float())
+                y_b = eval(f"batch_y_s{1-int(s_a)}")[idx].float()
                 ybl.append(y_b)
-
-            elif s_a == 1:
-                idx = torch.randint(batch_s0.size(0), (1,))
-                x_b = batch_s0[idx, :].squeeze(0)
+            elif fairness is FairnessType.EO:
+                idx = torch.randint(eval(f"batch_x_s{1-int(s_a)}_y{int(y_a)}").size(0), (1,))
+                x_b = eval(f"batch_x_s{1-int(s_a)}_y{int(y_a)}")[idx, :].squeeze(0)
                 xbl.append(x_b)
-                sbl.append(torch.zeros_like(s_a).unsqueeze(-1).float())
-                y_b = batch_y_s0[idx].float()
+                sbl.append((torch.ones_like(s_a) * (1 - s_a)).unsqueeze(-1).float())
+                y_b = (torch.ones_like(y_a) * y_a).unsqueeze(-1)
                 ybl.append(y_b)
+            elif fairness is FairnessType.EqOp:
+                if y_a == 0:
+                    xbl.append(x_a)
+                    sbl.append(s_a.unsqueeze(-1))
+                    ybl.append(y_a.unsqueeze(-1))
+                else:
+                    idx = torch.randint(eval(f"batch_x_s{1 - int(s_a)}_y1").size(0), (1,))
+                    x_b = eval(f"batch_x_s{1 - int(s_a)}_y1")[idx, :].squeeze(0)
+                    xbl.append(x_b)
+                    sbl.append((torch.ones_like(s_a) * (1 - s_a)).unsqueeze(-1).float())
+                    y_b = torch.ones_like(y_a).unsqueeze(-1)
+                    ybl.append(y_b)
 
         x_a = torch.stack(xal, dim=0).to(device)
         x_b = torch.stack(xbl, dim=0).to(device)

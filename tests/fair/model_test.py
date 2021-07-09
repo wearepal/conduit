@@ -344,18 +344,14 @@ def test_dann_gpu(dm: pl.LightningDataModule) -> None:
     trainer.test(model=model, datamodule=dm)
 
 
+@pytest.mark.parametrize("fairness", ("DP", "EO", "EqOp"))
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
-def test_fairmixup(dm: pl.LightningDataModule) -> None:
+def test_fairmixup(dm: pl.LightningDataModule, fairness: str) -> None:
     """Test the Laftr model."""
     trainer = pl.Trainer(fast_dev_run=True)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
-    model = FairMixup(
-        enc=enc,
-        clf=clf,
-        weight_decay=1e-8,
-        lr=1e-3,
-    )
+    model = FairMixup(enc=enc, clf=clf, weight_decay=1e-8, lr=1e-3, fairness=fairness)
     trainer.fit(model, datamodule=dm)
     trainer.test(model=model, datamodule=dm)
 
