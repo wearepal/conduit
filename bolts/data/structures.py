@@ -22,26 +22,26 @@ __all__ = [
 
 class BinarySample(NamedTuple):
     x: Tensor
-    y: Tensor | float
+    y: Tensor
 
 
 class BinarySampleIW(NamedTuple):
     x: Tensor
-    y: Tensor | float
-    iw: Tensor | float
+    y: Tensor
+    iw: Tensor
 
 
 class TernarySample(NamedTuple):
     x: Tensor
-    s: Tensor | float
-    y: Tensor | float
+    s: Tensor
+    y: Tensor
 
 
 class TernarySampleIW(NamedTuple):
     x: Tensor
-    s: Tensor | float
-    y: Tensor | float
-    iw: Tensor | float
+    s: Tensor
+    y: Tensor
+    iw: Tensor
 
 
 class InputSize(NamedTuple):
