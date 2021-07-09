@@ -1,32 +1,54 @@
-"""Common to all datamodules."""
+"""Base class from which all data-modules in pal-bolts inherit."""
+from __future__ import annotations
+from enum import Enum, auto
 import logging
-from typing import Optional, Sequence, Union
+from typing import Any, Sequence, Union
 
 from kit import implements
+from kit.torch.data import InfSequentialBatchSampler, StratifiedSampler
 import pytorch_lightning as pl
-from torch.utils.data import DataLoader, Dataset, Sampler
+from torch.utils.data import DataLoader, Sampler
+from torch.utils.data.dataset import Subset
+from torch.utils.data.sampler import BatchSampler, SequentialSampler
 
-__all__ = ["BaseDataModule"]
+from bolts.common import Stage
+from bolts.data.datasets.base import PBDataset
+from bolts.data.datasets.utils import SizedStratifiedSampler, get_group_ids
+from bolts.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
+from bolts.data.structures import TrainValTestSplit
+
+__all__ = ["PBDataModule", "TrainingMode"]
 
 LOGGER = logging.getLogger(__name__.split(".")[-1].upper())
 
 
-class BaseDataModule(pl.LightningDataModule):
+class TrainingMode(Enum):
+    epoch = auto()
+    step = auto()
+
+
+_Dataset = Union[ImageTransformer, InstanceWeightedDataset, PBDataset, Subset]
+
+
+class PBDataModule(pl.LightningDataModule):
     """Base DataModule for both Tabular and Vision data-modules."""
 
-    _train_data: Dataset
-    _val_data: Dataset
-    _test_data: Dataset
+    _train_data: _Dataset
+    _val_data: _Dataset
+    _test_data: _Dataset
 
     def __init__(
         self,
-        batch_size: int,
-        val_prop: float,
-        test_prop: float,
-        num_workers: int,
-        seed: int,
-        persist_workers: bool,
-        pin_memory: bool,
+        batch_size: int = 64,
+        val_prop: float = 0.2,
+        test_prop: float = 0.2,
+        num_workers: int = 0,
+        seed: int = 47,
+        persist_workers: bool = False,
+        pin_memory: bool = True,
+        stratified_sampling: bool = False,
+        instance_weighting: bool = False,
+        training_mode: TrainingMode = TrainingMode.epoch,
     ) -> None:
         super().__init__()
         self.batch_size = batch_size
@@ -36,6 +58,9 @@ class BaseDataModule(pl.LightningDataModule):
         self.seed = seed
         self.persist_workers = persist_workers
         self.pin_memory = pin_memory
+        self.stratified_sampling = stratified_sampling
+        self.instance_weighting = instance_weighting
+        self.training_mode = training_mode
 
     @property
     def train_prop(self) -> float:
@@ -43,10 +68,10 @@ class BaseDataModule(pl.LightningDataModule):
 
     def make_dataloader(
         self,
-        ds: Dataset,
+        ds: _Dataset,
         shuffle: bool = False,
         drop_last: bool = False,
-        batch_sampler: Optional[Sampler[Sequence[int]]] = None,
+        batch_sampler: Sampler[Sequence[int]] | None = None,
     ) -> DataLoader:
         """Make DataLoader."""
         return DataLoader(
@@ -60,9 +85,44 @@ class BaseDataModule(pl.LightningDataModule):
             batch_sampler=batch_sampler,
         )
 
-    @implements(pl.LightningDataModule)
-    def train_dataloader(self, shuffle: bool = False, drop_last: bool = True) -> DataLoader:
-        return self.make_dataloader(self._train_data, shuffle=shuffle, drop_last=drop_last)
+    def train_dataloader(
+        self, shuffle: bool = False, drop_last: bool = True, batch_size: int | None = None
+    ) -> DataLoader:
+        batch_size = self.batch_size if batch_size is None else batch_size
+
+        if self.stratified_sampling:
+            group_ids = get_group_ids(self._train_data)
+            num_groups = len(group_ids.unique())
+            num_samples_per_group = batch_size // num_groups
+            if batch_size % num_groups:
+                LOGGER.info(
+                    f"For stratified sampling, the batch size must be a multiple of the number of groups."
+                    "Since the batch size is not integer divisible by the number of groups ({num_groups}),"
+                    "the batch size is being reduced to {num_samples_per_group * num_groups}."
+                )
+            sampler_kwargs: dict[str, Any] = dict(
+                group_ids.squeeze().tolist(),
+                num_samples_per_group=num_samples_per_group,
+                shuffle=shuffle,
+            )
+            if self.training_mode is TrainingMode.epoch:
+                sampler_cls = SizedStratifiedSampler
+            else:
+                sampler_cls = StratifiedSampler
+                sampler_kwargs["base_sampler"] = "sequential"
+            batch_sampler = sampler_cls(**sampler_kwargs)
+        else:
+            if self.training_mode is TrainingMode.epoch:
+                batch_sampler = BatchSampler(
+                    sampler=SequentialSampler(data_source=self._train_data),  # type: ignore
+                    batch_size=batch_size,
+                    drop_last=drop_last,
+                )
+            else:
+                batch_sampler = InfSequentialBatchSampler(
+                    data_source=self._train_data, batch_size=batch_size, shuffle=shuffle  # type: ignore
+                )
+        return self.make_dataloader(self._train_data, batch_sampler=batch_sampler)
 
     @implements(pl.LightningDataModule)
     def val_dataloader(self) -> DataLoader:
@@ -71,3 +131,13 @@ class BaseDataModule(pl.LightningDataModule):
     @implements(pl.LightningDataModule)
     def test_dataloader(self) -> DataLoader:
         return self.make_dataloader(self._test_data)
+
+    def _get_splits(self) -> TrainValTestSplit:
+        ...
+
+    @implements(pl.LightningDataModule)
+    def setup(self, stage: Stage | None = None) -> None:
+        train, self._val, self._test = self._get_splits()
+        if self.instance_weighting:
+            train = InstanceWeightedDataset(train)
+        self._train = train

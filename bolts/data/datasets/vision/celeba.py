@@ -6,20 +6,12 @@ from pathlib import Path
 from typing import ClassVar, Optional
 
 import gdown
-from kit import implements
 import numpy as np
 import pandas as pd
 import torch
-from torchvision.datasets import VisionDataset
 
-from bolts.data.datasets.utils import (
-    ImageLoadingBackend,
-    ImageTform,
-    apply_image_transform,
-    infer_il_backend,
-    load_image,
-)
-from bolts.data.structures import TernarySample
+from bolts.data.datasets.utils import ImageTform
+from bolts.data.datasets.vision.base import PBVisionDataset
 
 __all__ = ["CelebA", "CelebAttr", "CelebASplit"]
 
@@ -75,7 +67,7 @@ class CelebASplit(Enum):
     test = 2
 
 
-class CelebA(VisionDataset):
+class CelebA(PBVisionDataset):
     """CelebA dataset."""
 
     transform: ImageTform
@@ -109,9 +101,9 @@ class CelebA(VisionDataset):
         transform: Optional[ImageTform] = None,
         split: Optional[CelebASplit] = None,
     ) -> None:
-        super().__init__(root=root, transform=transform)
 
-        self.base = Path(root) / self._BASE_FOLDER
+        self.root = Path(root)
+        self.base = self.root / self._BASE_FOLDER
         self._img_dir = self.base / "img_align_celeba"
         self.superclass = superclass
         self.subclass = subclass
@@ -143,15 +135,14 @@ class CelebA(VisionDataset):
             skiprows=skiprows,
         )
 
-        self.x = np.array(attrs.index)
-        self.s = torch.tensor(attrs[subclass.name])
-        self.y = torch.tensor(attrs[superclass.name])
+        x = np.array(attrs.index)
+        s = torch.tensor(attrs[subclass.name])
+        y = torch.tensor(attrs[superclass.name])
         # map from {-1, 1} to {0, 1}
-        self.s = torch.div(self.s + 1, 2, rounding_mode='floor')
-        self.y = torch.div(self.s + 1, 2, rounding_mode='floor')
+        s = torch.div(s + 1, 2, rounding_mode='floor')
+        y = torch.div(s + 1, 2, rounding_mode='floor')
 
-        # infer the appropriate image-loading backend based on the type of 'transform'
-        self._il_backend: ImageLoadingBackend = infer_il_backend(self.transform)
+        super().__init__(x=x, y=y, s=s, transform=transform)
 
     def _check_unzipped(self) -> bool:
         return self._img_dir.is_dir()
@@ -177,14 +168,3 @@ class CelebA(VisionDataset):
 
         if not self._check_unzipped():
             raise RuntimeError("Data seems to be downloaded but not unzipped. Download again?")
-
-    @implements(VisionDataset)
-    def __len__(self) -> int:
-        return len(self.x)
-
-    @implements(VisionDataset)
-    def __getitem__(self, index: int) -> TernarySample:
-        image = load_image(self._img_dir / self.x[index], backend=self._il_backend)
-        image = apply_image_transform(image=image, transform=self.transform)
-        target = self.y[index]
-        return TernarySample(x=image, s=self.s[index], y=target)

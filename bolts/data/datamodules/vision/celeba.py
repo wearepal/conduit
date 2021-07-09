@@ -1,21 +1,21 @@
 """CelebA data-module."""
-from typing import Any, Optional
+from typing import Any
 
 import albumentations as A
 from kit import implements, parsable
 from kit.torch import prop_random_split
 from pytorch_lightning import LightningDataModule
 
-from bolts.common import Stage
+from bolts.data.datamodules.base import PBDataModule
 from bolts.data.datasets.vision.celeba import CelebA, CelebASplit, CelebAttr
-from bolts.data.datasets.wrappers import ImageTransformer
+from bolts.data.structures import TrainValTestSplit
 
-from .base import VisionDataModule
+from .base import PBVisionDataModule
 
 __all__ = ["CelebADataModule"]
 
 
-class CelebADataModule(VisionDataModule):
+class CelebADataModule(PBVisionDataModule):
     """Data-module for the CelebA dataset."""
 
     @parsable
@@ -33,6 +33,8 @@ class CelebADataModule(VisionDataModule):
         superclass: CelebAttr = CelebAttr.Smiling,
         subclass: CelebAttr = CelebAttr.Male,
         use_predefined_splits: bool = False,
+        stratified_sampling: bool = False,
+        instance_weighting: bool = False,
     ) -> None:
         super().__init__(
             root=root,
@@ -43,6 +45,8 @@ class CelebADataModule(VisionDataModule):
             seed=seed,
             persist_workers=persist_workers,
             pin_memory=pin_memory,
+            stratified_sampling=stratified_sampling,
+            instance_weighting=instance_weighting,
         )
         self.image_size = image_size
         self.superclass = superclass
@@ -54,7 +58,7 @@ class CelebADataModule(VisionDataModule):
         CelebA(root=self.root, download=True)
 
     @property  # type: ignore[misc]
-    @implements(VisionDataModule)
+    @implements(PBVisionDataModule)
     def _base_augmentations(self) -> A.Compose:
         return A.Compose(
             [
@@ -64,12 +68,12 @@ class CelebADataModule(VisionDataModule):
         )
 
     @property  # type: ignore[misc]
-    @implements(VisionDataModule)
+    @implements(PBVisionDataModule)
     def _train_augmentations(self) -> A.Compose:
         return A.Compose([])
 
-    @implements(LightningDataModule)
-    def setup(self, stage: Optional[Stage] = None) -> None:
+    @implements(PBDataModule)
+    def _get_splits(self) -> TrainValTestSplit:
         # Split the data according to the pre-defined split indices
         if self.use_predefined_splits:
             train_data, val_data, test_data = (
@@ -82,6 +86,4 @@ class CelebADataModule(VisionDataModule):
             val_data, test_data, train_data = prop_random_split(
                 dataset=all_data, props=(self.val_prop, self.test_prop)
             )
-        self._train_data = ImageTransformer(train_data, transform=self._augmentations(train=True))
-        self._val_data = ImageTransformer(val_data, transform=self._augmentations(train=False))
-        self._test_data = ImageTransformer(test_data, transform=self._augmentations(train=False))
+        return TrainValTestSplit(train=train_data, val=val_data, test=test_data)

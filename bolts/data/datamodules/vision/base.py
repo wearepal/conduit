@@ -5,18 +5,21 @@ from typing import ClassVar
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+from kit import implements
 
-from bolts.data.datamodules import BaseDataModule
+from bolts.common import Stage
+from bolts.data.datamodules import PBDataModule
 from bolts.data.datasets.utils import AlbumentationsTform
+from bolts.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
 from bolts.data.structures import InputSize, NormalizationValues
 
-__all__ = ["VisionDataModule", "TrainAugMode"]
+__all__ = ["PBVisionDataModule", "TrainAugMode"]
 
 
 LOGGER = logging.getLogger(__name__.split(".")[-1].upper())
 
 
-class VisionDataModule(BaseDataModule):
+class PBVisionDataModule(PBDataModule):
     _input_size: InputSize
     norm_values: ClassVar[NormalizationValues] = NormalizationValues(
         mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
@@ -25,13 +28,15 @@ class VisionDataModule(BaseDataModule):
     def __init__(
         self,
         root: str,
-        batch_size: int = 32,
+        batch_size: int = 64,
         num_workers: int = 0,
         val_prop: float = 0.2,
         test_prop: float = 0.2,
-        seed: int = 0,
+        seed: int = 47,
         persist_workers: bool = False,
         pin_memory: bool = True,
+        stratified_sampling: bool = False,
+        instance_weighting: bool = False,
     ) -> None:
         super().__init__(
             batch_size=batch_size,
@@ -41,6 +46,8 @@ class VisionDataModule(BaseDataModule):
             seed=seed,
             test_prop=test_prop,
             val_prop=val_prop,
+            stratified_sampling=stratified_sampling,
+            instance_weighting=instance_weighting,
         )
         self.root = root
 
@@ -72,6 +79,16 @@ class VisionDataModule(BaseDataModule):
                 ToTensorV2(),
             ]
         )
+
+    @implements(PBDataModule)
+    def setup(self, stage: Stage | None = None) -> None:
+        train, val, test = self._get_splits()
+        train = ImageTransformer(train, transform=self._augmentations(train=True))
+        if self.instance_weighting:
+            train = InstanceWeightedDataset(train)
+        self._train = train
+        self._val_data = ImageTransformer(val, transform=self._augmentations(train=False))
+        self._test_data = ImageTransformer(test, transform=self._augmentations(train=False))
 
     def _augmentations(self, train: bool) -> A.Compose:
         # Base augmentations (augmentations that are applied to all splits of the data)

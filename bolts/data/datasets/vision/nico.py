@@ -2,26 +2,18 @@ from __future__ import annotations
 from enum import Enum, auto
 import logging
 from pathlib import Path
-from typing import ClassVar, NamedTuple, Optional, cast
+from typing import ClassVar, Optional, cast
 
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
 import gdown
-from kit import implements, parsable
+from kit import parsable
 import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Subset
-from torchvision.datasets import VisionDataset
 
-from bolts.data.datasets.utils import (
-    ImageLoadingBackend,
-    ImageTform,
-    apply_image_transform,
-    infer_il_backend,
-    load_image,
-)
-from bolts.data.structures import TernarySample, TrainTestSplit
+from bolts.data.datasets.utils import ImageTform
+from bolts.data.datasets.vision.base import PBVisionDataset
+from bolts.data.structures import TrainTestSplit
 
 __all__ = ["NICO", "NicoSuperclass"]
 
@@ -33,7 +25,7 @@ class NicoSuperclass(Enum):
     vehicles = auto()
 
 
-class NICO(VisionDataset):
+class NICO(PBVisionDataset):
     """Datset for Non-I.I.D. image classification introduced in
     'Towards Non-I.I.D. Image Classification: A Dataset and Baselines'
     """
@@ -52,9 +44,8 @@ class NICO(VisionDataset):
         transform: Optional[ImageTform] = None,
         superclass: Optional[NicoSuperclass] = NicoSuperclass.animals,
     ) -> None:
-        super().__init__(root=root, transform=transform)
 
-        self.root: Path = Path(self.root)
+        self.root = Path(root)
         self.download = download
         self._base_dir = self.root / self._BASE_FOLDER
         self._metadata_path = self._base_dir / "metadata.csv"
@@ -87,11 +78,11 @@ class NICO(VisionDataset):
             self.metadata = self.metadata[self.metadata["superclass"] == superclass.name]
         # # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # # substantially slower than indexing with numpy/torch
-        self.x = self.metadata["filepath"].to_numpy()
-        self.s = torch.as_tensor(self.metadata["context_le"], dtype=torch.int32)
-        self.y = torch.as_tensor(self.metadata["concept_le"], dtype=torch.int32)
+        x = self.metadata["filepath"].to_numpy()
+        y = torch.as_tensor(self.metadata["concept_le"], dtype=torch.int32)
+        s = torch.as_tensor(self.metadata["context_le"], dtype=torch.int32)
 
-        self._il_backend: ImageLoadingBackend = infer_il_backend(self.transform)
+        super().__init__(x=x, y=y, s=s, transform=transform)
 
     def _check_unzipped(self) -> bool:
         return all((self._base_dir / sc.name).exists() for sc in NicoSuperclass)
@@ -242,17 +233,6 @@ class NICO(VisionDataset):
         test_data = Subset(self, indices=test_inds)
 
         return TrainTestSplit(train=train_data, test=test_data)
-
-    @implements(VisionDataset)
-    def __len__(self) -> int:
-        return len(self.x)
-
-    @implements(VisionDataset)
-    def __getitem__(self, index: int) -> TernarySample:
-        image = load_image(self._base_dir / self.x[index], backend=self._il_backend)
-        image = apply_image_transform(image=image, transform=self.transform)
-        target = self.y[index]
-        return TernarySample(x=image, s=self.s[index], y=target)
 
 
 def _preprocess_nico(path: Path) -> None:
