@@ -99,23 +99,39 @@ def img_to_tensor(img: Image.Image | np.ndarray) -> Tensor:
     )
 
 
-def extract_base_dataset(dataset: Dataset) -> tuple[Dataset, Tensor | slice]:
+@overload
+def extract_base_dataset(
+    dataset: Dataset, return_subset_indices: Literal[True] = ...
+) -> tuple[Dataset, Tensor | slice]:
+    ...
+
+
+@overload
+def extract_base_dataset(dataset: Dataset, return_subset_indices: Literal[False] = ...) -> Dataset:
+    ...
+
+
+def extract_base_dataset(
+    dataset: Dataset, return_subset_indices: bool = True
+) -> Dataset | tuple[Dataset, Tensor | slice]:
     def _closure(
         dataset: Dataset, rel_indices_ls: list[list[int]] | None = None
-    ) -> tuple[Dataset, Tensor | slice]:
+    ) -> Dataset | tuple[Dataset, Tensor | slice]:
         if rel_indices_ls is None:
             rel_indices_ls = []
         if hasattr(dataset, "dataset"):
             if isinstance(dataset, Subset):
                 rel_indices_ls.append(list(dataset.indices))
             return _closure(dataset.dataset, rel_indices_ls)  # type: ignore
-        if rel_indices_ls:
-            abs_indices = torch.as_tensor(rel_indices_ls.pop(), dtype=torch.long)
-            for indices in rel_indices_ls[::-1]:
-                abs_indices = abs_indices[indices]
-        else:
-            abs_indices = slice(None)
-        return dataset, abs_indices
+        if return_subset_indices:
+            if rel_indices_ls:
+                abs_indices = torch.as_tensor(rel_indices_ls.pop(), dtype=torch.long)
+                for indices in rel_indices_ls[::-1]:
+                    abs_indices = abs_indices[indices]
+            else:
+                abs_indices = slice(None)
+            return dataset, abs_indices
+        return dataset
 
     return _closure(dataset)
 
@@ -125,7 +141,7 @@ def extract_labels_from_dataset(dataset: Dataset) -> tuple[Tensor | None, Tensor
     """Attempt to extract s/y labels from a dataset."""
 
     def _closure(dataset: Dataset) -> tuple[Tensor | None, Tensor | None]:
-        dataset, indices = extract_base_dataset(dataset)
+        dataset, indices = extract_base_dataset(dataset, return_subset_indices=True)
         _s = None
         _y = None
         if getattr(dataset, "s", None) is not None:

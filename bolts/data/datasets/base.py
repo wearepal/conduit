@@ -53,7 +53,9 @@ class PBDataset(Dataset):
     def x_dim(
         self,
     ) -> tuple[int, ...]:
-        return self.x.shape[1:]
+        if self._x_dim is None:
+            self._x_dim = self._sample_x(0).shape[1:]
+        return self._x_dim
 
     @property
     def y_dim(
