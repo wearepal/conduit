@@ -86,7 +86,7 @@ class FairMixup(pl.LightningModule):
         ops = logits.sum()
 
         # Smoothness Regularization
-        gradx = torch.autograd.grad(ops, inputs, create_graph=True)[0].view(inputs.shape[0], -1)
+        gradx = torch.autograd.grad(ops, inputs, create_graph=True)[0].view(inputs.size(0), -1)
         x_d = (x_b - x_a).view(inputs.size(0), -1)
         grad_inn = (gradx * x_d).sum(1).flatten()
         loss_grad = torch.abs(grad_inn.mean())
@@ -230,10 +230,10 @@ class FairMixup(pl.LightningModule):
         ybl = []
 
         for x_a, s_a, y_a in zip(batch.x, batch.s, batch.y):
+            xal.append(x_a)
+            sal.append(s_a.unsqueeze(-1).float())
+            yal.append(y_a.unsqueeze(-1).float())
             if s_a == 0:
-                xal.append(x_a)
-                sal.append(s_a.unsqueeze(-1).float())
-                yal.append(y_a.unsqueeze(-1).float())
                 idx = torch.randint(batch_s1.size(0), (1,))
                 x_b = batch_s1[idx, :].squeeze(0)
                 xbl.append(x_b)
@@ -242,10 +242,7 @@ class FairMixup(pl.LightningModule):
                 ybl.append(y_b)
 
             elif s_a == 1:
-                xal.append(x_a)
-                sal.append(s_a.unsqueeze(-1).float())
-                yal.append(y_a.unsqueeze(-1).float())
-                idx = torch.randint(batch_s0.size()[0], (1,))
+                idx = torch.randint(batch_s0.size(0), (1,))
                 x_b = batch_s0[idx, :].squeeze(0)
                 xbl.append(x_b)
                 sbl.append(torch.zeros_like(s_a).unsqueeze(-1).float())
@@ -262,10 +259,10 @@ class FairMixup(pl.LightningModule):
         y_b = torch.stack(ybl, dim=0).to(device)
 
         mix_stats = {
-            "batch_stats/S0=sS0": sum(a == b for a, b in zip(s_a, s_b)) / batch.s.shape[0],
-            "batch_stats/S0!=sS0": sum(a != b for a, b in zip(s_a, s_b)) / batch.s.shape[0],
-            "batch_stats/all_s0": sum(a + b == 0 for a, b in zip(s_a, s_b)) / batch.s.shape[0],
-            "batch_stats/all_s1": sum(a + b == 2 for a, b in zip(s_a, s_b)) / batch.s.shape[0],
+            "batch_stats/S0=sS0": sum(a == b for a, b in zip(s_a, s_b)) / batch.s.size(0),
+            "batch_stats/S0!=sS0": sum(a != b for a, b in zip(s_a, s_b)) / batch.s.size(0),
+            "batch_stats/all_s0": sum(a + b == 0 for a, b in zip(s_a, s_b)) / batch.s.size(0),
+            "batch_stats/all_s1": sum(a + b == 2 for a, b in zip(s_a, s_b)) / batch.s.size(0),
         }
 
         mixed_x = lam * x_a + (1 - lam) * x_b
