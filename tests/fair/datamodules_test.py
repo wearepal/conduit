@@ -36,7 +36,7 @@ def test_data_modules(dm_cls: type[PBDataModule], stratified: bool) -> None:
     dm = _create_dm(dm_cls, stratified)
     loader = dm.train_dataloader()
     batch = next(iter(loader))
-    assert batch.x.size() == torch.Size([BATCHSIZE, *dm.size()])
+    assert batch.x.size() == torch.Size([BATCHSIZE, *dm.size()])  # type: ignore
     assert batch.s.size() == torch.Size([BATCHSIZE, 1])
     assert batch.y.size() == torch.Size([BATCHSIZE, 1])
 
@@ -49,6 +49,6 @@ def test_persist_param() -> None:
     dm.setup()
     loader = dm.train_dataloader()
     batch = next(iter(loader))
-    assert batch.x.size() == torch.Size([32, *dm.size()])
+    assert batch.x.size() == torch.Size([32, *dm.size()])  # type: ignore
     assert batch.s.size() == torch.Size([32, 1])
     assert batch.y.size() == torch.Size([32, 1])
