@@ -76,7 +76,7 @@ class CelebASplit(Enum):
 
 
 class CelebA(VisionDataset):
-    """Celeba dataset."""
+    """CelebA dataset."""
 
     transform: ImageTform
     """The data is downloaded to `download_dir` / `_BASE_FOLDER`."""
