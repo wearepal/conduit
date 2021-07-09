@@ -145,7 +145,7 @@ class CelebA(VisionDataset):
 
         self.x = np.array(attrs.index)
         self.s = torch.tensor(attrs[subclass.name])
-        self.s = torch.tensor(attrs[superclass.name])
+        self.y = torch.tensor(attrs[superclass.name])
         # map from {-1, 1} to {0, 1}
         self.s = torch.div(self.s + 1, 2, rounding_mode='floor')
         self.y = torch.div(self.s + 1, 2, rounding_mode='floor')
