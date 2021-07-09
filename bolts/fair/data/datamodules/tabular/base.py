@@ -63,6 +63,21 @@ class TabularDataModule(BaseDataModule):
     def em_dataset(self) -> em.Dataset:
         ...
 
+    @staticmethod
+    def _get_splits(train_len: int, val_split: int | float) -> list[int]:
+        """Computes split lengths for train and validation set."""
+        if isinstance(val_split, int):
+            train_len -= val_split
+            splits = [train_len, val_split]
+        elif isinstance(val_split, float):
+            val_len = int(val_split * train_len)
+            train_len -= val_len
+            splits = [train_len, val_len]
+        else:
+            raise ValueError(f"Unsupported type {type(val_split)}")
+
+        return splits
+
     @implements(LightningDataModule)
     def prepare_data(self) -> None:
         self.dims = (
@@ -74,13 +89,13 @@ class TabularDataModule(BaseDataModule):
         self.datatuple = self.em_dataset.load(ordered=True)
 
         data_len = int(self.datatuple.x.shape[0])
-        num_train_val, num_test = self._get_splits(data_len, self.test_split)
+        num_train_val, num_test = self._get_splits(data_len, self.test_prop)
         train_val, test = em.train_test_split(
             data=self.datatuple,
             train_percentage=(1 - (num_test / data_len)),
             random_seed=self.seed,
         )
-        num_train, num_val = self._get_splits(num_train_val, self.val_split)
+        num_train, num_val = self._get_splits(num_train_val, self.val_prop)
         train, val = em.train_test_split(
             data=train_val,
             train_percentage=(1 - (num_val / num_train_val)),

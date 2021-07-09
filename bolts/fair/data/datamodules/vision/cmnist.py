@@ -5,11 +5,12 @@ from typing import Dict, Iterator, List, Optional
 import ethicml.vision as emvi
 from ethicml.vision import LdColorizer, LdTransformation
 from kit import implements, parsable
+from kit.torch import prop_random_split
 import numpy as np
 from pytorch_lightning import LightningDataModule
 import torch
 from torch import Tensor
-from torch.utils.data import DataLoader, Dataset, RandomSampler, Subset, random_split
+from torch.utils.data import DataLoader, Dataset, RandomSampler, Subset
 from torchvision.transforms import transforms
 
 from bolts.data import MNIST
@@ -92,16 +93,7 @@ class CmnistDataModule(VisionDataModule):
         self._filter(train_data)
         self._filter(test_data)
 
-        train_len = int(len(train_data))
-        num_train, _ = self._get_splits(train_len, self.val_split)
-
-        g_cpu = torch.Generator()
-        g_cpu = g_cpu.manual_seed(self.seed)
-        train_data, val_data = random_split(
-            train_data,
-            lengths=(num_train, train_len - num_train),
-            generator=g_cpu,
-        )
+        val_data, train_data = prop_random_split(train_data, props=(self.val_prop,), seed=self.seed)
 
         colorizer = LdColorizer(
             scale=self.scale,

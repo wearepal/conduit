@@ -82,7 +82,7 @@ class NICODataModule(VisionDataModule):
             seed=self.seed,
         )
         val_data, train_data = prop_random_split(
-            dataset=train_val_data, props=self.val_prop / train_val_prop
+            dataset=train_val_data, props=(self.val_prop / train_val_prop,)
         )
         self._train_data = ImageTransformer(train_data, transform=self._augmentations(train=True))
         self._val_data = ImageTransformer(val_data, transform=self._augmentations(train=False))
