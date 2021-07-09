@@ -23,7 +23,7 @@ __all__ = ["CelebaDataModule"]
 
 
 def _check_valid_celeba_attr(attr: str) -> TypeGuard[CelebAttrs]:
-    return str_attr in get_args(CelebAttrs)
+    return attr in get_args(CelebAttrs)
 
 
 class CelebaDataModule(VisionDataModule):
