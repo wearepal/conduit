@@ -19,8 +19,16 @@ class PBDataset(Dataset):
         self, x: InputData, y: Optional[TargetData] = None, s: Optional[TargetData] = None
     ) -> None:
         self.x = x
+        if isinstance(y, np.ndarray):
+            y = torch.as_tensor(y)
+        if isinstance(s, np.ndarray):
+            s = torch.as_tensor(s)
         self.y = y
         self.s = s
+
+        self._x_dim = None
+        self._y_dim = None
+        self._s_dim = None
 
     def __len__(self) -> int:
         return len(self.x)
@@ -40,6 +48,28 @@ class PBDataset(Dataset):
         if not isinstance(x, Tensor):
             x = torch.as_tensor(x)
         return x
+
+    @property
+    def x_dim(
+        self,
+    ) -> tuple[int, ...]:
+        return self.x.shape[1:]
+
+    @property
+    def y_dim(
+        self,
+    ) -> int | None:
+        if (self._y_dim is None) and (self.y is not None):
+            self._y_dim = len(self.y.unique())
+        return self._y_dim
+
+    @property
+    def s_dim(
+        self,
+    ) -> int | None:
+        if (self._s_dim is None) and (self.s is not None):
+            self._s_dim = len(self.s.unique())
+        return self.s_dim
 
     @implements(Dataset)
     def __getitem__(self, index: int) -> Tensor | BinarySample | TernarySample:
