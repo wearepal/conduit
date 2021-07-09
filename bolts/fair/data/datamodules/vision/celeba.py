@@ -22,7 +22,7 @@ from .base import VisionDataModule
 __all__ = ["CelebaDataModule"]
 
 
-def _check_valid_celeba_attr(attr: CelebAttr | str) -> TypeGuard[CelebAttrs]:
+def _check_valid_celeba_attr(attr: str) -> TypeGuard[CelebAttrs]:
     str_attr = attr if isinstance(attr, str) else attr.name
     return str_attr in get_args(CelebAttrs)
 
