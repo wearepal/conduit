@@ -222,9 +222,6 @@ class FairMixup(pl.LightningModule):
         batch_y_s0 = batch.y[batch.s.view(-1) == 0].to(device)
         batch_y_s1 = batch.y[batch.s.view(-1) == 1].to(device)
 
-        torch.randperm(batch_s0.size()[0]).to(device)
-        torch.randperm(batch_s1.size()[0]).to(device)
-
         xal = []
         xbl = []
         sal = []
