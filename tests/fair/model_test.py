@@ -9,6 +9,7 @@ import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
+from bolts.common import FairnessType
 from bolts.fair.data.datasets import DummyDataset
 from bolts.fair.models import KC, Dann, ErmBaseline, FairMixup, Gpd, Laftr
 
@@ -239,8 +240,8 @@ class DummyDataModuleDim2(DummyBase):
 
 
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
-@pytest.mark.parametrize("fairness", ["DP", "EO", "EqOp"])
-def test_laftr(dm: pl.LightningDataModule, fairness: str) -> None:
+@pytest.mark.parametrize("fairness", FairnessType)
+def test_laftr(dm: pl.LightningDataModule, fairness: FairnessType) -> None:
     """Test the Laftr model."""
     trainer = pl.Trainer(fast_dev_run=True)
 
@@ -274,8 +275,8 @@ def test_laftr(dm: pl.LightningDataModule, fairness: str) -> None:
 
 @pytest.mark.gpu
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
-@pytest.mark.parametrize("fairness", ["DP", "EO", "EqOp"])
-def test_laftr_gpu(dm: pl.LightningDataModule, fairness: str) -> None:
+@pytest.mark.parametrize("fairness", FairnessType)
+def test_laftr_gpu(dm: pl.LightningDataModule, fairness: FairnessType) -> None:
     """Test the Laftr model."""
     trainer = pl.Trainer(fast_dev_run=True, gpus=1)
 
@@ -344,9 +345,9 @@ def test_dann_gpu(dm: pl.LightningDataModule) -> None:
     trainer.test(model=model, datamodule=dm)
 
 
-@pytest.mark.parametrize("fairness", ("DP", "EO", "EqOp"))
+@pytest.mark.parametrize("fairness", FairnessType)
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
-def test_fairmixup(dm: pl.LightningDataModule, fairness: str) -> None:
+def test_fairmixup(dm: pl.LightningDataModule, fairness: FairnessType) -> None:
     """Test the Laftr model."""
     trainer = pl.Trainer(fast_dev_run=True)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
