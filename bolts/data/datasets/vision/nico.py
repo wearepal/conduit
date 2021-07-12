@@ -268,6 +268,6 @@ def _preprocess_nico(path: Path) -> None:
                     concept = image_path.parent.parent.stem
                     context = image_path.parent.stem
                     new_name = (
-                        image_path.parent / f"{concept}_{context}_{counter:04}.{image_path.suffix}"
+                        image_path.parent / f"{concept}_{context}_{counter:04}{image_path.suffix}"
                     )
                     image_path.rename(new_name)

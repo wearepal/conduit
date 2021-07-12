@@ -8,7 +8,7 @@ from kit import implements
 from pytorch_lightning import LightningDataModule
 from sklearn.preprocessing import StandardScaler
 
-from bolts.data.datamodules.base import PBDataModule
+from bolts.data.datamodules import PBDataModule, TrainingMode
 from bolts.data.structures import TrainValTestSplit
 from bolts.fair.data.datasets import DataTupleDataset
 
@@ -30,8 +30,9 @@ class TabularDataModule(PBDataModule):
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
         scaler: ScalerType | None = None,
+        training_mode: TrainingMode = TrainingMode.epoch,
     ):
-        """COMPAS Dataset Module.
+        """Base data-module for tabular data.
 
         Args:
             val_prop: Proprtion (float)  of samples to use for the validation split
@@ -54,6 +55,7 @@ class TabularDataModule(PBDataModule):
             val_prop=val_prop,
             stratified_sampling=stratified_sampling,
             instance_weighting=instance_weighting,
+            training_mode=training_mode,
         )
         self.scaler = scaler if scaler is not None else StandardScaler()
 

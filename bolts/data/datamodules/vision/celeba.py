@@ -6,7 +6,7 @@ from kit import implements, parsable
 from kit.torch import prop_random_split
 from pytorch_lightning import LightningDataModule
 
-from bolts.data.datamodules.base import PBDataModule
+from bolts.data.datamodules.base import PBDataModule, TrainingMode
 from bolts.data.datasets.vision.celeba import CelebA, CelebASplit, CelebAttr
 from bolts.data.structures import TrainValTestSplit
 
@@ -35,6 +35,7 @@ class CelebADataModule(PBVisionDataModule):
         use_predefined_splits: bool = False,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
+        training_mode: TrainingMode = TrainingMode.epoch,
     ) -> None:
         super().__init__(
             root=root,
@@ -47,6 +48,7 @@ class CelebADataModule(PBVisionDataModule):
             pin_memory=pin_memory,
             stratified_sampling=stratified_sampling,
             instance_weighting=instance_weighting,
+            training_mode=training_mode,
         )
         self.image_size = image_size
         self.superclass = superclass

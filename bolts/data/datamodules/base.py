@@ -2,19 +2,22 @@
 from __future__ import annotations
 from enum import Enum, auto
 import logging
-from typing import Any, Sequence, Union
+from typing import Any, Sequence
 
 from kit import implements
 from kit.torch.data import InfSequentialBatchSampler, StratifiedSampler
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Sampler
-from torch.utils.data.dataset import Subset
+from torch.utils.data.dataset import Dataset
 from torch.utils.data.sampler import BatchSampler, SequentialSampler
 
 from bolts.common import Stage
-from bolts.data.datasets.base import PBDataset
-from bolts.data.datasets.utils import SizedStratifiedSampler, get_group_ids
-from bolts.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
+from bolts.data.datasets.utils import (
+    SizedStratifiedSampler,
+    get_group_ids,
+    pb_default_collate,
+)
+from bolts.data.datasets.wrappers import InstanceWeightedDataset
 from bolts.data.structures import TrainValTestSplit
 
 __all__ = ["PBDataModule", "TrainingMode"]
@@ -27,15 +30,12 @@ class TrainingMode(Enum):
     step = auto()
 
 
-_Dataset = Union[ImageTransformer, InstanceWeightedDataset, PBDataset, Subset]
-
-
 class PBDataModule(pl.LightningDataModule):
     """Base DataModule for both Tabular and Vision data-modules."""
 
-    _train_data: _Dataset
-    _val_data: _Dataset
-    _test_data: _Dataset
+    _train_data: Dataset
+    _val_data: Dataset
+    _test_data: Dataset
 
     def __init__(
         self,
@@ -68,7 +68,7 @@ class PBDataModule(pl.LightningDataModule):
 
     def make_dataloader(
         self,
-        ds: _Dataset,
+        ds: Dataset,
         shuffle: bool = False,
         drop_last: bool = False,
         batch_sampler: Sampler[Sequence[int]] | None = None,
@@ -83,6 +83,7 @@ class PBDataModule(pl.LightningDataModule):
             drop_last=drop_last,
             persistent_workers=self.persist_workers,
             batch_sampler=batch_sampler,
+            collate_fn=pb_default_collate,
         )
 
     def train_dataloader(
@@ -137,7 +138,7 @@ class PBDataModule(pl.LightningDataModule):
 
     @implements(pl.LightningDataModule)
     def setup(self, stage: Stage | None = None) -> None:
-        train, self._val, self._test = self._get_splits()
+        train, self._val_data, self._test_data = self._get_splits()
         if self.instance_weighting:
             train = InstanceWeightedDataset(train)
-        self._train = train
+        self._train_data = train

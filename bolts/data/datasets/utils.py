@@ -1,8 +1,10 @@
 from __future__ import annotations
+import collections
+from dataclasses import astuple, is_dataclass
 from functools import lru_cache
 import math
 from pathlib import Path
-from typing import Callable, Sequence, Union, overload
+from typing import Any, Callable, Sequence, Union, overload
 
 from PIL import Image
 import albumentations as A
@@ -13,6 +15,11 @@ import numpy.typing as npt
 import torch
 from torch import Tensor
 from torch.utils.data import ConcatDataset, Dataset, Subset
+from torch.utils.data._utils.collate import (
+    default_collate_err_msg_format,
+    np_str_obj_array_pattern,
+    string_classes,
+)
 from torchvision.transforms import functional as F
 from typing_extensions import Literal, get_args
 
@@ -30,6 +37,7 @@ __all__ = [
     "img_to_tensor",
     "infer_il_backend",
     "load_image",
+    "pb_default_collate",
 ]
 
 
@@ -222,3 +230,47 @@ class SizedStratifiedSampler(StratifiedSampler):
 
     def __len__(self) -> int:
         return self._max_epoch_len
+
+
+def pb_default_collate(batch: list[Any]) -> Any:
+    elem = batch[0]
+    elem_type = type(elem)
+    if isinstance(elem, Tensor):
+        out = None
+        if torch.utils.data.get_worker_info() is not None:
+            # If we're in a background process, concatenate directly into a
+            # shared memory tensor to avoid an extra copy
+            numel = sum([x.numel() for x in batch])
+            storage = elem.storage()._new_shared(numel)
+            out = elem.new(storage)
+        if (ndims := elem.dim()) > 0 and ndims % 2 == 0:
+            return torch.cat(batch, dim=0, out=out)
+        else:
+            return torch.stack(batch, dim=0, out=out)
+    elif (
+        elem_type.__module__ == "numpy"
+        and elem_type.__name__ != "str_"
+        and elem_type.__name__ != "string_"
+    ):
+        elem = batch[0]
+        if elem_type.__name__ == "ndarray":
+            # array of string classes and object
+            if np_str_obj_array_pattern.search(elem.dtype.str) is not None:
+                raise TypeError(default_collate_err_msg_format.format(elem.dtype))
+            return pb_default_collate([torch.as_tensor(b) for b in batch])
+    elif isinstance(elem, float):
+        return torch.tensor(batch, dtype=torch.float64)
+    elif isinstance(elem, int):
+        return torch.tensor(batch)
+    elif isinstance(elem, string_classes):
+        return batch
+    elif isinstance(elem, collections.abc.Mapping):
+        return {key: pb_default_collate([d[key] for d in batch]) for key in elem}
+    elif isinstance(elem, tuple) and hasattr(elem, "_fields"):  # namedtuple
+        return elem_type(*(pb_default_collate(samples) for samples in zip(*batch)))
+    elif is_dataclass(elem):  # dataclass
+        return elem_type(*pb_default_collate([astuple(sample) for sample in batch]))
+    elif isinstance(elem, (tuple, list)):
+        transposed = zip(*batch)
+        return [pb_default_collate(samples) for samples in transposed]
+    raise TypeError(default_collate_err_msg_format.format(elem_type))

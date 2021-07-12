@@ -6,7 +6,7 @@ from kit import implements, parsable
 from kit.torch import prop_random_split
 from pytorch_lightning import LightningDataModule
 
-from bolts.data.datamodules.base import PBDataModule
+from bolts.data.datamodules import PBDataModule, TrainingMode
 from bolts.data.datasets.vision.nico import NICO, NicoSuperclass
 from bolts.data.structures import TrainValTestSplit
 
@@ -34,6 +34,7 @@ class NICODataModule(PBVisionDataModule):
         superclass: NicoSuperclass = NicoSuperclass.animals,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
+        training_mode: TrainingMode = TrainingMode.epoch,
     ) -> None:
         super().__init__(
             root=root,
@@ -46,6 +47,7 @@ class NICODataModule(PBVisionDataModule):
             pin_memory=pin_memory,
             stratified_sampling=stratified_sampling,
             instance_weighting=instance_weighting,
+            training_mode=training_mode,
         )
         self.image_size = image_size
         self.superclass = superclass

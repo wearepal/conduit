@@ -3,6 +3,7 @@ from typing import Any
 
 from PIL import Image
 import numpy as np
+from torch import Tensor
 from torch.utils.data import Dataset
 
 from bolts.data.datasets.utils import (
@@ -10,7 +11,7 @@ from bolts.data.datasets.utils import (
     apply_image_transform,
     compute_instance_weights,
 )
-from bolts.data.structures import BinarySampleIW, TernarySampleIW
+from bolts.data.structures import BinarySampleIW, Sample, TernarySampleIW
 
 __all__ = ["ImageTransformer", "InstanceWeightedDataset"]
 
@@ -37,9 +38,14 @@ class ImageTransformer(Dataset):
         if self.transform is not None:
             if isinstance(sample, (Image.Image, np.ndarray)):
                 sample = apply_image_transform(image=sample, transform=self.transform)
+            elif isinstance(sample, Sample):
+                image = sample.x
+                assert not isinstance(image, Tensor)
+                image = apply_image_transform(image=image, transform=self.transform)
+                sample.x = image
             else:
-                data_type = type(sample)
                 image = apply_image_transform(image=sample[0], transform=self.transform)
+                data_type = type(sample)
                 sample = data_type(image, *sample[1:])
         return sample
 

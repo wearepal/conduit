@@ -1,6 +1,8 @@
 from __future__ import annotations
+from dataclasses import dataclass
 from typing import NamedTuple, Union
 
+from PIL import Image
 import numpy as np
 import numpy.typing as npt
 from torch import Tensor
@@ -31,8 +33,14 @@ class BinarySampleIW(NamedTuple):
     iw: Tensor
 
 
-class TernarySample(NamedTuple):
-    x: Tensor
+@dataclass
+class Sample:
+    x: Tensor | np.ndarray | Image.Image
+
+
+@dataclass
+class TernarySample(Sample):
+    # x: Tensor
     s: Tensor
     y: Tensor
 

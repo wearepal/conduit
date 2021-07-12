@@ -8,7 +8,7 @@ from albumentations.pytorch import ToTensorV2
 from kit import implements
 
 from bolts.common import Stage
-from bolts.data.datamodules import PBDataModule
+from bolts.data.datamodules import PBDataModule, TrainingMode
 from bolts.data.datasets.utils import AlbumentationsTform
 from bolts.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
 from bolts.data.structures import InputSize, NormalizationValues
@@ -37,6 +37,7 @@ class PBVisionDataModule(PBDataModule):
         pin_memory: bool = True,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
+        training_mode: TrainingMode = TrainingMode.epoch,
     ) -> None:
         super().__init__(
             batch_size=batch_size,
@@ -48,6 +49,7 @@ class PBVisionDataModule(PBDataModule):
             val_prop=val_prop,
             stratified_sampling=stratified_sampling,
             instance_weighting=instance_weighting,
+            training_mode=training_mode,
         )
         self.root = root
 
@@ -56,7 +58,7 @@ class PBVisionDataModule(PBDataModule):
         if hasattr(self, "_input_size"):
             return self._input_size
         if hasattr(self, "_train_data"):
-            self._input_size = InputSize(*self._train_data[0].x.shape)
+            self._input_size = InputSize(*self._train_data[0].x.shape)  # type: ignore
             return self._input_size
         raise AttributeError("Input size unavailable because setup has not yet been called.")
 

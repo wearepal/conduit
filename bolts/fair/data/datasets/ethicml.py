@@ -51,8 +51,8 @@ class DataTupleDataset(PBDataset):
         self.cont_features = cont_features
         self.feature_groups = dict(discrete=grouped_features_indexes(self.disc_features))
 
-        self.x_disc = torch.tensor(dataset.x[self.disc_features], dtype=torch.long)
-        self.x_cont = torch.tensor(dataset.x[self.cont_features], dtype=torch.long)
+        self.x_disc = torch.as_tensor(dataset.x[self.disc_features].to_numpy(), dtype=torch.long)
+        self.x_cont = torch.as_tensor(dataset.x[self.cont_features].to_numpy(), dtype=torch.float)
         x = torch.cat([self.x_disc, self.x_cont], dim=1)
 
         (
@@ -65,7 +65,7 @@ class DataTupleDataset(PBDataset):
             self.s_names,
         ) = _get_info(dataset)
 
-        y = torch.tensor(dataset.y, dtype=torch.float32)
+        y = torch.as_tensor(dataset.y.to_numpy(), dtype=torch.float32)
 
         self.ydim = dataset.y.shape[1]
         self.y_names = dataset.y.columns

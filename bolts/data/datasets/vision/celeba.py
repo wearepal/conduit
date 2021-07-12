@@ -139,8 +139,8 @@ class CelebA(PBVisionDataset):
         )
 
         x = np.array(attrs.index)
-        s = torch.tensor(attrs[subclass.name])
-        y = torch.tensor(attrs[superclass.name])
+        s = torch.as_tensor(attrs[subclass.name].to_numpy())
+        y = torch.as_tensor(attrs[superclass.name].to_numpy())
         # map from {-1, 1} to {0, 1}
         s = torch.div(s + 1, 2, rounding_mode='floor')
         y = torch.div(s + 1, 2, rounding_mode='floor')
