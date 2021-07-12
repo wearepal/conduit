@@ -1,7 +1,8 @@
 from __future__ import annotations
 from abc import abstractmethod
 import logging
-from typing import ClassVar
+from pathlib import Path
+from typing import ClassVar, Union
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -27,7 +28,7 @@ class PBVisionDataModule(PBDataModule):
 
     def __init__(
         self,
-        root: str,
+        root: Union[str, Path],
         batch_size: int = 64,
         num_workers: int = 0,
         val_prop: float = 0.2,

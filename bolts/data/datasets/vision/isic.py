@@ -5,7 +5,7 @@ import logging
 import os
 from pathlib import Path
 import shutil
-from typing import ClassVar, TypeVar
+from typing import ClassVar, TypeVar, Union
 import zipfile
 
 from PIL import Image
@@ -41,7 +41,7 @@ class ISIC(PBVisionDataset):
 
     def __init__(
         self,
-        root: str,
+        root: Union[str, Path],
         download: bool = True,
         max_samples: int = 25_000,  # default is the number of samples used for the NSLB paper
         context_attr: IsicAttr = "histo",

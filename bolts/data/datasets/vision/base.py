@@ -46,9 +46,12 @@ class PBVisionDataset(PBDataset):
         lines = [head] + [" " * self._repr_indent + line for line in body]
         return '\n'.join(lines)
 
+    def _load_image(self, index: int) -> RawImage:
+        return load_image(self.image_dir / self.x[index], backend=self._il_backend)
+
     @implements(PBDataset)
     def _sample_x(self, index: int, coerce_to_tensor: bool = False) -> RawImage | Tensor:
-        image = load_image(self.image_dir / self.x[index], backend=self._il_backend)
+        image = self._load_image(index)
         image = apply_image_transform(image=image, transform=self.transform)
         if coerce_to_tensor and (not isinstance(image, Tensor)):
             image = img_to_tensor(image)

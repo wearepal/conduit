@@ -2,7 +2,7 @@ from __future__ import annotations
 from enum import Enum, auto
 import logging
 from pathlib import Path
-from typing import ClassVar, Optional, cast
+from typing import ClassVar, Optional, Union, cast
 
 import gdown
 from kit import parsable
@@ -39,7 +39,7 @@ class NICO(PBVisionDataset):
     @parsable
     def __init__(
         self,
-        root: str,
+        root: Union[str, Path],
         download: bool = True,
         transform: Optional[ImageTform] = None,
         superclass: Optional[NicoSuperclass] = NicoSuperclass.animals,

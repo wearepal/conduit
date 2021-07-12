@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum, auto
 import logging
 from pathlib import Path
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, Union
 
 import gdown
 import numpy as np
@@ -96,7 +96,7 @@ class CelebA(PBVisionDataset):
 
     def __init__(
         self,
-        root: str,
+        root: Union[str, Path],
         download: bool = True,
         superclass: CelebAttr = CelebAttr.Smiling,
         subclass: CelebAttr = CelebAttr.Male,
