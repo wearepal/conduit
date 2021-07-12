@@ -70,7 +70,7 @@ class ColoredMNIST(PBVisionDataset):
         background: bool = False,
         black: bool = True,
     ) -> None:
-        base_dataset = MNIST(root=root, download=download, train=train)
+        base_dataset = MNIST(root=str(root), download=download, train=train)
         self.label_map = label_map
         self.scale = scale
         self.num_colors = num_colors
