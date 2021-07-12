@@ -53,10 +53,6 @@ class NICODataModule(PBVisionDataModule):
         self.superclass = superclass
         self.class_train_props = class_train_props
 
-    @implements(LightningDataModule)
-    def prepare_data(self, *args: Any, **kwargs: Any) -> None:
-        NICO(root=self.root, download=True)
-
     @property  # type: ignore[misc]
     @implements(PBVisionDataModule)
     def _base_augmentations(self) -> A.Compose:
@@ -71,6 +67,10 @@ class NICODataModule(PBVisionDataModule):
     @implements(PBVisionDataModule)
     def _train_augmentations(self) -> A.Compose:
         return A.Compose([])
+
+    @implements(LightningDataModule)
+    def prepare_data(self, *args: Any, **kwargs: Any) -> None:
+        NICO(root=self.root, download=True)
 
     @implements(PBDataModule)
     def _get_splits(self) -> TrainValTestSplit:
