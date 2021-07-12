@@ -82,7 +82,7 @@ class NICO(PBVisionDataset):
         y = torch.as_tensor(self.metadata["concept_le"], dtype=torch.int32)
         s = torch.as_tensor(self.metadata["context_le"], dtype=torch.int32)
 
-        super().__init__(x=x, y=y, s=s, transform=transform)
+        super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._base_dir)
 
     def _check_unzipped(self) -> bool:
         return all((self._base_dir / sc.name).exists() for sc in NicoSuperclass)

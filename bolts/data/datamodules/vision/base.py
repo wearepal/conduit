@@ -86,7 +86,7 @@ class PBVisionDataModule(PBDataModule):
         train = ImageTransformer(train, transform=self._augmentations(train=True))
         if self.instance_weighting:
             train = InstanceWeightedDataset(train)
-        self._train = train
+        self._train_data = train
         self._val_data = ImageTransformer(val, transform=self._augmentations(train=False))
         self._test_data = ImageTransformer(test, transform=self._augmentations(train=False))
 

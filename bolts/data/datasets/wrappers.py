@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import Any
 
+from PIL import Image
+import numpy as np
 from torch.utils.data import Dataset
 
 from bolts.data.datasets.utils import (
@@ -31,12 +33,15 @@ class ImageTransformer(Dataset):
         return None
 
     def __getitem__(self, index: int) -> Any:
-        data = self.dataset[index]
+        sample = self.dataset[index]
         if self.transform is not None:
-            data_type = type(data)
-            transformed = apply_image_transform(image=data[0], transform=self.transform)
-            data = data_type(transformed, *data[1:])
-        return data
+            if isinstance(sample, (Image.Image, np.ndarray)):
+                sample = apply_image_transform(image=sample, transform=self.transform)
+            else:
+                data_type = type(sample)
+                image = apply_image_transform(image=sample[0], transform=self.transform)
+                sample = data_type(image, *sample[1:])
+        return sample
 
 
 class InstanceWeightedDataset(Dataset):

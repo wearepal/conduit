@@ -66,5 +66,5 @@ class TrainValTestSplit(NamedTuple):
     test: Dataset
 
 
-InputData = Union[Tensor, npt.NDArray[Union[np.floating, np.integer, np.string_]]]
+InputData = npt.NDArray[Union[np.floating, np.integer, np.string_]]
 TargetData = Union[Tensor, npt.NDArray[Union[np.floating, np.integer]]]

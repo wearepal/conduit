@@ -43,9 +43,9 @@ class PBDataset(Dataset):
     def extra_repr(self) -> str:
         return ""
 
-    def _sample_x(self, index: int) -> Tensor:
+    def _sample_x(self, index: int, coerce_to_tensor: bool = False) -> Tensor:
         x = self.x[index]
-        if not isinstance(x, Tensor):
+        if coerce_to_tensor and (not isinstance(x, Tensor)):
             x = torch.as_tensor(x)
         return x
 
@@ -54,7 +54,7 @@ class PBDataset(Dataset):
         self,
     ) -> tuple[int, ...]:
         if self._x_dim is None:
-            self._x_dim = self._sample_x(0).shape[1:]
+            self._x_dim = self._sample_x(0, coerce_to_tensor=True).shape
         return self._x_dim
 
     @property
@@ -78,10 +78,10 @@ class PBDataset(Dataset):
         data = [self._sample_x(index)]
         if self.y is not None:
             data.append(self.y[index])
-        if self.y is not None:
-            data.append(self.y[index])
+        if self.s is not None:
+            data.append(self.s[index])
         if len(data) == 2:
             return BinarySample(*data)
-        if len(data) == 1:
+        if len(data) == 3:
             return TernarySample(*data)
         return data[0]

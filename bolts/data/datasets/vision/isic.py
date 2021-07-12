@@ -9,7 +9,6 @@ from typing import ClassVar, TypeVar
 import zipfile
 
 from PIL import Image
-import albumentations as A
 from kit import flatten_dict
 import numpy as np
 import pandas as pd
@@ -52,9 +51,9 @@ class ISIC(PBVisionDataset):
 
         self.root = Path(root)
         self.download = download
-        self._data_dir = self.root / "ISIC"
-        self._processed_dir = self._data_dir / "processed"
-        self._raw_dir = self._data_dir / "raw"
+        self._base_dir = self.root / "ISIC"
+        self._processed_dir = self._base_dir / "processed"
+        self._raw_dir = self._base_dir / "raw"
 
         if max_samples < 1:
             raise ValueError("max_samples must be a positive integer.")
@@ -75,7 +74,7 @@ class ISIC(PBVisionDataset):
         s = torch.as_tensor(self.metadata[context_attr], dtype=torch.int32)
         y = torch.as_tensor(self.metadata[target_attr], dtype=torch.int32)
 
-        super().__init__(x=x, y=y, s=s, transform=transform)
+        super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._processed_dir)
 
     def _check_downloaded(self) -> bool:
         return (self._raw_dir / "images").exists() and (
@@ -260,7 +259,7 @@ class ISIC(PBVisionDataset):
             LOGGER.info("Files already downloaded and verified.")
             return
         # Create the directory and any required ancestors if not already existent
-        self._data_dir.mkdir(exist_ok=True, parents=True)
+        self._base_dir.mkdir(exist_ok=True, parents=True)
         LOGGER.info(f"Downloading metadata into {str(self._raw_dir / self.METADATA_FILENAME)}...")
         self._download_isic_metadata()
         LOGGER.info(

@@ -73,6 +73,8 @@ class CelebA(PBVisionDataset):
     transform: ImageTform
     """The data is downloaded to `download_dir` / `_BASE_FOLDER`."""
     _BASE_FOLDER: ClassVar[str] = "celeba"
+    """The data is downloaded to `download_dir` / `_BASE_FOLDER` / `_IMAGE_DIR`."""
+    _IMAGE_DIR: ClassVar[str] = "img_align_celeba"
     """Google drive IDs, MD5 hashes and filenames for the CelebA files."""
     _FILE_LIST: ClassVar[list[tuple[str, str, str]]] = [
         (
@@ -103,8 +105,9 @@ class CelebA(PBVisionDataset):
     ) -> None:
 
         self.root = Path(root)
-        self.base = self.root / self._BASE_FOLDER
-        self._img_dir = self.base / "img_align_celeba"
+        self._image_dir = self.root / self._BASE_FOLDER
+        self._base = self.root / self._BASE_FOLDER
+        image_dir = self._base / self._IMAGE_DIR
         self.superclass = superclass
         self.subclass = subclass
 
@@ -112,7 +115,7 @@ class CelebA(PBVisionDataset):
             self._download_and_unzip_data()
         elif not self._check_unzipped():
             raise RuntimeError(
-                f"Data don't exist at location {self.base.resolve()}. " "Have you downloaded it?"
+                f"Data don't exist at location {self._base.resolve()}. " "Have you downloaded it?"
             )
 
         if split is None:
@@ -121,14 +124,14 @@ class CelebA(PBVisionDataset):
             # splits: information about which samples belong to train, val or test
             splits = (
                 pd.read_csv(
-                    self.base / "list_eval_partition.txt", delim_whitespace=True, names=["split"]
+                    self._base / "list_eval_partition.txt", delim_whitespace=True, names=["split"]
                 )
                 .to_numpy()
                 .squeeze()
             )
             skiprows = (splits != split.value).nonzero()[0] + 2
         attrs = pd.read_csv(
-            self.base / "list_attr_celeba.txt",
+            self._base / "list_attr_celeba.txt",
             delim_whitespace=True,
             header=1,
             usecols=[superclass.name, subclass.name],
@@ -142,10 +145,10 @@ class CelebA(PBVisionDataset):
         s = torch.div(s + 1, 2, rounding_mode='floor')
         y = torch.div(s + 1, 2, rounding_mode='floor')
 
-        super().__init__(x=x, y=y, s=s, transform=transform)
+        super().__init__(x=x, y=y, s=s, transform=transform, image_dir=image_dir)
 
     def _check_unzipped(self) -> bool:
-        return self._img_dir.is_dir()
+        return (self._base / self._IMAGE_DIR).is_dir()
 
     def _download_and_unzip_data(self) -> None:
         """Attempt to download data if files cannot be found in the base directory."""
@@ -154,13 +157,13 @@ class CelebA(PBVisionDataset):
             return
 
         # Create the specified base directory if it doesn't already exist
-        self.base.mkdir(parents=True, exist_ok=True)
+        self._base.mkdir(parents=True, exist_ok=True)
         # -------------------------- Download the data ---------------------------
         LOGGER.info("Downloading the data from Google Drive.")
         for file_id, md5, filename in self._FILE_LIST:
             gdown.cached_download(
                 url=f"https://drive.google.com/uc?id={file_id}",
-                path=str(self.base / filename),
+                path=str(self._base / filename),
                 quiet=False,
                 md5=md5,
                 postprocess=gdown.extractall if filename.endswith(".zip") else None,

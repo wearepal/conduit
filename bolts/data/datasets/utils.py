@@ -77,7 +77,7 @@ def infer_il_backend(transform: ImageTform | None) -> ImageLoadingBackend:
 
 def apply_image_transform(
     image: RawImage, transform: ImageTform | None
-) -> np.ndarray | Image.Image | Tensor:
+) -> RawImage | Image.Image | Tensor:
     image_ = image
     if transform is not None:
         if isinstance(transform, (A.Compose, A.BasicTransform)):
