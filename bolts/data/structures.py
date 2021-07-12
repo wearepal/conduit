@@ -23,28 +23,28 @@ __all__ = [
 ]
 
 
-@dataclass
+@dataclass(frozen=True)
 class NamedSample:
     x: Tensor | np.ndarray | Image.Image
 
 
-@dataclass
+@dataclass(frozen=True)
 class BinarySample(NamedSample):
     y: Tensor
 
 
-@dataclass
+@dataclass(frozen=True)
 class BinarySampleIW(BinarySample):
     iw: Tensor
 
 
-@dataclass
+@dataclass(frozen=True)
 class TernarySample(BinarySample):
     y: Tensor
     s: Tensor
 
 
-@dataclass
+@dataclass(frozen=True)
 class TernarySampleIW(TernarySample):
     iw: Tensor
 

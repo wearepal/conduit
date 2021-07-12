@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dataclasses import replace
 from typing import Any
 
 from PIL import Image
@@ -42,7 +43,7 @@ class ImageTransformer(Dataset):
                 image = sample.x
                 assert not isinstance(image, Tensor)
                 image = apply_image_transform(image=image, transform=self.transform)
-                sample.x = image
+                sample = replace(sample, x=image)
             else:
                 image = apply_image_transform(image=sample[0], transform=self.transform)
                 data_type = type(sample)
