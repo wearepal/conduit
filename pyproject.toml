@@ -127,3 +127,4 @@ module = [
 ]
 follow_imports = "skip"
 follow_imports_for_stubs = true
+warn_unused_ignores = true
