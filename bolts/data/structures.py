@@ -13,6 +13,7 @@ __all__ = [
     "BinarySampleIW",
     "InputData",
     "InputSize",
+    "NamedSample",
     "NormalizationValues",
     "TargetData",
     "TernarySample",
@@ -22,33 +23,29 @@ __all__ = [
 ]
 
 
-class BinarySample(NamedTuple):
-    x: Tensor
-    y: Tensor
-
-
-class BinarySampleIW(NamedTuple):
-    x: Tensor
-    y: Tensor
-    iw: Tensor
-
-
 @dataclass
-class Sample:
+class NamedSample:
     x: Tensor | np.ndarray | Image.Image
 
 
 @dataclass
-class TernarySample(Sample):
-    # x: Tensor
-    s: Tensor
+class BinarySample(NamedSample):
     y: Tensor
 
 
-class TernarySampleIW(NamedTuple):
-    x: Tensor
-    s: Tensor
+@dataclass
+class BinarySampleIW(BinarySample):
+    iw: Tensor
+
+
+@dataclass
+class TernarySample(BinarySample):
     y: Tensor
+    s: Tensor
+
+
+@dataclass
+class TernarySampleIW(TernarySample):
     iw: Tensor
 
 

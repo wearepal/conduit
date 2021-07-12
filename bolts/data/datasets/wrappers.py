@@ -11,7 +11,7 @@ from bolts.data.datasets.utils import (
     apply_image_transform,
     compute_instance_weights,
 )
-from bolts.data.structures import BinarySampleIW, Sample, TernarySampleIW
+from bolts.data.structures import BinarySampleIW, NamedSample, TernarySampleIW
 
 __all__ = ["ImageTransformer", "InstanceWeightedDataset"]
 
@@ -38,7 +38,7 @@ class ImageTransformer(Dataset):
         if self.transform is not None:
             if isinstance(sample, (Image.Image, np.ndarray)):
                 sample = apply_image_transform(image=sample, transform=self.transform)
-            elif isinstance(sample, Sample):
+            elif isinstance(sample, NamedSample):
                 image = sample.x
                 assert not isinstance(image, Tensor)
                 image = apply_image_transform(image=image, transform=self.transform)
