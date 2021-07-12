@@ -1,5 +1,5 @@
 from __future__ import annotations
-import collections
+from collections.abc import Mapping
 from dataclasses import astuple, is_dataclass
 from functools import lru_cache
 import math
@@ -264,7 +264,7 @@ def pb_default_collate(batch: list[Any]) -> Any:
         return torch.tensor(batch)
     elif isinstance(elem, string_classes):
         return batch
-    elif isinstance(elem, collections.abc.Mapping):
+    elif isinstance(elem, Mapping):
         return {key: pb_default_collate([d[key] for d in batch]) for key in elem}
     elif isinstance(elem, tuple) and hasattr(elem, "_fields"):  # namedtuple
         return elem_type(*(pb_default_collate(samples) for samples in zip(*batch)))
