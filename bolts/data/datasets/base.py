@@ -28,7 +28,7 @@ class PBDataset(Dataset):
 
         self._x_dim = None
         self._y_dim = None
-        self._s_dim = None
+        self._s_dim: int | None = None
 
     def __len__(self) -> int:
         return len(self.x)
