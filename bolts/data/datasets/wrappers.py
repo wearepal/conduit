@@ -61,10 +61,7 @@ class InstanceWeightedDataset(Dataset):
     def __getitem__(self, index: int) -> BinarySampleIW | TernarySampleIW:
         sample = self.dataset[index]
         iw = self.iw[index]
-        if len(sample) == 2:
-            tuple_class = BinarySampleIW
-        else:
-            tuple_class = TernarySampleIW
+        tuple_class = BinarySampleIW if len(sample) == 2 else TernarySampleIW
         return tuple_class(*sample, iw=iw)
 
     def __len__(self) -> int:
