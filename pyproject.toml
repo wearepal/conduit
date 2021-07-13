@@ -33,6 +33,7 @@ gdown = "^3.13.0"
 [tool.poetry.dev-dependencies]
 black = "*"
 isort = "*"
+mypy = "*"
 pre-commit = "*"
 pydocstyle = "*"
 pytest = "*"
@@ -92,55 +93,55 @@ strictListInference = true
 strictSetInference = true
 strictParameterNoneValue = true
 
-# [tool.mypy]
-# python_version = "3.8"
-# no_implicit_optional = true
-# allow_redefinition = true
-# strict_equality = true
-# check_untyped_defs = true
-# warn_unreachable = true
-# disallow_any_unimported = false
-# disallow_untyped_defs = true
-# disallow_incomplete_defs = true
-# show_error_codes = true
-# warn_unused_ignores = true
+[tool.mypy]
+python_version = "3.8"
+no_implicit_optional = true
+allow_redefinition = true
+strict_equality = true
+check_untyped_defs = true
+warn_unreachable = true
+disallow_any_unimported = false
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+show_error_codes = true
+warn_unused_ignores = true
 
-# [[tool.mypy.overrides]]
-# module = [
-#     "albumentations.*",
-#     "cv2.*",
-#     "ethicml.*",
-#     "flash.*",
-#     "gdown.*",
-#     "git.*",
-#     "kit.*",
-#     "pandas.*",
-#     "PIL.*",
-#     "pl_bolts.*",
-#     "pytest.*",
-#     "pytorch_lightning.*",
-#     "requests.*",
-#     "scipy.*",
-#     "sklearn.*",
-#     "torch.*",
-#     "torchmetrics.*",
-#     "torchvision.*",
-#     "typing_inspect.*",
-#     "tqdm.*",
-#     "wandb.*"
-# ]
-# ignore_missing_imports = true
+[[tool.mypy.overrides]]
+module = [
+    "albumentations.*",
+    "cv2.*",
+    "ethicml.*",
+    "flash.*",
+    "gdown.*",
+    "git.*",
+    "kit.*",
+    "pandas.*",
+    "PIL.*",
+    "pl_bolts.*",
+    "pytest.*",
+    "pytorch_lightning.*",
+    "requests.*",
+    "scipy.*",
+    "sklearn.*",
+    "torch.*",
+    "torchmetrics.*",
+    "torchvision.*",
+    "typing_inspect.*",
+    "tqdm.*",
+    "wandb.*"
+]
+ignore_missing_imports = true
 
-# [[tool.mypy.overrides]]
-# module = [
-#     "ethicml.*",
-#     "kit.*",
-#     "numpy.typing.*",
-#     "pytest.*",
-#     "pytorch_lightning.*",
-#     "torch.*",
-#     "torchmetrics.*"
-# ]
-# follow_imports = "skip"
-# follow_imports_for_stubs = true
-# warn_unused_ignores = true
+[[tool.mypy.overrides]]
+module = [
+    "ethicml.*",
+    "kit.*",
+    "numpy.typing.*",
+    "pytest.*",
+    "pytorch_lightning.*",
+    "torch.*",
+    "torchmetrics.*"
+]
+follow_imports = "skip"
+follow_imports_for_stubs = true
+warn_unused_ignores = true
