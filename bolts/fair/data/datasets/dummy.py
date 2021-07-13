@@ -29,4 +29,4 @@ class DummyDataset(Dataset):
         for shape in self.shapes:
             spl = torch.rand(*shape)
             sample.append(spl)
-        return TernarySample(x=sample[0], s=sample[1].round(), y=sample[2].round(), iw=sample[3])
+        return TernarySampleIW(x=sample[0], s=sample[1].round(), y=sample[2].round(), iw=sample[3])
