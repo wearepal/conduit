@@ -3,16 +3,11 @@ from __future__ import annotations
 from itertools import groupby
 from typing import Iterator
 
-import ethicml as em
 from ethicml import DataTuple
 from ethicml.implementations.pytorch_common import _get_info
-import numpy as np
-import pandas as pd
 import torch
-from torch import Tensor
-from torch.utils.data import Dataset
 
-from bolts.fair.data.structures import DataBatch
+from bolts.data.datasets.base import PBDataset
 
 __all__ = ["DataTupleDataset"]
 
@@ -44,7 +39,7 @@ def grouped_features_indexes(disc_feats: list[str]) -> list[slice]:
     return feature_slices
 
 
-class DataTupleDatasetBase(Dataset):
+class DataTupleDataset(PBDataset):
     """Wrapper for EthicML datasets."""
 
     def __init__(self, dataset: DataTuple, disc_features: list[str], cont_features: list[str]):
@@ -56,12 +51,13 @@ class DataTupleDatasetBase(Dataset):
         self.cont_features = cont_features
         self.feature_groups = dict(discrete=grouped_features_indexes(self.disc_features))
 
-        self.x_disc = dataset.x[self.disc_features].to_numpy(dtype=np.float32)
-        self.x_cont = dataset.x[self.cont_features].to_numpy(dtype=np.float32)
+        self.x_disc = torch.as_tensor(dataset.x[self.disc_features].to_numpy(), dtype=torch.long)
+        self.x_cont = torch.as_tensor(dataset.x[self.cont_features].to_numpy(), dtype=torch.float)
+        x = torch.cat([self.x_disc, self.x_cont], dim=1)
 
         (
             _,
-            self.s,
+            s,
             self.num,
             self.xdim,
             self.sdim,
@@ -69,55 +65,9 @@ class DataTupleDatasetBase(Dataset):
             self.s_names,
         ) = _get_info(dataset)
 
-        self.y = dataset.y.to_numpy(dtype=np.float32)
+        y = torch.as_tensor(dataset.y.to_numpy(), dtype=torch.float32)
 
         self.ydim = dataset.y.shape[1]
         self.y_names = dataset.y.columns
 
-        dt = em.DataTuple(
-            x=pd.DataFrame(
-                np.random.randint(0, len(self.s), size=(len(self.s), 1)), columns=list("x")
-            ),
-            s=pd.DataFrame(self.s, columns=["s"]),
-            y=pd.DataFrame(self.y, columns=["y"]),
-        )
-        self.iws = torch.tensor(em.compute_instance_weights(dt)["instance weights"].to_numpy())
-
-    def __len__(self) -> int:
-        return self.s.shape[0]
-
-    def _x(self, index: int) -> Tensor:
-        x_disc = self.x_disc[index]
-        x_cont = self.x_cont[index]
-        x = np.concatenate([x_disc, x_cont], axis=0)
-        x = torch.from_numpy(x)
-        if x.shape == 1:
-            x = x.squeeze(0)
-        return x
-
-    def _s(self, index: int) -> Tensor:
-        s = self.s[index]
-        return torch.from_numpy(s).squeeze().long()
-
-    def _y(self, index: int) -> Tensor:
-        y = self.y[index]
-        return torch.from_numpy(y).squeeze().long()
-
-    def _iw(self, index: int) -> Tensor:
-        iw = self.iws[index]
-        return iw.squeeze().float()
-
-
-class DataTupleDataset(DataTupleDatasetBase):
-    """Wrapper for EthicML datasets."""
-
-    def __init__(self, dataset: DataTuple, disc_features: list[str], cont_features: list[str]):
-        super().__init__(dataset, disc_features, cont_features)
-
-    def __getitem__(self, index: int) -> DataBatch:
-        return DataBatch(
-            x=self._x(index),
-            s=self._s(index).unsqueeze(-1),
-            y=self._y(index).unsqueeze(-1),
-            iw=self._iw(index).unsqueeze(-1),
-        )
+        super().__init__(x=x, y=y, s=s)

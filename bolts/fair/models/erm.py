@@ -12,7 +12,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
 
 from bolts.common import Stage
-from bolts.fair.data.structures import DataBatch
+from bolts.data.structures import TernarySample
 from bolts.fair.losses import CrossEntropy
 from bolts.fair.models.utils import LRScheduler, SchedInterval
 
@@ -85,7 +85,7 @@ class ErmBaseline(pl.LightningModule):
         results_dict.update({f"{stage}/{self.target}_{k}": v for k, v in results.items()})
         return results_dict
 
-    def _inference_step(self, batch: DataBatch, stage: Stage) -> dict[str, Tensor]:
+    def _inference_step(self, batch: TernarySample, stage: Stage) -> dict[str, Tensor]:
         logits = self.forward(batch.x)
         loss = self._get_loss(logits, batch)
         tm_acc = self.val_acc if stage == "validate" else self.test_acc
@@ -103,7 +103,7 @@ class ErmBaseline(pl.LightningModule):
             "preds": logits.sigmoid().round().squeeze(-1),
         }
 
-    def _get_loss(self, logits: Tensor, batch: DataBatch) -> Tensor:
+    def _get_loss(self, logits: Tensor, batch: TernarySample) -> Tensor:
         return self._loss_fn(input=logits, target=batch.y)
 
     def reset_parameters(self) -> None:
@@ -135,11 +135,11 @@ class ErmBaseline(pl.LightningModule):
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
-    def test_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
+    def test_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
         return self._inference_step(batch=batch, stage="test")
 
     @implements(pl.LightningModule)
-    def training_step(self, batch: DataBatch, batch_idx: int) -> Tensor:
+    def training_step(self, batch: TernarySample, batch_idx: int) -> Tensor:
         logits = self.forward(batch.x)
         loss = self._get_loss(logits, batch)
         target = batch.y.view(-1).long()
@@ -158,7 +158,7 @@ class ErmBaseline(pl.LightningModule):
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
-    def validation_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
+    def validation_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
         return self._inference_step(batch=batch, stage="validate")
 
     @implements(nn.Module)

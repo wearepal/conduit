@@ -3,7 +3,7 @@ from __future__ import annotations
 import torch
 from torch.utils.data import Dataset
 
-from bolts.fair.data.structures import DataBatch
+from bolts.data.structures import TernarySample
 
 __all__ = ["DummyDataset"]
 
@@ -24,9 +24,9 @@ class DummyDataset(Dataset):
     def __len__(self) -> int:
         return self.num_samples
 
-    def __getitem__(self, idx: int) -> DataBatch:
+    def __getitem__(self, idx: int) -> TernarySample:
         sample = []
         for shape in self.shapes:
             spl = torch.rand(*shape)
             sample.append(spl)
-        return DataBatch(x=sample[0], s=sample[1].round(), y=sample[2].round(), iw=sample[3])
+        return TernarySampleIW(x=sample[0], s=sample[1].round(), y=sample[2].round(), iw=sample[3])

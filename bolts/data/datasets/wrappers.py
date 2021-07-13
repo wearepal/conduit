@@ -1,12 +1,20 @@
 from __future__ import annotations
+from dataclasses import replace
 from typing import Any
 
-import albumentations as A
+from PIL import Image
+import numpy as np
+from torch import Tensor
 from torch.utils.data import Dataset
 
-from bolts.data.datasets.utils import ImageTform, apply_image_transform
+from bolts.data.datasets.utils import (
+    ImageTform,
+    apply_image_transform,
+    compute_instance_weights,
+)
+from bolts.data.structures import BinarySampleIW, NamedSample, TernarySampleIW
 
-__all__ = ["ImageTransformer"]
+__all__ = ["ImageTransformer", "InstanceWeightedDataset"]
 
 
 class ImageTransformer(Dataset):
@@ -27,9 +35,34 @@ class ImageTransformer(Dataset):
         return None
 
     def __getitem__(self, index: int) -> Any:
-        data = self.dataset[index]
+        sample = self.dataset[index]
         if self.transform is not None:
-            data_type = type(data)
-            transformed = apply_image_transform(image=data[0], transform=self.transform)
-            data = data_type(transformed, *data[1:])
-        return data
+            if isinstance(sample, (Image.Image, np.ndarray)):
+                sample = apply_image_transform(image=sample, transform=self.transform)
+            elif isinstance(sample, NamedSample):
+                image = sample.x
+                assert not isinstance(image, Tensor)
+                image = apply_image_transform(image=image, transform=self.transform)
+                sample = replace(sample, x=image)
+            else:
+                image = apply_image_transform(image=sample[0], transform=self.transform)
+                data_type = type(sample)
+                sample = data_type(image, *sample[1:])
+        return sample
+
+
+class InstanceWeightedDataset(Dataset):
+    """Wrapper endowing datasets with instance-weights."""
+
+    def __init__(self, dataset: Dataset) -> None:
+        self.dataset = dataset
+        self.iw = compute_instance_weights(dataset)
+
+    def __getitem__(self, index: int) -> BinarySampleIW | TernarySampleIW:
+        sample = self.dataset[index]
+        iw = self.iw[index]
+        tuple_class = BinarySampleIW if len(sample) == 2 else TernarySampleIW
+        return tuple_class(*sample, iw=iw)
+
+    def __len__(self) -> int:
+        return len(self.iw)

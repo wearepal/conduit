@@ -5,29 +5,20 @@ import logging
 import os
 from pathlib import Path
 import shutil
-from typing import ClassVar, List, TypeVar
+from typing import ClassVar, TypeVar, Union
 import zipfile
 
 from PIL import Image
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
 from kit import flatten_dict
 import numpy as np
 import pandas as pd
 import requests
 import torch
-from torchvision.datasets import VisionDataset
 from tqdm import tqdm
-from typing_extensions import Final, Literal
+from typing_extensions import Literal
 
-from bolts.data.datasets.utils import (
-    ImageLoadingBackend,
-    ImageTform,
-    apply_image_transform,
-    infer_il_backend,
-    load_image,
-)
-from bolts.data.structures import TernarySample
+from bolts.data.datasets.utils import ImageTform
+from bolts.data.datasets.vision.base import PBVisionDataset
 
 __all__ = ["ISIC"]
 
@@ -37,33 +28,32 @@ IsicAttr = Literal["histo", "malignant", "patch"]
 T = TypeVar("T")
 
 
-class ISIC(VisionDataset):
+class ISIC(PBVisionDataset):
     """PyTorch Dataset for the ISIC 2018 dataset from
     'Skin Lesion Analysis Toward Melanoma Detection 2018: A Challenge Hosted by the International
     Skin Imaging Collaboration (ISIC)',"""
 
-    LABELS_FILENAME: Final[str] = "labels.csv"
-    METADATA_FILENAME: Final[str] = "metadata.csv"
+    LABELS_FILENAME: ClassVar[str] = "labels.csv"
+    METADATA_FILENAME: ClassVar[str] = "metadata.csv"
     _pbar_col: ClassVar[str] = "#fac000"
     _rest_api_url: ClassVar[str] = "https://isic-archive.com/api/v1"
     transform: ImageTform
 
     def __init__(
         self,
-        root: str,
+        root: Union[str, Path],
         download: bool = True,
         max_samples: int = 25_000,  # default is the number of samples used for the NSLB paper
         context_attr: IsicAttr = "histo",
         target_attr: IsicAttr = "malignant",
-        transform: ImageTform = A.Compose([A.Normalize(), ToTensorV2()]),
+        transform: ImageTform | None = None,
     ) -> None:
-        super().__init__(root=root, transform=transform)
 
-        self.root: Path = Path(self.root)
+        self.root = Path(root)
         self.download = download
-        self._data_dir = self.root / "ISIC"
-        self._processed_dir = self._data_dir / "processed"
-        self._raw_dir = self._data_dir / "raw"
+        self._base_dir = self.root / "ISIC"
+        self._processed_dir = self._base_dir / "processed"
+        self._raw_dir = self._base_dir / "raw"
 
         if max_samples < 1:
             raise ValueError("max_samples must be a positive integer.")
@@ -80,11 +70,11 @@ class ISIC(VisionDataset):
         self.metadata = pd.read_csv(self._processed_dir / self.LABELS_FILENAME)
         # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # considerably slower than indexing with numpy/torch
-        self.x = self.metadata["path"].to_numpy()
-        self.s = torch.as_tensor(self.metadata[context_attr], dtype=torch.int32)
-        self.y = torch.as_tensor(self.metadata[target_attr], dtype=torch.int32)
+        x = self.metadata["path"].to_numpy()
+        s = torch.as_tensor(self.metadata[context_attr], dtype=torch.int32)
+        y = torch.as_tensor(self.metadata[target_attr], dtype=torch.int32)
 
-        self._il_backend: ImageLoadingBackend = infer_il_backend(self.transform)
+        super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._processed_dir)
 
     def _check_downloaded(self) -> bool:
         return (self._raw_dir / "images").exists() and (
@@ -221,7 +211,7 @@ class ISIC(VisionDataset):
                 with zipfile.ZipFile(file, "r") as zip_ref:
                     zip_ref.extractall(self._processed_dir)
                     pbar.update()
-        images: List[Path] = []
+        images: list[Path] = []
         for ext in ("jpg", "jpeg", "png", "gif"):
             images.extend(self._processed_dir.glob(f"**/*.{ext}"))
         with tqdm(total=len(images), desc="Processing images", colour=self._pbar_col) as pbar:
@@ -269,7 +259,7 @@ class ISIC(VisionDataset):
             LOGGER.info("Files already downloaded and verified.")
             return
         # Create the directory and any required ancestors if not already existent
-        self._data_dir.mkdir(exist_ok=True, parents=True)
+        self._base_dir.mkdir(exist_ok=True, parents=True)
         LOGGER.info(f"Downloading metadata into {str(self._raw_dir / self.METADATA_FILENAME)}...")
         self._download_isic_metadata()
         LOGGER.info(
@@ -293,12 +283,3 @@ class ISIC(VisionDataset):
             f"into{str(self._processed_dir / 'ISIC-images')}..."
         )
         self._preprocess_isic_images()
-
-    def __len__(self) -> int:
-        return len(self.x)
-
-    def __getitem__(self, index: int) -> TernarySample:
-        image = load_image(self.x[index], backend=self._il_backend)
-        image = apply_image_transform(image=image, transform=self.transform)
-        target = self.y[index]
-        return TernarySample(x=image, s=self.s[index], y=target)

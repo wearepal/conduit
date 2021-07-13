@@ -17,7 +17,7 @@ __all__ = ["Laftr"]
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from typing_extensions import Literal
 
-from bolts.fair.data.structures import DataBatch
+from bolts.data.structures import TernarySample
 from bolts.fair.losses import CrossEntropy
 from bolts.fair.models.utils import LRScheduler, SchedInterval
 
@@ -119,7 +119,7 @@ class Laftr(pl.LightningModule):
 
         self.log_dict(results_dict)
 
-    def _inference_step(self, batch: DataBatch, stage: str) -> dict[str, Tensor]:
+    def _inference_step(self, batch: TernarySample, stage: str) -> dict[str, Tensor]:
         model_out = self(batch.x, batch.s)
         laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
         adv_loss = self._loss_adv(model_out.s, batch)
@@ -140,7 +140,7 @@ class Laftr(pl.LightningModule):
             "preds": model_out.y.sigmoid().round().squeeze(-1),
         }
 
-    def _loss_adv(self, s_pred: Tensor, batch: DataBatch) -> Tensor:
+    def _loss_adv(self, s_pred: Tensor, batch: TernarySample) -> Tensor:
         # For Demographic Parity, for EqOpp is a different loss term.
         if self.fairness is FairnessType.DP:
             losses = self._adv_clf_loss(s_pred, batch.s.view(-1, 1))
@@ -169,7 +169,7 @@ class Laftr(pl.LightningModule):
         self.log(f"{self.fairness}_adv_loss", self.adv_weight * loss)
         return self.adv_weight * loss
 
-    def _loss_laftr(self, y_pred: Tensor, recon: Tensor, batch: DataBatch) -> Tensor:
+    def _loss_laftr(self, y_pred: Tensor, recon: Tensor, batch: TernarySample) -> Tensor:
         clf_loss = self._clf_loss(y_pred, batch.y)
         recon_loss = self._recon_loss(recon, batch.x)
         self.log_dict(
@@ -229,11 +229,11 @@ class Laftr(pl.LightningModule):
         self._inference_epoch_end(output_results=output_results, stage="test")
 
     @implements(pl.LightningModule)
-    def test_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
+    def test_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
         return self._inference_step(batch=batch, stage="test")
 
     @implements(pl.LightningModule)
-    def training_step(self, batch: DataBatch, batch_idx: int, optimizer_idx: int) -> Tensor:
+    def training_step(self, batch: TernarySample, batch_idx: int, optimizer_idx: int) -> Tensor:
         if optimizer_idx == 0:
             # Main model update
             self.set_requires_grad(self.adv, requires_grad=False)
@@ -275,7 +275,7 @@ class Laftr(pl.LightningModule):
         self._inference_epoch_end(output_results=output_results, stage="val")
 
     @implements(pl.LightningModule)
-    def validation_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
+    def validation_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
         return self._inference_step(batch=batch, stage="val")
 
     @implements(nn.Module)
