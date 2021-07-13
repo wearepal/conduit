@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
 
+from PIL import Image, UnidentifiedImageError
 import gdown
 from kit import parsable
 import numpy as np
@@ -58,6 +59,8 @@ class NICO(PBVisionDataset):
                 f"Data don't exist at location {self._base_dir.resolve()}. "
                 "Have you downloaded it?"
             )
+        if not self._metadata_path.exists():
+            self._extract_metadata()
 
         self.metadata = pd.read_csv(self._base_dir / "metadata.csv")
         self.class_tree = (
@@ -113,9 +116,6 @@ class NICO(PBVisionDataset):
         with zipfile.ZipFile(self._base_dir.with_suffix(".zip"), "r") as fhandle:
             fhandle.extractall(str(self.root))
 
-        if not self._metadata_path.exists():
-            self._extract_metadata()
-
     def _check_integrity(self) -> None:
         from torchvision.datasets.utils import check_integrity
 
@@ -126,6 +126,7 @@ class NICO(PBVisionDataset):
 
     def _extract_metadata(self) -> None:
         """Extract concept/context/superclass information from the image filepaths and it save to csv."""
+        LOGGER.info("Extracting metadata.")
         image_paths: list[Path] = []
         for ext in ("jpg", "jpeg", "png"):
             image_paths.extend(self._base_dir.glob(f"**/*.{ext}"))
@@ -139,7 +140,7 @@ class NICO(PBVisionDataset):
         )
         metadata["filepath"] = filepaths
         metadata.sort_index(axis=1, inplace=True)
-        metadata.sort_index(inplace=True)
+        metadata.sort_values(by=["filepath"], axis=0, inplace=True)
         metadata = self._label_encode_metadata(metadata)
         metadata.to_csv(self._metadata_path)
 
@@ -235,6 +236,11 @@ class NICO(PBVisionDataset):
         return TrainTestSplit(train=train_data, test=test_data)
 
 
+def _gif_to_jpeg(image: Image.Image) -> Image.Image:
+    background = Image.new('RGBA', image.size, (255, 255, 255))
+    return Image.alpha_composite(background, image).convert("RGB")
+
+
 def _preprocess_nico(path: Path) -> None:
     """
     Preprocess the original NICO data.
@@ -245,8 +251,6 @@ def _preprocess_nico(path: Path) -> None:
         2) Converting any GIFs into JPEGs by extracting the first frame.
     Note that this preprocessing will be performed **in-place**, overwriting the original data.
     """
-    from PIL import Image
-
     for superclass in ("animals", "vehicles"):
         superclass_dir = path / superclass
         for class_dir in superclass_dir.glob("*"):
@@ -255,19 +259,28 @@ def _preprocess_nico(path: Path) -> None:
                 for ext in ("jpg", "jpeg", "png", "gif"):
                     images_paths.extend(context_dir.glob(f"**/*.{ext}"))
                 for counter, image_path in enumerate(images_paths):
-                    if image_path.suffix == ".gif":
-                        image = Image.open(image_path).convert("RGBA")
-                        new_image_path = image_path.with_suffix(".jpg")
+                    try:
+                        image = Image.open(image_path)
+                        if image.format == "GIF":
+                            image = image.convert("RGBA")
+                            # Convert from gif to jpeg by extracting the first frame
+                            new_image = _gif_to_jpeg(image)
+                            new_image_path = image_path.with_suffix(".jpg")
+                            # Delete the original gif
+                            image_path.unlink()
+                            new_image.save(new_image_path, "JPEG")
+                            assert new_image_path.exists()
+                            image_path = new_image_path
 
-                        background = Image.new('RGBA', image.size, (255, 255, 255))
-                        new_image = Image.alpha_composite(background, image).convert("RGB")
-                        new_image.save(new_image_path, "JPEG")
+                        concept = image_path.parent.parent.stem
+                        context = image_path.parent.stem
+                        new_name = (
+                            image_path.parent
+                            / f"{concept}_{context}_{counter:04}{image_path.suffix}".replace(
+                                " ", "_"
+                            )
+                        )
+                        image_path.rename(new_name)
+                    # Image is corrupted - delete it
+                    except UnidentifiedImageError:
                         image_path.unlink()
-                        image_path = new_image_path
-
-                    concept = image_path.parent.parent.stem
-                    context = image_path.parent.stem
-                    new_name = (
-                        image_path.parent / f"{concept}_{context}_{counter:04}{image_path.suffix}"
-                    )
-                    image_path.rename(new_name)
