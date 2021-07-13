@@ -163,7 +163,8 @@ def extract_labels_from_dataset(dataset: Dataset) -> tuple[Tensor | None, Tensor
         return _s, _y
 
     if isinstance(dataset, (ConcatDataset)):
-        s_all_ls, y_all_ls = [], []
+        s_all_ls: list[Tensor] = []
+        y_all_ls: list[Tensor] = []
         for _dataset in dataset.datasets:
             s, y = _closure(_dataset)
             if s is not None:

@@ -26,8 +26,8 @@ class PBDataset(Dataset):
         self.y = y
         self.s = s
 
-        self._x_dim = None
-        self._y_dim = None
+        self._x_dim: torch.Size | None = None
+        self._y_dim: int | None = None
         self._s_dim: int | None = None
 
     def __len__(self) -> int:
