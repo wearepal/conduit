@@ -244,7 +244,8 @@ def pb_default_collate(batch: list[Any]) -> Any:
             numel = sum([x.numel() for x in batch])
             storage = elem.storage()._new_shared(numel)
             out = elem.new(storage)
-        if (ndims := elem.dim()) > 0 and ndims % 2 == 0:
+        ndims = elem.dim()
+        if (ndims > 0) and ((ndims % 2) == 0):
             return torch.cat(batch, dim=0, out=out)
         else:
             return torch.stack(batch, dim=0, out=out)
