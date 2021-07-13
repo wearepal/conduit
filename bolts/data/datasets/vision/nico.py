@@ -31,8 +31,8 @@ class NICO(PBVisionDataset):
     'Towards Non-I.I.D. Image Classification: A Dataset and Baselines'
     """
 
-    _FILE_ID: ClassVar[str] = "1iDdXhuyQA4cht3WQmdGKqweaQlxnyqpt"  # File ID
-    _MD5: ClassVar[str] = "6f21e6484fec0b3a8ef87f0d3115ce93"  # MD5 checksum
+    _FILE_ID: ClassVar[str] = "1L6cHNhuwwvrolukBklFyhFu7Y8WUUIQ7"  # File ID
+    _MD5: ClassVar[str] = "8c686f84e31ad6b6c052f97ed5f532b"  # MD5 checksum
     _BASE_FOLDER: ClassVar[str] = "NICO"
 
     transform: ImageTform
