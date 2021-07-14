@@ -32,7 +32,7 @@ class NICO(PBVisionDataset):
     """
 
     _FILE_ID: ClassVar[str] = "1L6cHNhuwwvrolukBklFyhFu7Y8WUUIQ7"  # File ID
-    _MD5: ClassVar[str] = "8c686f84e31ad6b6c052f97ed5f532b"  # MD5 checksum
+    _MD5: ClassVar[str] = "78c686f84e31ad6b6c052f97ed5f532b"  # MD5 checksum
     _BASE_FOLDER: ClassVar[str] = "NICO"
 
     transform: ImageTform
