@@ -1,3 +1,4 @@
+"""Base class for vision datasets."""
 from __future__ import annotations
 from abc import abstractmethod
 import logging

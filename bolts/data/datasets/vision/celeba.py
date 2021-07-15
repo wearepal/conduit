@@ -1,21 +1,19 @@
 """CelebA Dataset."""
 from __future__ import annotations
 from enum import Enum, auto
-import logging
 from pathlib import Path
 from typing import ClassVar, Optional, Union
 
-import gdown
+from kit import parsable
 import numpy as np
 import pandas as pd
 import torch
 
-from bolts.data.datasets.utils import ImageTform
+from bolts.common import str_to_enum
+from bolts.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
 from bolts.data.datasets.vision.base import PBVisionDataset
 
 __all__ = ["CelebA", "CelebAttr", "CelebASplit"]
-
-LOGGER = logging.getLogger(__name__)
 
 
 class CelebAttr(Enum):
@@ -76,46 +74,54 @@ class CelebA(PBVisionDataset):
     """The data is downloaded to `download_dir` / `_BASE_FOLDER` / `_IMAGE_DIR`."""
     _IMAGE_DIR: ClassVar[str] = "img_align_celeba"
     """Google drive IDs, MD5 hashes and filenames for the CelebA files."""
-    _FILE_LIST: ClassVar[list[tuple[str, str, str]]] = [
-        (
-            "1zmsC4yvw-e089uHXj5EdP0BSZ0AlDQRR",  # File ID
-            "00d2c5bc6d35e252742224ab0c1e8fcb",  # MD5 Hash
-            "img_align_celeba.zip",  # Filename
+    _FILE_LIST: ClassVar[list[FileInfo]] = [
+        FileInfo(
+            name="img_align_celeba.zip",
+            id="1zmsC4yvw-e089uHXj5EdP0BSZ0AlDQRR",
+            md5="00d2c5bc6d35e252742224ab0c1e8fcb",
         ),
-        (
-            "1gxmFoeEPgF9sT65Wpo85AnHl3zsQ4NvS",
-            "75e246fa4810816ffd6ee81facbd244c",
-            "list_attr_celeba.txt",
+        FileInfo(
+            name="list_attr_celeba.txt",
+            id="1gxmFoeEPgF9sT65Wpo85AnHl3zsQ4NvS",
+            md5="75e246fa4810816ffd6ee81facbd244c",
         ),
-        (
-            "1ih_VMokoI774ErNWrb26lDeWlanUBpnX",
-            "d32c9cbf5e040fd4025c592c306e6668",
-            "list_eval_partition.txt",
+        FileInfo(
+            name="list_eval_partition.txt",
+            id="1ih_VMokoI774ErNWrb26lDeWlanUBpnX",
+            md5="d32c9cbf5e040fd4025c592c306e6668",
         ),
     ]
 
+    @parsable
     def __init__(
         self,
         root: Union[str, Path],
         download: bool = True,
-        superclass: CelebAttr = CelebAttr.Smiling,
-        subclass: CelebAttr = CelebAttr.Male,
+        superclass: Union[CelebAttr, str] = CelebAttr.Smiling,
+        subclass: Union[CelebAttr, str] = CelebAttr.Male,
         transform: Optional[ImageTform] = None,
-        split: Optional[CelebASplit] = None,
+        split: Optional[Union[CelebASplit, str]] = None,
     ) -> None:
+
+        if isinstance(superclass, str):
+            superclass = str_to_enum(str_=superclass, enum=CelebAttr)
+        if isinstance(subclass, str):
+            subclass = str_to_enum(str_=subclass, enum=CelebAttr)
+        if isinstance(split, str):
+            split = str_to_enum(str_=split, enum=CelebASplit)
 
         self.root = Path(root)
         self._image_dir = self.root / self._BASE_FOLDER
-        self._base = self.root / self._BASE_FOLDER
-        image_dir = self._base / self._IMAGE_DIR
+        self._base_dir = self.root / self._BASE_FOLDER
+        image_dir = self._base_dir / self._IMAGE_DIR
         self.superclass = superclass
         self.subclass = subclass
 
         if download:
-            self._download_and_unzip_data()
+            download_from_gdrive(file_info=self._FILE_LIST, root=self._base_dir, logger=self.logger)
         elif not self._check_unzipped():
             raise RuntimeError(
-                f"Data don't exist at location {self._base.resolve()}. " "Have you downloaded it?"
+                f"Data don't exist at location {self._base_dir.resolve()}. Have you downloaded it?"
             )
 
         if split is None:
@@ -124,14 +130,16 @@ class CelebA(PBVisionDataset):
             # splits: information about which samples belong to train, val or test
             splits = (
                 pd.read_csv(
-                    self._base / "list_eval_partition.txt", delim_whitespace=True, names=["split"]
+                    self._base_dir / "list_eval_partition.txt",
+                    delim_whitespace=True,
+                    names=["split"],
                 )
                 .to_numpy()
                 .squeeze()
             )
             skiprows = (splits != split.value).nonzero()[0] + 2
         attrs = pd.read_csv(
-            self._base / "list_attr_celeba.txt",
+            self._base_dir / "list_attr_celeba.txt",
             delim_whitespace=True,
             header=1,
             usecols=[superclass.name, subclass.name],
@@ -148,26 +156,4 @@ class CelebA(PBVisionDataset):
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=image_dir)
 
     def _check_unzipped(self) -> bool:
-        return (self._base / self._IMAGE_DIR).is_dir()
-
-    def _download_and_unzip_data(self) -> None:
-        """Attempt to download data if files cannot be found in the base directory."""
-        if self._check_unzipped():
-            LOGGER.info("Files already downloaded and unzipped.")
-            return
-
-        # Create the specified base directory if it doesn't already exist
-        self._base.mkdir(parents=True, exist_ok=True)
-        # -------------------------- Download the data ---------------------------
-        LOGGER.info("Downloading the data from Google Drive.")
-        for file_id, md5, filename in self._FILE_LIST:
-            gdown.cached_download(
-                url=f"https://drive.google.com/uc?id={file_id}",
-                path=str(self._base / filename),
-                quiet=False,
-                md5=md5,
-                postprocess=gdown.extractall if filename.endswith(".zip") else None,
-            )
-
-        if not self._check_unzipped():
-            raise RuntimeError("Data seems to be downloaded but not unzipped. Download again?")
+        return (self._base_dir / self._IMAGE_DIR).is_dir()

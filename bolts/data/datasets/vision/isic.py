@@ -1,3 +1,4 @@
+"""ISIC Dataset."""
 from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from itertools import islice
@@ -35,8 +36,8 @@ class ISIC(PBVisionDataset):
 
     LABELS_FILENAME: ClassVar[str] = "labels.csv"
     METADATA_FILENAME: ClassVar[str] = "metadata.csv"
-    _pbar_col: ClassVar[str] = "#fac000"
-    _rest_api_url: ClassVar[str] = "https://isic-archive.com/api/v1"
+    _PBAR_COL: ClassVar[str] = "#fac000"
+    _REST_API_URL: ClassVar[str] = "https://isic-archive.com/api/v1"
     transform: ImageTform
 
     def __init__(
@@ -96,7 +97,7 @@ class ISIC(PBVisionDataset):
         """Downloads the metadata CSV from the ISIC website."""
         self._raw_dir.mkdir(parents=True, exist_ok=True)
         req = requests.get(
-            f"{self._rest_api_url}/image?limit={self.max_samples}"
+            f"{self._REST_API_URL}/image?limit={self.max_samples}"
             f"&sort=name&sortdir=1&detail=false"
         )
         image_ids = req.json()
@@ -109,7 +110,7 @@ class ISIC(PBVisionDataset):
         with tqdm(
             total=(len(image_ids) - 1) // 300 + 1,
             desc="Downloading metadata",
-            colour=self._pbar_col,
+            colour=self._PBAR_COL,
         ) as pbar:
             for block in self.chunk(image_ids, 300):
                 pbar.set_postfix(image_id=block[0])
@@ -117,7 +118,7 @@ class ISIC(PBVisionDataset):
                 args += template_start
                 args += template_sep.join(block)
                 args += template_end
-                req = requests.get(f"{self._rest_api_url}/image{args}")
+                req = requests.get(f"{self._REST_API_URL}/image{args}")
                 image_details = req.json()
                 for image_detail in image_details:
                     entry = flatten_dict(image_detail, sep=".")
@@ -147,7 +148,7 @@ class ISIC(PBVisionDataset):
         raw_image_dir.mkdir(exist_ok=True)
         image_ids = list(metadata_df.index)
         with tqdm(
-            total=(len(image_ids) - 1) // 50 + 1, desc="Downloading images", colour=self._pbar_col
+            total=(len(image_ids) - 1) // 50 + 1, desc="Downloading images", colour=self._PBAR_COL
         ) as pbar:
             for i, block in enumerate(self.chunk(image_ids, 50)):
                 pbar.set_postfix(image_id=block[0])
@@ -155,7 +156,7 @@ class ISIC(PBVisionDataset):
                 args += template_start
                 args += template_sep.join(block)
                 args += template_end
-                req = requests.get(f"{self._rest_api_url}/image/download{args}", stream=True)
+                req = requests.get(f"{self._REST_API_URL}/image/download{args}", stream=True)
                 req.raise_for_status()
                 image_path = raw_image_dir / f"{i}.zip"
                 with open(image_path, "wb") as f:
@@ -205,7 +206,7 @@ class ISIC(PBVisionDataset):
 
         self._processed_dir.mkdir(exist_ok=True)
         image_zips = tuple((self._raw_dir / "images").glob("**/*.zip"))
-        with tqdm(total=len(image_zips), desc="Unzipping images", colour=self._pbar_col) as pbar:
+        with tqdm(total=len(image_zips), desc="Unzipping images", colour=self._PBAR_COL) as pbar:
             for file in image_zips:
                 pbar.set_postfix(file_index=file.stem)
                 with zipfile.ZipFile(file, "r") as zip_ref:
@@ -214,7 +215,7 @@ class ISIC(PBVisionDataset):
         images: list[Path] = []
         for ext in ("jpg", "jpeg", "png", "gif"):
             images.extend(self._processed_dir.glob(f"**/*.{ext}"))
-        with tqdm(total=len(images), desc="Processing images", colour=self._pbar_col) as pbar:
+        with tqdm(total=len(images), desc="Processing images", colour=self._PBAR_COL) as pbar:
             for image_path in images:
                 pbar.set_postfix(image_name=image_path.stem)
                 image = Image.open(image_path)

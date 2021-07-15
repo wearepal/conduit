@@ -2,9 +2,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import astuple, is_dataclass
 from functools import lru_cache
+import logging
 import math
 from pathlib import Path
-from typing import Any, Callable, Sequence, Union, overload
+from typing import Any, Callable, NamedTuple, Sequence, Union, overload
 
 from PIL import Image
 import albumentations as A
@@ -38,6 +39,9 @@ __all__ = [
     "infer_il_backend",
     "load_image",
     "pb_default_collate",
+    "check_integrity",
+    "download_from_gdrive",
+    "FileInfo",
 ]
 
 
@@ -276,3 +280,59 @@ def pb_default_collate(batch: list[Any]) -> Any:
         transposed = zip(*batch)
         return [pb_default_collate(samples) for samples in transposed]
     raise TypeError(default_collate_err_msg_format.format(elem_type))
+
+
+def check_integrity(filepath: Path, md5: str | None) -> None:
+    from torchvision.datasets.utils import check_integrity  # type: ignore
+
+    ext = filepath.suffix
+    if ext not in [".zip", ".7z"] and check_integrity(str(filepath), md5):
+        raise RuntimeError('Dataset corrupted; try deleting it and redownloading it.')
+
+
+class FileInfo(NamedTuple):
+    name: str
+    id: str
+    md5: str | None = None
+
+
+def download_from_gdrive(
+    file_info: FileInfo | list[FileInfo],
+    root: Path | str,
+    logger: logging.Logger | None = None,
+) -> None:
+    """Attempt to download data if files cannot be found in the root directory."""
+
+    logger = logging.getLogger(__name__) if logger is None else logger
+
+    file_info_ls = file_info if isinstance(file_info, list) else [file_info]
+    if not isinstance(root, Path):
+        root = Path(root)
+    # Create the specified root directory if it doesn't already exist
+    root.mkdir(parents=True, exist_ok=True)
+
+    for info in file_info_ls:
+        filepath = root / info.name
+        if not filepath.exists():
+            import gdown
+
+            logger.info(f"Downloading file '{info.name}' from Google Drive.")
+            gdown.cached_download(
+                url=f"https://drive.google.com/uc?id={info.id}",
+                path=str(filepath),
+                quiet=False,
+                md5=info.md5,
+            )
+        else:
+            logger.info(f"File '{info.name}' already downloaded.")
+        if filepath.suffix == ".zip":
+            if filepath.with_suffix("").exists():
+                logger.info(f"File '{info.name}' already unzipped.")
+            else:
+                check_integrity(filepath=filepath, md5=info.md5)
+                # ------------------------------ Unzip the data ------------------------------
+                import zipfile
+
+                logger.info(f"Unzipping '{filepath.resolve()}'; this could take a while.")
+                with zipfile.ZipFile(filepath, "r") as fhandle:
+                    fhandle.extractall(str(root))
