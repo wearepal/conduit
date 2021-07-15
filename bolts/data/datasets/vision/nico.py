@@ -117,10 +117,9 @@ class NICO(PBVisionDataset):
         """Label encode the extracted concept/context/superclass information."""
         for col in metadata.columns:
             # Skip over filepath and filename columns - these do not metadata
-            if "file" in col:
-                continue
-            # Add a new column containing the label-encoded data
-            metadata[f"{col}_le"] = metadata[col].factorize()[0]
+            if "file" not in col:
+                # Add a new column containing the label-encoded data
+                metadata[f"{col}_le"] = metadata[col].factorize()[0]
         return metadata
 
     def train_test_split(
