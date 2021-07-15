@@ -33,7 +33,7 @@ class SSRP(PBVisionDataset):
         split: Union[SSRPSplit, str] = SSRPSplit.pretrain,
         download: bool = True,
         transform: Optional[ImageTform] = None,
-    ):
+    ) -> None:
         if isinstance(split, str):
             split = str_to_enum(str_=split, enum=SSRPSplit)
         self.root = Path(root)
