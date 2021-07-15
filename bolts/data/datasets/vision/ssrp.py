@@ -68,6 +68,7 @@ class SSRP(PBVisionDataset):
         self.log("Extracting metadata.")
         image_paths: list[Path] = []
         for ext in ("jpg", "jpeg", "png"):
+            # Glob images from child folders recusrively, excluding hidden files
             image_paths.extend(self._base_dir.glob(f"**/[!.]*.{ext}"))
         image_paths_str = [str(image.relative_to(self._base_dir)) for image in image_paths]
         filepaths = pd.Series(image_paths_str)
@@ -77,7 +78,7 @@ class SSRP(PBVisionDataset):
             .dropna(axis=1)
             .rename(columns={0: "region", 1: "split", 2: "class", 3: "filename"}),
         )
-        # Extract the seasonal metadata from them filename
+        # Extract the seasonal metadata from the filenames
         metadata["season"] = metadata["filename"].str.split(r"\((.*?)\s.*", expand=True)[1]
         metadata["filepath"] = filepaths
         metadata.sort_index(axis=1, inplace=True)
