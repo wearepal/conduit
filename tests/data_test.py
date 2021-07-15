@@ -5,11 +5,11 @@ import pytest
 from torchvision import transforms as T
 from torchvision.datasets import VisionDataset
 
-from bolts.data.datasets import ISIC, MNIST
+from bolts.data.datasets import ISIC, ColoredMNIST
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("ds_cls", [MNIST, ISIC])
+@pytest.mark.parametrize("ds_cls", [ColoredMNIST, ISIC])
 def test_datasets(ds_cls: type[VisionDataset]) -> None:
     """Basic test for datasets.
     Confirms that the datasets can be instantiated and have a functional __getitem__ method.

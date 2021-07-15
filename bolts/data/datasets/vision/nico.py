@@ -1,3 +1,4 @@
+"""NICO Dataset."""
 from __future__ import annotations
 from enum import Enum, auto
 from pathlib import Path
@@ -10,6 +11,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Subset
 
+from bolts.common import str_to_enum
 from bolts.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
 from bolts.data.datasets.vision.base import PBVisionDataset
 from bolts.data.structures import TrainTestSplit
@@ -46,13 +48,7 @@ class NICO(PBVisionDataset):
     ) -> None:
 
         if isinstance(superclass, str):
-            try:
-                superclass = NicoSuperclass[superclass]
-            except KeyError:
-                valid_ls = [mem.name for mem in NicoSuperclass]
-                raise ValueError(
-                    f"'{superclass}' is not a valid value for 'superclass'; must be one of {valid_ls}."
-                )
+            superclass = str_to_enum(str_=superclass, enum=NicoSuperclass)
         self.root = Path(root)
         self.download = download
         self._base_dir = self.root / self._BASE_FOLDER
@@ -89,8 +85,8 @@ class NICO(PBVisionDataset):
         # # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # # substantially slower than indexing with numpy/torch
         x = self.metadata["filepath"].to_numpy()
-        y = torch.as_tensor(self.metadata["concept_le"], dtype=torch.long)
-        s = torch.as_tensor(self.metadata["context_le"], dtype=torch.long)
+        y = torch.as_tensor(self.metadata["concept_le"].to_numpy(), dtype=torch.long)
+        s = torch.as_tensor(self.metadata["context_le"].to_numpy(), dtype=torch.long)
 
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._base_dir)
 

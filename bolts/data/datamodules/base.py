@@ -1,4 +1,4 @@
-"""Base class from which all data-modules in pal-bolts inherit."""
+"""Base class from which all data-modules in palbolts inherit."""
 from __future__ import annotations
 from enum import Enum, auto
 import logging
@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, Sampler
 from torch.utils.data.dataset import Dataset
 from torch.utils.data.sampler import BatchSampler, SequentialSampler
 
-from bolts.common import Stage
+from bolts.common import Stage, str_to_enum
 from bolts.data.datasets.utils import (
     SizedStratifiedSampler,
     get_group_ids,
@@ -48,9 +48,11 @@ class PBDataModule(pl.LightningDataModule):
         pin_memory: bool = True,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
-        training_mode: TrainingMode = TrainingMode.epoch,
+        training_mode: TrainingMode | str = TrainingMode.epoch,
     ) -> None:
         super().__init__()
+        if isinstance(training_mode, str):
+            training_mode = str_to_enum(training_mode, enum=TrainingMode)
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.val_prop = val_prop

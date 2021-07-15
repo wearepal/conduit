@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import torch
 
+from bolts.common import str_to_enum
 from bolts.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
 from bolts.data.datasets.vision.base import PBVisionDataset
 
@@ -96,20 +97,19 @@ class CelebA(PBVisionDataset):
         self,
         root: Union[str, Path],
         download: bool = True,
-        superclass: CelebAttr = CelebAttr.Smiling,
-        subclass: CelebAttr = CelebAttr.Male,
+        superclass: Union[CelebAttr, str] = CelebAttr.Smiling,
+        subclass: Union[CelebAttr, str] = CelebAttr.Male,
         transform: Optional[ImageTform] = None,
         split: Optional[Union[CelebASplit, str]] = None,
     ) -> None:
 
+        if isinstance(superclass, str):
+            superclass = str_to_enum(str_=superclass, enum=CelebAttr)
+        if isinstance(subclass, str):
+            subclass = str_to_enum(str_=subclass, enum=CelebAttr)
         if isinstance(split, str):
-            try:
-                split = CelebASplit[split]
-            except KeyError:
-                valid_ls = [mem.name for mem in CelebASplit]
-                raise ValueError(
-                    f"'{split}' is not a valid value for 'split'; must be one of {valid_ls}."
-                )
+            split = str_to_enum(str_=split, enum=CelebASplit)
+
         self.root = Path(root)
         self._image_dir = self.root / self._BASE_FOLDER
         self._base_dir = self.root / self._BASE_FOLDER

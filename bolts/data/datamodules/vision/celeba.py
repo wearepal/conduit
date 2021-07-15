@@ -1,5 +1,5 @@
 """CelebA data-module."""
-from typing import Any
+from typing import Any, Union
 
 import albumentations as A
 from kit import implements, parsable
@@ -30,8 +30,8 @@ class CelebADataModule(PBVisionDataModule):
         seed: int = 47,
         persist_workers: bool = False,
         pin_memory: bool = True,
-        superclass: CelebAttr = CelebAttr.Smiling,
-        subclass: CelebAttr = CelebAttr.Male,
+        superclass: Union[CelebAttr, str] = CelebAttr.Smiling,
+        subclass: Union[CelebAttr, str] = CelebAttr.Male,
         use_predefined_splits: bool = False,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
