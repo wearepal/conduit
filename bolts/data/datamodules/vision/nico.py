@@ -1,5 +1,5 @@
 """Nico data-module."""
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import albumentations as A
 from kit import implements, parsable
@@ -31,10 +31,10 @@ class NICODataModule(PBVisionDataModule):
         seed: int = 47,
         persist_workers: bool = False,
         pin_memory: bool = True,
-        superclass: Union[NicoSuperclass, str] = NicoSuperclass.animals,
+        superclass: NicoSuperclass = NicoSuperclass.animals,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
-        training_mode: Union[TrainingMode, str] = TrainingMode.epoch,
+        training_mode: TrainingMode = TrainingMode.epoch,
     ) -> None:
         super().__init__(
             root=root,
