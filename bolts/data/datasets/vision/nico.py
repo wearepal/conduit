@@ -116,7 +116,7 @@ class NICO(PBVisionDataset):
     def _label_encode_metadata(self, metadata: pd.DataFrame) -> pd.DataFrame:
         """Label encode the extracted concept/context/superclass information."""
         for col in metadata.columns:
-            # Skip over filepath and filename columns - these do not metadata
+            # Skip over filepath and filename columns
             if "file" not in col:
                 # Add a new column containing the label-encoded data
                 metadata[f"{col}_le"] = metadata[col].factorize()[0]
