@@ -1,24 +1,20 @@
 from __future__ import annotations
 from enum import Enum, auto
-import logging
 from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
 
 from PIL import Image, UnidentifiedImageError
-import gdown
 from kit import parsable
 import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Subset
 
-from bolts.data.datasets.utils import ImageTform
+from bolts.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
 from bolts.data.datasets.vision.base import PBVisionDataset
 from bolts.data.structures import TrainTestSplit
 
 __all__ = ["NICO", "NicoSuperclass"]
-
-LOGGER = logging.getLogger(__name__)
 
 
 class NicoSuperclass(Enum):
@@ -31,8 +27,11 @@ class NICO(PBVisionDataset):
     'Towards Non-I.I.D. Image Classification: A Dataset and Baselines'
     """
 
-    _FILE_ID: ClassVar[str] = "1L6cHNhuwwvrolukBklFyhFu7Y8WUUIQ7"  # File ID
-    _MD5: ClassVar[str] = "78c686f84e31ad6b6c052f97ed5f532b"  # MD5 checksum
+    _FILE_INFO: ClassVar[FileInfo] = FileInfo(
+        name="NICO.zip",
+        id="1L6cHNhuwwvrolukBklFyhFu7Y8WUUIQ7",
+        md5="78c686f84e31ad6b6c052f97ed5f532b",
+    )
     _BASE_FOLDER: ClassVar[str] = "NICO"
 
     transform: ImageTform
@@ -43,9 +42,17 @@ class NICO(PBVisionDataset):
         root: Union[str, Path],
         download: bool = True,
         transform: Optional[ImageTform] = None,
-        superclass: Optional[NicoSuperclass] = NicoSuperclass.animals,
+        superclass: Optional[Union[NicoSuperclass]] = NicoSuperclass.animals,
     ) -> None:
 
+        if isinstance(superclass, str):
+            try:
+                superclass = NicoSuperclass[superclass]
+            except KeyError:
+                valid_ls = [mem.name for mem in NicoSuperclass]
+                raise ValueError(
+                    f"'{superclass}' is not a valid value for 'superclass'; must be one of {valid_ls}."
+                )
         self.root = Path(root)
         self.download = download
         self._base_dir = self.root / self._BASE_FOLDER
@@ -53,7 +60,7 @@ class NICO(PBVisionDataset):
         self.superclass = superclass
 
         if self.download:
-            self._download_and_unzip_data()
+            download_from_gdrive(file_info=self._FILE_INFO, root=self.root, logger=self.logger)
         elif not self._check_unzipped():
             raise RuntimeError(
                 f"Data don't exist at location {self._base_dir.resolve()}. "
@@ -82,51 +89,17 @@ class NICO(PBVisionDataset):
         # # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # # substantially slower than indexing with numpy/torch
         x = self.metadata["filepath"].to_numpy()
-        y = torch.as_tensor(self.metadata["concept_le"], dtype=torch.int32)
-        s = torch.as_tensor(self.metadata["context_le"], dtype=torch.int32)
+        y = torch.as_tensor(self.metadata["concept_le"], dtype=torch.long)
+        s = torch.as_tensor(self.metadata["context_le"], dtype=torch.long)
 
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._base_dir)
 
     def _check_unzipped(self) -> bool:
         return all((self._base_dir / sc.name).exists() for sc in NicoSuperclass)
 
-    def _download_and_unzip_data(self) -> None:
-        """Attempt to download data if files cannot be found in the root directory."""
-
-        if self._check_unzipped():
-            LOGGER.info("Files already downloaded and unzipped.")
-            return
-
-        if not self._base_dir.with_suffix(".zip").exists():
-            # Create the specified root directory if it doesn't already exist
-            self.root.mkdir(parents=True, exist_ok=True)
-            # -------------------------- Download the data ---------------------------
-            LOGGER.info("Downloading the data from Google Drive.")
-            gdown.cached_download(
-                url=f"https://drive.google.com/uc?id={self._FILE_ID}",
-                path=self._base_dir.with_suffix(".zip"),
-                quiet=False,
-                md5=self._MD5,
-            )
-        self._check_integrity()
-        # ------------------------------ Unzip the data ------------------------------
-        import zipfile
-
-        LOGGER.info("Unzipping the data; this may take a while.")
-        with zipfile.ZipFile(self._base_dir.with_suffix(".zip"), "r") as fhandle:
-            fhandle.extractall(str(self.root))
-
-    def _check_integrity(self) -> None:
-        from torchvision.datasets.utils import check_integrity
-
-        fpath = self._base_dir.with_suffix(".zip")
-        ext = fpath.suffix
-        if ext not in [".zip", ".7z"] and check_integrity(str(fpath), self._MD5):
-            raise RuntimeError('Dataset corrupted; try deleting it and redownloading it.')
-
     def _extract_metadata(self) -> None:
         """Extract concept/context/superclass information from the image filepaths and it save to csv."""
-        LOGGER.info("Extracting metadata.")
+        self.log("Extracting metadata.")
         image_paths: list[Path] = []
         for ext in ("jpg", "jpeg", "png"):
             image_paths.extend(self._base_dir.glob(f"**/*.{ext}"))
@@ -241,7 +214,7 @@ def _gif_to_jpeg(image: Image.Image) -> Image.Image:
     return Image.alpha_composite(background, image).convert("RGB")
 
 
-def _preprocess_nico(path: Path) -> None:
+def preprocess_nico(path: Path) -> None:
     """
     Preprocess the original NICO data.
     This preprocessing entails two things:
