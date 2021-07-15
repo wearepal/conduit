@@ -21,8 +21,6 @@ from bolts.data.structures import TrainValTestSplit
 
 __all__ = ["PBDataModule", "TrainingMode"]
 
-LOGGER = logging.getLogger(__name__.split(".")[-1].upper())
-
 
 class TrainingMode(Enum):
     epoch = auto()
@@ -35,6 +33,7 @@ class PBDataModule(pl.LightningDataModule):
     _train_data: Dataset
     _val_data: Dataset
     _test_data: Dataset
+    _logger: logging.Logger | None = None
 
     def __init__(
         self,
@@ -60,6 +59,15 @@ class PBDataModule(pl.LightningDataModule):
         self.stratified_sampling = stratified_sampling
         self.instance_weighting = instance_weighting
         self.training_mode = training_mode
+
+    @property
+    def logger(self) -> logging.Logger:
+        if self._logger is None:
+            self._logger = logging.getLogger(self.__class__.__name__)
+        return self._logger
+
+    def log(self, msg: str) -> None:
+        self._logger.info(msg)
 
     @property
     def train_prop(self) -> float:
@@ -95,7 +103,7 @@ class PBDataModule(pl.LightningDataModule):
             num_groups = len(group_ids.unique())
             num_samples_per_group = batch_size // num_groups
             if batch_size % num_groups:
-                LOGGER.info(
+                self.log(
                     f"For stratified sampling, the batch size must be a multiple of the number of groups."
                     "Since the batch size is not integer divisible by the number of groups ({num_groups}),"
                     "the batch size is being reduced to {num_samples_per_group * num_groups}."

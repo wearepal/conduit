@@ -1,5 +1,4 @@
 from __future__ import annotations
-import logging
 from pathlib import Path
 
 from kit import implements
@@ -21,8 +20,6 @@ __all__ = ["PBVisionDataset"]
 
 
 class PBVisionDataset(PBDataset):
-    _logger: logging.Logger | None = None
-
     def __init__(
         self,
         x: InputData,
@@ -49,15 +46,6 @@ class PBVisionDataset(PBDataset):
             body += [repr(self.transform)]
         lines = [head] + [" " * self._repr_indent + line for line in body]
         return '\n'.join(lines)
-
-    @property
-    def logger(self) -> logging.Logger:
-        if self._logger is None:
-            self._logger = logging.getLogger(self.__class__.__name__)
-        return self._logger
-
-    def log(self, msg: str) -> None:
-        self._logger.info(msg)
 
     def _load_image(self, index: int) -> RawImage:
         return load_image(self.image_dir / self.x[index], backend=self._il_backend)

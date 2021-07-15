@@ -2,7 +2,6 @@
 from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from itertools import islice
-import logging
 import os
 from pathlib import Path
 import shutil
@@ -23,7 +22,6 @@ from bolts.data.datasets.vision.base import PBVisionDataset
 
 __all__ = ["ISIC"]
 
-LOGGER = logging.getLogger(__name__)
 
 IsicAttr = Literal["histo", "malignant", "patch"]
 T = TypeVar("T")
@@ -257,13 +255,13 @@ class ISIC(PBVisionDataset):
         # # Check whether the data has already been downloaded - if it has and the integrity
         # # of the files can be confirmed, then we are done
         if self._check_downloaded():
-            LOGGER.info("Files already downloaded and verified.")
+            self.log("Files already downloaded and verified.")
             return
         # Create the directory and any required ancestors if not already existent
         self._base_dir.mkdir(exist_ok=True, parents=True)
-        LOGGER.info(f"Downloading metadata into {str(self._raw_dir / self.METADATA_FILENAME)}...")
+        self.log(f"Downloading metadata into {str(self._raw_dir / self.METADATA_FILENAME)}...")
         self._download_isic_metadata()
-        LOGGER.info(
+        self.log(
             f"Downloading data into {str(self._raw_dir)} for up to {self.max_samples} samples..."
         )
         self._download_isic_images()
@@ -272,14 +270,14 @@ class ISIC(PBVisionDataset):
         """Preprocess the downloaded data if the processed image-directory/metadata don't exist."""
         # If the data has already been processed, skip this operation
         if self._check_processed():
-            LOGGER.info("Metadata and images already preprocessed.")
+            self.log("Metadata and images already preprocessed.")
             return
-        LOGGER.info(
+        self.log(
             f"Preprocessing metadata (adding columns, removing uncertain diagnoses) and saving into "
             f"{str(self._processed_dir / self.LABELS_FILENAME)}..."
         )
         self._preprocess_isic_metadata()
-        LOGGER.info(
+        self.log(
             f"Preprocessing images (transforming to 3-channel RGB, resizing to 224x224) and saving "
             f"into{str(self._processed_dir / 'ISIC-images')}..."
         )

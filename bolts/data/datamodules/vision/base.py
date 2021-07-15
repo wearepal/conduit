@@ -1,7 +1,6 @@
 """Base class for vision datasets."""
 from __future__ import annotations
 from abc import abstractmethod
-import logging
 from pathlib import Path
 from typing import ClassVar, Union
 
@@ -16,9 +15,6 @@ from bolts.data.datasets.wrappers import ImageTransformer, InstanceWeightedDatas
 from bolts.data.structures import InputSize, NormalizationValues
 
 __all__ = ["PBVisionDataModule", "TrainAugMode"]
-
-
-LOGGER = logging.getLogger(__name__.split(".")[-1].upper())
 
 
 class PBVisionDataModule(PBDataModule):

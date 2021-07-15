@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from typing import ClassVar, Optional
 
 from kit import implements
@@ -14,6 +15,7 @@ __all__ = ["PBDataset"]
 
 class PBDataset(Dataset):
     _repr_indent: ClassVar[int] = 4
+    _logger: logging.Logger | None = None
 
     def __init__(
         self, x: InputData, y: Optional[TargetData] = None, s: Optional[TargetData] = None
@@ -30,9 +32,6 @@ class PBDataset(Dataset):
         self._y_dim: int | None = None
         self._s_dim: int | None = None
 
-    def __len__(self) -> int:
-        return len(self.x)
-
     def __repr__(self) -> str:
         head = "Dataset " + self.__class__.__name__
         body = [f"Number of datapoints: {len(self)}"]
@@ -42,6 +41,15 @@ class PBDataset(Dataset):
 
     def extra_repr(self) -> str:
         return ""
+
+    @property
+    def logger(self) -> logging.Logger:
+        if self._logger is None:
+            self._logger = logging.getLogger(self.__class__.__name__)
+        return self._logger
+
+    def log(self, msg: str) -> None:
+        self._logger.info(msg)
 
     def _sample_x(self, index: int, coerce_to_tensor: bool = False) -> Tensor:
         x = self.x[index]
@@ -85,3 +93,6 @@ class PBDataset(Dataset):
         if len(data) == 3:
             return TernarySample(*data)
         return data[0]
+
+    def __len__(self) -> int:
+        return len(self.x)
