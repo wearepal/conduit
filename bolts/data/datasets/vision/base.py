@@ -22,6 +22,7 @@ __all__ = ["PBVisionDataset"]
 class PBVisionDataset(PBDataset):
     def __init__(
         self,
+        *,
         x: InputData,
         image_dir: Path | str,
         y: TargetData | None = None,

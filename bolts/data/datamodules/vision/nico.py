@@ -6,7 +6,8 @@ from kit import implements, parsable
 from kit.torch import prop_random_split
 from pytorch_lightning import LightningDataModule
 
-from bolts.data.datamodules import PBDataModule, TrainingMode
+from bolts.common import TrainingMode
+from bolts.data.datamodules import PBDataModule
 from bolts.data.datasets.vision.nico import NICO, NicoSuperclass
 from bolts.data.structures import TrainValTestSplit
 
@@ -22,6 +23,7 @@ class NICODataModule(PBVisionDataModule):
     def __init__(
         self,
         root: str,
+        *,
         image_size: int = 224,
         batch_size: int = 32,
         num_workers: int = 0,

@@ -30,6 +30,7 @@ class SSRP(PBVisionDataset):
     def __init__(
         self,
         root: Union[str, Path],
+        *,
         split: Union[SSRPSplit, str] = SSRPSplit.pretrain,
         download: bool = True,
         transform: Optional[ImageTform] = None,

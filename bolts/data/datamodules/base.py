@@ -1,6 +1,5 @@
 """Base class from which all data-modules in palbolts inherit."""
 from __future__ import annotations
-from enum import Enum, auto
 import logging
 from typing import Any, Sequence
 
@@ -11,6 +10,7 @@ from torch.utils.data import DataLoader, Sampler
 from torch.utils.data.dataset import Dataset
 from torch.utils.data.sampler import BatchSampler, SequentialSampler
 
+from bolts.common import TrainingMode
 from bolts.data.datasets.utils import (
     SizedStratifiedSampler,
     get_group_ids,
@@ -19,12 +19,7 @@ from bolts.data.datasets.utils import (
 from bolts.data.datasets.wrappers import InstanceWeightedDataset
 from bolts.data.structures import TrainValTestSplit
 
-__all__ = ["PBDataModule", "TrainingMode"]
-
-
-class TrainingMode(Enum):
-    epoch = auto()
-    step = auto()
+__all__ = ["PBDataModule"]
 
 
 class PBDataModule(pl.LightningDataModule):
@@ -37,6 +32,7 @@ class PBDataModule(pl.LightningDataModule):
 
     def __init__(
         self,
+        *,
         batch_size: int = 64,
         val_prop: float = 0.2,
         test_prop: float = 0.2,
@@ -76,6 +72,7 @@ class PBDataModule(pl.LightningDataModule):
     def make_dataloader(
         self,
         ds: Dataset,
+        *,
         shuffle: bool = False,
         drop_last: bool = False,
         batch_sampler: Sampler[Sequence[int]] | None = None,
@@ -94,7 +91,7 @@ class PBDataModule(pl.LightningDataModule):
         )
 
     def train_dataloader(
-        self, shuffle: bool = False, drop_last: bool = True, batch_size: int | None = None
+        self, *, shuffle: bool = False, drop_last: bool = True, batch_size: int | None = None
     ) -> DataLoader:
         batch_size = self.batch_size if batch_size is None else batch_size
 
@@ -130,15 +127,15 @@ class PBDataModule(pl.LightningDataModule):
                 batch_sampler = InfSequentialBatchSampler(
                     data_source=self._train_data, batch_size=batch_size, shuffle=shuffle  # type: ignore
                 )
-        return self.make_dataloader(self._train_data, batch_sampler=batch_sampler)
+        return self.make_dataloader(ds=self._train_data, batch_sampler=batch_sampler)
 
     @implements(pl.LightningDataModule)
     def val_dataloader(self) -> DataLoader:
-        return self.make_dataloader(self._val_data)
+        return self.make_dataloader(ds=self._val_data)
 
     @implements(pl.LightningDataModule)
     def test_dataloader(self) -> DataLoader:
-        return self.make_dataloader(self._test_data)
+        return self.make_dataloader(ds=self._test_data)
 
     def _get_splits(self) -> TrainValTestSplit:
         ...

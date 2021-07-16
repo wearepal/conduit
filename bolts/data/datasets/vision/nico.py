@@ -36,12 +36,11 @@ class NICO(PBVisionDataset):
     )
     _BASE_FOLDER: ClassVar[str] = "NICO"
 
-    transform: ImageTform
-
     @parsable
     def __init__(
         self,
         root: Union[str, Path],
+        *,
         download: bool = True,
         transform: Optional[ImageTform] = None,
         superclass: Optional[Union[NicoSuperclass]] = NicoSuperclass.animals,

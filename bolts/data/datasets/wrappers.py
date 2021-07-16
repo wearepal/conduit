@@ -26,7 +26,7 @@ class ImageTransformer(Dataset):
     that share the same underlying dataset.
     """
 
-    def __init__(self, dataset: Dataset, transform: ImageTform | None) -> None:
+    def __init__(self, dataset: Dataset, *, transform: ImageTform | None) -> None:
         self.dataset = dataset
         self.transform = transform
 

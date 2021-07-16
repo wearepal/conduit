@@ -8,7 +8,8 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data.dataset import ConcatDataset
 from torchvision.datasets import MNIST
 
-from bolts.data.datamodules import PBDataModule, TrainingMode
+from bolts.common import TrainingMode
+from bolts.data.datamodules import PBDataModule
 from bolts.data.datasets.vision.cmnist import ColoredMNIST
 from bolts.data.structures import TrainValTestSplit
 
@@ -24,6 +25,7 @@ class ColoredMNISTDataModule(PBVisionDataModule):
     def __init__(
         self,
         root: str,
+        *,
         image_size: int = 32,
         batch_size: int = 100,
         num_workers: int = 0,

@@ -18,7 +18,7 @@ class PBDataset(Dataset):
     _logger: logging.Logger | None = None
 
     def __init__(
-        self, x: InputData, y: Optional[TargetData] = None, s: Optional[TargetData] = None
+        self, *, x: InputData, y: Optional[TargetData] = None, s: Optional[TargetData] = None
     ) -> None:
         self.x = x
         if isinstance(y, np.ndarray):

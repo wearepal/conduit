@@ -13,10 +13,10 @@ import torchmetrics
 from torchmetrics import MetricCollection
 from typing_inspect import get_args
 
-from bolts.common import Stage
+from bolts.common import Stage, TrainingMode
 from bolts.data.structures import TernarySample
 from bolts.fair.losses import CrossEntropy
-from bolts.fair.models.utils import LRScheduler, SchedInterval
+from bolts.fair.models.utils import LRScheduler
 
 __all__ = ["Gpd"]
 
@@ -30,8 +30,8 @@ def compute_proj_grads(*, model: nn.Module, loss_p: Tensor, loss_a: Tensor, alph
         loss_a (Tensor): Adversarial loss.
         alpha (float): Pre-factor for adversarial loss.
     """
-    grad_p = torch.autograd.grad(loss_p, model.parameters(), retain_graph=True)
-    grad_a = torch.autograd.grad(loss_a, model.parameters(), retain_graph=True)
+    grad_p = torch.autograd.grad(loss_p, tuple(model.parameters()), retain_graph=True)
+    grad_a = torch.autograd.grad(loss_a, tuple(model.parameters()), retain_graph=True)
 
     def _proj(a: Tensor, b: Tensor) -> Tensor:
         return b * torch.sum(a * b) / torch.sum(b * b).clamp(min=torch.finfo(b.dtype).eps)
@@ -49,7 +49,7 @@ def compute_grad(*, model: nn.Module, loss: Tensor) -> None:
         model (nn.Module): Model whose parameters the gradients are to be computed w.r.t.
         loss (Tensor): Adversarial loss.
     """
-    grad_list = torch.autograd.grad(loss, model.parameters(), retain_graph=True)
+    grad_list = torch.autograd.grad(loss, tuple(model.parameters()), retain_graph=True)
 
     for param, grad in zip(model.parameters(), grad_list):
         param.grad = grad
@@ -65,6 +65,7 @@ class Gpd(pl.LightningModule):
 
     def __init__(
         self,
+        *,
         adv: nn.Module,
         enc: nn.Module,
         clf: nn.Module,
@@ -72,7 +73,7 @@ class Gpd(pl.LightningModule):
         weight_decay: float,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
-        lr_sched_interval: SchedInterval = "epoch",
+        lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
     ) -> None:
         super().__init__()
@@ -128,16 +129,18 @@ class Gpd(pl.LightningModule):
         results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
         return results_dict
 
-    def _get_losses(self, out: GpdOut, batch: TernarySample) -> tuple[Tensor, Tensor, Tensor]:
+    def _get_losses(
+        self, *, model_out: GpdOut, batch: TernarySample
+    ) -> tuple[Tensor, Tensor, Tensor]:
         target_s = batch.s.view(-1, 1).float()
-        loss_adv = self._loss_adv_fn(out.s, target_s)
+        loss_adv = self._loss_adv_fn(model_out.s, target_s)
         target_y = batch.y.view(-1, 1).float()
-        loss_clf = self._loss_clf_fn(out.y, target_y)
+        loss_clf = self._loss_clf_fn(model_out.y, target_y)
         return loss_adv, loss_clf, loss_adv + loss_clf
 
-    def _inference_step(self, batch: TernarySample, stage: Stage) -> dict[str, Tensor]:
+    def _inference_step(self, *, batch: TernarySample, stage: Stage) -> dict[str, Tensor]:
         model_out: GpdOut = self.forward(batch.x)
-        loss_adv, loss_clf, loss = self._get_losses(model_out, batch)
+        loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
         logs = {
             f"{stage}/loss": loss.item(),
             f"{stage}/loss_adv": loss_adv.item(),
@@ -189,7 +192,7 @@ class Gpd(pl.LightningModule):
         opt.zero_grad()
 
         model_out: GpdOut = self.forward(batch.x)
-        loss_adv, loss_clf, loss = self._get_losses(model_out, batch)
+        loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
 
         logs = {
             f"train/adv_loss": loss_adv.item(),
@@ -208,10 +211,12 @@ class Gpd(pl.LightningModule):
         self.log_dict(logs)
         opt.step()
 
-        if self.lr_sched_interval == "step" and self.global_step % self.lr_sched_freq == 0:
+        if (self.lr_sched_interval is TrainingMode.step) and (
+            self.global_step % self.lr_sched_freq == 0
+        ):
             sch = self.lr_schedulers()
             sch.step()
-        if self.lr_sched_interval == "epoch" and self.trainer.is_last_batch:
+        if (self.lr_sched_interval is TrainingMode.epoch) and self.trainer.is_last_batch:
             sch = self.lr_schedulers()
             sch.step()
 

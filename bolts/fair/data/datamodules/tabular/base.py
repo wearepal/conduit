@@ -8,7 +8,8 @@ from kit import implements
 from pytorch_lightning import LightningDataModule
 from sklearn.preprocessing import StandardScaler
 
-from bolts.data.datamodules import PBDataModule, TrainingMode
+from bolts.common import TrainingMode
+from bolts.data.datamodules import PBDataModule
 from bolts.data.structures import TrainValTestSplit
 from bolts.fair.data.datasets import DataTupleDataset
 
@@ -20,6 +21,7 @@ class TabularDataModule(PBDataModule):
 
     def __init__(
         self,
+        *,
         batch_size: int = 100,
         num_workers: int = 0,
         val_prop: float = 0.2,
@@ -31,7 +33,7 @@ class TabularDataModule(PBDataModule):
         instance_weighting: bool = False,
         scaler: ScalerType | None = None,
         training_mode: TrainingMode = TrainingMode.epoch,
-    ):
+    ) -> None:
         """Base data-module for tabular data.
 
         Args:

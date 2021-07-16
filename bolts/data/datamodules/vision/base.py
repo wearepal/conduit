@@ -8,8 +8,8 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from kit import implements
 
-from bolts.common import Stage
-from bolts.data.datamodules import PBDataModule, TrainingMode
+from bolts.common import Stage, TrainingMode
+from bolts.data.datamodules import PBDataModule
 from bolts.data.datasets.utils import AlbumentationsTform
 from bolts.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
 from bolts.data.structures import InputSize, NormalizationValues
@@ -26,6 +26,7 @@ class PBVisionDataModule(PBDataModule):
     def __init__(
         self,
         root: Union[str, Path],
+        *,
         batch_size: int = 64,
         num_workers: int = 0,
         val_prop: float = 0.2,

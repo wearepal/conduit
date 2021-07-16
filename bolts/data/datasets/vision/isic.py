@@ -36,11 +36,11 @@ class ISIC(PBVisionDataset):
     METADATA_FILENAME: ClassVar[str] = "metadata.csv"
     _PBAR_COL: ClassVar[str] = "#fac000"
     _REST_API_URL: ClassVar[str] = "https://isic-archive.com/api/v1"
-    transform: ImageTform
 
     def __init__(
         self,
         root: Union[str, Path],
+        *,
         download: bool = True,
         max_samples: int = 25_000,  # default is the number of samples used for the NSLB paper
         context_attr: IsicAttr = "histo",
