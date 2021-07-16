@@ -130,7 +130,7 @@ class Gpd(pl.LightningModule):
         return results_dict
 
     def _get_losses(
-        self, *, model_out: GpdOut, batch: TernarySample
+        self, model_out: GpdOut, *, batch: TernarySample
     ) -> tuple[Tensor, Tensor, Tensor]:
         target_s = batch.s.view(-1, 1).float()
         loss_adv = self._loss_adv_fn(model_out.s, target_s)
@@ -138,7 +138,7 @@ class Gpd(pl.LightningModule):
         loss_clf = self._loss_clf_fn(model_out.y, target_y)
         return loss_adv, loss_clf, loss_adv + loss_clf
 
-    def _inference_step(self, *, batch: TernarySample, stage: Stage) -> dict[str, Tensor]:
+    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
         model_out: GpdOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
         logs = {

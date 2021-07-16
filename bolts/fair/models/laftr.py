@@ -124,8 +124,8 @@ class Laftr(pl.LightningModule):
 
         self.log_dict(results_dict)
 
-    def _inference_step(self, *, batch: TernarySample, stage: Stage) -> dict[str, Tensor]:
-        model_out = self(batch.x, batch.s)
+    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
+        model_out = self.forward(batch.x, s=batch.s)
         laftr_loss = self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch)
         adv_loss = self._loss_adv(s_pred=model_out.s, batch=batch)
         tm_acc = self.val_acc if stage == "val" else self.test_acc
@@ -145,7 +145,7 @@ class Laftr(pl.LightningModule):
             "preds": model_out.y.sigmoid().round().squeeze(-1),
         }
 
-    def _loss_adv(self, *, s_pred: Tensor, batch: TernarySample) -> Tensor:
+    def _loss_adv(self, s_pred: Tensor, *, batch: TernarySample) -> Tensor:
         # For Demographic Parity, for EqOpp is a different loss term.
         if self.fairness is FairnessType.DP:
             losses = self._adv_clf_loss(s_pred, batch.s.view(-1, 1))
@@ -174,7 +174,7 @@ class Laftr(pl.LightningModule):
         self.log(f"{self.fairness}_adv_loss", self.adv_weight * loss)
         return self.adv_weight * loss
 
-    def _loss_laftr(self, *, y_pred: Tensor, recon: Tensor, batch: TernarySample) -> Tensor:
+    def _loss_laftr(self, y_pred: Tensor, *, recon: Tensor, batch: TernarySample) -> Tensor:
         clf_loss = self._clf_loss(y_pred, batch.y)
         recon_loss = self._recon_loss(recon, batch.x)
         self.log_dict(
@@ -242,7 +242,7 @@ class Laftr(pl.LightningModule):
         if optimizer_idx == 0:
             # Main model update
             self.set_requires_grad(self.adv, requires_grad=False)
-            model_out = self(batch.x, batch.s)
+            model_out = self.forward(batch.x, s=batch.s)
             laftr_loss = self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch)
             adv_loss = self._loss_adv(s_pred=model_out.s, batch=batch)
             target = batch.y.view(-1).long()
@@ -259,7 +259,7 @@ class Laftr(pl.LightningModule):
             # Adversarial update
             self.set_requires_grad([self.enc, self.dec, self.clf], requires_grad=False)
             self.set_requires_grad(self.adv, requires_grad=True)
-            model_out = self(batch.x, batch.s)
+            model_out = self.forward(batch.x, s=batch.s)
             adv_loss = self._loss_adv(s_pred=model_out.s, batch=batch)
             laftr_loss = self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch)
             target = batch.y.view(-1).long()
@@ -284,7 +284,7 @@ class Laftr(pl.LightningModule):
         return self._inference_step(batch=batch, stage="validate")
 
     @implements(nn.Module)
-    def forward(self, x: Tensor, s: Tensor) -> ModelOut:
+    def forward(self, x: Tensor, *, s: Tensor) -> ModelOut:
         embedding = self.enc(x)
         y_pred = self.clf(embedding)
         s_pred = self.adv(embedding)

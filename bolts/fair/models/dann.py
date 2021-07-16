@@ -41,7 +41,7 @@ class GradReverse(autograd.Function):
         return -ctx.lambda_ * grad_output, None
 
 
-def grad_reverse(features: Tensor, lambda_: float = 1.0) -> Tensor:
+def grad_reverse(features: Tensor, *, lambda_: float = 1.0) -> Tensor:
     """Gradient Reversal layer."""
     return GradReverse.apply(features, lambda_)
 
@@ -116,16 +116,18 @@ class Dann(pl.LightningModule):
         results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
         return results_dict
 
-    def _get_losses(self, out: DannOut, batch: TernarySample) -> tuple[Tensor, Tensor, Tensor]:
+    def _get_losses(
+        self, model_out: DannOut, *, batch: TernarySample
+    ) -> tuple[Tensor, Tensor, Tensor]:
         target_s = batch.s.view(-1, 1).float()
-        loss_adv = self._loss_adv_fn(out.s, target_s)
+        loss_adv = self._loss_adv_fn(model_out.s, target_s)
         target_y = batch.y.view(-1, 1).float()
-        loss_clf = self._loss_clf_fn(out.y, target_y)
+        loss_clf = self._loss_clf_fn(model_out.y, target_y)
         return loss_adv, loss_clf, loss_adv + loss_clf
 
-    def _inference_step(self, *, batch: TernarySample, stage: Stage) -> dict[str, Tensor]:
+    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
         model_out: DannOut = self.forward(batch.x)
-        loss_adv, loss_clf, loss = self._get_losses(model_out, batch)
+        loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
         logs = {
             f"{stage}/loss": loss.item(),
             f"{stage}/loss_adv": loss_adv.item(),

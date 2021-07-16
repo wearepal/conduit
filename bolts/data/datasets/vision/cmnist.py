@@ -20,15 +20,15 @@ __all__ = ["ColoredMNIST"]
 
 @overload
 def _filter_data_by_labels(
-    *, data: Tensor, targets: Tensor, label_map: dict[str, int], inplace: Literal[True] = ...
+    data: Tensor, *, targets: Tensor, label_map: dict[str, int], inplace: Literal[True] = ...
 ) -> None:
     ...
 
 
 @overload
 def _filter_data_by_labels(
-    *,
     data: Tensor,
+    *,
     targets: Tensor,
     label_map: dict[str, int],
     inplace: Literal[False] = ...,
@@ -37,7 +37,7 @@ def _filter_data_by_labels(
 
 
 def _filter_data_by_labels(
-    *, data: Tensor, targets: Tensor, label_map: dict[str, int], inplace: bool = True
+    data: Tensor, *, targets: Tensor, label_map: dict[str, int], inplace: bool = True
 ) -> tuple[Tensor, Tensor] | None:
     if not inplace:
         data, targets = data.clone(), targets.clone()

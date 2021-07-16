@@ -124,6 +124,7 @@ class NICO(PBVisionDataset):
     def train_test_split(
         self,
         default_train_prop: float,
+        *,
         train_props: dict[str | int, dict[str | int, float]] | None = None,
         seed: int | None = None,
     ) -> TrainTestSplit:
@@ -138,6 +139,7 @@ class NICO(PBVisionDataset):
 
         def _sample_train_inds(
             _mask: np.ndarray,
+            *,
             _context: str | int | None = None,
             _concept: str | None = None,
             _train_prop: float = default_train_prop,

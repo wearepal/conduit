@@ -1,30 +1,43 @@
 from __future__ import annotations
+from enum import Enum, auto
 from typing import Optional
 
 from kit import parsable
 from torch import Tensor, nn
 import torch.nn.functional as F
 from torch.nn.modules.loss import _Loss
-from typing_extensions import Literal
+
+from bolts.common import str_to_enum
 
 __all__ = ["CrossEntropy", "OnlineReweightingLoss"]
-ReductionType = Literal["mean", "none", "sum"]
 
 
-class CrossEntropy(nn.CrossEntropyLoss):
+class ReductionType(Enum):
+    mean = auto()
+    none = auto()
+    sum = auto()
+
+
+class CrossEntropy(nn.Module):
+    weight: Tensor | None
+
     @parsable
     def __init__(
         self,
+        *,
         class_weight: Optional[Tensor] = None,
         ignore_index: int = -100,
-        reduction: ReductionType = "mean",
+        reduction: ReductionType | str = ReductionType.mean,
     ) -> None:
-        super().__init__(weight=class_weight, reduction="none")
+        super().__init__()
+        if isinstance(reduction, str):
+            reduction = str_to_enum(str_=reduction, enum=ReductionType)
+        self.register_buffer('weight', class_weight)
         self.ignore_index = ignore_index
-        self._reduction_str = reduction
+        self.reduction = reduction
 
     def forward(
-        self, input: Tensor, target: Tensor, instance_weight: Tensor | None = None
+        self, input: Tensor, *, target: Tensor, instance_weight: Tensor | None = None
     ) -> Tensor:
         _target = target.view(-1).long()
         losses = F.cross_entropy(
@@ -32,7 +45,7 @@ class CrossEntropy(nn.CrossEntropyLoss):
             _target,
             weight=self.weight,
             ignore_index=self.ignore_index,
-            reduction=self.reduction,
+            reduction=self.reduction.name,
         )
         if instance_weight is not None:
             _weight = instance_weight.view(-1)
@@ -41,7 +54,7 @@ class CrossEntropy(nn.CrossEntropyLoss):
             return losses.mean()
         if self._reduction_str == "none":
             return losses
-        if self._reduction_str == "sum":
+        else:
             return losses.sum()
 
 

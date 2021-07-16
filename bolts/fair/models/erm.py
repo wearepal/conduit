@@ -86,7 +86,7 @@ class ErmBaseline(pl.LightningModule):
         results_dict.update({f"{stage}/{self.target}_{k}": v for k, v in results.items()})
         return results_dict
 
-    def _inference_step(self, *, batch: TernarySample, stage: Stage) -> dict[str, Tensor]:
+    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
         logits = self.forward(batch.x)
         loss = self._get_loss(logits=logits, batch=batch)
         tm_acc = self.val_acc if stage == "validate" else self.test_acc
@@ -104,7 +104,7 @@ class ErmBaseline(pl.LightningModule):
             "preds": logits.sigmoid().round().squeeze(-1),
         }
 
-    def _get_loss(self, *, logits: Tensor, batch: TernarySample) -> Tensor:
+    def _get_loss(self, logits: Tensor, *, batch: TernarySample) -> Tensor:
         return self._loss_fn(input=logits, target=batch.y)
 
     def reset_parameters(self) -> None:

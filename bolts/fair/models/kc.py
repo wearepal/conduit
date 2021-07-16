@@ -13,5 +13,5 @@ class KC(ErmBaseline):
     """Kamiran and Calders instance weighting method."""
 
     @implements(ErmBaseline)
-    def _get_loss(self, *, logits: Tensor, batch: TernarySampleIW) -> Tensor:
+    def _get_loss(self, logits: Tensor, *, batch: TernarySampleIW) -> Tensor:
         return self._loss_fn(input=logits, target=batch.y.float(), instance_weight=batch.iw)

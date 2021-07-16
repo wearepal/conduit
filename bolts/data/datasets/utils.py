@@ -212,8 +212,8 @@ class SizedStratifiedSampler(StratifiedSampler):
 
     def __init__(
         self,
-        *,
         group_ids: Sequence[int],
+        *,
         num_samples_per_group: int,
         shuffle: bool = False,
         multipliers: dict[int, int] | None = None,
