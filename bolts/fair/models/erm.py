@@ -12,6 +12,7 @@ from torch import Tensor, nn, optim
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
 
+from bolts.common import Stage
 from bolts.data.structures import TernarySample
 from bolts.fair.losses import CrossEntropy
 from bolts.fair.models.utils import LRScheduler

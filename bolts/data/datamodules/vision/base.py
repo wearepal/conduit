@@ -9,6 +9,7 @@ from albumentations.pytorch import ToTensorV2
 from kit import implements
 from kit.torch import TrainingMode
 
+from bolts.common import Stage
 from bolts.data.datamodules import PBDataModule
 from bolts.data.datasets.utils import AlbumentationsTform
 from bolts.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset

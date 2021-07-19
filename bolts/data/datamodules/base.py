@@ -9,6 +9,7 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Sampler
 from torch.utils.data.dataset import Dataset
 
+from bolts.common import Stage
 from bolts.data.datasets.utils import get_group_ids, pb_default_collate
 from bolts.data.datasets.wrappers import InstanceWeightedDataset
 from bolts.data.structures import TrainValTestSplit
