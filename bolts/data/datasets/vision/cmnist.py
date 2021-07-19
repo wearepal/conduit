@@ -20,7 +20,7 @@ __all__ = ["ColoredMNIST"]
 
 @overload
 def _filter_data_by_labels(
-    data: Tensor, targets: Tensor, label_map: dict[str, int], inplace: Literal[True] = ...
+    data: Tensor, *, targets: Tensor, label_map: dict[str, int], inplace: Literal[True] = ...
 ) -> None:
     ...
 
@@ -28,6 +28,7 @@ def _filter_data_by_labels(
 @overload
 def _filter_data_by_labels(
     data: Tensor,
+    *,
     targets: Tensor,
     label_map: dict[str, int],
     inplace: Literal[False] = ...,
@@ -36,7 +37,7 @@ def _filter_data_by_labels(
 
 
 def _filter_data_by_labels(
-    data: Tensor, targets: Tensor, label_map: dict[str, int], inplace: bool = True
+    data: Tensor, *, targets: Tensor, label_map: dict[str, int], inplace: bool = True
 ) -> tuple[Tensor, Tensor] | None:
     if not inplace:
         data, targets = data.clone(), targets.clone()
@@ -57,6 +58,7 @@ class ColoredMNIST(PBVisionDataset):
     def __init__(
         self,
         root: Union[str, Path],
+        *,
         download: bool = True,
         transform: Optional[ImageTform] = None,
         label_map: Optional[Dict[str, int]] = None,

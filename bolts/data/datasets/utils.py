@@ -3,14 +3,12 @@ from collections.abc import Mapping
 from dataclasses import astuple, is_dataclass
 from functools import lru_cache
 import logging
-import math
 from pathlib import Path
-from typing import Any, Callable, NamedTuple, Sequence, Union, overload
+from typing import Any, Callable, NamedTuple, Union, overload
 
 from PIL import Image
 import albumentations as A
 import cv2
-from kit.torch.data import StratifiedSampler
 import numpy as np
 import numpy.typing as npt
 import torch
@@ -30,7 +28,6 @@ __all__ = [
     "ImageTform",
     "PillowTform",
     "RawImage",
-    "SizedStratifiedSampler",
     "apply_image_transform",
     "extract_base_dataset",
     "extract_labels_from_dataset",
@@ -52,16 +49,16 @@ RawImage = Union[npt.NDArray[np.int_], Image.Image]
 
 
 @overload
-def load_image(filepath: Path | str, backend: Literal["opencv"] = ...) -> np.ndarray:
+def load_image(filepath: Path | str, *, backend: Literal["opencv"] = ...) -> np.ndarray:
     ...
 
 
 @overload
-def load_image(filepath: Path | str, backend: Literal["pillow"] = ...) -> Image.Image:
+def load_image(filepath: Path | str, *, backend: Literal["pillow"] = ...) -> Image.Image:
     ...
 
 
-def load_image(filepath: Path | str, backend: ImageLoadingBackend = "opencv") -> RawImage:
+def load_image(filepath: Path | str, *, backend: ImageLoadingBackend = "opencv") -> RawImage:
     if backend == "opencv":
         if isinstance(filepath, Path):
             # cv2 can only read string filepaths
@@ -88,7 +85,7 @@ def infer_il_backend(transform: ImageTform | None) -> ImageLoadingBackend:
 
 
 def apply_image_transform(
-    image: RawImage, transform: ImageTform | None
+    image: RawImage, *, transform: ImageTform | None
 ) -> RawImage | Image.Image | Tensor:
     image_ = image
     if transform is not None:
@@ -113,18 +110,20 @@ def img_to_tensor(img: Image.Image | np.ndarray) -> Tensor:
 
 @overload
 def extract_base_dataset(
-    dataset: Dataset, return_subset_indices: Literal[True] = ...
+    dataset: Dataset, *, return_subset_indices: Literal[True] = ...
 ) -> tuple[Dataset, Tensor | slice]:
     ...
 
 
 @overload
-def extract_base_dataset(dataset: Dataset, return_subset_indices: Literal[False] = ...) -> Dataset:
+def extract_base_dataset(
+    dataset: Dataset, *, return_subset_indices: Literal[False] = ...
+) -> Dataset:
     ...
 
 
 def extract_base_dataset(
-    dataset: Dataset, return_subset_indices: bool = True
+    dataset: Dataset, *, return_subset_indices: bool = True
 ) -> Dataset | tuple[Dataset, Tensor | slice]:
     def _closure(
         dataset: Dataset, rel_indices_ls: list[list[int]] | None = None
@@ -153,7 +152,7 @@ def extract_labels_from_dataset(dataset: Dataset) -> tuple[Tensor | None, Tensor
     """Attempt to extract s/y labels from a dataset."""
 
     def _closure(dataset: Dataset) -> tuple[Tensor | None, Tensor | None]:
-        dataset, indices = extract_base_dataset(dataset, return_subset_indices=True)
+        dataset, indices = extract_base_dataset(dataset=dataset, return_subset_indices=True)
         _s = None
         _y = None
         if getattr(dataset, "s", None) is not None:
@@ -205,38 +204,6 @@ def compute_instance_weights(dataset: Dataset) -> Tensor:
     return group_ids / counts
 
 
-class SizedStratifiedSampler(StratifiedSampler):
-    """StratifiedSampler with a finite length for epoch-based training."""
-
-    def __init__(
-        self,
-        group_ids: Sequence[int],
-        num_samples_per_group: int,
-        shuffle: bool = False,
-        multipliers: dict[int, int] | None = None,
-        generator: torch.Generator | None = None,
-    ) -> None:
-        super().__init__(
-            group_ids=group_ids,
-            num_samples_per_group=num_samples_per_group,
-            base_sampler="sequential",
-            shuffle=shuffle,
-            replacement=False,
-            multipliers=multipliers,
-            generator=generator,
-        )
-        # We define the legnth of the sampler to be the maximum number of steps
-        # needed to do a complete pass of a group's data
-        groupwise_epoch_len = (
-            math.ceil(len(idxs) / (mult * num_samples_per_group))
-            for idxs, mult in self.groupwise_idxs
-        )
-        self._max_epoch_len = max(groupwise_epoch_len)
-
-    def __len__(self) -> int:
-        return self._max_epoch_len
-
-
 def pb_default_collate(batch: list[Any]) -> Any:
     elem = batch[0]
     elem_type = type(elem)
@@ -282,11 +249,11 @@ def pb_default_collate(batch: list[Any]) -> Any:
     raise TypeError(default_collate_err_msg_format.format(elem_type))
 
 
-def check_integrity(filepath: Path, md5: str | None) -> None:
+def check_integrity(*, filepath: Path, md5: str | None) -> None:
     from torchvision.datasets.utils import check_integrity  # type: ignore
 
     ext = filepath.suffix
-    if ext not in [".zip", ".7z"] and check_integrity(str(filepath), md5):
+    if ext not in [".zip", ".7z"] and check_integrity(fpath=str(filepath), md5=md5):
         raise RuntimeError('Dataset corrupted; try deleting it and redownloading it.')
 
 
@@ -297,6 +264,7 @@ class FileInfo(NamedTuple):
 
 
 def download_from_gdrive(
+    *,
     file_info: FileInfo | list[FileInfo],
     root: Path | str,
     logger: logging.Logger | None = None,

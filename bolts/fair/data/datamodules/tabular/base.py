@@ -5,10 +5,11 @@ from abc import abstractmethod
 import ethicml as em
 from ethicml.preprocessing.scaling import ScalerType
 from kit import implements
+from kit.torch import TrainingMode
 from pytorch_lightning import LightningDataModule
 from sklearn.preprocessing import StandardScaler
 
-from bolts.data.datamodules import PBDataModule, TrainingMode
+from bolts.data.datamodules import PBDataModule
 from bolts.data.structures import TrainValTestSplit
 from bolts.fair.data.datasets import DataTupleDataset
 
@@ -20,6 +21,7 @@ class TabularDataModule(PBDataModule):
 
     def __init__(
         self,
+        *,
         batch_size: int = 100,
         num_workers: int = 0,
         val_prop: float = 0.2,
@@ -31,7 +33,7 @@ class TabularDataModule(PBDataModule):
         instance_weighting: bool = False,
         scaler: ScalerType | None = None,
         training_mode: TrainingMode = TrainingMode.epoch,
-    ):
+    ) -> None:
         """Base data-module for tabular data.
 
         Args:
@@ -65,17 +67,17 @@ class TabularDataModule(PBDataModule):
         ...
 
     @staticmethod
-    def _get_split_sizes(train_len: int, val_prop: int | float) -> list[int]:
+    def _get_split_sizes(train_len: int, *, test_prop: int | float) -> list[int]:
         """Computes split sizes for train and validation sets."""
-        if isinstance(val_prop, int):
-            train_len -= val_prop
-            splits = [train_len, val_prop]
-        elif isinstance(val_prop, float):
-            val_len = int(val_prop * train_len)
-            train_len -= val_len
-            splits = [train_len, val_len]
+        if isinstance(test_prop, int):
+            train_len -= test_prop
+            splits = [train_len, test_prop]
+        elif isinstance(test_prop, float):
+            test_len = int(test_prop * train_len)
+            train_len -= test_len
+            splits = [train_len, test_len]
         else:
-            raise ValueError(f"Unsupported type {type(val_prop)}")
+            raise ValueError(f"Unsupported type {type(test_prop)}")
 
         return splits
 
@@ -90,42 +92,44 @@ class TabularDataModule(PBDataModule):
         self.datatuple = self.em_dataset.load(ordered=True)
 
         data_len = int(self.datatuple.x.shape[0])
-        num_train_val, num_test = self._get_split_sizes(data_len, self.test_prop)
-        train_val, test = em.train_test_split(
+        num_train_val, num_test = self._get_split_sizes(data_len, test_prop=self.test_prop)
+        train_val, test_data = em.train_test_split(
             data=self.datatuple,
             train_percentage=(1 - (num_test / data_len)),
             random_seed=self.seed,
         )
-        _, num_val = self._get_split_sizes(num_train_val, self.val_prop)
-        train, val = em.train_test_split(
+        _, num_val = self._get_split_sizes(num_train_val, test_prop=self.val_prop)
+        train_data, val_data = em.train_test_split(
             data=train_val,
             train_percentage=(1 - (num_val / num_train_val)),
             random_seed=self.seed,
         )
 
-        train, self.scaler = em.scale_continuous(
-            self.em_dataset, datatuple=train, scaler=self.scaler  # type: ignore
+        train_data, self.scaler = em.scale_continuous(
+            self.em_dataset, datatuple=train_data, scaler=self.scaler  # type: ignore
         )
-        val, _ = em.scale_continuous(self.em_dataset, datatuple=val, scaler=self.scaler, fit=False)
-        test, _ = em.scale_continuous(
-            self.em_dataset, datatuple=test, scaler=self.scaler, fit=False
+        val_data, _ = em.scale_continuous(
+            self.em_dataset, datatuple=val_data, scaler=self.scaler, fit=False
+        )
+        test_data, _ = em.scale_continuous(
+            self.em_dataset, datatuple=test_data, scaler=self.scaler, fit=False
         )
 
-        train = DataTupleDataset(
-            train,
+        train_data = DataTupleDataset(
+            dataset=train_data,
             disc_features=self.em_dataset.discrete_features,
             cont_features=self.em_dataset.continuous_features,
         )
 
-        val = DataTupleDataset(
-            val,
+        val_data = DataTupleDataset(
+            dataset=val_data,
             disc_features=self.em_dataset.discrete_features,
             cont_features=self.em_dataset.continuous_features,
         )
 
-        test = DataTupleDataset(
-            test,
+        test_data = DataTupleDataset(
+            dataset=test_data,
             disc_features=self.em_dataset.discrete_features,
             cont_features=self.em_dataset.continuous_features,
         )
-        return TrainValTestSplit(train=train, val=val, test=test)
+        return TrainValTestSplit(train=train_data, val=val_data, test=test_data)

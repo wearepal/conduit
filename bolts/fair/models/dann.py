@@ -4,6 +4,7 @@ from typing import Mapping, NamedTuple
 
 import ethicml as em
 from kit import implements
+from kit.torch import TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 import torch
@@ -16,7 +17,7 @@ from typing_inspect import get_args
 from bolts.common import Stage
 from bolts.data.structures import TernarySample
 from bolts.fair.losses import CrossEntropy
-from bolts.fair.models.utils import LRScheduler, SchedInterval
+from bolts.fair.models.utils import LRScheduler
 
 __all__ = ["Dann"]
 
@@ -41,7 +42,7 @@ class GradReverse(autograd.Function):
         return -ctx.lambda_ * grad_output, None
 
 
-def grad_reverse(features: Tensor, lambda_: float = 1.0) -> Tensor:
+def grad_reverse(features: Tensor, *, lambda_: float = 1.0) -> Tensor:
     """Gradient Reversal layer."""
     return GradReverse.apply(features, lambda_)
 
@@ -51,6 +52,7 @@ class Dann(pl.LightningModule):
 
     def __init__(
         self,
+        *,
         adv: nn.Module,
         enc: nn.Module,
         clf: nn.Module,
@@ -59,7 +61,7 @@ class Dann(pl.LightningModule):
         grl_lambda: float = 1.0,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
-        lr_sched_interval: SchedInterval = "epoch",
+        lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
     ) -> None:
         super().__init__()
@@ -115,16 +117,18 @@ class Dann(pl.LightningModule):
         results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
         return results_dict
 
-    def _get_losses(self, out: DannOut, batch: TernarySample) -> tuple[Tensor, Tensor, Tensor]:
+    def _get_losses(
+        self, model_out: DannOut, *, batch: TernarySample
+    ) -> tuple[Tensor, Tensor, Tensor]:
         target_s = batch.s.view(-1, 1).float()
-        loss_adv = self._loss_adv_fn(out.s, target_s)
+        loss_adv = self._loss_adv_fn(model_out.s, target=target_s)
         target_y = batch.y.view(-1, 1).float()
-        loss_clf = self._loss_clf_fn(out.y, target_y)
+        loss_clf = self._loss_clf_fn(model_out.y, target=target_y)
         return loss_adv, loss_clf, loss_adv + loss_clf
 
-    def _inference_step(self, batch: TernarySample, stage: Stage) -> dict[str, Tensor]:
+    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
         model_out: DannOut = self.forward(batch.x)
-        loss_adv, loss_clf, loss = self._get_losses(model_out, batch)
+        loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
         logs = {
             f"{stage}/loss": loss.item(),
             f"{stage}/loss_adv": loss_adv.item(),
@@ -150,7 +154,7 @@ class Dann(pl.LightningModule):
     @implements(pl.LightningModule)
     def configure_optimizers(
         self,
-    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | SchedInterval]]]:
+    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
         opt = optim.AdamW(
             self.parameters(),
             lr=self.learning_rate,
@@ -160,7 +164,7 @@ class Dann(pl.LightningModule):
             "scheduler": CosineAnnealingWarmRestarts(
                 optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
             ),
-            "interval": self.lr_sched_interval,
+            "interval": self.lr_sched_interval.name,
             "frequency": self.lr_sched_freq,
         }
         return [opt], [sched]
@@ -177,7 +181,7 @@ class Dann(pl.LightningModule):
     @implements(pl.LightningModule)
     def training_step(self, batch: TernarySample, batch_idx: int) -> Tensor:
         model_out: DannOut = self.forward(batch.x)
-        loss_adv, loss_clf, loss = self._get_losses(model_out, batch)
+        loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
 
         logs = {
             f"train/adv_loss": loss_adv.item(),

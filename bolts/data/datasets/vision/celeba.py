@@ -4,12 +4,11 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import ClassVar, Optional, Union
 
-from kit import parsable
+from kit import parsable, str_to_enum
 import numpy as np
 import pandas as pd
 import torch
 
-from bolts.common import str_to_enum
 from bolts.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
 from bolts.data.datasets.vision.base import PBVisionDataset
 
@@ -68,7 +67,6 @@ class CelebASplit(Enum):
 class CelebA(PBVisionDataset):
     """CelebA dataset."""
 
-    transform: ImageTform
     """The data is downloaded to `download_dir` / `_BASE_FOLDER`."""
     _BASE_FOLDER: ClassVar[str] = "celeba"
     """The data is downloaded to `download_dir` / `_BASE_FOLDER` / `_IMAGE_DIR`."""
@@ -96,6 +94,7 @@ class CelebA(PBVisionDataset):
     def __init__(
         self,
         root: Union[str, Path],
+        *,
         download: bool = True,
         superclass: Union[CelebAttr, str] = CelebAttr.Smiling,
         subclass: Union[CelebAttr, str] = CelebAttr.Male,

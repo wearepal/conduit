@@ -1,30 +1,20 @@
 """Base class from which all data-modules in palbolts inherit."""
 from __future__ import annotations
-from enum import Enum, auto
 import logging
-from typing import Any, Sequence
+from typing import Sequence
 
 from kit import implements
-from kit.torch.data import InfSequentialBatchSampler, StratifiedSampler
+from kit.torch import SequentialBatchSampler, StratifiedBatchSampler, TrainingMode
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Sampler
 from torch.utils.data.dataset import Dataset
-from torch.utils.data.sampler import BatchSampler, SequentialSampler
 
-from bolts.data.datasets.utils import (
-    SizedStratifiedSampler,
-    get_group_ids,
-    pb_default_collate,
-)
+from bolts.common import Stage
+from bolts.data.datasets.utils import get_group_ids, pb_default_collate
 from bolts.data.datasets.wrappers import InstanceWeightedDataset
 from bolts.data.structures import TrainValTestSplit
 
-__all__ = ["PBDataModule", "TrainingMode"]
-
-
-class TrainingMode(Enum):
-    epoch = auto()
-    step = auto()
+__all__ = ["PBDataModule"]
 
 
 class PBDataModule(pl.LightningDataModule):
@@ -37,6 +27,7 @@ class PBDataModule(pl.LightningDataModule):
 
     def __init__(
         self,
+        *,
         batch_size: int = 64,
         val_prop: float = 0.2,
         test_prop: float = 0.2,
@@ -76,6 +67,7 @@ class PBDataModule(pl.LightningDataModule):
     def make_dataloader(
         self,
         ds: Dataset,
+        *,
         shuffle: bool = False,
         drop_last: bool = False,
         batch_sampler: Sampler[Sequence[int]] | None = None,
@@ -94,7 +86,7 @@ class PBDataModule(pl.LightningDataModule):
         )
 
     def train_dataloader(
-        self, shuffle: bool = False, drop_last: bool = True, batch_size: int | None = None
+        self, *, shuffle: bool = False, drop_last: bool = False, batch_size: int | None = None
     ) -> DataLoader:
         batch_size = self.batch_size if batch_size is None else batch_size
 
@@ -108,37 +100,31 @@ class PBDataModule(pl.LightningDataModule):
                     "Since the batch size is not integer divisible by the number of groups ({num_groups}),"
                     "the batch size is being reduced to {num_samples_per_group * num_groups}."
                 )
-            sampler_kwargs: dict[str, Any] = dict(
-                group_ids.squeeze().tolist(),
+            batch_sampler = StratifiedBatchSampler(
+                group_ids=group_ids.squeeze().tolist(),
                 num_samples_per_group=num_samples_per_group,
                 shuffle=shuffle,
+                base_sampler="sequential",
+                training_mode=self.training_mode,
+                drop_last=drop_last,
             )
-            if self.training_mode is TrainingMode.epoch:
-                sampler_cls = SizedStratifiedSampler
-            else:
-                sampler_cls = StratifiedSampler
-                sampler_kwargs["base_sampler"] = "sequential"
-            batch_sampler = sampler_cls(**sampler_kwargs)
         else:
-            if self.training_mode is TrainingMode.epoch:
-                batch_sampler = BatchSampler(
-                    sampler=SequentialSampler(data_source=self._train_data),  # type: ignore
-                    batch_size=batch_size,
-                    drop_last=drop_last,
-                )
-            else:
-                batch_sampler = InfSequentialBatchSampler(
-                    data_source=self._train_data, batch_size=batch_size, shuffle=shuffle  # type: ignore
-                )
-        return self.make_dataloader(self._train_data, batch_sampler=batch_sampler)
+            batch_sampler = SequentialBatchSampler(
+                data_source=self._train_data,  # type: ignore
+                batch_size=batch_size,
+                shuffle=shuffle,
+                training_mode=self.training_mode,
+                drop_last=drop_last,
+            )
+        return self.make_dataloader(ds=self._train_data, batch_sampler=batch_sampler)
 
     @implements(pl.LightningDataModule)
     def val_dataloader(self) -> DataLoader:
-        return self.make_dataloader(self._val_data)
+        return self.make_dataloader(ds=self._val_data)
 
     @implements(pl.LightningDataModule)
     def test_dataloader(self) -> DataLoader:
-        return self.make_dataloader(self._test_data)
+        return self.make_dataloader(ds=self._test_data)
 
     def _get_splits(self) -> TrainValTestSplit:
         ...

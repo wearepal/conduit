@@ -4,11 +4,10 @@ from enum import Enum
 from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
 
-from kit import parsable
+from kit import parsable, str_to_enum
 import pandas as pd
 import torch
 
-from bolts.common import str_to_enum
 from bolts.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
 
 from .base import PBVisionDataset
@@ -30,6 +29,7 @@ class SSRP(PBVisionDataset):
     def __init__(
         self,
         root: Union[str, Path],
+        *,
         split: Union[SSRPSplit, str] = SSRPSplit.pretrain,
         download: bool = True,
         transform: Optional[ImageTform] = None,

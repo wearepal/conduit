@@ -22,6 +22,7 @@ __all__ = ["PBVisionDataset"]
 class PBVisionDataset(PBDataset):
     def __init__(
         self,
+        *,
         x: InputData,
         image_dir: Path | str,
         y: TargetData | None = None,
@@ -51,7 +52,7 @@ class PBVisionDataset(PBDataset):
         return load_image(self.image_dir / self.x[index], backend=self._il_backend)
 
     @implements(PBDataset)
-    def _sample_x(self, index: int, coerce_to_tensor: bool = False) -> RawImage | Tensor:
+    def _sample_x(self, index: int, *, coerce_to_tensor: bool = False) -> RawImage | Tensor:
         image = self._load_image(index)
         image = apply_image_transform(image=image, transform=self.transform)
         if coerce_to_tensor and (not isinstance(image, Tensor)):

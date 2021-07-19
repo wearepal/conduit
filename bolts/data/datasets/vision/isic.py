@@ -36,11 +36,11 @@ class ISIC(PBVisionDataset):
     METADATA_FILENAME: ClassVar[str] = "metadata.csv"
     _PBAR_COL: ClassVar[str] = "#fac000"
     _REST_API_URL: ClassVar[str] = "https://isic-archive.com/api/v1"
-    transform: ImageTform
 
     def __init__(
         self,
         root: Union[str, Path],
+        *,
         download: bool = True,
         max_samples: int = 25_000,  # default is the number of samples used for the NSLB paper
         context_attr: IsicAttr = "histo",
@@ -86,7 +86,7 @@ class ISIC(PBVisionDataset):
         ).exists()
 
     @staticmethod
-    def chunk(it: Iterable[T], size: int) -> Iterator[list[T]]:
+    def chunk(it: Iterable[T], *, size: int) -> Iterator[list[T]]:
         """Divide any iterable into chunks of the given size."""
         it = iter(it)
         return iter(lambda: list(islice(it, size)), [])  # this is magic from stackoverflow
@@ -110,7 +110,7 @@ class ISIC(PBVisionDataset):
             desc="Downloading metadata",
             colour=self._PBAR_COL,
         ) as pbar:
-            for block in self.chunk(image_ids, 300):
+            for block in self.chunk(image_ids, size=300):
                 pbar.set_postfix(image_id=block[0])
                 args = ""
                 args += template_start

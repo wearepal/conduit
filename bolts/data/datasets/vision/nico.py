@@ -5,13 +5,12 @@ from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
 
 from PIL import Image, UnidentifiedImageError
-from kit import parsable
+from kit import parsable, str_to_enum
 import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Subset
 
-from bolts.common import str_to_enum
 from bolts.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
 from bolts.data.datasets.vision.base import PBVisionDataset
 from bolts.data.structures import TrainTestSplit
@@ -36,12 +35,11 @@ class NICO(PBVisionDataset):
     )
     _BASE_FOLDER: ClassVar[str] = "NICO"
 
-    transform: ImageTform
-
     @parsable
     def __init__(
         self,
         root: Union[str, Path],
+        *,
         download: bool = True,
         transform: Optional[ImageTform] = None,
         superclass: Optional[Union[NicoSuperclass]] = NicoSuperclass.animals,
@@ -125,6 +123,7 @@ class NICO(PBVisionDataset):
     def train_test_split(
         self,
         default_train_prop: float,
+        *,
         train_props: dict[str | int, dict[str | int, float]] | None = None,
         seed: int | None = None,
     ) -> TrainTestSplit:
@@ -139,6 +138,7 @@ class NICO(PBVisionDataset):
 
         def _sample_train_inds(
             _mask: np.ndarray,
+            *,
             _context: str | int | None = None,
             _concept: str | None = None,
             _train_prop: float = default_train_prop,
