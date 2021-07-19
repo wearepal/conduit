@@ -4,9 +4,9 @@ from typing import Any, Optional
 import albumentations as A
 from kit import implements, parsable
 from kit.torch import prop_random_split
+from kit.torch.data import TrainingMode
 from pytorch_lightning import LightningDataModule
 
-from bolts.common import TrainingMode
 from bolts.data.datamodules import PBDataModule
 from bolts.data.datasets.vision.nico import NICO, NicoSuperclass
 from bolts.data.structures import TrainValTestSplit

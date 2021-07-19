@@ -4,6 +4,7 @@ from typing import Mapping
 
 import ethicml as em
 from kit import implements
+from kit.torch import TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 import torch
@@ -11,7 +12,6 @@ from torch import Tensor, nn, optim
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
 
-from bolts.common import Stage, TrainingMode
 from bolts.data.structures import TernarySample
 from bolts.fair.losses import CrossEntropy
 from bolts.fair.models.utils import LRScheduler

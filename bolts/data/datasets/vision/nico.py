@@ -5,13 +5,12 @@ from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
 
 from PIL import Image, UnidentifiedImageError
-from kit import parsable
+from kit import parsable, str_to_enum
 import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Subset
 
-from bolts.common import str_to_enum
 from bolts.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
 from bolts.data.datasets.vision.base import PBVisionDataset
 from bolts.data.structures import TrainTestSplit

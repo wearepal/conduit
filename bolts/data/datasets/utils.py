@@ -3,14 +3,12 @@ from collections.abc import Mapping
 from dataclasses import astuple, is_dataclass
 from functools import lru_cache
 import logging
-import math
 from pathlib import Path
-from typing import Any, Callable, NamedTuple, Sequence, Union, overload
+from typing import Any, Callable, NamedTuple, Union, overload
 
 from PIL import Image
 import albumentations as A
 import cv2
-from kit.torch.data import StratifiedSampler
 import numpy as np
 import numpy.typing as npt
 import torch
@@ -30,7 +28,6 @@ __all__ = [
     "ImageTform",
     "PillowTform",
     "RawImage",
-    "SizedStratifiedSampler",
     "apply_image_transform",
     "extract_base_dataset",
     "extract_labels_from_dataset",
@@ -205,39 +202,6 @@ def compute_instance_weights(dataset: Dataset) -> Tensor:
     group_ids = get_group_ids(dataset)
     _, counts = group_ids.unique(return_counts=True)
     return group_ids / counts
-
-
-class SizedStratifiedSampler(StratifiedSampler):
-    """StratifiedSampler with a finite length for epoch-based training."""
-
-    def __init__(
-        self,
-        group_ids: Sequence[int],
-        *,
-        num_samples_per_group: int,
-        shuffle: bool = False,
-        multipliers: dict[int, int] | None = None,
-        generator: torch.Generator | None = None,
-    ) -> None:
-        super().__init__(
-            group_ids=group_ids,
-            num_samples_per_group=num_samples_per_group,
-            base_sampler="sequential",
-            shuffle=shuffle,
-            replacement=False,
-            multipliers=multipliers,
-            generator=generator,
-        )
-        # We define the legnth of the sampler to be the maximum number of steps
-        # needed to do a complete pass of a group's data
-        groupwise_epoch_len = (
-            math.ceil(len(idxs) / (mult * num_samples_per_group))
-            for idxs, mult in self.groupwise_idxs
-        )
-        self._max_epoch_len = max(groupwise_epoch_len)
-
-    def __len__(self) -> int:
-        return self._max_epoch_len
 
 
 def pb_default_collate(batch: list[Any]) -> Any:

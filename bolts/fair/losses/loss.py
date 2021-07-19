@@ -1,13 +1,11 @@
 from __future__ import annotations
 from enum import Enum, auto
-from typing import Optional
+from typing import Optional, Union
 
-from kit import parsable
+from kit import parsable, str_to_enum
 from torch import Tensor, nn
 import torch.nn.functional as F
 from torch.nn.modules.loss import _Loss
-
-from bolts.common import str_to_enum
 
 __all__ = ["CrossEntropy", "OnlineReweightingLoss"]
 
@@ -27,7 +25,7 @@ class CrossEntropy(nn.Module):
         *,
         class_weight: Optional[Tensor] = None,
         ignore_index: int = -100,
-        reduction: ReductionType | str = ReductionType.mean,
+        reduction: Union[ReductionType, str] = ReductionType.mean,
     ) -> None:
         super().__init__()
         if isinstance(reduction, str):
@@ -45,14 +43,14 @@ class CrossEntropy(nn.Module):
             _target,
             weight=self.weight,
             ignore_index=self.ignore_index,
-            reduction=self.reduction.name,
+            reduction="none",
         )
         if instance_weight is not None:
             _weight = instance_weight.view(-1)
             losses *= _weight
-        if self._reduction_str == "mean":
+        if self.reduction == "mean":
             return losses.mean()
-        if self._reduction_str == "none":
+        if self.reduction == "none":
             return losses
         else:
             return losses.sum()

@@ -4,6 +4,7 @@ from typing import Mapping, NamedTuple
 
 import ethicml as em
 from kit import implements
+from kit.torch import TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 import torch
@@ -13,7 +14,7 @@ import torchmetrics
 from torchmetrics import MetricCollection
 from typing_inspect import get_args
 
-from bolts.common import Stage, TrainingMode
+from bolts.common import Stage
 from bolts.data.structures import TernarySample
 from bolts.fair.losses import CrossEntropy
 from bolts.fair.models.utils import LRScheduler
@@ -133,9 +134,9 @@ class Gpd(pl.LightningModule):
         self, model_out: GpdOut, *, batch: TernarySample
     ) -> tuple[Tensor, Tensor, Tensor]:
         target_s = batch.s.view(-1, 1).float()
-        loss_adv = self._loss_adv_fn(model_out.s, target_s)
+        loss_adv = self._loss_adv_fn(model_out.s, target=target_s)
         target_y = batch.y.view(-1, 1).float()
-        loss_clf = self._loss_clf_fn(model_out.y, target_y)
+        loss_clf = self._loss_clf_fn(model_out.y, target=target_y)
         return loss_adv, loss_clf, loss_adv + loss_clf
 
     def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:

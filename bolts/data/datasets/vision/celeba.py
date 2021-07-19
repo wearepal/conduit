@@ -4,12 +4,11 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import ClassVar, Optional, Union
 
-from kit import parsable
+from kit import parsable, str_to_enum
 import numpy as np
 import pandas as pd
 import torch
 
-from bolts.common import str_to_enum
 from bolts.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
 from bolts.data.datasets.vision.base import PBVisionDataset
 

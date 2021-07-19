@@ -5,10 +5,10 @@ from abc import abstractmethod
 import ethicml as em
 from ethicml.preprocessing.scaling import ScalerType
 from kit import implements
+from kit.torch import TrainingMode
 from pytorch_lightning import LightningDataModule
 from sklearn.preprocessing import StandardScaler
 
-from bolts.common import TrainingMode
 from bolts.data.datamodules import PBDataModule
 from bolts.data.structures import TrainValTestSplit
 from bolts.fair.data.datasets import DataTupleDataset

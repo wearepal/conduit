@@ -3,10 +3,9 @@ from typing import Any
 
 import albumentations as A
 from kit import implements, parsable
-from kit.torch import prop_random_split
+from kit.torch import TrainingMode, prop_random_split
 from pytorch_lightning import LightningDataModule
 
-from bolts.common import TrainingMode
 from bolts.data.datamodules.base import PBDataModule
 from bolts.data.datasets.vision.celeba import CelebA, CelebASplit, CelebAttr
 from bolts.data.structures import TrainValTestSplit
