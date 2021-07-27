@@ -29,7 +29,7 @@ class NamedSample:
     x: Tensor | np.ndarray | Image.Image
 
     def __len__(self) -> int:
-        return len(self.__dataclass_fields__)
+        return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
 
 
 @dataclass(frozen=True)

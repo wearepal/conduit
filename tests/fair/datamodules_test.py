@@ -21,7 +21,7 @@ def _create_dm(dm_cls: type[PBDataModule], stratified: bool) -> PBDataModule:
         batch_size=BATCHSIZE,
         stratified_sampling=stratified,
     )
-    dm = dm_cls(**dm_kwargs)
+    dm = dm_cls(**dm_kwargs)  # type: ignore[arg-type]
     dm.prepare_data()
     dm.setup()
     return dm

@@ -40,6 +40,7 @@ class SSRP(PBVisionDataset):
         self._base_dir = self.root / "ssrp"
         self._metadata_path = self._base_dir / "metadata.csv"
         self.download = download
+        assert isinstance(split, SSRPSplit)
         self.split = split
 
         if self.download:
@@ -74,12 +75,12 @@ class SSRP(PBVisionDataset):
         filepaths = pd.Series(image_paths_str)
         metadata = cast(
             pd.DataFrame,
-            filepaths.str.split("/", expand=True)
+            filepaths.str.split("/", expand=True)  # type: ignore[attr-defined]
             .dropna(axis=1)
             .rename(columns={0: "region", 1: "split", 2: "class", 3: "filename"}),
         )
         # Extract the seasonal metadata from the filenames
-        metadata["season"] = metadata["filename"].str.split(r"\((.*?)\s.*", expand=True)[1]
+        metadata["season"] = metadata["filename"].str.split(r"\((.*?)\s.*", expand=True)[1]  # type: ignore[attr-defined]
         metadata["filepath"] = filepaths
         metadata.sort_index(axis=1, inplace=True)
         metadata.sort_values(by=["filepath"], axis=0, inplace=True)
