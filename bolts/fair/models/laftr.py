@@ -115,7 +115,7 @@ class Laftr(pl.LightningModule):
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
 
-        tm_acc = self.val_acc if stage == "val" else self.test_acc
+        tm_acc = self.val_acc if stage == "validate" else self.test_acc
         results_dict = {f"{stage}/acc": tm_acc.compute()}
         results_dict.update({f"{stage}/{self.target}_{k}": v for k, v in results.items()})
 
@@ -125,7 +125,7 @@ class Laftr(pl.LightningModule):
         model_out = self.forward(x=batch.x, s=batch.s)
         laftr_loss = self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch)
         adv_loss = self._loss_adv(s_pred=model_out.s, batch=batch)
-        tm_acc = self.val_acc if stage == "val" else self.test_acc
+        tm_acc = self.val_acc if stage == "validate" else self.test_acc
         target = batch.y.view(-1).long()
         _acc = tm_acc(model_out.y.argmax(-1), target)
         self.log_dict(

@@ -104,7 +104,7 @@ disallow_any_unimported = false
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 show_error_codes = true
-warn_unused_ignores = true
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = [
@@ -144,4 +144,3 @@ module = [
 ]
 follow_imports = "skip"
 follow_imports_for_stubs = true
-warn_unused_ignores = true

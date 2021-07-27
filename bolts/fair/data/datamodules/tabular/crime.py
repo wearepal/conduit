@@ -1,4 +1,4 @@
-"""Adult Income Dataset."""
+"""Crime Dataset."""
 from enum import Enum
 from typing import Optional
 
@@ -9,29 +9,21 @@ from kit.torch import TrainingMode
 
 from .base import TabularDataModule
 
-__all__ = ["AdultDataModule"]
+__all__ = ["CrimeDataModule"]
 
 
-class AdultSens(Enum):
-    sex = "Sex"
-    race = "Race"
+class CrimeSens(Enum):
     raceBinary = "Race-Binary"
-    raceSex = "Race-Sex"
-    custom = "Custom"
-    nationality = "Nationality"
-    education = "Education"
 
 
-class AdultDataModule(TabularDataModule):
-    """UCI Adult Income Dataset."""
+class CrimeDataModule(TabularDataModule):
+    """Data Module for the Crime Dataset."""
 
     @parsable
     def __init__(
         self,
-        bin_nationality: bool = False,
-        sens_feat: AdultSens = AdultSens.sex,
-        bin_race: bool = False,
-        discrete_feats_only: bool = False,
+        sens_feat: CrimeSens = CrimeSens.raceBinary,
+        disc_feats_only: bool = False,
         # Below are super vars. Not doing *args **kwargs due to this being parsable
         batch_size: int = 100,
         num_workers: int = 0,
@@ -58,17 +50,9 @@ class AdultDataModule(TabularDataModule):
             scaler=scaler,
             training_mode=training_mode,
         )
-        self.bin_nat = bin_nationality
         self.sens_feat = sens_feat
-        self.bin_race = bin_race
-        self.disc_only = discrete_feats_only
+        self.disc_feats_only = disc_feats_only
 
     @property
     def em_dataset(self) -> em.Dataset:
-
-        return em.adult(
-            split=self.sens_feat.value,
-            binarize_nationality=self.bin_nat,
-            discrete_only=self.disc_only,
-            binarize_race=self.bin_race,
-        )
+        return em.crime(split=self.sens_feat.value, discrete_only=self.disc_feats_only)

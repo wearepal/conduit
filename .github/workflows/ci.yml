@@ -42,11 +42,11 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: "12"
-    - name: Run type checking
-      run: |
-        npm install -g pyright
-        pyright bolts
-        pyright tests
+#    - name: Run type checking
+#      run: |
+#        npm install -g pyright
+#        pyright bolts
+#        pyright tests
     - name: Test with pytest
       run: |
         python -m pytest -vv tests/

@@ -51,6 +51,7 @@ class NICO(PBVisionDataset):
         self.download = download
         self._base_dir = self.root / self._BASE_FOLDER
         self._metadata_path = self._base_dir / "metadata.csv"
+        assert isinstance(superclass, NicoSuperclass) or superclass is None
         self.superclass = superclass
 
         if self.download:
@@ -101,7 +102,7 @@ class NICO(PBVisionDataset):
         filepaths = pd.Series(image_paths_str)
         metadata = cast(
             pd.DataFrame,
-            filepaths.str.split("/", expand=True).rename(
+            filepaths.str.split("/", expand=True).rename(  # type: ignore[attr-defined]
                 columns={0: "superclass", 1: "concept", 2: "context", 3: "filename"}
             ),
         )

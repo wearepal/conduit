@@ -100,7 +100,7 @@ def test_acc(sens: int) -> None:
     acc = AccuracyPerSens(sens)
     _ = acc(_input_binary.preds, _input_binary.sens, _input_binary.target)
     _acc = acc.compute()
-    print(getattr(_acc, "__name__", acc.__class__.__name__).lower())
+    print(getattr(_acc, "__name__", acc.__class__.__name__).lower())  # type: ignore[union-attr]
 
 
 @pytest.mark.parametrize('sens', range(NUM_CLASSES))
