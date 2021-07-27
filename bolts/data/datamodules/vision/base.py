@@ -15,7 +15,7 @@ from bolts.data.datasets.utils import AlbumentationsTform
 from bolts.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
 from bolts.data.structures import InputSize, NormalizationValues
 
-__all__ = ["PBVisionDataModule", "TrainAugMode"]
+__all__ = ["PBVisionDataModule"]
 
 
 class PBVisionDataModule(PBDataModule):
@@ -91,6 +91,7 @@ class PBVisionDataModule(PBDataModule):
         self._train_data = train
         self._val_data = ImageTransformer(val, transform=self._augmentations(train=False))
         self._test_data = ImageTransformer(test, transform=self._augmentations(train=False))
+        self.dims = self.input_size
 
     def _augmentations(self, train: bool) -> A.Compose:
         # Base augmentations (augmentations that are applied to all splits of the data)

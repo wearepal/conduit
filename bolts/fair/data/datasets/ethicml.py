@@ -65,7 +65,8 @@ class DataTupleDataset(PBDataset):
             self.s_names,
         ) = _get_info(dataset)
 
-        y = torch.as_tensor(dataset.y.to_numpy(), dtype=torch.float32)
+        s = s.squeeze(-1)
+        y = torch.as_tensor(dataset.y.to_numpy(), dtype=torch.float32).squeeze(-1)
 
         self.ydim = dataset.y.shape[1]
         self.y_names = dataset.y.columns
