@@ -235,7 +235,7 @@ class ISIC(PBVisionDataset):
             value="non-histopathology", inplace=True
         )
         histopathology_mask = labels_df["meta.clinical.diagnosis_confirm_type"] == "histopathology"
-        labels_df["histo"] = histopathology_mask.astype(np.uint8)
+        labels_df["histo"] = histopathology_mask.astype(np.uint8)  # type: ignore[arg-type]
 
         return labels_df
 
@@ -245,8 +245,8 @@ class ISIC(PBVisionDataset):
         patch_mask = labels_df["dataset.name"] == "SONIC"
         # add to labels_df
         labels_df["patch"] = None
-        labels_df.loc[patch_mask, "patch"] = 1
-        labels_df.loc[~patch_mask, "patch"] = 0
+        labels_df.loc[patch_mask, "patch"] = 1  # type: ignore[index]
+        labels_df.loc[~patch_mask, "patch"] = 0  # type: ignore[index]
         assert all(patch is not None for patch in labels_df["patch"])
         return labels_df
 
