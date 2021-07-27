@@ -1,6 +1,6 @@
 from __future__ import annotations
 import logging
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from kit import implements
 import numpy as np
@@ -18,15 +18,15 @@ class PBDataset(Dataset):
     _logger: logging.Logger | None = None
 
     def __init__(
-        self, *, x: InputData, y: Optional[TargetData] = None, s: Optional[TargetData] = None
+        self, *, x: InputData, y: TargetData | None = None, s: TargetData | None = None
     ) -> None:
         self.x = x
         if isinstance(y, np.ndarray):
             y = torch.as_tensor(y)
         if isinstance(s, np.ndarray):
             s = torch.as_tensor(s)
-        self.y = y
-        self.s = s
+        self.y = y.squeeze()
+        self.s = s.squeeze()
 
         self._x_dim: torch.Size | None = None
         self._y_dim: int | None = None

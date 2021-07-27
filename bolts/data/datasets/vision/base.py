@@ -2,6 +2,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from kit import implements
+import numpy as np
+import numpy.typing as npt
 from torch import Tensor
 
 from bolts.data.datasets.base import PBDataset
@@ -14,16 +16,18 @@ from bolts.data.datasets.utils import (
     infer_il_backend,
     load_image,
 )
-from bolts.data.structures import InputData, TargetData
+from bolts.data.structures import TargetData
 
 __all__ = ["PBVisionDataset"]
 
 
 class PBVisionDataset(PBDataset):
+    x: npt.NDArray[np.string_]
+
     def __init__(
         self,
         *,
-        x: InputData,
+        x: npt.NDArray[np.string_],
         image_dir: Path | str,
         y: TargetData | None = None,
         s: TargetData | None = None,
