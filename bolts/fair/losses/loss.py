@@ -7,7 +7,7 @@ from typing_extensions import Protocol
 __all__ = ["OnlineReweightingLoss", "ReductionType"]
 
 
-class BaseLossFunction(Protocol):
+class BaseLossFn(Protocol):
     reduction: str | ReductionType
 
     def __call__(self, input: Tensor, target: Tensor) -> Tensor:
@@ -17,7 +17,7 @@ class BaseLossFunction(Protocol):
 class OnlineReweightingLoss(nn.Module):
     """Wrapper that computes a loss balanced by intersectional group size."""
 
-    def __init__(self, loss_fn: BaseLossFunction) -> None:
+    def __init__(self, loss_fn: BaseLossFn) -> None:
         super().__init__()
         # the base loss function needs to produce instance-wise losses for the
         # reweighting (determined by subgroup cardinality) to be applied
