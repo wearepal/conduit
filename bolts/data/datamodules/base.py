@@ -136,3 +136,5 @@ class PBDataModule(pl.LightningDataModule):
         if self.instance_weighting:
             train = InstanceWeightedDataset(train)
         self._train_data = train
+        self.s_dim = self._train_data.s_dim
+        self.y_dim = self._train_data.y_dim
