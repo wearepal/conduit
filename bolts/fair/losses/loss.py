@@ -15,7 +15,7 @@ class BaseLossFunction(Protocol):
 
 
 class OnlineReweightingLoss(nn.Module):
-    """Wrapper that computes a loss balanced by intesectional group size."""
+    """Wrapper that computes a loss balanced by intersectional group size."""
 
     def __init__(self, loss_fn: BaseLossFunction) -> None:
         super().__init__()
