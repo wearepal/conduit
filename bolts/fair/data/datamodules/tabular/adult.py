@@ -1,8 +1,8 @@
 """Adult Income Dataset."""
+from enum import Enum
 from typing import Optional
 
 import ethicml as em
-from ethicml.data.tabular_data.adult import AdultSplits
 from ethicml.preprocessing.scaling import ScalerType
 from kit import parsable
 from kit.torch import TrainingMode
@@ -12,6 +12,16 @@ from .base import TabularDataModule
 __all__ = ["AdultDataModule"]
 
 
+class AdultSens(Enum):
+    sex = "Sex"
+    race = "Race"
+    raceBinary = "Race-Binary"
+    raceSex = "Race-Sex"
+    custom = "Custom"
+    nationality = "Nationality"
+    education = "Education"
+
+
 class AdultDataModule(TabularDataModule):
     """UCI Adult Income Dataset."""
 
@@ -19,7 +29,7 @@ class AdultDataModule(TabularDataModule):
     def __init__(
         self,
         bin_nationality: bool = False,
-        sens_feat: AdultSplits = "Sex",
+        sens_feat: AdultSens = AdultSens.sex,
         bin_race: bool = False,
         discrete_feats_only: bool = False,
         # Below are super vars. NOt doing *args **kwargs due to this being parsable
@@ -55,8 +65,9 @@ class AdultDataModule(TabularDataModule):
 
     @property
     def em_dataset(self) -> em.Dataset:
+
         return em.adult(
-            split=self.sens_feat,
+            split=self.sens_feat.value,
             binarize_nationality=self.bin_nat,
             discrete_only=self.disc_only,
             binarize_race=self.bin_race,

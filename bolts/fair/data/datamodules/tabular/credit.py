@@ -1,5 +1,6 @@
 """Credit Dataset."""
-from typing import Literal, Optional
+from enum import Enum
+from typing import Optional
 
 import ethicml as em
 from ethicml.preprocessing.scaling import ScalerType
@@ -11,13 +12,18 @@ from .base import TabularDataModule
 __all__ = ["CreditDataModule"]
 
 
+class CrimeSens(Enum):
+    sex = "Sex"
+    custom = "Custom"
+
+
 class CreditDataModule(TabularDataModule):
     """Data Module for the Credit Dataset."""
 
     @parsable
     def __init__(
         self,
-        sens_feat: Literal["Sex"] = "Sex",
+        sens_feat: CrimeSens = CrimeSens.sex,
         disc_feats_only: bool = False,
         # Below are super vars. Not doing *args **kwargs due to this being parsable
         batch_size: int = 100,
@@ -50,4 +56,4 @@ class CreditDataModule(TabularDataModule):
 
     @property
     def em_dataset(self) -> em.Dataset:
-        return em.credit(split=self.sens_feat, discrete_only=self.disc_feats_only)
+        return em.credit(split=self.sens_feat.value, discrete_only=self.disc_feats_only)

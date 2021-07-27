@@ -1,8 +1,8 @@
 """Admissions Dataset."""
+from enum import Enum
 from typing import Optional
 
 import ethicml as em
-from ethicml.data.tabular_data.admissions import AdmissionsSplits
 from ethicml.preprocessing.scaling import ScalerType
 from kit import parsable
 from kit.torch import TrainingMode
@@ -12,13 +12,17 @@ from .base import TabularDataModule
 __all__ = ["AdmissionsDataModule"]
 
 
+class AdmissionsSens(Enum):
+    gender = "Gender"
+
+
 class AdmissionsDataModule(TabularDataModule):
     """Data Module for the Admissions Dataset."""
 
     @parsable
     def __init__(
         self,
-        sens_feat: AdmissionsSplits = "Gender",
+        sens_feat: AdmissionsSens = AdmissionsSens.gender,
         disc_feats_only: bool = False,
         # Below are super vars. Not doing *args **kwargs due to this being parsable
         batch_size: int = 100,
@@ -51,4 +55,4 @@ class AdmissionsDataModule(TabularDataModule):
 
     @property
     def em_dataset(self) -> em.Dataset:
-        return em.admissions(split=self.sens_feat, discrete_only=self.disc_feats_only)
+        return em.admissions(split=self.sens_feat.value, discrete_only=self.disc_feats_only)

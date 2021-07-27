@@ -1,5 +1,6 @@
 """COMPAS Dataset."""
-from typing import Literal, Optional
+from enum import Enum
+from typing import Optional
 
 import ethicml as em
 from ethicml.preprocessing.scaling import ScalerType
@@ -11,13 +12,19 @@ from .base import TabularDataModule
 __all__ = ["CompasDataModule"]
 
 
+class CompasSens(Enum):
+    sex = "Sex"
+    race = "Race"
+    raceSex = "Race-Sex"
+
+
 class CompasDataModule(TabularDataModule):
     """COMPAS Dataset."""
 
     @parsable
     def __init__(
         self,
-        sens_feat: Literal["Sex", "Race", "Race-Sex"] = "Sex",
+        sens_feat: CompasSens.sex = CompasSens.sex,
         disc_feats_only: bool = False,
         # Below are super vars. Not doing *args **kwargs due to this being parsable
         batch_size: int = 100,
@@ -50,4 +57,4 @@ class CompasDataModule(TabularDataModule):
 
     @property
     def em_dataset(self) -> em.Dataset:
-        return em.compas(split=self.sens_feat, discrete_only=self.disc_feats_only)
+        return em.compas(split=self.sens_feat.value, discrete_only=self.disc_feats_only)
