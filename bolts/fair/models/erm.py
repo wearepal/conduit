@@ -4,7 +4,7 @@ from typing import Mapping
 
 import ethicml as em
 from kit import implements
-from kit.torch import TrainingMode
+from kit.torch import CrossEntropyLoss, ReductionType, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 import torch
@@ -14,8 +14,9 @@ import torchmetrics
 
 from bolts.common import Stage
 from bolts.data.structures import TernarySample
-from bolts.fair.losses import CrossEntropy
 from bolts.fair.models.utils import LRScheduler
+
+__all__ = ["ErmBaseline"]
 
 
 class ErmBaseline(pl.LightningModule):
@@ -46,7 +47,7 @@ class ErmBaseline(pl.LightningModule):
         self.lr_sched_freq = lr_sched_freq
 
         self._target_name = "y"
-        self._loss_fn = CrossEntropy(reduction="mean")
+        self._loss_fn = CrossEntropyLoss(reduction=ReductionType.mean)
 
         self.test_acc = torchmetrics.Accuracy()
         self.train_acc = torchmetrics.Accuracy()

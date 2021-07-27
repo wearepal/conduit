@@ -6,22 +6,19 @@ from typing import Any, Mapping, NamedTuple
 
 import ethicml as em
 from kit import implements
+from kit.torch import CrossEntropyLoss, ReductionType, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 import torch
 from torch import Tensor, nn, optim
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
 
 from bolts.common import Stage
+from bolts.data.structures import TernarySample
+from bolts.fair.models.utils import LRScheduler
 
 __all__ = ["Laftr"]
-
-from kit.torch import TrainingMode
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-
-from bolts.data.structures import TernarySample
-from bolts.fair.losses import CrossEntropy
-from bolts.fair.models.utils import LRScheduler
 
 
 class ModelOut(NamedTuple):
@@ -65,7 +62,7 @@ class Laftr(pl.LightningModule):
         self.adv = adv
         self.clf = clf
 
-        self._clf_loss = CrossEntropy(reduction="mean")
+        self._clf_loss = CrossEntropyLoss(reduction=ReductionType.mean)
         self._recon_loss = nn.L1Loss(reduction="mean")
         self._adv_clf_loss = nn.L1Loss(reduction="none")
 

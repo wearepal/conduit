@@ -42,7 +42,7 @@ class NICO(PBVisionDataset):
         *,
         download: bool = True,
         transform: Optional[ImageTform] = None,
-        superclass: Optional[Union[NicoSuperclass]] = NicoSuperclass.animals,
+        superclass: Optional[Union[NicoSuperclass, str]] = NicoSuperclass.animals,
     ) -> None:
 
         if isinstance(superclass, str):
