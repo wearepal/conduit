@@ -2,11 +2,10 @@
 from kit import implements
 from torch import Tensor
 
-__all__ = ["KC"]
-
-
 from bolts.data.structures import TernarySampleIW
 from bolts.fair.models.erm import ErmBaseline
+
+__all__ = ["KC"]
 
 
 class KC(ErmBaseline):
