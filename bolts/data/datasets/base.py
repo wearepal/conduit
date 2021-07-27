@@ -25,8 +25,8 @@ class PBDataset(Dataset):
             y = torch.as_tensor(y)
         if isinstance(s, np.ndarray):
             s = torch.as_tensor(s)
-        self.y = y.squeeze()
-        self.s = s.squeeze()
+        self.y = y.squeeze() if y is not None else y
+        self.s = s.squeeze() if s is not None else s
 
         self._x_dim: torch.Size | None = None
         self._y_dim: int | None = None
@@ -49,7 +49,8 @@ class PBDataset(Dataset):
         return self._logger
 
     def log(self, msg: str) -> None:
-        self._logger.info(msg)
+        logger = self.logger
+        logger.info(msg)
 
     def _sample_x(self, index: int, coerce_to_tensor: bool = False) -> Tensor:
         x = self.x[index]

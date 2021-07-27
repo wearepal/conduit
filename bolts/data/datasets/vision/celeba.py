@@ -108,13 +108,16 @@ class CelebA(PBVisionDataset):
             subclass = str_to_enum(str_=subclass, enum=CelebAttr)
         if isinstance(split, str):
             split = str_to_enum(str_=split, enum=CelebASplit)
+        assert isinstance(superclass, CelebAttr)
+        assert isinstance(subclass, CelebAttr)
+        assert isinstance(split, CelebASplit) or split is None
 
         self.root = Path(root)
         self._image_dir = self.root / self._BASE_FOLDER
         self._base_dir = self.root / self._BASE_FOLDER
         image_dir = self._base_dir / self._IMAGE_DIR
-        self.superclass = superclass
-        self.subclass = subclass
+        self.superclass: CelebAttr = superclass
+        self.subclass: CelebAttr = subclass
 
         if download:
             download_from_gdrive(file_info=self._FILE_LIST, root=self._base_dir, logger=self.logger)

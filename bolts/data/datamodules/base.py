@@ -58,7 +58,8 @@ class PBDataModule(pl.LightningDataModule):
         return self._logger
 
     def log(self, msg: str) -> None:
-        self._logger.info(msg)
+        logger = self._logger
+        logger.info(msg)
 
     @property
     def train_prop(self) -> float:
