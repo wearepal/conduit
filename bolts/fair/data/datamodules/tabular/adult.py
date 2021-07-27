@@ -32,7 +32,7 @@ class AdultDataModule(TabularDataModule):
         sens_feat: AdultSens = AdultSens.sex,
         bin_race: bool = False,
         discrete_feats_only: bool = False,
-        # Below are super vars. NOt doing *args **kwargs due to this being parsable
+        # Below are super vars. Not doing *args **kwargs due to this being parsable
         batch_size: int = 100,
         num_workers: int = 0,
         val_prop: float = 0.2,

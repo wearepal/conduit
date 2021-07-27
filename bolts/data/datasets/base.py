@@ -49,8 +49,8 @@ class PBDataset(Dataset):
         return self._logger
 
     def log(self, msg: str) -> None:
-        if self._logger is not None:
-            self._logger.info(msg)
+        logger = self.logger
+        logger.info(msg)
 
     def _sample_x(self, index: int, coerce_to_tensor: bool = False) -> Tensor:
         x = self.x[index]

@@ -24,7 +24,7 @@ class CompasDataModule(TabularDataModule):
     @parsable
     def __init__(
         self,
-        sens_feat: CompasSens.sex = CompasSens.sex,
+        sens_feat: CompasSens = CompasSens.sex,
         disc_feats_only: bool = False,
         # Below are super vars. Not doing *args **kwargs due to this being parsable
         batch_size: int = 100,
