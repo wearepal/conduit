@@ -1,23 +1,24 @@
-"""COMPAS Dataset."""
-from typing import Literal, Optional
+"""Admissions Dataset."""
+from typing import Optional
 
 import ethicml as em
+from ethicml.data.tabular_data.admissions import AdmissionsSplits
 from ethicml.preprocessing.scaling import ScalerType
 from kit import parsable
 from kit.torch import TrainingMode
 
 from .base import TabularDataModule
 
-__all__ = ["CompasDataModule"]
+__all__ = ["AdmissionsDataModule"]
 
 
-class CompasDataModule(TabularDataModule):
-    """COMPAS Dataset."""
+class AdmissionsDataModule(TabularDataModule):
+    """Data Module for the Admissions Dataset."""
 
     @parsable
     def __init__(
         self,
-        sens_feat: Literal["Sex", "Race", "Race-Sex"] = "Sex",
+        sens_feat: AdmissionsSplits = "Gender",
         disc_feats_only: bool = False,
         # Below are super vars. Not doing *args **kwargs due to this being parsable
         batch_size: int = 100,
@@ -50,4 +51,4 @@ class CompasDataModule(TabularDataModule):
 
     @property
     def em_dataset(self) -> em.Dataset:
-        return em.compas(split=self.sens_feat, discrete_only=self.disc_feats_only)
+        return em.admissions(split=self.sens_feat, discrete_only=self.disc_feats_only)

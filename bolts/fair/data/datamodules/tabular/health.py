@@ -1,4 +1,3 @@
-"""COMPAS Dataset."""
 from typing import Literal, Optional
 
 import ethicml as em
@@ -8,16 +7,16 @@ from kit.torch import TrainingMode
 
 from .base import TabularDataModule
 
-__all__ = ["CompasDataModule"]
+__all__ = ["HealthDataModule"]
 
 
-class CompasDataModule(TabularDataModule):
-    """COMPAS Dataset."""
+class HealthDataModule(TabularDataModule):
+    """Data Module for the Heritage Health Dataset."""
 
     @parsable
     def __init__(
         self,
-        sens_feat: Literal["Sex", "Race", "Race-Sex"] = "Sex",
+        sens_feat: Literal["Sex"] = "Sex",  # Currently the only allowed value,
         disc_feats_only: bool = False,
         # Below are super vars. Not doing *args **kwargs due to this being parsable
         batch_size: int = 100,
@@ -50,4 +49,4 @@ class CompasDataModule(TabularDataModule):
 
     @property
     def em_dataset(self) -> em.Dataset:
-        return em.compas(split=self.sens_feat, discrete_only=self.disc_feats_only)
+        return em.health(split=self.sens_feat, discrete_only=self.disc_feats_only)

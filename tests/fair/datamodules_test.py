@@ -8,7 +8,10 @@ from typing_extensions import Final
 
 from bolts.data.datamodules.base import PBDataModule
 from bolts.data.datamodules.vision.celeba import CelebADataModule
+from bolts.fair.data import CrimeDataModule, HealthDataModule
 from bolts.fair.data.datamodules import AdultDataModule, CompasDataModule
+from bolts.fair.data.datamodules.tabular.admissions import AdmissionsDataModule
+from bolts.fair.data.datamodules.tabular.credit import CreditDataModule
 
 BATCHSIZE: Final[int] = 4
 
@@ -25,7 +28,17 @@ def _create_dm(dm_cls: type[PBDataModule], stratified: bool) -> PBDataModule:
 
 
 @pytest.mark.parametrize("stratified", [True, False])
-@pytest.mark.parametrize("dm_cls", [AdultDataModule, CompasDataModule])
+@pytest.mark.parametrize(
+    "dm_cls",
+    [
+        AdmissionsDataModule,
+        AdultDataModule,
+        CompasDataModule,
+        CreditDataModule,
+        CrimeDataModule,
+        HealthDataModule,
+    ],
+)
 def test_data_modules(dm_cls: type[PBDataModule], stratified: bool) -> None:
     """Test the datamodules."""
     dm = _create_dm(dm_cls, stratified)
