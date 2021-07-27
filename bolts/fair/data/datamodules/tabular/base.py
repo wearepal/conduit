@@ -1,11 +1,10 @@
 """Tabular data-module."""
 from __future__ import annotations
 from abc import abstractmethod
-from typing import Optional
 
 import ethicml as em
 from ethicml.preprocessing.scaling import ScalerType
-from kit import implements, parsable
+from kit import implements
 from kit.torch import TrainingMode
 from pytorch_lightning import LightningDataModule
 from sklearn.preprocessing import StandardScaler
@@ -20,7 +19,6 @@ __all__ = ["TabularDataModule"]
 class TabularDataModule(PBDataModule):
     """Base data-module for tabular datasets."""
 
-    @parsable
     def __init__(
         self,
         *,
@@ -33,7 +31,7 @@ class TabularDataModule(PBDataModule):
         pin_memory: bool = True,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
-        scaler: Optional[ScalerType] = None,
+        scaler: ScalerType | None = None,
         training_mode: TrainingMode = TrainingMode.epoch,
     ) -> None:
         """Base data-module for tabular data.
