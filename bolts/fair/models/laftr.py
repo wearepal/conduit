@@ -1,6 +1,5 @@
 """LAFTR model."""
 from __future__ import annotations
-from enum import Enum
 import itertools
 from typing import Any, Mapping, NamedTuple
 
@@ -20,15 +19,17 @@ from bolts.fair.models.utils import LRScheduler
 
 __all__ = ["Laftr"]
 
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+
+from bolts.common import FairnessType
+from bolts.fair.models.utils import LRScheduler
+
 
 class ModelOut(NamedTuple):
     y: Tensor
     z: Tensor
     s: Tensor
     x: Tensor
-
-
-FairnessType = Enum("FairnessType", "DP EO EqOp")
 
 
 class Laftr(pl.LightningModule):
@@ -43,7 +44,7 @@ class Laftr(pl.LightningModule):
         lr: float,
         weight_decay: float,
         disc_steps: int,
-        fairness: str,
+        fairness: FairnessType,
         recon_weight: float,
         clf_weight: float,
         adv_weight: float,
@@ -67,7 +68,7 @@ class Laftr(pl.LightningModule):
         self._adv_clf_loss = nn.L1Loss(reduction="none")
 
         self.disc_steps = disc_steps
-        self.fairness = FairnessType[fairness]
+        self.fairness = fairness
         self.lr = lr
         self.weight_decay = weight_decay
         self.lr_initial_restart = lr_initial_restart
@@ -166,8 +167,8 @@ class Laftr(pl.LightningModule):
                 unweighted_loss[mask] /= mask.sum()
             unweighted_loss[batch.y.view(-1) == 0] *= 0.0
             loss = 2 - unweighted_loss.sum() / 2
-        else:
-            raise RuntimeError("Only DP and EO fairness accepted.")
+        elif self.fairness is FairnessType.No:
+            loss = s_pred.sum() * 0
         self.log(f"{self.fairness}_adv_loss", self.adv_weight * loss)
         return self.adv_weight * loss
 
