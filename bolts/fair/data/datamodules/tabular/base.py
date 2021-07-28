@@ -60,6 +60,9 @@ class TabularDataModule(PBDataModule):
             training_mode=training_mode,
         )
         self.scaler = scaler if scaler is not None else StandardScaler()
+        self._train_datatuple: em.DataTuple | None = None
+        self._val_datatuple: em.DataTuple | None = None
+        self._test_datatuple: em.DataTuple | None = None
 
     @property
     @abstractmethod
@@ -135,16 +138,16 @@ class TabularDataModule(PBDataModule):
         return TrainValTestSplit(train=train_data, val=val_data, test=test_data)
 
     @property
-    def train_datatuple(self):
+    def train_datatuple(self) -> em.DataTuple:
         assert self._train_datatuple is not None
         return self._train_datatuple
 
     @property
-    def val_datatuple(self):
+    def val_datatuple(self) -> em.DataTuple:
         assert self._val_datatuple is not None
         return self._val_datatuple
 
     @property
-    def test_datatuple(self):
+    def test_datatuple(self) -> em.DataTuple:
         assert self._test_datatuple is not None
         return self._test_datatuple

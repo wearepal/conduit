@@ -66,8 +66,8 @@ def test_data_modules_props(dm_cls: type[PBDataModule]) -> None:
     dm = _create_dm(dm_cls)
 
     assert dm.dim_x == dm.size()
-    assert dm.dim_s == 1
-    assert dm.dim_y == 1
+    assert dm.dim_s == (1,)
+    assert dm.dim_y == (1,)
     assert dm.card_s == 2
     assert dm.card_y == 2
 
