@@ -75,6 +75,8 @@ def test_data_modules_props(dm_cls: type[PBDataModule]) -> None:
     assert isinstance(dm.val_datatuple, em.DataTuple)
     assert isinstance(dm.test_datatuple, em.DataTuple)
 
+    assert dm.feature_groups is not None
+
 
 @pytest.mark.slow
 def test_persist_param() -> None:
