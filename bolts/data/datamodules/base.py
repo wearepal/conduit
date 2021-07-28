@@ -50,6 +50,9 @@ class PBDataModule(pl.LightningDataModule):
         self.stratified_sampling = stratified_sampling
         self.instance_weighting = instance_weighting
         self.training_mode = training_mode
+        self._s_dim = None
+        self._y_dim = None
+        self._train_data = None
 
     @property
     def logger(self) -> logging.Logger:
@@ -135,5 +138,19 @@ class PBDataModule(pl.LightningDataModule):
         if self.instance_weighting:
             train = InstanceWeightedDataset(train)
         self._train_data = train
-        self.s_dim = self._train_data.s_dim
-        self.y_dim = self._train_data.y_dim
+
+    @property
+    def y_dim(
+        self,
+    ) -> int | None:
+        if (self._y_dim is None) and (self._train_data is not None):
+            self._y_dim = self._train_data.y_dim
+        return self._y_dim
+
+    @property
+    def s_dim(
+        self,
+    ) -> int | None:
+        if (self._s_dim is None) and (self._train_data is not None):
+            self._s_dim = self._train_data.s_dim
+        return self._s_dim
