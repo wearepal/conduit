@@ -1,8 +1,11 @@
 """Tabular data-module."""
 from __future__ import annotations
 from abc import abstractmethod
+from itertools import groupby
+from typing import Iterator
 
 import ethicml as em
+from ethicml import DataTuple
 from ethicml.preprocessing.scaling import ScalerType
 from kit import implements
 from kit.torch import TrainingMode
@@ -63,6 +66,9 @@ class TabularDataModule(PBDataModule):
         self._train_datatuple: em.DataTuple | None = None
         self._val_datatuple: em.DataTuple | None = None
         self._test_datatuple: em.DataTuple | None = None
+        self._cont_features: list[str] | None = None
+        self._disc_features: list[str] | None = None
+        self._feature_groups: dict[str, list[slice]] | None = None
 
     @property
     @abstractmethod
@@ -89,6 +95,7 @@ class TabularDataModule(PBDataModule):
         self.dims = (
             len(self.em_dataset.discrete_features) + len(self.em_dataset.continuous_features),
         )
+        self.make_feature_groups(self.em_dataset.load())
 
     @implements(PBDataModule)
     def _get_splits(self) -> TrainValTestSplit:
@@ -151,3 +158,57 @@ class TabularDataModule(PBDataModule):
     def test_datatuple(self) -> em.DataTuple:
         assert self._test_datatuple is not None
         return self._test_datatuple
+
+    @property
+    def feature_groups(self) -> dict[str, list[slice]]:
+        assert self._feature_groups is not None
+        return self._feature_groups
+
+    @property
+    def disc_features(self) -> list[str]:
+        assert self._disc_features is not None
+        return self._disc_features
+
+    @property
+    def cont_features(self) -> list[str]:
+        assert self._cont_features is not None
+        return self._cont_features
+
+    def make_feature_groups(self, data: DataTuple) -> None:
+        """Make feature groups for reconstruction."""
+        disc_features = [
+            feat for feat in self.em_dataset.discrete_features if feat in data.x.columns
+        ]
+        self._disc_features = disc_features
+
+        cont_features = [
+            feat for feat in self.em_dataset.continuous_features if feat in data.x.columns
+        ]
+        self._cont_features = cont_features
+        self._feature_groups = dict(discrete=self.grouped_features_indexes(self.disc_features))
+
+    def grouped_features_indexes(self, disc_feats: list[str]) -> list[slice]:
+        """Group discrete features names according to the first segment of their name.
+
+        Then return a list of their corresponding slices (assumes order is maintained).
+        """
+        group_iter = self.group_features(disc_feats)
+
+        feature_slices = []
+        start_idx = 0
+        for _, group in group_iter:
+            len_group = len(list(group))
+            indexes = slice(start_idx, start_idx + len_group)
+            feature_slices.append(indexes)
+            start_idx += len_group
+
+        return feature_slices
+
+    @staticmethod
+    def group_features(disc_feats: list[str]) -> Iterator[tuple[str, Iterator[str]]]:
+        """Group discrete features names according to the first segment of their name."""
+
+        def _first_segment(feature_name: str) -> str:
+            return feature_name.split("_")[0]
+
+        return groupby(disc_feats, _first_segment)
