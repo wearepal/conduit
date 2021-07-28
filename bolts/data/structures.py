@@ -1,23 +1,56 @@
+"""Data structures."""
 from __future__ import annotations
-from typing import NamedTuple
+from dataclasses import dataclass
+from typing import NamedTuple, Union
 
 from PIL import Image
 import numpy as np
+import numpy.typing as npt
 from torch import Tensor
-from torch.utils.data import Subset
+from torch.utils.data import Dataset
 
-__all__ = ["BinarySample", "TernarySample", "InputSize", "NormalizationValues", "TrainTestSplit"]
+__all__ = [
+    "BinarySample",
+    "BinarySampleIW",
+    "InputData",
+    "InputSize",
+    "NamedSample",
+    "NormalizationValues",
+    "TargetData",
+    "TernarySample",
+    "TernarySampleIW",
+    "TrainTestSplit",
+    "TrainValTestSplit",
+]
 
 
-class BinarySample(NamedTuple):
+@dataclass(frozen=True)
+class NamedSample:
     x: Tensor | np.ndarray | Image.Image
-    y: Tensor | float
+
+    def __len__(self) -> int:
+        return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
 
 
-class TernarySample(NamedTuple):
-    x: Tensor | np.ndarray | Image.Image
-    s: Tensor | float
-    y: Tensor | float
+@dataclass(frozen=True)
+class BinarySample(NamedSample):
+    y: Tensor
+
+
+@dataclass(frozen=True)
+class BinarySampleIW(BinarySample):
+    iw: Tensor
+
+
+@dataclass(frozen=True)
+class TernarySample(BinarySample):
+    y: Tensor
+    s: Tensor
+
+
+@dataclass(frozen=True)
+class TernarySampleIW(TernarySample):
+    iw: Tensor
 
 
 class InputSize(NamedTuple):
@@ -32,5 +65,15 @@ class NormalizationValues(NamedTuple):
 
 
 class TrainTestSplit(NamedTuple):
-    train: Subset
-    test: Subset
+    train: Dataset
+    test: Dataset
+
+
+class TrainValTestSplit(NamedTuple):
+    train: Dataset
+    val: Dataset
+    test: Dataset
+
+
+InputData = Union[npt.NDArray[Union[np.floating, np.integer, np.string_]], Tensor]
+TargetData = Union[Tensor, npt.NDArray[Union[np.floating, np.integer]]]

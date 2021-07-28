@@ -1,31 +1,21 @@
+"""NICO Dataset."""
 from __future__ import annotations
 from enum import Enum, auto
-import logging
 from pathlib import Path
-from typing import ClassVar, NamedTuple, Optional, cast
+from typing import ClassVar, Optional, Union, cast
 
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
-import gdown
-from kit import implements, parsable
+from PIL import Image, UnidentifiedImageError
+from kit import parsable, str_to_enum
 import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Subset
-from torchvision.datasets import VisionDataset
 
-from bolts.data.datasets.utils import (
-    ImageLoadingBackend,
-    ImageTform,
-    apply_image_transform,
-    infer_il_backend,
-    load_image,
-)
-from bolts.data.structures import TernarySample, TrainTestSplit
+from bolts.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
+from bolts.data.datasets.vision.base import PBVisionDataset
+from bolts.data.structures import TrainTestSplit
 
 __all__ = ["NICO", "NicoSuperclass"]
-
-LOGGER = logging.getLogger(__name__)
 
 
 class NicoSuperclass(Enum):
@@ -33,40 +23,46 @@ class NicoSuperclass(Enum):
     vehicles = auto()
 
 
-class NICO(VisionDataset):
+class NICO(PBVisionDataset):
     """Datset for Non-I.I.D. image classification introduced in
     'Towards Non-I.I.D. Image Classification: A Dataset and Baselines'
     """
 
-    _FILE_ID: ClassVar[str] = "1RlspK4FkbrvZEzh-tyXBJMZyvs1DM0cP"  # File ID
-    _MD5: ClassVar[str] = "6f21e6484fec0b3a8ef87f0d3115ce93"  # MD5 checksum
+    _FILE_INFO: ClassVar[FileInfo] = FileInfo(
+        name="NICO.zip",
+        id="1L6cHNhuwwvrolukBklFyhFu7Y8WUUIQ7",
+        md5="78c686f84e31ad6b6c052f97ed5f532b",
+    )
     _BASE_FOLDER: ClassVar[str] = "NICO"
-
-    transform: ImageTform
 
     @parsable
     def __init__(
         self,
-        root: str,
+        root: Union[str, Path],
+        *,
         download: bool = True,
         transform: Optional[ImageTform] = None,
-        superclass: Optional[NicoSuperclass] = NicoSuperclass.animals,
+        superclass: Optional[Union[NicoSuperclass, str]] = NicoSuperclass.animals,
     ) -> None:
-        super().__init__(root=root, transform=transform)
 
-        self.root: Path = Path(self.root)
+        if isinstance(superclass, str):
+            superclass = str_to_enum(str_=superclass, enum=NicoSuperclass)
+        self.root = Path(root)
         self.download = download
         self._base_dir = self.root / self._BASE_FOLDER
         self._metadata_path = self._base_dir / "metadata.csv"
+        assert isinstance(superclass, NicoSuperclass) or superclass is None
         self.superclass = superclass
 
         if self.download:
-            self._download_and_unzip_data()
+            download_from_gdrive(file_info=self._FILE_INFO, root=self.root, logger=self.logger)
         elif not self._check_unzipped():
             raise RuntimeError(
                 f"Data don't exist at location {self._base_dir.resolve()}. "
                 "Have you downloaded it?"
             )
+        if not self._metadata_path.exists():
+            self._extract_metadata()
 
         self.metadata = pd.read_csv(self._base_dir / "metadata.csv")
         self.class_tree = (
@@ -87,54 +83,18 @@ class NICO(VisionDataset):
             self.metadata = self.metadata[self.metadata["superclass"] == superclass.name]
         # # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # # substantially slower than indexing with numpy/torch
-        self.x = self.metadata["filepath"].to_numpy()
-        self.s = torch.as_tensor(self.metadata["context_le"], dtype=torch.int32)
-        self.y = torch.as_tensor(self.metadata["concept_le"], dtype=torch.int32)
+        x = self.metadata["filepath"].to_numpy()
+        y = torch.as_tensor(self.metadata["concept_le"].to_numpy(), dtype=torch.long)
+        s = torch.as_tensor(self.metadata["context_le"].to_numpy(), dtype=torch.long)
 
-        self._il_backend: ImageLoadingBackend = infer_il_backend(self.transform)
+        super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._base_dir)
 
     def _check_unzipped(self) -> bool:
         return all((self._base_dir / sc.name).exists() for sc in NicoSuperclass)
 
-    def _download_and_unzip_data(self) -> None:
-        """Attempt to download data if files cannot be found in the root directory."""
-
-        if self._check_unzipped():
-            LOGGER.info("Files already downloaded and unzipped.")
-            return
-
-        if not self._base_dir.with_suffix(".zip").exists():
-            # Create the specified root directory if it doesn't already exist
-            self.root.mkdir(parents=True, exist_ok=True)
-            # -------------------------- Download the data ---------------------------
-            LOGGER.info("Downloading the data from Google Drive.")
-            gdown.cached_download(
-                url=f"https://drive.google.com/uc?id={self._FILE_ID}",
-                path=self._base_dir.with_suffix(".zip"),
-                quiet=False,
-                md5=self._MD5,
-            )
-        self._check_integrity()
-        # ------------------------------ Unzip the data ------------------------------
-        import zipfile
-
-        LOGGER.info("Unzipping the data; this may take a while.")
-        with zipfile.ZipFile(self._base_dir.with_suffix(".zip"), "r") as fhandle:
-            fhandle.extractall(str(self.root))
-
-        if not self._metadata_path.exists():
-            self._extract_metadata()
-
-    def _check_integrity(self) -> None:
-        from torchvision.datasets.utils import check_integrity
-
-        fpath = self._base_dir.with_suffix(".zip")
-        ext = fpath.suffix
-        if ext not in [".zip", ".7z"] and check_integrity(str(fpath), self._MD5):
-            raise RuntimeError('Dataset corrupted; try deleting it and redownloading it.')
-
     def _extract_metadata(self) -> None:
         """Extract concept/context/superclass information from the image filepaths and it save to csv."""
+        self.log("Extracting metadata.")
         image_paths: list[Path] = []
         for ext in ("jpg", "jpeg", "png"):
             image_paths.extend(self._base_dir.glob(f"**/*.{ext}"))
@@ -142,29 +102,29 @@ class NICO(VisionDataset):
         filepaths = pd.Series(image_paths_str)
         metadata = cast(
             pd.DataFrame,
-            filepaths.str.split("/", expand=True).rename(
+            filepaths.str.split("/", expand=True).rename(  # type: ignore[attr-defined]
                 columns={0: "superclass", 1: "concept", 2: "context", 3: "filename"}
             ),
         )
         metadata["filepath"] = filepaths
         metadata.sort_index(axis=1, inplace=True)
-        metadata.sort_index(inplace=True)
+        metadata.sort_values(by=["filepath"], axis=0, inplace=True)
         metadata = self._label_encode_metadata(metadata)
         metadata.to_csv(self._metadata_path)
 
     def _label_encode_metadata(self, metadata: pd.DataFrame) -> pd.DataFrame:
         """Label encode the extracted concept/context/superclass information."""
         for col in metadata.columns:
-            # Skip over filepath and filename columns - these do not metadata
-            if "file" in col:
-                continue
-            # Add a new column containing the label-encoded data
-            metadata[f"{col}_le"] = metadata[col].factorize()[0]
+            # Skip over filepath and filename columns
+            if "file" not in col:
+                # Add a new column containing the label-encoded data
+                metadata[f"{col}_le"] = metadata[col].factorize()[0]
         return metadata
 
     def train_test_split(
         self,
         default_train_prop: float,
+        *,
         train_props: dict[str | int, dict[str | int, float]] | None = None,
         seed: int | None = None,
     ) -> TrainTestSplit:
@@ -179,6 +139,7 @@ class NICO(VisionDataset):
 
         def _sample_train_inds(
             _mask: np.ndarray,
+            *,
             _context: str | int | None = None,
             _concept: str | None = None,
             _train_prop: float = default_train_prop,
@@ -243,19 +204,13 @@ class NICO(VisionDataset):
 
         return TrainTestSplit(train=train_data, test=test_data)
 
-    @implements(VisionDataset)
-    def __len__(self) -> int:
-        return len(self.x)
 
-    @implements(VisionDataset)
-    def __getitem__(self, index: int) -> TernarySample:
-        image = load_image(self._base_dir / self.x[index], backend=self._il_backend)
-        image = apply_image_transform(image=image, transform=self.transform)
-        target = self.y[index]
-        return TernarySample(x=image, s=self.s[index], y=target)
+def _gif_to_jpeg(image: Image.Image) -> Image.Image:
+    background = Image.new('RGBA', image.size, (255, 255, 255))
+    return Image.alpha_composite(background, image).convert("RGB")
 
 
-def _preprocess_nico(path: Path) -> None:
+def preprocess_nico(path: Path) -> None:
     """
     Preprocess the original NICO data.
     This preprocessing entails two things:
@@ -265,8 +220,6 @@ def _preprocess_nico(path: Path) -> None:
         2) Converting any GIFs into JPEGs by extracting the first frame.
     Note that this preprocessing will be performed **in-place**, overwriting the original data.
     """
-    from PIL import Image
-
     for superclass in ("animals", "vehicles"):
         superclass_dir = path / superclass
         for class_dir in superclass_dir.glob("*"):
@@ -275,19 +228,28 @@ def _preprocess_nico(path: Path) -> None:
                 for ext in ("jpg", "jpeg", "png", "gif"):
                     images_paths.extend(context_dir.glob(f"**/*.{ext}"))
                 for counter, image_path in enumerate(images_paths):
-                    if image_path.suffix == ".gif":
-                        image = Image.open(image_path).convert("RGBA")
-                        new_image_path = image_path.with_suffix(".jpg")
+                    try:
+                        image = Image.open(image_path)
+                        if image.format == "GIF":
+                            image = image.convert("RGBA")
+                            # Convert from gif to jpeg by extracting the first frame
+                            new_image = _gif_to_jpeg(image)
+                            new_image_path = image_path.with_suffix(".jpg")
+                            # Delete the original gif
+                            image_path.unlink()
+                            new_image.save(new_image_path, "JPEG")
+                            assert new_image_path.exists()
+                            image_path = new_image_path
 
-                        background = Image.new('RGBA', image.size, (255, 255, 255))
-                        new_image = Image.alpha_composite(background, image).convert("RGB")
-                        new_image.save(new_image_path, "JPEG")
+                        concept = image_path.parent.parent.stem
+                        context = image_path.parent.stem
+                        new_name = (
+                            image_path.parent
+                            / f"{concept}_{context}_{counter:04}{image_path.suffix}".replace(
+                                " ", "_"
+                            )
+                        )
+                        image_path.rename(new_name)
+                    # Image is corrupted - delete it
+                    except UnidentifiedImageError:
                         image_path.unlink()
-                        image_path = new_image_path
-
-                    concept = image_path.parent.parent.stem
-                    context = image_path.parent.stem
-                    new_name = (
-                        image_path.parent / f"{concept}_{context}_{counter:04}.{image_path.suffix}"
-                    )
-                    image_path.rename(new_name)

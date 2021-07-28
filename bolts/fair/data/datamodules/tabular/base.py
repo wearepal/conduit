@@ -1,41 +1,44 @@
-"""This is where the inevitable common DataModule will live."""
+"""Tabular data-module."""
 from __future__ import annotations
 from abc import abstractmethod
 
 import ethicml as em
 from ethicml.preprocessing.scaling import ScalerType
 from kit import implements
+from kit.torch import TrainingMode
 from pytorch_lightning import LightningDataModule
 from sklearn.preprocessing import StandardScaler
-from torch.utils.data import Dataset
 
-from bolts.fair.data.datamodules import BaseDataModule
+from bolts.data.datamodules import PBDataModule
+from bolts.data.structures import TrainValTestSplit
 from bolts.fair.data.datasets import DataTupleDataset
 
 __all__ = ["TabularDataModule"]
 
 
-class TabularDataModule(BaseDataModule):
-    """COMPAS Dataset."""
+class TabularDataModule(PBDataModule):
+    """Base data-module for tabular datasets."""
 
     def __init__(
         self,
-        val_split: float | int = 0.2,
-        test_split: float | int = 0.2,
+        *,
+        batch_size: int = 100,
         num_workers: int = 0,
-        batch_size: int = 32,
+        val_prop: float = 0.2,
+        test_prop: float = 0.2,
         seed: int = 0,
-        scaler: ScalerType | None = None,
         persist_workers: bool = False,
         pin_memory: bool = True,
         stratified_sampling: bool = False,
-        sample_with_replacement: bool = False,
-    ):
-        """COMPAS Dataset Module.
+        instance_weighting: bool = False,
+        scaler: ScalerType | None = None,
+        training_mode: TrainingMode = TrainingMode.epoch,
+    ) -> None:
+        """Base data-module for tabular data.
 
         Args:
-            val_split: Percent (float) or number (int) of samples to use for the validation split
-            test_split: Percent (float) or number (int) of samples to use for the test split
+            val_prop: Proprtion (float)  of samples to use for the validation split
+            test_prop: Proportion (float) of samples to use for the test split
             num_workers: How many workers to use for loading data
             batch_size: How many samples per batch to load
             seed: RNG Seed
@@ -43,18 +46,18 @@ class TabularDataModule(BaseDataModule):
             persist_workers: Use persistent workers in dataloader?
             pin_memory: Should the memory be pinned?
             stratified_sampling: Use startified sampling?
-            sample_with_replacement: If using stratified sampling, should the samples be unique?
         """
         super().__init__(
-            num_workers=num_workers,
-            val_split=val_split,
-            test_split=test_split,
-            seed=seed,
             batch_size=batch_size,
+            num_workers=num_workers,
             persist_workers=persist_workers,
             pin_memory=pin_memory,
+            seed=seed,
+            test_prop=test_prop,
+            val_prop=val_prop,
             stratified_sampling=stratified_sampling,
-            sample_with_replacement=sample_with_replacement,
+            instance_weighting=instance_weighting,
+            training_mode=training_mode,
         )
         self.scaler = scaler if scaler is not None else StandardScaler()
 
@@ -63,64 +66,70 @@ class TabularDataModule(BaseDataModule):
     def em_dataset(self) -> em.Dataset:
         ...
 
+    @staticmethod
+    def _get_split_sizes(train_len: int, *, test_prop: int | float) -> list[int]:
+        """Computes split sizes for train and validation sets."""
+        if isinstance(test_prop, int):
+            train_len -= test_prop
+            splits = [train_len, test_prop]
+        elif isinstance(test_prop, float):
+            test_len = int(test_prop * train_len)
+            train_len -= test_len
+            splits = [train_len, test_len]
+        else:
+            raise ValueError(f"Unsupported type {type(test_prop)}")
+
+        return splits
+
     @implements(LightningDataModule)
     def prepare_data(self) -> None:
         self.dims = (
             len(self.em_dataset.discrete_features) + len(self.em_dataset.continuous_features),
         )
 
-    @implements(LightningDataModule)
-    def setup(self, stage: str | None = None) -> None:
+    @implements(PBDataModule)
+    def _get_splits(self) -> TrainValTestSplit:
         self.datatuple = self.em_dataset.load(ordered=True)
 
         data_len = int(self.datatuple.x.shape[0])
-        num_train_val, num_test = self._get_splits(data_len, self.test_split)
-        train_val, test = em.train_test_split(
+        num_train_val, num_test = self._get_split_sizes(data_len, test_prop=self.test_prop)
+        train_val, test_data = em.train_test_split(
             data=self.datatuple,
             train_percentage=(1 - (num_test / data_len)),
             random_seed=self.seed,
         )
-        num_train, num_val = self._get_splits(num_train_val, self.val_split)
-        train, val = em.train_test_split(
+        _, num_val = self._get_split_sizes(num_train_val, test_prop=self.val_prop)
+        train_data, val_data = em.train_test_split(
             data=train_val,
             train_percentage=(1 - (num_val / num_train_val)),
             random_seed=self.seed,
         )
 
-        train, self.scaler = em.scale_continuous(
-            self.em_dataset, datatuple=train, scaler=self.scaler
+        train_data, self.scaler = em.scale_continuous(
+            self.em_dataset, datatuple=train_data, scaler=self.scaler  # type: ignore
         )
-        val, _ = em.scale_continuous(self.em_dataset, datatuple=val, scaler=self.scaler, fit=False)
-        test, _ = em.scale_continuous(
-            self.em_dataset, datatuple=test, scaler=self.scaler, fit=False
+        val_data, _ = em.scale_continuous(
+            self.em_dataset, datatuple=val_data, scaler=self.scaler, fit=False
+        )
+        test_data, _ = em.scale_continuous(
+            self.em_dataset, datatuple=test_data, scaler=self.scaler, fit=False
         )
 
-        self._train_data = DataTupleDataset(
-            train,
+        train_data = DataTupleDataset(
+            dataset=train_data,
             disc_features=self.em_dataset.discrete_features,
             cont_features=self.em_dataset.continuous_features,
         )
 
-        self._val_data = DataTupleDataset(
-            val,
+        val_data = DataTupleDataset(
+            dataset=val_data,
             disc_features=self.em_dataset.discrete_features,
             cont_features=self.em_dataset.continuous_features,
         )
 
-        self._test_data = DataTupleDataset(
-            test,
+        test_data = DataTupleDataset(
+            dataset=test_data,
             disc_features=self.em_dataset.discrete_features,
             cont_features=self.em_dataset.continuous_features,
         )
-
-    @property
-    def train_data(self) -> Dataset:
-        return self._train_data
-
-    @property
-    def val_data(self) -> Dataset:
-        return self._val_data
-
-    @property
-    def test_data(self) -> Dataset:
-        return self._test_data
+        return TrainValTestSplit(train=train_data, val=val_data, test=test_data)

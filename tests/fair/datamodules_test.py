@@ -1,88 +1,62 @@
 """Test DataModules."""
+from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from pytorch_lightning import LightningDataModule
 import torch
-import torch.nn.functional as F
-from typing_extensions import Final, Type
+from typing_extensions import Final
 
-from bolts.fair.data.datamodules import (
-    AdultDataModule,
-    CelebaDataModule,
-    CmnistDataModule,
-    CompasDataModule,
-)
+from bolts.data.datamodules.base import PBDataModule
+from bolts.data.datamodules.vision.celeba import CelebADataModule
+from bolts.fair.data import CrimeDataModule, HealthDataModule
+from bolts.fair.data.datamodules import AdultDataModule, CompasDataModule
+from bolts.fair.data.datamodules.tabular.admissions import AdmissionsDataModule
+from bolts.fair.data.datamodules.tabular.credit import CreditDataModule
 
 BATCHSIZE: Final[int] = 4
 
 
-def _create_dm(dm_cls: Type[LightningDataModule], stratified: bool) -> LightningDataModule:
-    try:
-        dm = dm_cls(
-            batch_size=BATCHSIZE,
-            stratified_sampling=stratified,
-            data_dir=Path("~/Data").expanduser(),
-        )
-    except:
-        dm = dm_cls(
-            batch_size=BATCHSIZE,
-            stratified_sampling=stratified,
-        )
+def _create_dm(dm_cls: type[PBDataModule], stratified: bool) -> PBDataModule:
+    dm_kwargs = dict(
+        batch_size=BATCHSIZE,
+        stratified_sampling=stratified,
+    )
+    dm = dm_cls(**dm_kwargs)  # type: ignore[arg-type]
     dm.prepare_data()
     dm.setup()
     return dm
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("stratified", [True, False])
 @pytest.mark.parametrize(
-    "dm_cls", [AdultDataModule, CompasDataModule, CelebaDataModule, CmnistDataModule]
+    "dm_cls",
+    [
+        AdmissionsDataModule,
+        AdultDataModule,
+        CompasDataModule,
+        CreditDataModule,
+        CrimeDataModule,
+        HealthDataModule,
+    ],
 )
-def test_data_modules(dm_cls: Type[LightningDataModule], stratified: bool) -> None:
+def test_data_modules(dm_cls: type[PBDataModule], stratified: bool) -> None:
     """Test the datamodules."""
     dm = _create_dm(dm_cls, stratified)
     loader = dm.train_dataloader()
     batch = next(iter(loader))
-    assert batch.x.size() == torch.Size([BATCHSIZE, *dm.size()])
-    assert batch.s.size() == torch.Size([BATCHSIZE, 1])
-    assert batch.y.size() == torch.Size([BATCHSIZE, 1])
-    F.cross_entropy(torch.rand((BATCHSIZE, dm.num_sens)), batch.s.squeeze(-1))
-    F.cross_entropy(torch.rand((BATCHSIZE, dm.num_classes)), batch.y.squeeze(-1))
-    assert dm.num_classes
-    assert dm.num_sens
-
-
-@pytest.mark.slow
-def test_cache_param() -> None:
-    """Test that the loader works with cache flag."""
-    dm = CelebaDataModule(cache_data=True)
-    dm.prepare_data()
-    dm.setup()
-    loader = dm.train_dataloader()
-    batch = next(iter(loader))
-    assert loader.dataset.dataset.__getitem__.cache_info()
-    assert batch.x.size() == torch.Size([32, *dm.size()])
-    assert batch.s.size() == torch.Size([32, 1])
-    assert batch.y.size() == torch.Size([32, 1])
-    F.cross_entropy(torch.rand((32, dm.num_sens)), batch.s.squeeze(-1))
-    F.cross_entropy(torch.rand((32, dm.num_classes)), batch.y.squeeze(-1))
-    assert dm.num_classes
-    assert dm.num_sens
+    assert batch.x.size() == torch.Size([BATCHSIZE, *dm.size()])  # type: ignore
+    assert batch.s.size() == torch.Size([BATCHSIZE])
+    assert batch.y.size() == torch.Size([BATCHSIZE])
 
 
 @pytest.mark.slow
 def test_persist_param() -> None:
     """Test that the loader works with persist_workers flag."""
-    dm = CelebaDataModule(persist_workers=True, num_workers=1)
+    dm = CelebADataModule(root=Path("~/Data").expanduser(), persist_workers=True, num_workers=1)
     dm.prepare_data()
     dm.setup()
     loader = dm.train_dataloader()
     batch = next(iter(loader))
-    assert batch.x.size() == torch.Size([32, *dm.size()])
-    assert batch.s.size() == torch.Size([32, 1])
-    assert batch.y.size() == torch.Size([32, 1])
-    F.cross_entropy(torch.rand((32, dm.num_sens)), batch.s.squeeze(-1))
-    F.cross_entropy(torch.rand((32, dm.num_classes)), batch.y.squeeze(-1))
-    assert dm.num_classes
-    assert dm.num_sens
+    assert batch.x.size() == torch.Size([32, *dm.size()])  # type: ignore
+    assert batch.s.size() == torch.Size([32])
+    assert batch.y.size() == torch.Size([32])

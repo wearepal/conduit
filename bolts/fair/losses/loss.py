@@ -1,54 +1,23 @@
 from __future__ import annotations
-from typing import Optional
 
-from kit import parsable
+from kit.torch import ReductionType
 from torch import Tensor, nn
-import torch.nn.functional as F
-from torch.nn.modules.loss import _Loss
-from typing_extensions import Literal
+from typing_extensions import Protocol
 
-__all__ = ["CrossEntropy", "OnlineReweightingLoss"]
-ReductionType = Literal["mean", "none", "sum"]
+__all__ = ["OnlineReweightingLoss", "ReductionType"]
 
 
-class CrossEntropy(nn.CrossEntropyLoss):
-    @parsable
-    def __init__(
-        self,
-        class_weight: Optional[Tensor] = None,
-        ignore_index: int = -100,
-        reduction: ReductionType = "mean",
-    ) -> None:
-        super().__init__(weight=class_weight, reduction="none")
-        self.ignore_index = ignore_index
-        self._reduction_str = reduction
+class BaseLossFn(Protocol):
+    reduction: str | ReductionType
 
-    def forward(
-        self, input: Tensor, target: Tensor, instance_weight: Tensor | None = None
-    ) -> Tensor:
-        _target = target.view(-1).long()
-        losses = F.cross_entropy(
-            input,
-            _target,
-            weight=self.weight,
-            ignore_index=self.ignore_index,
-            reduction=self.reduction,
-        )
-        if instance_weight is not None:
-            _weight = instance_weight.view(-1)
-            losses *= _weight
-        if self._reduction_str == "mean":
-            return losses.mean()
-        if self._reduction_str == "none":
-            return losses
-        if self._reduction_str == "sum":
-            return losses.sum()
+    def __call__(self, input: Tensor, target: Tensor) -> Tensor:
+        ...
 
 
 class OnlineReweightingLoss(nn.Module):
-    """Wrapper that computes a loss balanced by subgroups."""
+    """Wrapper that computes a loss balanced by intersectional group size."""
 
-    def __init__(self, loss_fn: _Loss) -> None:
+    def __init__(self, loss_fn: BaseLossFn) -> None:
         super().__init__()
         # the base loss function needs to produce instance-wise losses for the
         # reweighting (determined by subgroup cardinality) to be applied

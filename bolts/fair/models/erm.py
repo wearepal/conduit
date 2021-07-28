@@ -4,6 +4,7 @@ from typing import Mapping
 
 import ethicml as em
 from kit import implements
+from kit.torch import CrossEntropyLoss, ReductionType, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 import torch
@@ -12,9 +13,10 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
 
 from bolts.common import Stage
-from bolts.fair.data.structures import DataBatch
-from bolts.fair.losses import CrossEntropy
-from bolts.fair.models.utils import LRScheduler, SchedInterval
+from bolts.data.structures import TernarySample
+from bolts.fair.models.utils import LRScheduler
+
+__all__ = ["ErmBaseline"]
 
 
 class ErmBaseline(pl.LightningModule):
@@ -22,13 +24,14 @@ class ErmBaseline(pl.LightningModule):
 
     def __init__(
         self,
+        *,
         enc: nn.Module,
         clf: nn.Module,
         lr: float,
         weight_decay: float,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
-        lr_sched_interval: SchedInterval = "epoch",
+        lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
     ) -> None:
         super().__init__()
@@ -44,7 +47,7 @@ class ErmBaseline(pl.LightningModule):
         self.lr_sched_freq = lr_sched_freq
 
         self._target_name = "y"
-        self._loss_fn = CrossEntropy(reduction="mean")
+        self._loss_fn = CrossEntropyLoss(reduction=ReductionType.mean)
 
         self.test_acc = torchmetrics.Accuracy()
         self.train_acc = torchmetrics.Accuracy()
@@ -85,9 +88,9 @@ class ErmBaseline(pl.LightningModule):
         results_dict.update({f"{stage}/{self.target}_{k}": v for k, v in results.items()})
         return results_dict
 
-    def _inference_step(self, batch: DataBatch, stage: Stage) -> dict[str, Tensor]:
+    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
         logits = self.forward(batch.x)
-        loss = self._get_loss(logits, batch)
+        loss = self._get_loss(logits=logits, batch=batch)
         tm_acc = self.val_acc if stage == "validate" else self.test_acc
         target = batch.y.view(-1).long()
         _acc = tm_acc(logits.argmax(-1), target)
@@ -103,7 +106,7 @@ class ErmBaseline(pl.LightningModule):
             "preds": logits.sigmoid().round().squeeze(-1),
         }
 
-    def _get_loss(self, logits: Tensor, batch: DataBatch) -> Tensor:
+    def _get_loss(self, logits: Tensor, *, batch: TernarySample) -> Tensor:
         return self._loss_fn(input=logits, target=batch.y)
 
     def reset_parameters(self) -> None:
@@ -114,7 +117,7 @@ class ErmBaseline(pl.LightningModule):
     @implements(pl.LightningModule)
     def configure_optimizers(
         self,
-    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | SchedInterval]]]:
+    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
         opt = optim.AdamW(
             self.parameters(),
             lr=self.learning_rate,
@@ -124,7 +127,7 @@ class ErmBaseline(pl.LightningModule):
             "scheduler": CosineAnnealingWarmRestarts(
                 optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
             ),
-            "interval": self.lr_sched_interval,
+            "interval": self.lr_sched_interval.name,
             "frequency": self.lr_sched_freq,
         }
         return [opt], [sched]
@@ -135,13 +138,13 @@ class ErmBaseline(pl.LightningModule):
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
-    def test_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
+    def test_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
         return self._inference_step(batch=batch, stage="test")
 
     @implements(pl.LightningModule)
-    def training_step(self, batch: DataBatch, batch_idx: int) -> Tensor:
+    def training_step(self, batch: TernarySample, batch_idx: int) -> Tensor:
         logits = self.forward(batch.x)
-        loss = self._get_loss(logits, batch)
+        loss = self._get_loss(logits=logits, batch=batch)
         target = batch.y.view(-1).long()
         _acc = self.train_acc(logits.argmax(-1), target)
         self.log_dict(
@@ -158,7 +161,7 @@ class ErmBaseline(pl.LightningModule):
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
-    def validation_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
+    def validation_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
         return self._inference_step(batch=batch, stage="validate")
 
     @implements(nn.Module)

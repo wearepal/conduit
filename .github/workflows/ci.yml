@@ -38,9 +38,15 @@ jobs:
     - name: Format with isort
       run: |
         isort --check --diff .
-    - name: Check with mypy
-      run: |
-        mypy tests/
+    - name: Setup node.js (for pyright)
+      uses: actions/setup-node@v1
+      with:
+        node-version: "12"
+#    - name: Run type checking
+#      run: |
+#        npm install -g pyright
+#        pyright bolts
+#        pyright tests
     - name: Test with pytest
       run: |
         python -m pytest -vv tests/

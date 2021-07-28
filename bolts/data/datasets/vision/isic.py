@@ -1,69 +1,58 @@
+"""ISIC Dataset."""
 from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from itertools import islice
-import logging
 import os
 from pathlib import Path
 import shutil
-from typing import ClassVar, List, TypeVar
+from typing import ClassVar, TypeVar, Union
 import zipfile
 
 from PIL import Image
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
 from kit import flatten_dict
 import numpy as np
 import pandas as pd
 import requests
 import torch
-from torchvision.datasets import VisionDataset
 from tqdm import tqdm
-from typing_extensions import Final, Literal
+from typing_extensions import Literal
 
-from bolts.data.datasets.utils import (
-    ImageLoadingBackend,
-    ImageTform,
-    apply_image_transform,
-    infer_il_backend,
-    load_image,
-)
-from bolts.data.structures import TernarySample
+from bolts.data.datasets.utils import ImageTform
+from bolts.data.datasets.vision.base import PBVisionDataset
 
 __all__ = ["ISIC"]
 
-LOGGER = logging.getLogger(__name__)
 
 IsicAttr = Literal["histo", "malignant", "patch"]
 T = TypeVar("T")
 
 
-class ISIC(VisionDataset):
+class ISIC(PBVisionDataset):
     """PyTorch Dataset for the ISIC 2018 dataset from
     'Skin Lesion Analysis Toward Melanoma Detection 2018: A Challenge Hosted by the International
     Skin Imaging Collaboration (ISIC)',"""
 
-    LABELS_FILENAME: Final[str] = "labels.csv"
-    METADATA_FILENAME: Final[str] = "metadata.csv"
-    _pbar_col: ClassVar[str] = "#fac000"
-    _rest_api_url: ClassVar[str] = "https://isic-archive.com/api/v1"
-    transform: ImageTform
+    LABELS_FILENAME: ClassVar[str] = "labels.csv"
+    METADATA_FILENAME: ClassVar[str] = "metadata.csv"
+    _PBAR_COL: ClassVar[str] = "#fac000"
+    _REST_API_URL: ClassVar[str] = "https://isic-archive.com/api/v1"
 
     def __init__(
         self,
-        root: str,
+        root: Union[str, Path],
+        *,
         download: bool = True,
         max_samples: int = 25_000,  # default is the number of samples used for the NSLB paper
         context_attr: IsicAttr = "histo",
         target_attr: IsicAttr = "malignant",
-        transform: ImageTform = A.Compose([A.Normalize(), ToTensorV2()]),
+        transform: ImageTform | None = None,
     ) -> None:
-        super().__init__(root=root, transform=transform)
 
-        self.root: Path = Path(self.root)
+        self.root = Path(root)
         self.download = download
-        self._data_dir = self.root / "ISIC"
-        self._processed_dir = self._data_dir / "processed"
-        self._raw_dir = self._data_dir / "raw"
+        self._base_dir = self.root / "ISIC"
+        self._processed_dir = self._base_dir / "processed"
+        self._raw_dir = self._base_dir / "raw"
 
         if max_samples < 1:
             raise ValueError("max_samples must be a positive integer.")
@@ -80,11 +69,11 @@ class ISIC(VisionDataset):
         self.metadata = pd.read_csv(self._processed_dir / self.LABELS_FILENAME)
         # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # considerably slower than indexing with numpy/torch
-        self.x = self.metadata["path"].to_numpy()
-        self.s = torch.as_tensor(self.metadata[context_attr], dtype=torch.int32)
-        self.y = torch.as_tensor(self.metadata[target_attr], dtype=torch.int32)
+        x = self.metadata["path"].to_numpy()
+        s = torch.as_tensor(self.metadata[context_attr], dtype=torch.int32)
+        y = torch.as_tensor(self.metadata[target_attr], dtype=torch.int32)
 
-        self._il_backend: ImageLoadingBackend = infer_il_backend(self.transform)
+        super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._processed_dir)
 
     def _check_downloaded(self) -> bool:
         return (self._raw_dir / "images").exists() and (
@@ -97,7 +86,7 @@ class ISIC(VisionDataset):
         ).exists()
 
     @staticmethod
-    def chunk(it: Iterable[T], size: int) -> Iterator[list[T]]:
+    def chunk(it: Iterable[T], *, size: int) -> Iterator[list[T]]:
         """Divide any iterable into chunks of the given size."""
         it = iter(it)
         return iter(lambda: list(islice(it, size)), [])  # this is magic from stackoverflow
@@ -106,7 +95,7 @@ class ISIC(VisionDataset):
         """Downloads the metadata CSV from the ISIC website."""
         self._raw_dir.mkdir(parents=True, exist_ok=True)
         req = requests.get(
-            f"{self._rest_api_url}/image?limit={self.max_samples}"
+            f"{self._REST_API_URL}/image?limit={self.max_samples}"
             f"&sort=name&sortdir=1&detail=false"
         )
         image_ids = req.json()
@@ -119,15 +108,15 @@ class ISIC(VisionDataset):
         with tqdm(
             total=(len(image_ids) - 1) // 300 + 1,
             desc="Downloading metadata",
-            colour=self._pbar_col,
+            colour=self._PBAR_COL,
         ) as pbar:
-            for block in self.chunk(image_ids, 300):
+            for block in self.chunk(image_ids, size=300):
                 pbar.set_postfix(image_id=block[0])
                 args = ""
                 args += template_start
                 args += template_sep.join(block)
                 args += template_end
-                req = requests.get(f"{self._rest_api_url}/image{args}")
+                req = requests.get(f"{self._REST_API_URL}/image{args}")
                 image_details = req.json()
                 for image_detail in image_details:
                     entry = flatten_dict(image_detail, sep=".")
@@ -157,7 +146,7 @@ class ISIC(VisionDataset):
         raw_image_dir.mkdir(exist_ok=True)
         image_ids = list(metadata_df.index)
         with tqdm(
-            total=(len(image_ids) - 1) // 50 + 1, desc="Downloading images", colour=self._pbar_col
+            total=(len(image_ids) - 1) // 50 + 1, desc="Downloading images", colour=self._PBAR_COL
         ) as pbar:
             for i, block in enumerate(self.chunk(image_ids, 50)):
                 pbar.set_postfix(image_id=block[0])
@@ -165,7 +154,7 @@ class ISIC(VisionDataset):
                 args += template_start
                 args += template_sep.join(block)
                 args += template_end
-                req = requests.get(f"{self._rest_api_url}/image/download{args}", stream=True)
+                req = requests.get(f"{self._REST_API_URL}/image/download{args}", stream=True)
                 req.raise_for_status()
                 image_path = raw_image_dir / f"{i}.zip"
                 with open(image_path, "wb") as f:
@@ -215,16 +204,16 @@ class ISIC(VisionDataset):
 
         self._processed_dir.mkdir(exist_ok=True)
         image_zips = tuple((self._raw_dir / "images").glob("**/*.zip"))
-        with tqdm(total=len(image_zips), desc="Unzipping images", colour=self._pbar_col) as pbar:
+        with tqdm(total=len(image_zips), desc="Unzipping images", colour=self._PBAR_COL) as pbar:
             for file in image_zips:
                 pbar.set_postfix(file_index=file.stem)
                 with zipfile.ZipFile(file, "r") as zip_ref:
                     zip_ref.extractall(self._processed_dir)
                     pbar.update()
-        images: List[Path] = []
+        images: list[Path] = []
         for ext in ("jpg", "jpeg", "png", "gif"):
             images.extend(self._processed_dir.glob(f"**/*.{ext}"))
-        with tqdm(total=len(images), desc="Processing images", colour=self._pbar_col) as pbar:
+        with tqdm(total=len(images), desc="Processing images", colour=self._PBAR_COL) as pbar:
             for image_path in images:
                 pbar.set_postfix(image_name=image_path.stem)
                 image = Image.open(image_path)
@@ -246,7 +235,7 @@ class ISIC(VisionDataset):
             value="non-histopathology", inplace=True
         )
         histopathology_mask = labels_df["meta.clinical.diagnosis_confirm_type"] == "histopathology"
-        labels_df["histo"] = histopathology_mask.astype(np.uint8)
+        labels_df["histo"] = histopathology_mask.astype(np.uint8)  # type: ignore[arg-type]
 
         return labels_df
 
@@ -256,8 +245,8 @@ class ISIC(VisionDataset):
         patch_mask = labels_df["dataset.name"] == "SONIC"
         # add to labels_df
         labels_df["patch"] = None
-        labels_df.loc[patch_mask, "patch"] = 1
-        labels_df.loc[~patch_mask, "patch"] = 0
+        labels_df.loc[patch_mask, "patch"] = 1  # type: ignore[index]
+        labels_df.loc[~patch_mask, "patch"] = 0  # type: ignore[index]
         assert all(patch is not None for patch in labels_df["patch"])
         return labels_df
 
@@ -266,13 +255,13 @@ class ISIC(VisionDataset):
         # # Check whether the data has already been downloaded - if it has and the integrity
         # # of the files can be confirmed, then we are done
         if self._check_downloaded():
-            LOGGER.info("Files already downloaded and verified.")
+            self.log("Files already downloaded and verified.")
             return
         # Create the directory and any required ancestors if not already existent
-        self._data_dir.mkdir(exist_ok=True, parents=True)
-        LOGGER.info(f"Downloading metadata into {str(self._raw_dir / self.METADATA_FILENAME)}...")
+        self._base_dir.mkdir(exist_ok=True, parents=True)
+        self.log(f"Downloading metadata into {str(self._raw_dir / self.METADATA_FILENAME)}...")
         self._download_isic_metadata()
-        LOGGER.info(
+        self.log(
             f"Downloading data into {str(self._raw_dir)} for up to {self.max_samples} samples..."
         )
         self._download_isic_images()
@@ -281,24 +270,15 @@ class ISIC(VisionDataset):
         """Preprocess the downloaded data if the processed image-directory/metadata don't exist."""
         # If the data has already been processed, skip this operation
         if self._check_processed():
-            LOGGER.info("Metadata and images already preprocessed.")
+            self.log("Metadata and images already preprocessed.")
             return
-        LOGGER.info(
+        self.log(
             f"Preprocessing metadata (adding columns, removing uncertain diagnoses) and saving into "
             f"{str(self._processed_dir / self.LABELS_FILENAME)}..."
         )
         self._preprocess_isic_metadata()
-        LOGGER.info(
+        self.log(
             f"Preprocessing images (transforming to 3-channel RGB, resizing to 224x224) and saving "
             f"into{str(self._processed_dir / 'ISIC-images')}..."
         )
         self._preprocess_isic_images()
-
-    def __len__(self) -> int:
-        return len(self.x)
-
-    def __getitem__(self, index: int) -> TernarySample:
-        image = load_image(self.x[index], backend=self._il_backend)
-        image = apply_image_transform(image=image, transform=self.transform)
-        target = self.y[index]
-        return TernarySample(x=image, s=self.s[index], y=target)

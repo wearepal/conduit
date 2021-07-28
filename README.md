@@ -1,3 +1,3 @@
-# pal-bolts
+# palbolts
 
-General PyTorch Lightning Bolts
+General PyTorch Lightning Bolts and other goodies used by the folks at PAL.

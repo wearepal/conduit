@@ -1,23 +1,22 @@
-"""Nico data-module."""
-from typing import Any, Optional
+"""CelebA data-module."""
+from typing import Any
 
 import albumentations as A
 from kit import implements, parsable
-from kit.torch import prop_random_split
-from kit.torch.data import TrainingMode
+from kit.torch import TrainingMode, prop_random_split
 from pytorch_lightning import LightningDataModule
 
-from bolts.data.datamodules import PBDataModule
-from bolts.data.datasets.vision.nico import NICO, NicoSuperclass
+from bolts.data.datamodules.base import PBDataModule
+from bolts.data.datasets.vision.celeba import CelebA, CelebASplit, CelebAttr
 from bolts.data.structures import TrainValTestSplit
 
 from .base import PBVisionDataModule
 
-__all__ = ["NICODataModule"]
+__all__ = ["CelebADataModule"]
 
 
-class NICODataModule(PBVisionDataModule):
-    """Data-module for the NICO dataset."""
+class CelebADataModule(PBVisionDataModule):
+    """Data-module for the CelebA dataset."""
 
     @parsable
     def __init__(
@@ -29,11 +28,12 @@ class NICODataModule(PBVisionDataModule):
         num_workers: int = 0,
         val_prop: float = 0.2,
         test_prop: float = 0.2,
-        class_train_props: Optional[dict] = None,
         seed: int = 47,
         persist_workers: bool = False,
         pin_memory: bool = True,
-        superclass: NicoSuperclass = NicoSuperclass.animals,
+        superclass: CelebAttr = CelebAttr.Smiling,
+        subclass: CelebAttr = CelebAttr.Male,
+        use_predefined_splits: bool = False,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
         training_mode: TrainingMode = TrainingMode.epoch,
@@ -53,7 +53,12 @@ class NICODataModule(PBVisionDataModule):
         )
         self.image_size = image_size
         self.superclass = superclass
-        self.class_train_props = class_train_props
+        self.subclass = subclass
+        self.use_predefined_splits = use_predefined_splits
+
+    @implements(LightningDataModule)
+    def prepare_data(self, *args: Any, **kwargs: Any) -> None:
+        CelebA(root=self.root, download=True)
 
     @property  # type: ignore[misc]
     @implements(PBVisionDataModule)
@@ -70,21 +75,18 @@ class NICODataModule(PBVisionDataModule):
     def _train_augmentations(self) -> A.Compose:
         return A.Compose([])
 
-    @implements(LightningDataModule)
-    def prepare_data(self, *args: Any, **kwargs: Any) -> None:
-        NICO(root=self.root, download=True)
-
     @implements(PBDataModule)
     def _get_splits(self) -> TrainValTestSplit:
-        all_data = NICO(root=self.root, superclass=self.superclass, transform=None)
-
-        train_val_prop = 1 - self.test_prop
-        train_val_data, test_data = all_data.train_test_split(
-            default_train_prop=train_val_prop,
-            train_props=self.class_train_props,
-            seed=self.seed,
-        )
-        val_data, train_data = prop_random_split(
-            dataset=train_val_data, props=self.val_prop / train_val_prop
-        )
+        # Split the data according to the pre-defined split indices
+        if self.use_predefined_splits:
+            train_data, val_data, test_data = (
+                CelebA(root=self.root, superclass=self.superclass, transform=None, split=split)
+                for split in CelebASplit
+            )
+        # Split the data randomly according to test- and val-prop
+        else:
+            all_data = CelebA(root=self.root, superclass=self.superclass, transform=None)
+            val_data, test_data, train_data = prop_random_split(
+                dataset=all_data, props=(self.val_prop, self.test_prop)
+            )
         return TrainValTestSplit(train=train_data, val=val_data, test=test_data)

@@ -25,10 +25,11 @@ python = "^3.7"
 albumentations = "^1.0.0"
 ethicml = "^0.2.7"
 lightning-bolts = "^0.3.4"
-palkit = "^0.3.6"
+palkit = "^0.3.8"
 torch = "*"
 torchvision = "*"
 gdown = "^3.13.0"
+opencv-python = "^4.5.3"
 
 [tool.poetry.dev-dependencies]
 black = "*"
@@ -67,7 +68,7 @@ exclude = '''
 )
 '''
 [tool.isort]
-known_third_party = ["PIL", "albumentations", "cv2", "ethicml", "gdown", "kit", "numpy", "pandas", "pytest", "pytorch_lightning", "requests", "sklearn", "torch", "torchmetrics", "torchvision", "tqdm", "typing_extensions", "typing_inspect"]
+known_third_party = ["PIL", "albumentations", "cv2", "ethicml", "kit", "numpy", "pandas", "pytest", "pytorch_lightning", "requests", "sklearn", "torch", "torchmetrics", "torchvision", "tqdm", "typing_extensions", "typing_inspect"]
 known_future_library = []
 extra_standard_library = ["dataclasses", "__future__", "typing_extensions"]
 line_length = 88
@@ -75,6 +76,22 @@ profile = "black"
 force_sort_within_sections = "True"
 classes = ["MISSING"]
 
+[tool.pyright]
+include = ["bolts"]
+exclude = ["**/node_modules", "**/__pycache__"]
+typeCheckingMode = "basic"
+pythonVersion = "3.7"
+reportUnusedImport = "error"
+reportDuplicateImport  = "error"
+reportIncompatibleVariableOverride = "error"
+reportOverlappingOverload = "error"
+reportUntypedNamedTuple = "error"
+reportConstantRedefinition = "warning"
+reportMissingImports = "error"
+reportMissingTypeStubs = "warning"
+strictListInference = true
+strictSetInference = true
+strictParameterNoneValue = true
 
 [tool.mypy]
 python_version = "3.8"
@@ -87,7 +104,7 @@ disallow_any_unimported = false
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 show_error_codes = true
-warn_unused_ignores = true
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = [

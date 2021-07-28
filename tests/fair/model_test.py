@@ -1,6 +1,6 @@
 """Tests for models."""
+from __future__ import annotations
 from abc import abstractmethod
-from typing import List, Optional, Tuple
 
 from kit import implements
 import pytest
@@ -10,6 +10,7 @@ from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
 from bolts.common import FairnessType
+from bolts.data.datasets.utils import pb_default_collate
 from bolts.fair.data.datasets import DummyDataset
 from bolts.fair.models import KC, Dann, ErmBaseline, FairMixup, Gpd, Laftr
 
@@ -17,15 +18,15 @@ from bolts.fair.models import KC, Dann, ErmBaseline, FairMixup, Gpd, Laftr
 class Mp64x64Net(nn.Module):
     """Predefined 64x64 net."""
 
-    def __init__(self, batch_norm: bool, in_chans: int, target_dim: int):
+    def __init__(self, batch_norm: bool, in_chans: int, target_dim: int) -> None:
         super().__init__()
         self.batch_norm = batch_norm
         self.net = self._build(in_chans=in_chans, target_dim=target_dim)
 
     def _conv_block(
         self, in_chans: int, out_dim: int, kernel_size: int, stride: int, padding: int
-    ) -> List[nn.Module]:
-        _block: List[nn.Module] = []
+    ) -> list[nn.Module]:
+        _block: list[nn.Module] = []
         _block += [
             nn.Conv2d(in_chans, out_dim, kernel_size=kernel_size, stride=stride, padding=padding)
         ]
@@ -64,7 +65,7 @@ class Mp64x64Net(nn.Module):
 class View(nn.Module):
     """Reshape Tensor."""
 
-    def __init__(self, shape: Tuple[int, ...]):
+    def __init__(self, shape: tuple[int, ...]):
         super().__init__()
         self.shape = shape
 
@@ -114,7 +115,7 @@ class Encoder(nn.Module):
 
     def __init__(
         self,
-        input_shape: Tuple[int, int, int],
+        input_shape: tuple[int, int, int],
         initial_hidden_channels: int,
         levels: int,
         encoding_dim: int,
@@ -153,13 +154,13 @@ class Decoder(nn.Module):
 
     def __init__(
         self,
-        input_shape: Tuple[int, int, int],
+        input_shape: tuple[int, int, int],
         initial_hidden_channels: int,
         levels: int,
         encoding_dim: int,
         decoding_dim: int,
-        decoder_out_act: Optional[nn.Module] = None,
-    ):
+        decoder_out_act: nn.Module | None = None,
+    ) -> None:
         super().__init__()
         layers = nn.ModuleList()
         c_in, height, width = input_shape
@@ -203,7 +204,7 @@ class Decoder(nn.Module):
 class EmbeddingClf(nn.Module):
     """Classifier."""
 
-    def __init__(self, encoding_dim: int, out_dim: int):
+    def __init__(self, encoding_dim: int, out_dim: int) -> None:
         super().__init__()
         self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(encoding_dim, out_dim))
 
@@ -230,13 +231,13 @@ class DummyBase(pl.LightningDataModule):
 class DummyDataModule(DummyBase):
     def _get_dl(self) -> DataLoader:
         train_ds = DummyDataset((3, 64, 64), (1,), (1,), (1,), num_samples=100)
-        return DataLoader(train_ds, batch_size=20)
+        return DataLoader(train_ds, batch_size=20, collate_fn=pb_default_collate)
 
 
 class DummyDataModuleDim2(DummyBase):
     def _get_dl(self) -> DataLoader:
         train_ds = DummyDataset((3, 64, 64), (1, 1), (1, 1), (1, 1), num_samples=100)
-        return DataLoader(train_ds, batch_size=20)
+        return DataLoader(train_ds, batch_size=20, collate_fn=pb_default_collate)
 
 
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])

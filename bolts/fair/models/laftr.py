@@ -5,21 +5,24 @@ from typing import Any, Mapping, NamedTuple
 
 import ethicml as em
 from kit import implements
+from kit.torch import CrossEntropyLoss, ReductionType, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 import torch
 from torch import Tensor, nn, optim
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
+
+from bolts.common import Stage
+from bolts.data.structures import TernarySample
+from bolts.fair.models.utils import LRScheduler
 
 __all__ = ["Laftr"]
 
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-from typing_extensions import Literal
 
 from bolts.common import FairnessType
-from bolts.fair.data.structures import DataBatch
-from bolts.fair.losses import CrossEntropy
-from bolts.fair.models.utils import LRScheduler, SchedInterval
+from bolts.fair.models.utils import LRScheduler
 
 
 class ModelOut(NamedTuple):
@@ -37,6 +40,7 @@ class Laftr(pl.LightningModule):
 
     def __init__(
         self,
+        *,
         lr: float,
         weight_decay: float,
         disc_steps: int,
@@ -50,16 +54,16 @@ class Laftr(pl.LightningModule):
         clf: nn.Module,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
-        lr_sched_interval: Literal["step", "epoch"] = "epoch",
+        lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
-    ):
+    ) -> None:
         super().__init__()
         self.enc = enc
         self.dec = dec
         self.adv = adv
         self.clf = clf
 
-        self._clf_loss = CrossEntropy(reduction="mean")
+        self._clf_loss = CrossEntropyLoss(reduction=ReductionType.mean)
         self._recon_loss = nn.L1Loss(reduction="mean")
         self._adv_clf_loss = nn.L1Loss(reduction="none")
 
@@ -90,7 +94,9 @@ class Laftr(pl.LightningModule):
     def target(self, target: str) -> None:
         self._target_name = target
 
-    def _inference_epoch_end(self, output_results: list[Mapping[str, Tensor]], stage: str) -> None:
+    def _inference_epoch_end(
+        self, output_results: list[Mapping[str, Tensor]], stage: Stage
+    ) -> None:
         all_y = torch.cat([_r["y"] for _r in output_results], 0)
         all_s = torch.cat([_r["s"] for _r in output_results], 0)
         all_preds = torch.cat([_r["preds"] for _r in output_results], 0)
@@ -110,17 +116,17 @@ class Laftr(pl.LightningModule):
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
 
-        tm_acc = self.val_acc if stage == "val" else self.test_acc
+        tm_acc = self.val_acc if stage == "validate" else self.test_acc
         results_dict = {f"{stage}/acc": tm_acc.compute()}
         results_dict.update({f"{stage}/{self.target}_{k}": v for k, v in results.items()})
 
         self.log_dict(results_dict)
 
-    def _inference_step(self, batch: DataBatch, stage: str) -> dict[str, Tensor]:
-        model_out = self(batch.x, batch.s)
-        laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
-        adv_loss = self._loss_adv(model_out.s, batch)
-        tm_acc = self.val_acc if stage == "val" else self.test_acc
+    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
+        model_out = self.forward(x=batch.x, s=batch.s)
+        laftr_loss = self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch)
+        adv_loss = self._loss_adv(s_pred=model_out.s, batch=batch)
+        tm_acc = self.val_acc if stage == "validate" else self.test_acc
         target = batch.y.view(-1).long()
         _acc = tm_acc(model_out.y.argmax(-1), target)
         self.log_dict(
@@ -137,7 +143,7 @@ class Laftr(pl.LightningModule):
             "preds": model_out.y.sigmoid().round().squeeze(-1),
         }
 
-    def _loss_adv(self, s_pred: Tensor, batch: DataBatch) -> Tensor:
+    def _loss_adv(self, s_pred: Tensor, *, batch: TernarySample) -> Tensor:
         # For Demographic Parity, for EqOpp is a different loss term.
         if self.fairness is FairnessType.DP:
             losses = self._adv_clf_loss(s_pred, batch.s.view(-1, 1))
@@ -166,9 +172,9 @@ class Laftr(pl.LightningModule):
         self.log(f"{self.fairness}_adv_loss", self.adv_weight * loss)
         return self.adv_weight * loss
 
-    def _loss_laftr(self, y_pred: Tensor, recon: Tensor, batch: DataBatch) -> Tensor:
-        clf_loss = self._clf_loss(y_pred, batch.y)
-        recon_loss = self._recon_loss(recon, batch.x)
+    def _loss_laftr(self, y_pred: Tensor, *, recon: Tensor, batch: TernarySample) -> Tensor:
+        clf_loss = self._clf_loss(y_pred, target=batch.y)
+        recon_loss = self._recon_loss(recon, target=batch.x)
         self.log_dict(
             {"clf_loss": self.clf_weight * clf_loss, "recon_loss": self.recon_weight * recon_loss}
         )
@@ -177,7 +183,7 @@ class Laftr(pl.LightningModule):
     @implements(pl.LightningModule)
     def configure_optimizers(
         self,
-    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | SchedInterval]]]:
+    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
         laftr_params = itertools.chain(
             [*self.enc.parameters(), *self.dec.parameters(), *self.clf.parameters()]
         )
@@ -190,14 +196,14 @@ class Laftr(pl.LightningModule):
             "scheduler": CosineAnnealingWarmRestarts(
                 optimizer=opt_laftr, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
             ),
-            "interval": self.lr_sched_interval,
+            "interval": self.lr_sched_interval.name,
             "frequency": self.lr_sched_freq,
         }
         sched_adv = {
             "scheduler": CosineAnnealingWarmRestarts(
                 optimizer=opt_adv, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
             ),
-            "interval": self.lr_sched_interval,
+            "interval": self.lr_sched_interval.name,
             "frequency": self.lr_sched_freq,
         }
 
@@ -226,17 +232,17 @@ class Laftr(pl.LightningModule):
         self._inference_epoch_end(output_results=output_results, stage="test")
 
     @implements(pl.LightningModule)
-    def test_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
+    def test_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
         return self._inference_step(batch=batch, stage="test")
 
     @implements(pl.LightningModule)
-    def training_step(self, batch: DataBatch, batch_idx: int, optimizer_idx: int) -> Tensor:
+    def training_step(self, batch: TernarySample, batch_idx: int, optimizer_idx: int) -> Tensor:
         if optimizer_idx == 0:
             # Main model update
             self.set_requires_grad(self.adv, requires_grad=False)
-            model_out = self(batch.x, batch.s)
-            laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
-            adv_loss = self._loss_adv(model_out.s, batch)
+            model_out = self.forward(x=batch.x, s=batch.s)
+            laftr_loss = self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch)
+            adv_loss = self._loss_adv(s_pred=model_out.s, batch=batch)
             target = batch.y.view(-1).long()
             _acc = self.train_acc(model_out.y.argmax(-1), target)
             self.log_dict(
@@ -251,9 +257,9 @@ class Laftr(pl.LightningModule):
             # Adversarial update
             self.set_requires_grad([self.enc, self.dec, self.clf], requires_grad=False)
             self.set_requires_grad(self.adv, requires_grad=True)
-            model_out = self(batch.x, batch.s)
-            adv_loss = self._loss_adv(model_out.s, batch)
-            laftr_loss = self._loss_laftr(model_out.y, model_out.x, batch)
+            model_out = self.forward(x=batch.x, s=batch.s)
+            adv_loss = self._loss_adv(s_pred=model_out.s, batch=batch)
+            laftr_loss = self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch)
             target = batch.y.view(-1).long()
             _acc = self.train_acc(model_out.y.argmax(-1), target)
             self.log_dict(
@@ -269,14 +275,14 @@ class Laftr(pl.LightningModule):
 
     @implements(pl.LightningModule)
     def validation_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
-        self._inference_epoch_end(output_results=output_results, stage="val")
+        self._inference_epoch_end(output_results=output_results, stage="validate")
 
     @implements(pl.LightningModule)
-    def validation_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
-        return self._inference_step(batch=batch, stage="val")
+    def validation_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
+        return self._inference_step(batch=batch, stage="validate")
 
     @implements(nn.Module)
-    def forward(self, x: Tensor, s: Tensor) -> ModelOut:
+    def forward(self, x: Tensor, *, s: Tensor) -> ModelOut:
         embedding = self.enc(x)
         y_pred = self.clf(embedding)
         s_pred = self.adv(embedding)
