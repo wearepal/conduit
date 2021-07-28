@@ -79,7 +79,7 @@ class PBDataset(Dataset):
     ) -> int | None:
         if (self._s_dim is None) and (self.s is not None):
             self._s_dim = len(self.s.unique())
-        return self.s_dim
+        return self._s_dim
 
     @implements(Dataset)
     def __getitem__(self, index: int) -> Tensor | BinarySample | TernarySample:
