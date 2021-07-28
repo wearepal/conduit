@@ -105,31 +105,46 @@ class TabularDataModule(PBDataModule):
             random_seed=self.seed,
         )
 
-        train_data, self.scaler = em.scale_continuous(
+        self._train_datatuple, self.scaler = em.scale_continuous(
             self.em_dataset, datatuple=train_data, scaler=self.scaler  # type: ignore
         )
-        val_data, _ = em.scale_continuous(
+        self._val_datatuple, _ = em.scale_continuous(
             self.em_dataset, datatuple=val_data, scaler=self.scaler, fit=False
         )
-        test_data, _ = em.scale_continuous(
+        self._test_datatuple, _ = em.scale_continuous(
             self.em_dataset, datatuple=test_data, scaler=self.scaler, fit=False
         )
 
         train_data = DataTupleDataset(
-            dataset=train_data,
+            dataset=self._train_datatuple,
             disc_features=self.em_dataset.discrete_features,
             cont_features=self.em_dataset.continuous_features,
         )
 
         val_data = DataTupleDataset(
-            dataset=val_data,
+            dataset=self._val_datatuple,
             disc_features=self.em_dataset.discrete_features,
             cont_features=self.em_dataset.continuous_features,
         )
 
         test_data = DataTupleDataset(
-            dataset=test_data,
+            dataset=self._test_datatuple,
             disc_features=self.em_dataset.discrete_features,
             cont_features=self.em_dataset.continuous_features,
         )
         return TrainValTestSplit(train=train_data, val=val_data, test=test_data)
+
+    @property
+    def train_datatuple(self):
+        assert self._train_datatuple is not None
+        return self._train_datatuple
+
+    @property
+    def val_datatuple(self):
+        assert self._val_datatuple is not None
+        return self._val_datatuple
+
+    @property
+    def test_datatuple(self):
+        assert self._test_datatuple is not None
+        return self._test_datatuple
