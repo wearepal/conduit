@@ -6,7 +6,8 @@ from __future__ import annotations
 from typing import Callable, Dict, Mapping, NamedTuple, Optional
 
 import ethicml as em
-from kit import implements
+from kit import implements, parsable
+from kit.torch import CrossEntropyLoss, ReductionType, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -17,11 +18,12 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
 
 from bolts.common import FairnessType, Stage
-from bolts.fair.data import DataBatch
-from bolts.fair.losses import CrossEntropy
-from bolts.fair.models import LRScheduler, SchedInterval
 
 __all__ = ["FairMixup"]
+
+from bolts.data import TernarySample
+
+from .utils import LRScheduler
 
 
 class Mixed(NamedTuple):
@@ -37,6 +39,7 @@ class Mixed(NamedTuple):
 
 
 class FairMixup(pl.LightningModule):
+    @parsable
     def __init__(
         self,
         enc: nn.Module,
@@ -44,18 +47,18 @@ class FairMixup(pl.LightningModule):
         lr: float,
         weight_decay: float,
         fairness: FairnessType,
-        mixup_lambda: float | None = None,
+        mixup_lambda: Optional[float] = None,
         alpha: float = 1.0,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
-        lr_sched_interval: SchedInterval = "epoch",
+        lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
     ):
         super().__init__()
         self.enc = enc
         self.clf = clf
         self.net = nn.Sequential(self.enc, self.clf)
-        self._loss_fn = CrossEntropy()
+        self._loss_fn = CrossEntropyLoss(reduction=ReductionType.mean)
 
         self.fairness = fairness
         self.mixup_lambda = mixup_lambda
@@ -81,7 +84,7 @@ class FairMixup(pl.LightningModule):
     def target(self, target: str) -> None:
         self._target_name = target
 
-    def training_step(self, batch: DataBatch, batch_idx: int) -> STEP_OUTPUT:
+    def training_step(self, batch: TernarySample, batch_idx: int) -> STEP_OUTPUT:
         mixed = self.mixup_data(
             batch=batch,
             device=self.device,
@@ -118,10 +121,10 @@ class FairMixup(pl.LightningModule):
 
         return loss
 
-    def _get_loss(self, logits: Tensor, batch: DataBatch) -> Tensor:
+    def _get_loss(self, logits: Tensor, batch: TernarySample) -> Tensor:
         return self._loss_fn(input=logits, target=batch.y)
 
-    def _inference_step(self, batch: DataBatch, stage: Stage) -> dict[str, Tensor]:
+    def _inference_step(self, batch: TernarySample, stage: Stage) -> dict[str, Tensor]:
         logits = self.net(batch.x)
 
         loss = self._get_loss(logits, batch)
@@ -184,7 +187,7 @@ class FairMixup(pl.LightningModule):
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
-    def validation_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
+    def validation_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
         return self._inference_step(batch=batch, stage="validate")
 
     @implements(nn.Module)
@@ -197,13 +200,13 @@ class FairMixup(pl.LightningModule):
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
-    def test_step(self, batch: DataBatch, batch_idx: int) -> dict[str, Tensor]:
+    def test_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
         return self._inference_step(batch=batch, stage="test")
 
     @implements(pl.LightningModule)
     def configure_optimizers(
         self,
-    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | SchedInterval]]]:
+    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
         opt = optim.AdamW(
             self.parameters(),
             lr=self.learning_rate,
@@ -213,7 +216,7 @@ class FairMixup(pl.LightningModule):
             "scheduler": CosineAnnealingWarmRestarts(
                 optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
             ),
-            "interval": self.lr_sched_interval,
+            "interval": self.lr_sched_interval.name,
             "frequency": self.lr_sched_freq,
         }
         return [opt], [sched]
@@ -221,7 +224,7 @@ class FairMixup(pl.LightningModule):
     @staticmethod
     def mixup_data(
         *,
-        batch: DataBatch,
+        batch: TernarySample,
         device: torch.device,
         mix_lambda: Optional[float],
         alpha: float,
@@ -326,4 +329,6 @@ class FairMixup(pl.LightningModule):
         tgt_b: Tensor,
         lam: Tensor,
     ) -> Tensor:
-        return lam * criterion(pred, tgt_a) + (1 - lam) * criterion(pred, tgt_b)
+        return lam * criterion(input=pred, target=tgt_a) + (1 - lam) * criterion(
+            input=pred, target=tgt_b
+        )
