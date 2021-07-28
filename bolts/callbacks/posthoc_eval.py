@@ -1,6 +1,7 @@
 from typing import List, NamedTuple, Optional, Sequence
 
 from kit import gcopy
+from kit.torch import CrossEntropyLoss
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
@@ -23,7 +24,7 @@ class EvalModule(pl.LightningModule):
         super().__init__()
         self.enc = enc
         self.clf = clf
-        self._loss = nn.CrossEntropyLoss()
+        self._loss = CrossEntropyLoss()
 
         self._train_acc = torchmetrics.Accuracy()
         self._test_acc = torchmetrics.Accuracy()
@@ -32,7 +33,7 @@ class EvalModule(pl.LightningModule):
         y = self(batch.x)
         _tgt = batch.y.flatten().long()
         self._train_acc(y.argmax(-1), _tgt)
-        loss = self._loss(y, _tgt)
+        loss = self._loss(input=y, target=_tgt)
         self.log_dict({"eval/train_acc": self._train_acc, "eval/train_loss": loss})
         return loss
 
@@ -87,13 +88,13 @@ class PostHocEval(pl.Callback):
     def on_pretrain_routine_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         pl_module.eval_trainer = gcopy(
             trainer,
-            max_epochs=pl_module.clf_epochs,
             callbacks=[
                 cb
                 for cb in trainer.callbacks
                 if not isinstance(cb, (PostHocEval,) + self.ignored_callbacks)
             ],
         )
+        trainer.fit_loop.max_epochs = pl_module.clf_epochs
         self.eval_clf = EvalModule(enc=pl_module.encoder, clf=pl_module.eval_classifier)
 
     def _eval_loop(

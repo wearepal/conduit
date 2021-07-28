@@ -4,7 +4,7 @@ from typing import Mapping, NamedTuple
 
 import ethicml as em
 from kit import implements
-from kit.torch import TrainingMode
+from kit.torch import CrossEntropyLoss, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 import torch
@@ -16,7 +16,6 @@ from typing_inspect import get_args
 
 from bolts.common import Stage
 from bolts.data.structures import TernarySample
-from bolts.fair.losses import CrossEntropy
 from bolts.fair.models.utils import LRScheduler
 
 __all__ = ["Dann"]
@@ -78,8 +77,8 @@ class Dann(pl.LightningModule):
         self.enc = enc
         self.clf = clf
 
-        self._loss_adv_fn = CrossEntropy()
-        self._loss_clf_fn = CrossEntropy()
+        self._loss_adv_fn = CrossEntropyLoss()
+        self._loss_clf_fn = CrossEntropyLoss()
 
         self.accs = MetricCollection(
             {
