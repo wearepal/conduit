@@ -59,18 +59,6 @@ class PBDataset(Dataset):
             x = torch.as_tensor(x)
         return x
 
-    def _sample_s(self, index: int, coerce_to_tensor: bool = False) -> Tensor:
-        s = self.s[index]
-        if coerce_to_tensor and (not isinstance(s, Tensor)):
-            s = torch.as_tensor(s)
-        return s
-
-    def _sample_y(self, index: int, coerce_to_tensor: bool = False) -> Tensor:
-        y = self.y[index]
-        if coerce_to_tensor and (not isinstance(y, Tensor)):
-            y = torch.as_tensor(y)
-        return y
-
     @property
     def dim_x(
         self,
@@ -84,7 +72,7 @@ class PBDataset(Dataset):
         self,
     ) -> tuple[int, ...]:
         if self._dim_s is None:
-            self._dim_s = self._sample_s(0, coerce_to_tensor=True).shape
+            self._dim_s = self.s[0].shape
         return self._dim_s
 
     @property
@@ -92,7 +80,7 @@ class PBDataset(Dataset):
         self,
     ) -> tuple[int, ...]:
         if self._dim_y is None:
-            self._dim_y = self._sample_y(0, coerce_to_tensor=True).shape
+            self._dim_y = self.y[0].shape
         return self._dim_y
 
     @property
