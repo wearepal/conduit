@@ -28,9 +28,11 @@ class PBDataset(Dataset):
         self.y = y if y is None else y.squeeze()
         self.s = s if s is None else s.squeeze()
 
-        self._x_dim: torch.Size | None = None
-        self._y_dim: int | None = None
-        self._s_dim: int | None = None
+        self._dim_x: torch.Size | None = None
+        self._dim_s: torch.Size | None = None
+        self._dim_y: torch.Size | None = None
+        self._card_y: int | None = None
+        self._card_s: int | None = None
 
     def __repr__(self) -> str:
         head = "Dataset " + self.__class__.__name__
@@ -58,28 +60,44 @@ class PBDataset(Dataset):
         return x
 
     @property
-    def x_dim(
+    def dim_x(
         self,
     ) -> tuple[int, ...]:
-        if self._x_dim is None:
-            self._x_dim = self._sample_x(0, coerce_to_tensor=True).shape
-        return self._x_dim
+        if self._dim_x is None:
+            self._dim_x = self._sample_x(0, coerce_to_tensor=True).shape
+        return self._dim_x
 
     @property
-    def y_dim(
+    def dim_s(
         self,
-    ) -> int | None:
-        if (self._y_dim is None) and (self.y is not None):
-            self._y_dim = len(self.y.unique())
-        return self._y_dim
+    ) -> tuple[int, ...]:
+        if self._dim_s is None:
+            self._dim_s = 1 if self.s.ndim == 1 else self.s.shape[1:]
+        return self._dim_s
 
     @property
-    def s_dim(
+    def dim_y(
+        self,
+    ) -> tuple[int, ...]:
+        if self._dim_y is None:
+            self._dim_y = 1 if self.y.ndim == 1 else self.y.shape[1:]
+        return self._dim_y
+
+    @property
+    def card_y(
         self,
     ) -> int | None:
-        if (self._s_dim is None) and (self.s is not None):
-            self._s_dim = len(self.s.unique())
-        return self._s_dim
+        if (self._card_y is None) and (self.y is not None):
+            self._card_y = len(self.y.unique())
+        return self._card_y
+
+    @property
+    def card_s(
+        self,
+    ) -> int | None:
+        if (self._card_s is None) and (self.s is not None):
+            self._card_s = len(self.s.unique())
+        return self._card_s
 
     @implements(Dataset)
     def __getitem__(self, index: int) -> Tensor | BinarySample | TernarySample:

@@ -6,6 +6,7 @@ from typing import Sequence
 from kit import implements
 from kit.torch import SequentialBatchSampler, StratifiedBatchSampler, TrainingMode
 import pytorch_lightning as pl
+import torch
 from torch.utils.data import DataLoader, Sampler
 from torch.utils.data.dataset import Dataset
 
@@ -50,8 +51,11 @@ class PBDataModule(pl.LightningDataModule):
         self.stratified_sampling = stratified_sampling
         self.instance_weighting = instance_weighting
         self.training_mode = training_mode
-        self._s_dim = None
-        self._y_dim = None
+        self._card_s = None
+        self._card_y = None
+        self._dim_x: torch.Size | None = None
+        self._dim_s: torch.Size | None = None
+        self._dim_y: torch.Size | None = None
         self._train_data = None
 
     @property
@@ -140,17 +144,41 @@ class PBDataModule(pl.LightningDataModule):
         self._train_data = train
 
     @property
-    def y_dim(
+    def card_s(
         self,
     ) -> int | None:
-        if (self._y_dim is None) and (self._train_data is not None):
-            self._y_dim = self._train_data.y_dim
-        return self._y_dim
+        if (self._card_s is None) and (self._train_data is not None):
+            self._card_s = self._train_data.card_s
+        return self._card_s
 
     @property
-    def s_dim(
+    def card_y(
         self,
     ) -> int | None:
-        if (self._s_dim is None) and (self._train_data is not None):
-            self._s_dim = self._train_data.s_dim
-        return self._s_dim
+        if (self._card_y is None) and (self._train_data is not None):
+            self._card_y = self._train_data.card_y
+        return self._card_y
+
+    @property
+    def dim_x(
+        self,
+    ) -> tuple[int, ...]:
+        if (self._dim_x is None) and (self._train_data is not None):
+            self._dim_x = self._train_data.dim_x
+        return self._dim_x
+
+    @property
+    def dim_s(
+        self,
+    ) -> tuple[int, ...]:
+        if (self._dim_s is None) and (self._train_data is not None):
+            self._dim_s = self._train_data.dim_s
+        return self._dim_s
+
+    @property
+    def dim_y(
+        self,
+    ) -> tuple[int, ...]:
+        if (self._dim_y is None) and (self._train_data is not None):
+            self._dim_y = self._train_data.dim_y
+        return self._dim_y

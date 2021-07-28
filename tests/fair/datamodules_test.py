@@ -48,6 +48,12 @@ def test_data_modules(dm_cls: type[PBDataModule], stratified: bool) -> None:
     assert batch.s.size() == torch.Size([BATCHSIZE])
     assert batch.y.size() == torch.Size([BATCHSIZE])
 
+    assert dm.dim_x == dm.size()
+    assert dm.dim_s == 1
+    assert dm.dim_y == 1
+    assert dm.card_s == 2
+    assert dm.card_y == 2
+
 
 @pytest.mark.slow
 def test_persist_param() -> None:
