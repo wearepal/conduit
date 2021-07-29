@@ -11,7 +11,12 @@ from torch.utils.data import DataLoader, Sampler
 from torch.utils.data.dataset import Dataset
 
 from bolts.common import Stage
-from bolts.data.datasets.utils import get_group_ids, pb_default_collate
+from bolts.data.datasets.base import PBDataset
+from bolts.data.datasets.utils import (
+    extract_base_dataset,
+    get_group_ids,
+    pb_default_collate,
+)
 from bolts.data.datasets.wrappers import InstanceWeightedDataset
 from bolts.data.structures import TrainValTestSplit
 
@@ -51,12 +56,12 @@ class PBDataModule(pl.LightningDataModule):
         self.stratified_sampling = stratified_sampling
         self.instance_weighting = instance_weighting
         self.training_mode = training_mode
-        self._card_s = None
-        self._card_y = None
+        # Information (cardinality/dimensionality) about the data
+        self._card_s: int | None = None
+        self._card_y: int | None = None
         self._dim_x: torch.Size | None = None
         self._dim_s: torch.Size | None = None
         self._dim_y: torch.Size | None = None
-        self._train_data = None
 
     @property
     def logger(self) -> logging.Logger:
@@ -139,46 +144,16 @@ class PBDataModule(pl.LightningDataModule):
     @implements(pl.LightningDataModule)
     def setup(self, stage: Stage | None = None) -> None:
         train, self._val_data, self._test_data = self._get_splits()
+        # Make information (cardinality/dimensionality) about the dataset directly accessible through the data-module
+        # -- this can only done for datasets inheriting from PbDataset
+        base_dataset = extract_base_dataset(dataset=self._train_data, return_subset_indices=False)
+        if isinstance(base_dataset, PBDataset):
+            self.dim_x = base_dataset.dim_x
+            self.dim_y = base_dataset.dim_y
+            self.dim_s = base_dataset.dim_s
+            self.card_y = base_dataset.card_y
+            self.card_s = base_dataset.card_s
+
         if self.instance_weighting:
             train = InstanceWeightedDataset(train)
         self._train_data = train
-
-    @property
-    def card_s(
-        self,
-    ) -> int | None:
-        if (self._card_s is None) and (self._train_data is not None):
-            self._card_s = self._train_data.card_s
-        return self._card_s
-
-    @property
-    def card_y(
-        self,
-    ) -> int | None:
-        if (self._card_y is None) and (self._train_data is not None):
-            self._card_y = self._train_data.card_y
-        return self._card_y
-
-    @property
-    def dim_x(
-        self,
-    ) -> tuple[int, ...]:
-        if (self._dim_x is None) and (self._train_data is not None):
-            self._dim_x = self._train_data.dim_x
-        return self._dim_x
-
-    @property
-    def dim_s(
-        self,
-    ) -> tuple[int, ...]:
-        if (self._dim_s is None) and (self._train_data is not None):
-            self._dim_s = self._train_data.dim_s
-        return self._dim_s
-
-    @property
-    def dim_y(
-        self,
-    ) -> tuple[int, ...]:
-        if (self._dim_y is None) and (self._train_data is not None):
-            self._dim_y = self._train_data.dim_y
-        return self._dim_y
