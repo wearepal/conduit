@@ -47,7 +47,7 @@ class SSRP(PBVisionDataset):
             download_from_gdrive(file_info=self._FILE_INFO, root=self._base_dir, logger=self.logger)
         if not self._check_unzipped():
             raise RuntimeError(
-                f"Data don't exist at location {self._base_dir.resolve()}. Have you downloaded it?"
+                f"Data not found at location {self._base_dir.resolve()}. Have you downloaded it?"
             )
         if not self._metadata_path.exists():
             self._extract_metadata()

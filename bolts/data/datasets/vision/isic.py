@@ -62,7 +62,7 @@ class ISIC(PBVisionDataset):
             self._preprocess_data()
         elif not self._check_downloaded():
             raise RuntimeError(
-                f"Data don't exist at location {self._processed_dir.resolve()}. "
+                f"Data not found at location {self._processed_dir.resolve()}. "
                 "Have you downloaded it?"
             )
 

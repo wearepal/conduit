@@ -123,7 +123,7 @@ class CelebA(PBVisionDataset):
             download_from_gdrive(file_info=self._FILE_LIST, root=self._base_dir, logger=self.logger)
         elif not self._check_unzipped():
             raise RuntimeError(
-                f"Data don't exist at location {self._base_dir.resolve()}. Have you downloaded it?"
+                f"Data not found at location {self._base_dir.resolve()}. Have you downloaded it?"
             )
 
         if split is None:
