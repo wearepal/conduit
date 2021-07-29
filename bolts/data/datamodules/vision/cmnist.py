@@ -91,8 +91,28 @@ class ColoredMNISTDataModule(PBVisionDataModule):
     @implements(PBDataModule)
     def _get_splits(self) -> TrainValTestSplit:
         # TODO: Add more sophisticated (e.g. biased) splits
-        train_data = ColoredMNIST(root=self.root, train=True)
-        test_data = ColoredMNIST(root=self.root, train=False)
+        train_data = ColoredMNIST(
+            root=self.root,
+            train=True,
+            background=self.background,
+            black=self.black,
+            greyscale=self.greyscale,
+            correlation=self.correlation,
+            colors=self.colors,
+            num_colors=self.num_colors,
+            label_map=self.label_map,
+        )
+        test_data = ColoredMNIST(
+            root=self.root,
+            train=False,
+            background=self.background,
+            black=self.black,
+            greyscale=self.greyscale,
+            correlation=self.correlation,
+            colors=self.colors,
+            num_colors=self.num_colors,
+            label_map=self.label_map,
+        )
         # Use the predefined train and test splits, sampling the val split
         # randomly from the train split
         if self.use_predefined_splits:
