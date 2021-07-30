@@ -13,6 +13,7 @@ from bolts.fair.data import CrimeDataModule, HealthDataModule
 from bolts.fair.data.datamodules import AdultDataModule, CompasDataModule
 from bolts.fair.data.datamodules.tabular.admissions import AdmissionsDataModule
 from bolts.fair.data.datamodules.tabular.credit import CreditDataModule
+from bolts.fair.data.datamodules.tabular.law import LawDataModule
 
 BATCHSIZE: Final[int] = 4
 
@@ -59,6 +60,7 @@ def test_data_modules(dm_cls: type[PBDataModule], stratified: bool) -> None:
         CreditDataModule,
         CrimeDataModule,
         HealthDataModule,
+        LawDataModule,
     ],
 )
 def test_data_modules_props(dm_cls: type[PBDataModule]) -> None:
