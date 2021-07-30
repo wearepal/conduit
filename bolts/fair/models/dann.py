@@ -1,5 +1,4 @@
 """DANN (Domain Adversarial Neural Network) model."""
-
 from __future__ import annotations
 from typing import Mapping, NamedTuple
 
