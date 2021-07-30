@@ -85,12 +85,10 @@ class Laftr(ModelBase):
         self._target_name: str = "y"
 
     @implements(ModelBase)
-    def _inference_epoch_end(
-        self, output_results: list[Mapping[str, Tensor]], stage: Stage
-    ) -> MetricDict:
-        all_y = torch.cat([_r["y"] for _r in output_results], 0)
-        all_s = torch.cat([_r["s"] for _r in output_results], 0)
-        all_preds = torch.cat([_r["preds"] for _r in output_results], 0)
+    def _inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
+        all_y = torch.cat([output_step["y"] for output_step in outputs], 0)
+        all_s = torch.cat([output_step["s"] for output_step in outputs], 0)
+        all_preds = torch.cat([output_step["preds"] for output_step in outputs], 0)
 
         dt = em.DataTuple(
             x=pd.DataFrame(
@@ -109,7 +107,7 @@ class Laftr(ModelBase):
 
         tm_acc = self.val_acc if stage == "validate" else self.test_acc
         results_dict = {f"{stage}/acc": tm_acc.compute()}
-        results_dict.update({f"{stage}/{self.target}_{k}": v for k, v in results.items()})
+        results_dict.update({f"{stage}/{self.target_name}_{k}": v for k, v in results.items()})
 
         return results_dict
 
@@ -126,7 +124,7 @@ class Laftr(ModelBase):
                 f"{stage}/loss": (laftr_loss + adv_loss).item(),
                 f"{stage}/model_loss": laftr_loss.item(),
                 f"{stage}/adv_loss": adv_loss.item(),
-                f"{stage}/{self.target}_acc": _acc,
+                f"{stage}/{self.target_name}_acc": _acc,
             }
         )
         return {

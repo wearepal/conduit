@@ -125,16 +125,14 @@ class Dann(ModelBase):
         return loss
 
     @implements(ModelBase)
-    def _inference_epoch_end(
-        self, output_results: list[Mapping[str, Tensor]], stage: Stage
-    ) -> MetricDict:
-        all_y = torch.cat([_r["y"] for _r in output_results], 0)
-        all_s = torch.cat([_r["s"] for _r in output_results], 0)
-        all_preds = torch.cat([_r["preds"] for _r in output_results], 0)
+    def _inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
+        all_y = torch.cat([output_step["y"] for output_step in outputs], 0)
+        all_s = torch.cat([output_step["s"] for output_step in outputs], 0)
+        all_preds = torch.cat([output_step["preds"] for output_step in outputs], 0)
 
         dt = em.DataTuple(
             x=pd.DataFrame(
-                torch.rand_like(all_s, dtype=float).detach().cpu().numpy(), columns=["x0"]
+                torch.rand_like(all_s, dtype=torch.float).detach().cpu().numpy(), columns=["x0"]
             ),
             s=pd.DataFrame(all_s.detach().cpu().numpy(), columns=["s"]),
             y=pd.DataFrame(all_y.detach().cpu().numpy(), columns=["y"]),

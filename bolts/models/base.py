@@ -17,7 +17,7 @@ __all__ = ["ModelBase"]
 
 class ModelBase(pl.LightningModule):
 
-    _target: str | None
+    _target_name: str | None
 
     def __init__(
         self,
@@ -56,13 +56,13 @@ class ModelBase(pl.LightningModule):
         return [opt], [sched]
 
     @property
-    def target(self) -> str:
-        assert self._target is not None
-        return self._target
+    def target_name(self) -> str:
+        assert self._target_name is not None
+        return self._target_name
 
-    @target.setter
-    def target(self, target: str) -> None:
-        self._target = target
+    @target_name.setter
+    def target_name(self, value: str) -> None:
+        self._target_name = value
 
     @abstractmethod
     def _inference_step(self, batch: NamedSample, stage: Stage) -> STEP_OUTPUT:

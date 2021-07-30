@@ -126,7 +126,7 @@ class FairMixup(ModelBase):
         self.log_dict(
             {
                 f"{stage}/loss": loss.item(),
-                f"{stage}/{self.target}_acc": _acc,
+                f"{stage}/{self.target_name}_acc": _acc,
             }
         )
 
@@ -137,12 +137,10 @@ class FairMixup(ModelBase):
         }
 
     @implements(ModelBase)
-    def _inference_epoch_end(
-        self, output_results: list[Mapping[str, Tensor]], stage: Stage
-    ) -> MetricDict:
-        all_y = torch.cat([_r["y"] for _r in output_results], 0)
-        all_s = torch.cat([_r["s"] for _r in output_results], 0)
-        all_preds = torch.cat([_r["preds"] for _r in output_results], 0)
+    def _inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
+        all_y = torch.cat([step_output["y"] for step_output in outputs], 0)
+        all_s = torch.cat([step_output["s"] for step_output in outputs], 0)
+        all_preds = torch.cat([step_output["preds"] for step_output in outputs], 0)
 
         mean_preds = all_preds.mean(-1)
         mean_preds_s0 = all_preds[all_s == 0].mean(-1)
@@ -165,7 +163,7 @@ class FairMixup(ModelBase):
 
         tm_acc = self.val_acc if stage == "validate" else self.test_acc
         results_dict = {f"{stage}/acc": tm_acc.compute().item()}
-        results_dict.update({f"{stage}/{self.target}_{k}": v for k, v in results.items()})
+        results_dict.update({f"{stage}/{self.target_name}_{k}": v for k, v in results.items()})
         results_dict.update(
             {
                 f"{stage}/DP_Gap": abs(mean_preds_s0 - mean_preds_s1),

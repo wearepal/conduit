@@ -103,11 +103,11 @@ class Gpd(ModelBase):
 
     @implements(ModelBase)
     def _inference_epoch_end(
-        self, output_results: list[Mapping[str, Tensor]], stage: Stage
+        self, outputs: list[Mapping[str, Tensor]], stage: Stage
     ) -> dict[str, Tensor]:
-        all_y = torch.cat([_r["y"] for _r in output_results], 0)
-        all_s = torch.cat([_r["s"] for _r in output_results], 0)
-        all_preds = torch.cat([_r["preds"] for _r in output_results], 0)
+        all_y = torch.cat([step_output["y"] for step_output in outputs], 0)
+        all_s = torch.cat([step_output["s"] for step_output in outputs], 0)
+        all_preds = torch.cat([step_output["preds"] for step_output in outputs], 0)
 
         dt = em.DataTuple(
             x=pd.DataFrame(
