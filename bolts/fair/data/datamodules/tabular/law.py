@@ -1,4 +1,4 @@
-"""Adult Income Dataset."""
+"""Law Admissions Dataset."""
 from enum import Enum
 from typing import Optional
 
@@ -19,7 +19,7 @@ class LawSens(Enum):
 
 
 class LawDataModule(TabularDataModule):
-    """UCI Adult Income Dataset."""
+    """LSAC Law Admissions Dataset."""
 
     @parsable
     def __init__(
