@@ -1,4 +1,5 @@
 """DANN (Domain Adversarial Neural Network) model."""
+
 from __future__ import annotations
 from typing import Mapping, NamedTuple
 
@@ -7,16 +8,16 @@ from kit import implements
 from kit.torch import CrossEntropyLoss, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 import torch
-from torch import Tensor, autograd, nn, optim
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+from torch import Tensor, autograd, nn
 import torchmetrics
 from torchmetrics import MetricCollection
 from typing_inspect import get_args
 
-from bolts.common import Stage
+from bolts.common import MetricDict, Stage
 from bolts.data.structures import TernarySample
-from bolts.fair.models.utils import LRScheduler
+from bolts.models.base import ModelBase
 
 __all__ = ["Dann"]
 
@@ -32,12 +33,14 @@ class GradReverse(autograd.Function):
     @staticmethod
     def forward(ctx: autograd.Function, x: Tensor, lambda_: float) -> Tensor:
         """Do GRL."""
+        if lambda_ < 0:
+            raise ValueError(f"Argument 'lambda_' to GradReverse.forward must be non-negative.")
         ctx.lambda_ = lambda_
         return x
 
     @staticmethod
     def backward(ctx: autograd.Function, grad_output: Tensor) -> tuple[Tensor, Tensor | None]:
-        """Do GRL."""
+        """Reverse (and optionally scale) the gradient."""
         return -ctx.lambda_ * grad_output, None
 
 
@@ -46,7 +49,7 @@ def grad_reverse(features: Tensor, *, lambda_: float = 1.0) -> Tensor:
     return GradReverse.apply(features, lambda_)
 
 
-class Dann(pl.LightningModule):
+class Dann(ModelBase):
     """Ganin's Domain Adversarial NN."""
 
     def __init__(
@@ -55,15 +58,22 @@ class Dann(pl.LightningModule):
         adv: nn.Module,
         enc: nn.Module,
         clf: nn.Module,
-        lr: float,
-        weight_decay: float,
+        lr: float = 3.0e-4,
+        weight_decay: float = 0.0,
         grl_lambda: float = 1.0,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
         lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
     ) -> None:
-        super().__init__()
+        super().__init__(
+            lr=lr,
+            weight_decay=weight_decay,
+            lr_initial_restart=lr_initial_restart,
+            lr_restart_mult=lr_restart_mult,
+            lr_sched_interval=lr_sched_interval,
+            lr_sched_freq=lr_sched_freq,
+        )
         self.grl_lambda = grl_lambda
         self.learning_rate = lr
         self.weight_decay = weight_decay
@@ -88,9 +98,37 @@ class Dann(pl.LightningModule):
             }
         )
 
+    def _get_losses(
+        self, model_out: DannOut, *, batch: TernarySample
+    ) -> tuple[Tensor, Tensor, Tensor]:
+        target_s = batch.s.view(-1, 1).float()
+        loss_adv = self._loss_adv_fn(model_out.s, target=target_s)
+        target_y = batch.y.view(-1, 1).float()
+        loss_clf = self._loss_clf_fn(model_out.y, target=target_y)
+        return loss_adv, loss_clf, loss_adv + loss_clf
+
+    @implements(pl.LightningModule)
+    def training_step(self, batch: TernarySample, batch_idx: int) -> Tensor:
+        model_out: DannOut = self.forward(batch.x)
+        loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
+
+        logs = {
+            f"train/adv_loss": loss_adv.item(),
+            f"train/clf_loss": loss_clf.item(),
+            f"train/loss": loss.item(),
+        }
+        for _label in ("s", "y"):
+            tm_acc = self.accs[f"fit_{_label}"]
+            _target = getattr(batch, _label).view(-1).long()
+            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
+            logs.update({f"train/acc_{_label}": _acc})
+        self.log_dict(logs)
+        return loss
+
+    @implements(ModelBase)
     def _inference_epoch_end(
         self, output_results: list[Mapping[str, Tensor]], stage: Stage
-    ) -> dict[str, Tensor]:
+    ) -> MetricDict:
         all_y = torch.cat([_r["y"] for _r in output_results], 0)
         all_s = torch.cat([_r["s"] for _r in output_results], 0)
         all_preds = torch.cat([_r["preds"] for _r in output_results], 0)
@@ -116,16 +154,8 @@ class Dann(pl.LightningModule):
         results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
         return results_dict
 
-    def _get_losses(
-        self, model_out: DannOut, *, batch: TernarySample
-    ) -> tuple[Tensor, Tensor, Tensor]:
-        target_s = batch.s.view(-1, 1).float()
-        loss_adv = self._loss_adv_fn(model_out.s, target=target_s)
-        target_y = batch.y.view(-1, 1).float()
-        loss_clf = self._loss_clf_fn(model_out.y, target=target_y)
-        return loss_adv, loss_clf, loss_adv + loss_clf
-
-    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
+    @implements(ModelBase)
+    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
         model_out: DannOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
         logs = {
@@ -146,63 +176,14 @@ class Dann(pl.LightningModule):
             "preds": model_out.y.sigmoid().round().squeeze(-1),
         }
 
+    @staticmethod
+    def _maybe_reset_parameters(module: nn.Module) -> None:
+        if hasattr(module, 'reset_parameters'):
+            module.reset_parameters()
+
     def reset_parameters(self) -> None:
         """Reset the models."""
         self.apply(self._maybe_reset_parameters)
-
-    @implements(pl.LightningModule)
-    def configure_optimizers(
-        self,
-    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
-        opt = optim.AdamW(
-            self.parameters(),
-            lr=self.learning_rate,
-            weight_decay=self.weight_decay,
-        )
-        sched = {
-            "scheduler": CosineAnnealingWarmRestarts(
-                optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
-            ),
-            "interval": self.lr_sched_interval.name,
-            "frequency": self.lr_sched_freq,
-        }
-        return [opt], [sched]
-
-    @implements(pl.LightningModule)
-    def test_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
-        results_dict = self._inference_epoch_end(output_results=output_results, stage="test")
-        self.log_dict(results_dict)
-
-    @implements(pl.LightningModule)
-    def test_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
-        return self._inference_step(batch=batch, stage="test")
-
-    @implements(pl.LightningModule)
-    def training_step(self, batch: TernarySample, batch_idx: int) -> Tensor:
-        model_out: DannOut = self.forward(batch.x)
-        loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
-
-        logs = {
-            f"train/adv_loss": loss_adv.item(),
-            f"train/clf_loss": loss_clf.item(),
-            f"train/loss": loss.item(),
-        }
-        for _label in ("s", "y"):
-            tm_acc = self.accs[f"fit_{_label}"]
-            _target = getattr(batch, _label).view(-1).long()
-            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"train/acc_{_label}": _acc})
-        self.log_dict(logs)
-        return loss
-
-    @implements(pl.LightningModule)
-    def validation_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
-        results_dict = self._inference_epoch_end(output_results=output_results, stage="validate")
-        self.log_dict(results_dict)
-
-    @implements(pl.LightningModule)
-    def validation_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
-        return self._inference_step(batch=batch, stage="validate")
 
     @implements(nn.Module)
     def forward(self, x: Tensor) -> DannOut:
@@ -210,8 +191,3 @@ class Dann(pl.LightningModule):
         y = self.clf(z)
         s = self.adv(grad_reverse(z, lambda_=self.grl_lambda))
         return DannOut(s=s, y=y)
-
-    @staticmethod
-    def _maybe_reset_parameters(module: nn.Module) -> None:
-        if hasattr(module, 'reset_parameters'):
-            module.reset_parameters()

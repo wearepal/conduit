@@ -8,15 +8,14 @@ from kit.torch import CrossEntropyLoss, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 import torch
-from torch import Tensor, nn, optim
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+from torch import Tensor, nn
 import torchmetrics
 from torchmetrics import MetricCollection
 from typing_inspect import get_args
 
 from bolts.common import Stage
 from bolts.data.structures import TernarySample
-from bolts.fair.models.utils import LRScheduler
+from bolts.models.base import ModelBase
 
 __all__ = ["Gpd"]
 
@@ -60,7 +59,7 @@ class GpdOut(NamedTuple):
     y: Tensor
 
 
-class Gpd(pl.LightningModule):
+class Gpd(ModelBase):
     """Zhang Mitigating Unwanted Biases."""
 
     def __init__(
@@ -69,20 +68,21 @@ class Gpd(pl.LightningModule):
         adv: nn.Module,
         enc: nn.Module,
         clf: nn.Module,
-        lr: float,
-        weight_decay: float,
+        lr: float = 3.0e-4,
+        weight_decay: float = 0.0,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
         lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
     ) -> None:
-        super().__init__()
-        self.learning_rate = lr
-        self.weight_decay = weight_decay
-        self.lr_initial_restart = lr_initial_restart
-        self.lr_restart_mult = lr_restart_mult
-        self.lr_sched_interval = lr_sched_interval
-        self.lr_sched_freq = lr_sched_freq
+        super().__init__(
+            lr=lr,
+            weight_decay=weight_decay,
+            lr_initial_restart=lr_initial_restart,
+            lr_restart_mult=lr_restart_mult,
+            lr_sched_interval=lr_sched_interval,
+            lr_sched_freq=lr_sched_freq,
+        )
 
         self.adv = adv
         self.enc = enc
@@ -101,6 +101,7 @@ class Gpd(pl.LightningModule):
 
         self.automatic_optimization = False  # Mark for manual optimization
 
+    @implements(ModelBase)
     def _inference_epoch_end(
         self, output_results: list[Mapping[str, Tensor]], stage: Stage
     ) -> dict[str, Tensor]:
@@ -138,54 +139,6 @@ class Gpd(pl.LightningModule):
         loss_clf = self._loss_clf_fn(model_out.y, target=target_y)
         return loss_adv, loss_clf, loss_adv + loss_clf
 
-    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
-        model_out: GpdOut = self.forward(batch.x)
-        loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
-        logs = {
-            f"{stage}/loss": loss.item(),
-            f"{stage}/loss_adv": loss_adv.item(),
-            f"{stage}/loss_clf": loss_clf.item(),
-        }
-
-        for _label in ("s", "y"):
-            tm_acc = self.accs[f"{stage}_{_label}"]
-            _target = getattr(batch, _label).view(-1).long()
-            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"{stage}/acc_{_label}": _acc})
-        self.log_dict(logs)
-        return {
-            "y": batch.y.view(-1),
-            "s": batch.s.view(-1),
-            "preds": model_out.y.sigmoid().round().squeeze(-1),
-        }
-
-    def reset_parameters(self) -> None:
-        """Reset the models."""
-        self.apply(self._maybe_reset_parameters)
-
-    @implements(pl.LightningModule)
-    def configure_optimizers(
-        self,
-    ) -> tuple[list[optim.Optimizer], list[LRScheduler]]:
-        opt = optim.AdamW(
-            self.parameters(),
-            lr=self.learning_rate,
-            weight_decay=self.weight_decay,
-        )
-        sched = CosineAnnealingWarmRestarts(
-            optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
-        )
-        return [opt], [sched]
-
-    @implements(pl.LightningModule)
-    def test_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
-        results_dict = self._inference_epoch_end(output_results=output_results, stage="test")
-        self.log_dict(results_dict)
-
-    @implements(pl.LightningModule)
-    def test_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
-        return self._inference_step(batch=batch, stage="test")
-
     @implements(pl.LightningModule)
     def training_step(self, batch: TernarySample, batch_idx: int) -> None:
         opt = self.optimizers()
@@ -220,14 +173,36 @@ class Gpd(pl.LightningModule):
             sch = self.lr_schedulers()
             sch.step()
 
-    @implements(pl.LightningModule)
-    def validation_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
-        results_dict = self._inference_epoch_end(output_results=output_results, stage="validate")
-        self.log_dict(results_dict)
+    @implements(ModelBase)
+    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
+        model_out: GpdOut = self.forward(batch.x)
+        loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
+        logs = {
+            f"{stage}/loss": loss.item(),
+            f"{stage}/loss_adv": loss_adv.item(),
+            f"{stage}/loss_clf": loss_clf.item(),
+        }
 
-    @implements(pl.LightningModule)
-    def validation_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
-        return self._inference_step(batch=batch, stage="validate")
+        for _label in ("s", "y"):
+            tm_acc = self.accs[f"{stage}_{_label}"]
+            _target = getattr(batch, _label).view(-1).long()
+            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
+            logs.update({f"{stage}/acc_{_label}": _acc})
+        self.log_dict(logs)
+        return {
+            "y": batch.y.view(-1),
+            "s": batch.s.view(-1),
+            "preds": model_out.y.sigmoid().round().squeeze(-1),
+        }
+
+    def reset_parameters(self) -> None:
+        """Reset the models."""
+        self.apply(self._maybe_reset_parameters)
+
+    @staticmethod
+    def _maybe_reset_parameters(module: nn.Module) -> None:
+        if hasattr(module, 'reset_parameters'):
+            module.reset_parameters()
 
     @implements(nn.Module)
     def forward(self, x: Tensor) -> GpdOut:
@@ -235,8 +210,3 @@ class Gpd(pl.LightningModule):
         y = self.clf(z)
         s = self.adv(z)
         return GpdOut(s=s, y=y)
-
-    @staticmethod
-    def _maybe_reset_parameters(module: nn.Module) -> None:
-        if hasattr(module, 'reset_parameters'):
-            module.reset_parameters()

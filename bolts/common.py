@@ -1,16 +1,17 @@
 from __future__ import annotations
-from enum import Enum, auto
+from typing import Dict, Union
 
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR
 from typing_extensions import Literal
 
-__all__ = ["Stage"]
+__all__ = [
+    "LRScheduler",
+    "MetricDict",
+    "Stage",
+]
 
 
 Stage = Literal["fit", "validate", "test"]
-
-
-class FairnessType(Enum):
-    DP = auto()
-    EO = auto()
-    EqOp = auto()
-    No = auto()
+LRScheduler = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
+MetricDict = Dict[str, _METRIC_COLLECTION]

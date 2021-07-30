@@ -9,9 +9,9 @@ import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
-from bolts.common import FairnessType
 from bolts.data.datasets.utils import pb_default_collate
 from bolts.fair.data.datasets import DummyDataset
+from bolts.fair.misc import FairnessType
 from bolts.fair.models import KC, Dann, ErmBaseline, FairMixup, Gpd, Laftr
 
 
