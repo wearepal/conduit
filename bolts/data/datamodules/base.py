@@ -146,7 +146,7 @@ class PBDataModule(pl.LightningDataModule):
         train, self._val_data, self._test_data = self._get_splits()
         # Make information (cardinality/dimensionality) about the dataset directly accessible through the data-module
         # -- this can only done for datasets inheriting from PbDataset
-        base_dataset = extract_base_dataset(dataset=self._train_data, return_subset_indices=False)
+        base_dataset = extract_base_dataset(dataset=train, return_subset_indices=False)
         if isinstance(base_dataset, PBDataset):
             self.dim_x = base_dataset.dim_x
             self.dim_y = base_dataset.dim_y
