@@ -173,9 +173,11 @@ class TabularDataModule(PBDataModule):
 
     def make_feature_groups(self) -> None:
         """Make feature groups for reconstruction."""
-        self._disc_features = self.em_dataset.disc_feature_groups
+        self._disc_features = self.em_dataset.discrete_features
         self._cont_features = self.em_dataset.continuous_features
-        self._feature_groups = dict(discrete=self.grouped_features_indexes(self._disc_features))
+        self._feature_groups = dict(
+            discrete=self.grouped_features_indexes(self.em_dataset.disc_feature_groups)
+        )
 
     def grouped_features_indexes(self, group_iter: dict[str, list[str]]) -> list[slice]:
         """Group discrete features names according to the first segment of their name.
