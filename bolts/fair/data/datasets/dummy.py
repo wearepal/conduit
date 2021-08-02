@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import torch
-from torch.utils.data import Dataset
 
-from bolts.data.structures import TernarySampleIW
+from bolts.data.datasets.base import PBDataset
 
 __all__ = ["DummyDataset"]
 
 
-class DummyDataset(Dataset):
+class DummyDataset(PBDataset):
     """Generate a dummy dataset."""
 
     def __init__(self, *shapes: tuple[int, ...], num_samples: int = 10000) -> None:
@@ -17,16 +16,11 @@ class DummyDataset(Dataset):
             *shapes: list of shapes
             num_samples: how many samples to use in this dataset
         """
-        super().__init__()
         self.shapes = shapes
         self.num_samples = num_samples
 
-    def __len__(self) -> int:
-        return self.num_samples
+        x = torch.randn(num_samples, *shapes[0])
+        s = (torch.rand(num_samples, *shapes[1]) > 0.5).float().squeeze()
+        y = (torch.rand(num_samples, *shapes[1]) > 0.5).float().squeeze()
 
-    def __getitem__(self, idx: int) -> TernarySampleIW:
-        sample = []
-        for shape in self.shapes:
-            spl = torch.rand(*shape)
-            sample.append(spl)
-        return TernarySampleIW(x=sample[0], s=sample[1].round(), y=sample[2].round(), iw=sample[3])
+        super().__init__(x=x, s=s, y=y)

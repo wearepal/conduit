@@ -1,25 +1,24 @@
 """ERM Baseline Model."""
 from __future__ import annotations
-from typing import Mapping
 
 import ethicml as em
 from kit import implements
 from kit.torch import CrossEntropyLoss, ReductionType, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
-from torch import Tensor, nn, optim
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+from torch import Tensor, nn
 import torchmetrics
 
-from bolts.common import Stage
+from bolts.common import MetricDict, Stage
 from bolts.data.structures import TernarySample
-from bolts.fair.models.utils import LRScheduler
+from bolts.models import ModelBase
 
 __all__ = ["ErmBaseline"]
 
 
-class ErmBaseline(pl.LightningModule):
+class ErmBaseline(ModelBase):
     """Empirical Risk Minimisation baseline."""
 
     def __init__(
@@ -27,24 +26,24 @@ class ErmBaseline(pl.LightningModule):
         *,
         enc: nn.Module,
         clf: nn.Module,
-        lr: float,
-        weight_decay: float,
+        lr: float = 3.0e-4,
+        weight_decay: float = 0.0,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
         lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
     ) -> None:
-        super().__init__()
+        super().__init__(
+            lr=lr,
+            weight_decay=weight_decay,
+            lr_initial_restart=lr_initial_restart,
+            lr_restart_mult=lr_restart_mult,
+            lr_sched_interval=lr_sched_interval,
+            lr_sched_freq=lr_sched_freq,
+        )
         self.enc = enc
         self.clf = clf
         self.net = nn.Sequential(self.enc, self.clf)
-
-        self.learning_rate = lr
-        self.weight_decay = weight_decay
-        self.lr_initial_restart = lr_initial_restart
-        self.lr_restart_mult = lr_restart_mult
-        self.lr_sched_interval = lr_sched_interval
-        self.lr_sched_freq = lr_sched_freq
 
         self._target_name = "y"
         self._loss_fn = CrossEntropyLoss(reduction=ReductionType.mean)
@@ -53,20 +52,28 @@ class ErmBaseline(pl.LightningModule):
         self.train_acc = torchmetrics.Accuracy()
         self.val_acc = torchmetrics.Accuracy()
 
-    @property
-    def target(self) -> str:
-        return self._target_name
+    def _get_loss(self, logits: Tensor, *, batch: TernarySample) -> Tensor:
+        return self._loss_fn(input=logits, target=batch.y)
 
-    @target.setter
-    def target(self, target: str) -> None:
-        self._target_name = target
+    @implements(pl.LightningModule)
+    def training_step(self, batch: TernarySample, batch_idx: int) -> STEP_OUTPUT:
+        logits = self.forward(batch.x)
+        loss = self._get_loss(logits=logits, batch=batch)
+        target = batch.y.view(-1).long()
+        _acc = self.train_acc(logits.argmax(-1), target)
+        self.log_dict(
+            {
+                f"train/loss": loss.item(),
+                f"train/acc": _acc,
+            }
+        )
+        return loss
 
-    def _inference_epoch_end(
-        self, output_results: list[Mapping[str, Tensor]], stage: Stage
-    ) -> dict[str, Tensor]:
-        all_y = torch.cat([_r["y"] for _r in output_results], 0)
-        all_s = torch.cat([_r["s"] for _r in output_results], 0)
-        all_preds = torch.cat([_r["preds"] for _r in output_results], 0)
+    @implements(ModelBase)
+    def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
+        all_y = torch.cat([step_output["y"] for step_output in outputs], 0)
+        all_s = torch.cat([step_output["s"] for step_output in outputs], 0)
+        all_preds = torch.cat([step_output["preds"] for step_output in outputs], 0)
 
         dt = em.DataTuple(
             x=pd.DataFrame(
@@ -84,11 +91,12 @@ class ErmBaseline(pl.LightningModule):
         )
 
         tm_acc = self.val_acc if stage == "validate" else self.test_acc
-        results_dict = {f"{stage}/acc": tm_acc.compute()}
-        results_dict.update({f"{stage}/{self.target}_{k}": v for k, v in results.items()})
+        results_dict = {f"{stage}/acc": tm_acc.compute().item()}
+        results_dict.update({f"{stage}/{self.target_name}_{k}": v for k, v in results.items()})
         return results_dict
 
-    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
+    @implements(ModelBase)
+    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
         logits = self.forward(batch.x)
         loss = self._get_loss(logits=logits, batch=batch)
         tm_acc = self.val_acc if stage == "validate" else self.test_acc
@@ -97,7 +105,7 @@ class ErmBaseline(pl.LightningModule):
         self.log_dict(
             {
                 f"{stage}/loss": loss.item(),
-                f"{stage}/{self.target}_acc": _acc,
+                f"{stage}/{self.target_name}_acc": _acc,
             }
         )
         return {
@@ -106,69 +114,16 @@ class ErmBaseline(pl.LightningModule):
             "preds": logits.sigmoid().round().squeeze(-1),
         }
 
-    def _get_loss(self, logits: Tensor, *, batch: TernarySample) -> Tensor:
-        return self._loss_fn(input=logits, target=batch.y)
+    @staticmethod
+    def _maybe_reset_parameters(module: nn.Module) -> None:
+        if hasattr(module, 'reset_parameters'):
+            module.reset_parameters()  # type: ignore
 
     def reset_parameters(self) -> None:
         """Reset the models."""
         self.enc.apply(self._maybe_reset_parameters)
         self.clf.apply(self._maybe_reset_parameters)
 
-    @implements(pl.LightningModule)
-    def configure_optimizers(
-        self,
-    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
-        opt = optim.AdamW(
-            self.parameters(),
-            lr=self.learning_rate,
-            weight_decay=self.weight_decay,
-        )
-        sched = {
-            "scheduler": CosineAnnealingWarmRestarts(
-                optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
-            ),
-            "interval": self.lr_sched_interval.name,
-            "frequency": self.lr_sched_freq,
-        }
-        return [opt], [sched]
-
-    @implements(pl.LightningModule)
-    def test_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
-        results_dict = self._inference_epoch_end(output_results=output_results, stage="test")
-        self.log_dict(results_dict)
-
-    @implements(pl.LightningModule)
-    def test_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
-        return self._inference_step(batch=batch, stage="test")
-
-    @implements(pl.LightningModule)
-    def training_step(self, batch: TernarySample, batch_idx: int) -> Tensor:
-        logits = self.forward(batch.x)
-        loss = self._get_loss(logits=logits, batch=batch)
-        target = batch.y.view(-1).long()
-        _acc = self.train_acc(logits.argmax(-1), target)
-        self.log_dict(
-            {
-                f"train/loss": loss.item(),
-                f"train/acc": _acc,
-            }
-        )
-        return loss
-
-    @implements(pl.LightningModule)
-    def validation_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
-        results_dict = self._inference_epoch_end(output_results=output_results, stage="validate")
-        self.log_dict(results_dict)
-
-    @implements(pl.LightningModule)
-    def validation_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
-        return self._inference_step(batch=batch, stage="validate")
-
     @implements(nn.Module)
     def forward(self, x: Tensor) -> Tensor:
         return self.net(x)
-
-    @staticmethod
-    def _maybe_reset_parameters(module: nn.Module) -> None:
-        if hasattr(module, 'reset_parameters'):
-            module.reset_parameters()

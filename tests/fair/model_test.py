@@ -9,9 +9,10 @@ import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
-from bolts.common import FairnessType
 from bolts.data.datasets.utils import pb_default_collate
+from bolts.data.datasets.wrappers import InstanceWeightedDataset
 from bolts.fair.data.datasets import DummyDataset
+from bolts.fair.misc import FairnessType
 from bolts.fair.models import KC, Dann, ErmBaseline, FairMixup, Gpd, Laftr
 
 
@@ -230,14 +231,18 @@ class DummyBase(pl.LightningDataModule):
 
 class DummyDataModule(DummyBase):
     def _get_dl(self) -> DataLoader:
-        train_ds = DummyDataset((3, 64, 64), (1,), (1,), (1,), num_samples=100)
-        return DataLoader(train_ds, batch_size=20, collate_fn=pb_default_collate)
+        train_ds = InstanceWeightedDataset(
+            DummyDataset((3, 64, 64), (1,), (1,), (1,), num_samples=50)
+        )
+        return DataLoader(train_ds, batch_size=25, collate_fn=pb_default_collate, shuffle=False)
 
 
 class DummyDataModuleDim2(DummyBase):
     def _get_dl(self) -> DataLoader:
-        train_ds = DummyDataset((3, 64, 64), (1, 1), (1, 1), (1, 1), num_samples=100)
-        return DataLoader(train_ds, batch_size=20, collate_fn=pb_default_collate)
+        train_ds = InstanceWeightedDataset(
+            DummyDataset((3, 64, 64), (1, 1), (1, 1), (1, 1), num_samples=50)
+        )
+        return DataLoader(train_ds, batch_size=25, collate_fn=pb_default_collate, shuffle=False)
 
 
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])

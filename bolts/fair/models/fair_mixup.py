@@ -12,18 +12,16 @@ import pandas as pd
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 import torch
-from torch import Tensor, nn, optim
+from torch import Tensor, nn
 from torch.distributions import Beta
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
 
-from bolts.common import FairnessType, Stage
+from bolts.common import MetricDict, Stage
+from bolts.data import TernarySample
+from bolts.fair.misc import FairnessType
+from bolts.models.base import ModelBase
 
 __all__ = ["FairMixup"]
-
-from bolts.data import TernarySample
-
-from .utils import LRScheduler
 
 
 class Mixed(NamedTuple):
@@ -38,7 +36,7 @@ class Mixed(NamedTuple):
     stats: Dict[str, float]
 
 
-class FairMixup(pl.LightningModule):
+class FairMixup(ModelBase):
     @parsable
     def __init__(
         self,
@@ -53,37 +51,33 @@ class FairMixup(pl.LightningModule):
         lr_restart_mult: int = 2,
         lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
-    ):
-        super().__init__()
+    ) -> None:
+        super().__init__(
+            lr=lr,
+            weight_decay=weight_decay,
+            lr_initial_restart=lr_initial_restart,
+            lr_restart_mult=lr_restart_mult,
+            lr_sched_interval=lr_sched_interval,
+            lr_sched_freq=lr_sched_freq,
+        )
         self.enc = enc
         self.clf = clf
         self.net = nn.Sequential(self.enc, self.clf)
-        self._loss_fn = CrossEntropyLoss(reduction=ReductionType.mean)
-
         self.fairness = fairness
         self.mixup_lambda = mixup_lambda
         self.alpha = alpha
-        self._target_name = "y"
 
-        self.learning_rate = lr
-        self.weight_decay = weight_decay
-        self.lr_initial_restart = lr_initial_restart
-        self.lr_restart_mult = lr_restart_mult
-        self.lr_sched_interval = lr_sched_interval
-        self.lr_sched_freq = lr_sched_freq
+        self._target_name = "y"
+        self._loss_fn = CrossEntropyLoss(reduction=ReductionType.mean)
 
         self.test_acc = torchmetrics.Accuracy()
         self.train_acc = torchmetrics.Accuracy()
         self.val_acc = torchmetrics.Accuracy()
 
-    @property
-    def target(self) -> str:
-        return self._target_name
+    def _get_loss(self, logits: Tensor, batch: TernarySample) -> Tensor:
+        return self._loss_fn(input=logits, target=batch.y)
 
-    @target.setter
-    def target(self, target: str) -> None:
-        self._target_name = target
-
+    @implements(pl.LightningModule)
     def training_step(self, batch: TernarySample, batch_idx: int) -> STEP_OUTPUT:
         mixed = self.mixup_data(
             batch=batch,
@@ -121,10 +115,8 @@ class FairMixup(pl.LightningModule):
 
         return loss
 
-    def _get_loss(self, logits: Tensor, batch: TernarySample) -> Tensor:
-        return self._loss_fn(input=logits, target=batch.y)
-
-    def _inference_step(self, batch: TernarySample, stage: Stage) -> dict[str, Tensor]:
+    @implements(ModelBase)
+    def _inference_step(self, batch: TernarySample, stage: Stage) -> STEP_OUTPUT:
         logits = self.net(batch.x)
 
         loss = self._get_loss(logits, batch)
@@ -134,7 +126,7 @@ class FairMixup(pl.LightningModule):
         self.log_dict(
             {
                 f"{stage}/loss": loss.item(),
-                f"{stage}/{self.target}_acc": _acc,
+                f"{stage}/{self.target_name}_acc": _acc,
             }
         )
 
@@ -144,12 +136,11 @@ class FairMixup(pl.LightningModule):
             "preds": logits.softmax(-1)[:, 1],
         }
 
-    def _inference_epoch_end(
-        self, results: list[Mapping[str, Tensor]], stage: Stage
-    ) -> dict[str, float]:
-        all_y = torch.cat([_r["y"] for _r in results], 0)
-        all_s = torch.cat([_r["s"] for _r in results], 0)
-        all_preds = torch.cat([_r["preds"] for _r in results], 0)
+    @implements(ModelBase)
+    def _inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
+        all_y = torch.cat([step_output["y"] for step_output in outputs], 0)
+        all_s = torch.cat([step_output["s"] for step_output in outputs], 0)
+        all_preds = torch.cat([step_output["preds"] for step_output in outputs], 0)
 
         mean_preds = all_preds.mean(-1)
         mean_preds_s0 = all_preds[all_s == 0].mean(-1)
@@ -157,7 +148,7 @@ class FairMixup(pl.LightningModule):
 
         dt = em.DataTuple(
             x=pd.DataFrame(
-                torch.rand_like(all_s, dtype=float).detach().cpu().numpy(), columns=["x0"]
+                torch.rand_like(all_s, dtype=torch.float).detach().cpu().numpy(), columns=["x0"]
             ),
             s=pd.DataFrame(all_s.detach().cpu().numpy(), columns=["s"]),
             y=pd.DataFrame(all_y.detach().cpu().numpy(), columns=["y"]),
@@ -171,8 +162,8 @@ class FairMixup(pl.LightningModule):
         )
 
         tm_acc = self.val_acc if stage == "validate" else self.test_acc
-        results_dict = {f"{stage}/acc": tm_acc.compute()}
-        results_dict.update({f"{stage}/{self.target}_{k}": v for k, v in results.items()})
+        results_dict = {f"{stage}/acc": tm_acc.compute().item()}
+        results_dict.update({f"{stage}/{self.target_name}_{k}": v for k, v in results.items()})
         results_dict.update(
             {
                 f"{stage}/DP_Gap": abs(mean_preds_s0 - mean_preds_s1),
@@ -181,45 +172,9 @@ class FairMixup(pl.LightningModule):
         )
         return results_dict
 
-    @implements(pl.LightningModule)
-    def validation_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
-        results_dict = self._inference_epoch_end(results=output_results, stage="validate")
-        self.log_dict(results_dict)
-
-    @implements(pl.LightningModule)
-    def validation_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
-        return self._inference_step(batch=batch, stage="validate")
-
     @implements(nn.Module)
     def forward(self, x: Tensor) -> Tensor:
         return self.net(x)
-
-    @implements(pl.LightningModule)
-    def test_epoch_end(self, output_results: list[Mapping[str, Tensor]]) -> None:
-        results_dict = self._inference_epoch_end(results=output_results, stage="test")
-        self.log_dict(results_dict)
-
-    @implements(pl.LightningModule)
-    def test_step(self, batch: TernarySample, batch_idx: int) -> dict[str, Tensor]:
-        return self._inference_step(batch=batch, stage="test")
-
-    @implements(pl.LightningModule)
-    def configure_optimizers(
-        self,
-    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
-        opt = optim.AdamW(
-            self.parameters(),
-            lr=self.learning_rate,
-            weight_decay=self.weight_decay,
-        )
-        sched = {
-            "scheduler": CosineAnnealingWarmRestarts(
-                optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
-            ),
-            "interval": self.lr_sched_interval.name,
-            "frequency": self.lr_sched_freq,
-        }
-        return [opt], [sched]
 
     @staticmethod
     def mixup_data(
