@@ -20,7 +20,7 @@ BATCHSIZE: Final[int] = 4
 
 def _create_dm(dm_cls: type[PBDataModule], stratified: bool = False) -> PBDataModule:
     dm_kwargs = dict(
-        batch_size=BATCHSIZE,
+        train_batch_size=BATCHSIZE,
         stratified_sampling=stratified,
     )
     dm = dm_cls(**dm_kwargs)  # type: ignore[arg-type]
