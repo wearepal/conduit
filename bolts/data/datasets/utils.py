@@ -1,6 +1,6 @@
 from __future__ import annotations
 from collections.abc import Mapping
-from dataclasses import astuple, is_dataclass
+from dataclasses import fields, is_dataclass
 from functools import lru_cache
 import logging
 from pathlib import Path
@@ -19,16 +19,19 @@ from torch.utils.data._utils.collate import (
     np_str_obj_array_pattern,
     string_classes,
 )
-from torchvision.transforms import functional as F
+from torchvision.transforms import functional as TF
 from typing_extensions import Literal, get_args
 
 __all__ = [
     "AlbumentationsTform",
+    "FileInfo",
     "ImageLoadingBackend",
     "ImageTform",
     "PillowTform",
     "RawImage",
     "apply_image_transform",
+    "check_integrity",
+    "download_from_gdrive",
     "extract_base_dataset",
     "extract_labels_from_dataset",
     "get_group_ids",
@@ -36,9 +39,6 @@ __all__ = [
     "infer_il_backend",
     "load_image",
     "pb_default_collate",
-    "check_integrity",
-    "download_from_gdrive",
-    "FileInfo",
 ]
 
 
@@ -102,7 +102,7 @@ def apply_image_transform(
 
 def img_to_tensor(img: Image.Image | np.ndarray) -> Tensor:
     if isinstance(img, Image.Image):
-        return F.pil_to_tensor(img)
+        return TF.pil_to_tensor(img)
     return torch.from_numpy(
         np.moveaxis(img / (255.0 if img.dtype == np.uint8 else 1), -1, 0).astype(np.float32)
     )
@@ -240,9 +240,14 @@ def pb_default_collate(batch: list[Any]) -> Any:
     elif isinstance(elem, Mapping):
         return {key: pb_default_collate([d[key] for d in batch]) for key in elem}
     elif isinstance(elem, tuple) and hasattr(elem, "_fields"):  # namedtuple
-        return elem_type(*(pb_default_collate(samples) for samples in zip(*batch)))
+        return elem_type(**(pb_default_collate(samples) for samples in zip(*batch)))
     elif is_dataclass(elem):  # dataclass
-        return elem_type(*pb_default_collate([astuple(sample) for sample in batch]))
+        return elem_type(
+            **{
+                field.name: pb_default_collate([getattr(d, field.name) for d in batch])
+                for field in fields(elem)
+            }
+        )
     elif isinstance(elem, (tuple, list)):
         transposed = zip(*batch)
         return [pb_default_collate(samples) for samples in transposed]

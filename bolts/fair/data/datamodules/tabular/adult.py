@@ -1,6 +1,6 @@
 """Adult Income Dataset."""
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 import ethicml as em
 from ethicml.preprocessing.scaling import ScalerType
@@ -43,8 +43,8 @@ class AdultDataModule(TabularDataModule):
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
         scaler: Optional[ScalerType] = None,
-        training_mode: TrainingMode = TrainingMode.epoch,
-    ):
+        training_mode: Union[TrainingMode, str] = TrainingMode.epoch,
+    ) -> None:
         super().__init__(
             batch_size=batch_size,
             num_workers=num_workers,

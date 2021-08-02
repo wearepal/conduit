@@ -1,5 +1,5 @@
 """CelebA data-module."""
-from typing import Any
+from typing import Any, Union
 
 import albumentations as A
 from kit import implements, parsable
@@ -36,7 +36,7 @@ class CelebADataModule(PBVisionDataModule):
         use_predefined_splits: bool = False,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
-        training_mode: TrainingMode = TrainingMode.epoch,
+        training_mode: Union[TrainingMode, str] = TrainingMode.epoch,
     ) -> None:
         super().__init__(
             root=root,

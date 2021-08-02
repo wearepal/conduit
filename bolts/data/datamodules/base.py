@@ -1,9 +1,10 @@
 """Base class from which all data-modules in palbolts inherit."""
 from __future__ import annotations
 import logging
-from typing import Sequence
+from typing import Sequence, Union
 
 from kit import implements
+from kit.misc import str_to_enum
 from kit.torch import SequentialBatchSampler, StratifiedBatchSampler, TrainingMode
 import pytorch_lightning as pl
 import torch
@@ -43,7 +44,7 @@ class PBDataModule(pl.LightningDataModule):
         pin_memory: bool = True,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
-        training_mode: TrainingMode = TrainingMode.epoch,
+        training_mode: Union[TrainingMode, str] = TrainingMode.epoch,
     ) -> None:
         super().__init__()
         self.batch_size = batch_size
@@ -55,6 +56,8 @@ class PBDataModule(pl.LightningDataModule):
         self.pin_memory = pin_memory
         self.stratified_sampling = stratified_sampling
         self.instance_weighting = instance_weighting
+        if isinstance(training_mode, str):
+            training_mode = str_to_enum(str_=training_mode, enum=TrainingMode)
         self.training_mode = training_mode
         # Information (cardinality/dimensionality) about the data
         self._card_s: int | None = None

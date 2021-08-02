@@ -1,6 +1,7 @@
 """Tabular data-module."""
 from __future__ import annotations
 from abc import abstractmethod
+from typing import Union
 
 import ethicml as em
 from ethicml.preprocessing.scaling import ScalerType
@@ -32,7 +33,7 @@ class TabularDataModule(PBDataModule):
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
         scaler: ScalerType | None = None,
-        training_mode: TrainingMode = TrainingMode.epoch,
+        training_mode: Union[TrainingMode, str] = TrainingMode.epoch,
     ) -> None:
         """Base data-module for tabular data.
 
