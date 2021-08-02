@@ -1,7 +1,7 @@
 """Base class from which all data-modules in palbolts inherit."""
 from __future__ import annotations
 import logging
-from typing import Sequence, Union
+from typing import Optional, Sequence, Union
 
 from kit import implements
 from kit.misc import str_to_enum
@@ -35,7 +35,8 @@ class PBDataModule(pl.LightningDataModule):
     def __init__(
         self,
         *,
-        batch_size: int = 64,
+        train_batch_size: int = 64,
+        eval_batch_size: Optional[int] = 100,
         val_prop: float = 0.2,
         test_prop: float = 0.2,
         num_workers: int = 0,
@@ -47,7 +48,8 @@ class PBDataModule(pl.LightningDataModule):
         training_mode: Union[TrainingMode, str] = TrainingMode.epoch,
     ) -> None:
         super().__init__()
-        self.batch_size = batch_size
+        self.train_batch_size = train_batch_size
+        self.eval_batch_size = train_batch_size if eval_batch_size is None else eval_batch_size
         self.num_workers = num_workers
         self.val_prop = val_prop
         self.test_prop = test_prop
@@ -83,6 +85,7 @@ class PBDataModule(pl.LightningDataModule):
         self,
         ds: Dataset,
         *,
+        batch_size: int,
         shuffle: bool = False,
         drop_last: bool = False,
         batch_sampler: Sampler[Sequence[int]] | None = None,
@@ -90,7 +93,7 @@ class PBDataModule(pl.LightningDataModule):
         """Make DataLoader."""
         return DataLoader(
             ds,
-            batch_size=1 if batch_sampler is not None else self.batch_size,
+            batch_size=batch_size if batch_sampler is None else 1,
             shuffle=shuffle,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
@@ -103,7 +106,7 @@ class PBDataModule(pl.LightningDataModule):
     def train_dataloader(
         self, *, shuffle: bool = False, drop_last: bool = False, batch_size: int | None = None
     ) -> DataLoader:
-        batch_size = self.batch_size if batch_size is None else batch_size
+        batch_size = self.train_batch_size if batch_size is None else batch_size
 
         if self.stratified_sampling:
             group_ids = get_group_ids(self._train_data)
@@ -131,15 +134,17 @@ class PBDataModule(pl.LightningDataModule):
                 training_mode=self.training_mode,
                 drop_last=drop_last,
             )
-        return self.make_dataloader(ds=self._train_data, batch_sampler=batch_sampler)
+        return self.make_dataloader(
+            batch_size=self.train_batch_size, ds=self._train_data, batch_sampler=batch_sampler
+        )
 
     @implements(pl.LightningDataModule)
     def val_dataloader(self) -> DataLoader:
-        return self.make_dataloader(ds=self._val_data)
+        return self.make_dataloader(batch_size=self.eval_batch_size, ds=self._val_data)
 
     @implements(pl.LightningDataModule)
     def test_dataloader(self) -> DataLoader:
-        return self.make_dataloader(ds=self._test_data)
+        return self.make_dataloader(batch_size=self.eval_batch_size, ds=self._test_data)
 
     def _get_splits(self) -> TrainValTestSplit:
         ...

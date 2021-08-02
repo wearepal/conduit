@@ -27,7 +27,8 @@ class CompasDataModule(TabularDataModule):
         sens_feat: CompasSens = CompasSens.sex,
         disc_feats_only: bool = False,
         # Below are super vars. Not doing *args **kwargs due to this being parsable
-        batch_size: int = 100,
+        train_batch_size: int = 100,
+        eval_batch_size: Optional[int] = 256,
         num_workers: int = 0,
         val_prop: float = 0.2,
         test_prop: float = 0.2,
@@ -40,7 +41,8 @@ class CompasDataModule(TabularDataModule):
         training_mode: Union[TrainingMode, str] = TrainingMode.epoch,
     ) -> None:
         super().__init__(
-            batch_size=batch_size,
+            train_batch_size=train_batch_size,
+            eval_batch_size=eval_batch_size,
             num_workers=num_workers,
             val_prop=val_prop,
             test_prop=test_prop,

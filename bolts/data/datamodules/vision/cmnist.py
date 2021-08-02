@@ -26,7 +26,8 @@ class ColoredMNISTDataModule(PBVisionDataModule):
         root: str,
         *,
         image_size: int = 32,
-        batch_size: int = 100,
+        train_batch_size: int = 64,
+        eval_batch_size: Optional[int] = 100,
         num_workers: int = 0,
         val_prop: float = 0.2,
         test_prop: float = 0.2,
@@ -50,7 +51,8 @@ class ColoredMNISTDataModule(PBVisionDataModule):
     ) -> None:
         super().__init__(
             root=root,
-            batch_size=batch_size,
+            train_batch_size=train_batch_size,
+            eval_batch_size=eval_batch_size,
             num_workers=num_workers,
             val_prop=val_prop,
             test_prop=test_prop,

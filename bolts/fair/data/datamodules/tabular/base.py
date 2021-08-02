@@ -1,7 +1,7 @@
 """Tabular data-module."""
 from __future__ import annotations
 from abc import abstractmethod
-from typing import Union
+from typing import Optional, Union
 
 import ethicml as em
 from ethicml.preprocessing.scaling import ScalerType
@@ -23,7 +23,8 @@ class TabularDataModule(PBDataModule):
     def __init__(
         self,
         *,
-        batch_size: int = 100,
+        train_batch_size: int = 100,
+        eval_batch_size: Optional[int] = 256,
         num_workers: int = 0,
         val_prop: float = 0.2,
         test_prop: float = 0.2,
@@ -49,7 +50,8 @@ class TabularDataModule(PBDataModule):
             stratified_sampling: Use startified sampling?
         """
         super().__init__(
-            batch_size=batch_size,
+            train_batch_size=train_batch_size,
+            eval_batch_size=eval_batch_size,
             num_workers=num_workers,
             persist_workers=persist_workers,
             pin_memory=pin_memory,

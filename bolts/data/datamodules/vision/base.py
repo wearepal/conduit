@@ -2,7 +2,7 @@
 from __future__ import annotations
 from abc import abstractmethod
 from pathlib import Path
-from typing import ClassVar, Union
+from typing import ClassVar, Optional, Union
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -28,7 +28,8 @@ class PBVisionDataModule(PBDataModule):
         self,
         root: Union[str, Path],
         *,
-        batch_size: int = 64,
+        train_batch_size: int = 64,
+        eval_batch_size: Optional[int] = 100,
         num_workers: int = 0,
         val_prop: float = 0.2,
         test_prop: float = 0.2,
@@ -40,7 +41,8 @@ class PBVisionDataModule(PBDataModule):
         training_mode: Union[TrainingMode, str] = TrainingMode.epoch,
     ) -> None:
         super().__init__(
-            batch_size=batch_size,
+            train_batch_size=train_batch_size,
+            eval_batch_size=eval_batch_size,
             num_workers=num_workers,
             persist_workers=persist_workers,
             pin_memory=pin_memory,
