@@ -1,6 +1,6 @@
 from __future__ import annotations
 from collections.abc import Mapping
-from dataclasses import astuple, fields, is_dataclass
+from dataclasses import asdict, astuple, fields, is_dataclass
 from functools import lru_cache
 import logging
 from pathlib import Path
@@ -38,7 +38,6 @@ __all__ = [
     "img_to_tensor",
     "infer_il_backend",
     "load_image",
-    "pb_astuple",
     "pb_default_collate",
 ]
 
@@ -205,17 +204,6 @@ def compute_instance_weights(dataset: Dataset) -> Tensor:
     return group_ids / counts
 
 
-def pb_astuple(dataclass: object) -> tuple[Any, ...]:
-    """
-    dataclasses.astuple() but without deep-copying and recursion.
-    This function has the more limited intended functionality of just extracting fields
-    (in order) into an tuple.
-    """
-    if not is_dataclass(dataclass):
-        raise TypeError("pb_astuple() should be called on dataclass instances")
-    return tuple(getattr(dataclass, field.name) for field in fields(dataclass))
-
-
 def pb_default_collate(batch: list[Any]) -> Any:
     elem = batch[0]
     elem_type = type(elem)
@@ -252,9 +240,14 @@ def pb_default_collate(batch: list[Any]) -> Any:
     elif isinstance(elem, Mapping):
         return {key: pb_default_collate([d[key] for d in batch]) for key in elem}
     elif isinstance(elem, tuple) and hasattr(elem, "_fields"):  # namedtuple
-        return elem_type(*(pb_default_collate(samples) for samples in zip(*batch)))
+        return elem_type(**(pb_default_collate(samples) for samples in zip(*batch)))
     elif is_dataclass(elem):  # dataclass
-        return elem_type(*pb_default_collate([pb_astuple(sample) for sample in batch]))
+        return elem_type(
+            **{
+                field.name: pb_default_collate([getattr(d, field.name) for d in batch])
+                for field in fields(elem)
+            }
+        )
     elif isinstance(elem, (tuple, list)):
         transposed = zip(*batch)
         return [pb_default_collate(samples) for samples in transposed]
