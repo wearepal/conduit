@@ -204,7 +204,7 @@ def compute_instance_weights(dataset: Dataset) -> Tensor:
     group_ids = get_group_ids(dataset)
     _, counts = group_ids.unique(return_counts=True)
     group_weights = len(group_ids) / counts
-    return group_weights[group_ids].float()
+    return group_weights[group_ids]
 
 
 def shallow_astuple(dataclass: object) -> tuple[Any, ...]:
