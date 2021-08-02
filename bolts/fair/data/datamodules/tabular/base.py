@@ -34,7 +34,7 @@ class TabularDataModule(PBDataModule):
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
         scaler: ScalerType | None = None,
-        training_mode: Union[TrainingMode, str] = TrainingMode.epoch,
+        training_mode: Union[TrainingMode, str] = "epoch",
     ) -> None:
         """Base data-module for tabular data.
 

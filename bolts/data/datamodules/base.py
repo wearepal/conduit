@@ -45,7 +45,7 @@ class PBDataModule(pl.LightningDataModule):
         pin_memory: bool = True,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
-        training_mode: Union[TrainingMode, str] = TrainingMode.epoch,
+        training_mode: Union[TrainingMode, str] = "epoch",
     ) -> None:
         super().__init__()
         self.train_batch_size = train_batch_size
