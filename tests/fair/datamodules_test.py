@@ -81,6 +81,9 @@ def test_data_modules_props(dm_cls: type[PBDataModule]) -> None:
     assert isinstance(dm.disc_features, list)
     if len(dm.disc_features) > 0:
         assert isinstance(dm.disc_features[0], str)
+    for batch in dm.train_dataloader():
+        x = batch.x
+        assert x is not None
 
 
 @pytest.mark.slow

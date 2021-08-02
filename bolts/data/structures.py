@@ -1,6 +1,5 @@
 """Data structures."""
 from __future__ import annotations
-from dataclasses import dataclass
 from typing import NamedTuple, Union
 
 from PIL import Image
@@ -24,33 +23,47 @@ __all__ = [
 ]
 
 
-@dataclass(frozen=True)
-class NamedSample:
+class NamedSample(NamedTuple):
     x: Tensor | np.ndarray | Image.Image
 
     def __len__(self) -> int:
         return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
 
 
-@dataclass(frozen=True)
-class BinarySample(NamedSample):
+class BinarySample(NamedTuple):
+    x: Tensor | np.ndarray | Image.Image
     y: Tensor
 
+    def __len__(self) -> int:
+        return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
 
-@dataclass(frozen=True)
-class BinarySampleIW(BinarySample):
+
+class BinarySampleIW(NamedTuple):
+    x: Tensor | np.ndarray | Image.Image
+    y: Tensor
     iw: Tensor
 
+    def __len__(self) -> int:
+        return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
 
-@dataclass(frozen=True)
-class TernarySample(BinarySample):
+
+class TernarySample(NamedTuple):
+    x: Tensor | np.ndarray | Image.Image
     y: Tensor
     s: Tensor
 
+    def __len__(self) -> int:
+        return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
 
-@dataclass(frozen=True)
-class TernarySampleIW(TernarySample):
+
+class TernarySampleIW(NamedTuple):
+    x: Tensor | np.ndarray | Image.Image
+    y: Tensor
+    s: Tensor
     iw: Tensor
+
+    def __len__(self) -> int:
+        return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
 
 
 class InputSize(NamedTuple):
