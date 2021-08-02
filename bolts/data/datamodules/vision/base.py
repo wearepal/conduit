@@ -37,7 +37,7 @@ class PBVisionDataModule(PBDataModule):
         pin_memory: bool = True,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
-        training_mode: TrainingMode = TrainingMode.epoch,
+        training_mode: Union[TrainingMode, str] = TrainingMode.epoch,
     ) -> None:
         super().__init__(
             batch_size=batch_size,

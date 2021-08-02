@@ -1,5 +1,5 @@
 """ColoredMNIST data-module."""
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import albumentations as A
 from kit import implements, parsable
@@ -35,7 +35,7 @@ class ColoredMNISTDataModule(PBVisionDataModule):
         pin_memory: bool = True,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
-        training_mode: TrainingMode = TrainingMode.epoch,
+        training_mode: Union[TrainingMode, str] = TrainingMode.epoch,
         use_predefined_splits: bool = False,
         # ColoredMNIST settings
         label_map: Optional[Dict[str, int]] = None,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from collections.abc import Mapping
-from dataclasses import astuple, is_dataclass
+from dataclasses import astuple, fields, is_dataclass
 from functools import lru_cache
 import logging
 from pathlib import Path
@@ -19,7 +19,7 @@ from torch.utils.data._utils.collate import (
     np_str_obj_array_pattern,
     string_classes,
 )
-from torchvision.transforms import functional as F
+from torchvision.transforms import functional as TF
 from typing_extensions import Literal, get_args
 
 __all__ = [
@@ -102,7 +102,7 @@ def apply_image_transform(
 
 def img_to_tensor(img: Image.Image | np.ndarray) -> Tensor:
     if isinstance(img, Image.Image):
-        return F.pil_to_tensor(img)
+        return TF.pil_to_tensor(img)
     return torch.from_numpy(
         np.moveaxis(img / (255.0 if img.dtype == np.uint8 else 1), -1, 0).astype(np.float32)
     )
@@ -204,6 +204,17 @@ def compute_instance_weights(dataset: Dataset) -> Tensor:
     return group_ids / counts
 
 
+def pb_astuple(dataclass: object) -> tuple[Any, ...]:
+    """
+    dataclasses.astuple() but without deep-copying and recursion.
+    This function has the more limited intended functionality of just extracting fields
+    (in order) into an tuple.
+    """
+    if not is_dataclass(dataclass):
+        raise TypeError("pb_astuple() should be called on dataclass instances")
+    return tuple(getattr(dataclass, field.name) for field in fields(dataclass))
+
+
 def pb_default_collate(batch: list[Any]) -> Any:
     elem = batch[0]
     elem_type = type(elem)
@@ -242,7 +253,7 @@ def pb_default_collate(batch: list[Any]) -> Any:
     elif isinstance(elem, tuple) and hasattr(elem, "_fields"):  # namedtuple
         return elem_type(*(pb_default_collate(samples) for samples in zip(*batch)))
     elif is_dataclass(elem):  # dataclass
-        return elem_type(*pb_default_collate([astuple(sample) for sample in batch]))
+        return elem_type(*pb_default_collate([pb_astuple(sample) for sample in batch]))
     elif isinstance(elem, (tuple, list)):
         transposed = zip(*batch)
         return [pb_default_collate(samples) for samples in transposed]
