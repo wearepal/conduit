@@ -1,4 +1,4 @@
-"""Credit Dataset."""
+"""Law Admissions Dataset."""
 from enum import Enum
 from typing import Optional, Union
 
@@ -9,22 +9,23 @@ from kit.torch import TrainingMode
 
 from .base import TabularDataModule
 
-__all__ = ["CreditDataModule"]
+__all__ = ["LawDataModule"]
 
 
-class CrimeSens(Enum):
+class LawSens(Enum):
     sex = "Sex"
-    custom = "Custom"
+    race = "Race"
+    sexRace = "Sex-Race"
 
 
-class CreditDataModule(TabularDataModule):
-    """Data Module for the Credit Dataset."""
+class LawDataModule(TabularDataModule):
+    """LSAC Law Admissions Dataset."""
 
     @parsable
     def __init__(
         self,
-        sens_feat: CrimeSens = CrimeSens.sex,
-        disc_feats_only: bool = False,
+        sens_feat: LawSens = LawSens.sex,
+        discrete_feats_only: bool = False,
         # Below are super vars. Not doing *args **kwargs due to this being parsable
         batch_size: int = 100,
         num_workers: int = 0,
@@ -52,8 +53,12 @@ class CreditDataModule(TabularDataModule):
             training_mode=training_mode,
         )
         self.sens_feat = sens_feat
-        self.disc_feats_only = disc_feats_only
+        self.disc_only = discrete_feats_only
 
     @property
     def em_dataset(self) -> em.Dataset:
-        return em.credit(split=self.sens_feat.value, discrete_only=self.disc_feats_only)
+
+        return em.law(
+            split=self.sens_feat.value,
+            discrete_only=self.disc_only,
+        )

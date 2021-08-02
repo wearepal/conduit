@@ -5,3 +5,4 @@ from .compas import *
 from .credit import *
 from .crime import *
 from .health import *
+from .law import *
