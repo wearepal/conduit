@@ -39,6 +39,8 @@ __all__ = [
     "infer_il_backend",
     "load_image",
     "pb_default_collate",
+    "shallow_asdict",
+    "shallow_astuple",
 ]
 
 
@@ -195,13 +197,28 @@ def get_group_ids(dataset: Dataset) -> Tensor:
             group_ids = s_all
         else:
             group_ids = (group_ids * len(s_all.unique()) + s_all).squeeze()
-    return group_ids
+    return group_ids.long()
 
 
 def compute_instance_weights(dataset: Dataset) -> Tensor:
     group_ids = get_group_ids(dataset)
     _, counts = group_ids.unique(return_counts=True)
-    return group_ids / counts
+    group_weights = len(group_ids) / counts
+    return group_weights[group_ids].float()
+
+
+def shallow_astuple(dataclass: object) -> tuple[Any, ...]:
+    """dataclasses.astuple() but without the deep-copying/recursion." """
+    if not is_dataclass(dataclass):
+        raise TypeError("shallow_astuple() should be called on dataclass instances")
+    return tuple(getattr(dataclass, field.name) for field in fields(dataclass))
+
+
+def shallow_asdict(dataclass: object) -> dict[str, Any]:
+    """dataclasses.asdict() but without the deep-copying/recursion." """
+    if not is_dataclass(dataclass):
+        raise TypeError("shallow_asdict() should be called on dataclass instances")
+    return {field.name: getattr(dataclass, field.name) for field in fields(dataclass)}
 
 
 def pb_default_collate(batch: list[Any]) -> Any:

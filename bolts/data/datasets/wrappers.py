@@ -1,6 +1,6 @@
 """Dataset wrappers."""
 from __future__ import annotations
-from dataclasses import replace
+from dataclasses import is_dataclass, replace
 from typing import Any
 
 from PIL import Image
@@ -12,6 +12,7 @@ from bolts.data.datasets.utils import (
     ImageTform,
     apply_image_transform,
     compute_instance_weights,
+    shallow_asdict,
 )
 from bolts.data.structures import BinarySampleIW, NamedSample, TernarySampleIW
 
@@ -63,6 +64,8 @@ class InstanceWeightedDataset(Dataset):
         sample = self.dataset[index]
         iw = self.iw[index]
         tuple_class = BinarySampleIW if len(sample) == 2 else TernarySampleIW
+        if is_dataclass(sample):
+            return tuple_class(**shallow_asdict(sample), iw=iw)
         return tuple_class(*sample, iw=iw)
 
     def __len__(self) -> int:
