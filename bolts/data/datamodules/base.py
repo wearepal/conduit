@@ -146,6 +146,26 @@ class PBDataModule(pl.LightningDataModule):
     def test_dataloader(self) -> DataLoader:
         return self.make_dataloader(batch_size=self.eval_batch_size, ds=self._test_data)
 
+    def _num_samples(self, dataset: Dataset) -> int:
+        if hasattr(dataset, "__len__"):
+            return len(dataset)  # type: ignore
+        raise AttributeError(
+            f"Number of samples cannot be determined as dataset of type '{dataset.__class__.__name__}' "
+            "has no '__len__' attribute defined."
+        )
+
+    @property
+    def num_train_samples(self) -> int:
+        return self._num_samples(self._train_data)
+
+    @property
+    def num_val_samples(self) -> int:
+        return self._num_samples(self._val_data)
+
+    @property
+    def num_test_samples(self) -> int:
+        return self._num_samples(self._test_data)
+
     def _get_splits(self) -> TrainValTestSplit:
         ...
 
