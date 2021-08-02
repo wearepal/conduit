@@ -36,7 +36,7 @@ class CrimeDataModule(TabularDataModule):
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
         scaler: Optional[ScalerType] = None,
-        training_mode: Union[TrainingMode, str] = TrainingMode.epoch,
+        training_mode: Union[TrainingMode, str] = "epoch",
     ) -> None:
         super().__init__(
             train_batch_size=train_batch_size,

@@ -70,17 +70,17 @@ class PBDataset(Dataset):
     @property
     def dim_s(
         self,
-    ) -> tuple[int, ...]:
+    ) -> tuple[int, ...] | None:
         if self._dim_s is None and self.s is not None:
-            self._dim_s = (1,) if self.s.ndim == 1 else self.s.shape[1:]
+            self._dim_s = torch.Size((1,)) if self.s.ndim == 1 else self.s.shape[1:]
         return self._dim_s
 
     @property
     def dim_y(
         self,
-    ) -> tuple[int, ...]:
+    ) -> tuple[int, ...] | None:
         if self._dim_y is None and self.y is not None:
-            self._dim_y = (1,) if self.y.ndim == 1 else self.y.shape[1:]
+            self._dim_y = torch.Size((1,)) if self.y.ndim == 1 else self.y.shape[1:]
         return self._dim_y
 
     @property
