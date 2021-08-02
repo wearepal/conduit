@@ -1,6 +1,6 @@
 from __future__ import annotations
 from collections.abc import Mapping
-from dataclasses import asdict, astuple, fields, is_dataclass
+from dataclasses import fields, is_dataclass
 from functools import lru_cache
 import logging
 from pathlib import Path
