@@ -200,10 +200,17 @@ def get_group_ids(dataset: Dataset) -> Tensor:
     return group_ids.long()
 
 
-def compute_instance_weights(dataset: Dataset) -> Tensor:
+def compute_instance_weights(dataset: Dataset, upweight: bool = False) -> Tensor:
     group_ids = get_group_ids(dataset)
     _, counts = group_ids.unique(return_counts=True)
-    group_weights = len(group_ids) / counts
+    # Upweight samples according to the cardinality of their intersectional group
+    if upweight:
+        group_weights = len(group_ids) / counts
+    # Downwegith samples according to the cardinality of their intersectional group
+    # - this approach should be preferred due to being more numerically stable
+    # (very small counts can lead to very large weighted loss values when upweighting)
+    else:
+        group_weights = 1 - (counts / len(group_ids))
     return group_weights[group_ids]
 
 
