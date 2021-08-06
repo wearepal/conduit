@@ -11,7 +11,6 @@ import torch
 from torch import Tensor, nn
 import torchmetrics
 from torchmetrics import MetricCollection
-from typing_inspect import get_args
 
 from bolts.data.structures import TernarySample
 from bolts.models.base import ModelBase
@@ -93,8 +92,8 @@ class Gpd(ModelBase):
 
         self.accs = MetricCollection(
             {
-                f"{stage.value}_{label}": torchmetrics.Accuracy()
-                for stage in get_args(Stage)
+                f"{stage.name}_{label}": torchmetrics.Accuracy()
+                for stage in Stage
                 for label in ("s", "y")
             }
         )
@@ -158,7 +157,7 @@ class Gpd(ModelBase):
         compute_grad(model=self.clf, loss=loss_clf)
 
         for _label in ("s", "y"):
-            tm_acc = self.accs[f"{Stage.fit}_{_label}"]
+            tm_acc = self.accs[f"{Stage.fit.name}_{_label}"]
             _target = getattr(batch, _label).view(-1).long()
             _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
             logs.update({f"train/acc_{_label}": _acc})
