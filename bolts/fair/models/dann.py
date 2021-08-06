@@ -117,7 +117,7 @@ class Dann(ModelBase):
             f"train/loss": loss.item(),
         }
         for _label in ("s", "y"):
-            tm_acc = self.accs[f"fit_{_label}"]
+            tm_acc = self.accs[f"{Stage.fit}_{_label}"]
             _target = getattr(batch, _label).view(-1).long()
             _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
             logs.update({f"train/acc_{_label}": _acc})
