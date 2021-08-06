@@ -1,7 +1,7 @@
 """Data structures."""
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import NamedTuple, Union, overload
+from dataclasses import dataclass, fields, is_dataclass
+from typing import Any, NamedTuple, Union, overload
 
 from PIL import Image
 import numpy as np
@@ -21,6 +21,8 @@ __all__ = [
     "TernarySampleIW",
     "TrainTestSplit",
     "TrainValTestSplit",
+    "shallow_astuple",
+    "shallow_asdict",
 ]
 
 
@@ -36,19 +38,19 @@ class _SampleBase:
 @dataclass(frozen=True)
 class NamedSample(_SampleBase):
     @overload
-    def add_field(self) -> NamedSample:
+    def add_field(self, *, y: None, s: None, iw: None) -> NamedSample:
         ...
 
     @overload
-    def add_field(self, *, y: Tensor) -> BinarySample:
+    def add_field(self, *, y: Tensor, s: None, iw: None) -> BinarySample:
         ...
 
     @overload
-    def add_field(self, *, y: Tensor, iw: Tensor) -> BinarySampleIW:
+    def add_field(self, *, y: Tensor, s: None, iw: Tensor) -> BinarySampleIW:
         ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: Tensor) -> TernarySample:
+    def add_field(self, *, y: Tensor, s: Tensor, iw: None) -> TernarySample:
         ...
 
     @overload
@@ -77,23 +79,23 @@ class _BinarySampleMixin:
 @dataclass(frozen=True)
 class BinarySample(_SampleBase, _BinarySampleMixin):
     @overload
-    def add_field(self) -> BinarySample:
+    def add_field(self, *, s: None = ..., iw: None = ...) -> BinarySample:
         ...
 
     @overload
-    def add_field(self, iw: Tensor | None = None) -> BinarySampleIW:
+    def add_field(self, *, s: None = ..., iw: Tensor = ...) -> BinarySampleIW:
         ...
 
     @overload
-    def add_field(self, s: Tensor | None = None) -> TernarySample:
+    def add_field(self, *, s: Tensor = ..., iw: None = ...) -> TernarySample:
         ...
 
     @overload
-    def add_field(self, s: Tensor | None = None, iw: Tensor | None = None) -> TernarySampleIW:
+    def add_field(self, *, s: Tensor = ..., iw: Tensor = ...) -> TernarySampleIW:
         ...
 
     def add_field(
-        self, s: Tensor | None = None, iw: Tensor | None = None
+        self, *, s: Tensor | None = None, iw: Tensor | None = None
     ) -> BinarySample | BinarySampleIW | TernarySample | TernarySampleIW:
         if s is not None:
             if iw is not None:
@@ -112,11 +114,11 @@ class _IwMixin:
 @dataclass(frozen=True)
 class BinarySampleIW(_SampleBase, _BinarySampleMixin, _IwMixin):
     @overload
-    def add_field(self) -> BinarySampleIW:
+    def add_field(self, s: None) -> BinarySampleIW:
         ...
 
     @overload
-    def add_field(self, s: Tensor | None = None) -> TernarySampleIW:
+    def add_field(self, s: Tensor) -> TernarySampleIW:
         ...
 
     def add_field(self, s: Tensor | None = None) -> BinarySampleIW | TernarySampleIW:
@@ -133,11 +135,11 @@ class _TernarySampleMixin:
 @dataclass(frozen=True)
 class TernarySample(_SampleBase, _BinarySampleMixin, _TernarySampleMixin):
     @overload
-    def add_field(self) -> TernarySample:
+    def add_field(self, iw: None) -> TernarySample:
         ...
 
     @overload
-    def add_field(self, iw: Tensor | None = None) -> TernarySampleIW:
+    def add_field(self, iw: Tensor) -> TernarySampleIW:
         ...
 
     def add_field(self, iw: Tensor | None = None) -> TernarySample | TernarySampleIW:
@@ -150,6 +152,20 @@ class TernarySample(_SampleBase, _BinarySampleMixin, _TernarySampleMixin):
 class TernarySampleIW(_SampleBase, _BinarySampleMixin, _TernarySampleMixin, _IwMixin):
     def add_field(self) -> TernarySampleIW:
         return self
+
+
+def shallow_astuple(dataclass: object) -> tuple[Any, ...]:
+    """dataclasses.astuple() but without the deep-copying/recursion." """
+    if not is_dataclass(dataclass):
+        raise TypeError("shallow_astuple() should be called on dataclass instances")
+    return tuple(getattr(dataclass, field.name) for field in fields(dataclass))
+
+
+def shallow_asdict(dataclass: object) -> dict[str, Any]:
+    """dataclasses.asdict() but without the deep-copying/recursion." """
+    if not is_dataclass(dataclass):
+        raise TypeError("shallow_asdict() should be called on dataclass instances")
+    return {field.name: getattr(dataclass, field.name) for field in fields(dataclass)}
 
 
 class InputSize(NamedTuple):

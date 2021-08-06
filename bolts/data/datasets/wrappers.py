@@ -12,9 +12,15 @@ from bolts.data.datasets.utils import (
     ImageTform,
     apply_image_transform,
     compute_instance_weights,
+)
+from bolts.data.structures import (
+    BinarySample,
+    BinarySampleIW,
+    NamedSample,
+    TernarySample,
+    TernarySampleIW,
     shallow_asdict,
 )
-from bolts.data.structures import BinarySampleIW, NamedSample, TernarySampleIW
 
 __all__ = ["ImageTransformer", "InstanceWeightedDataset"]
 
@@ -63,10 +69,25 @@ class InstanceWeightedDataset(Dataset):
     def __getitem__(self, index: int) -> BinarySampleIW | TernarySampleIW:
         sample = self.dataset[index]
         iw = self.iw[index]
-        tuple_class = BinarySampleIW if len(sample) == 2 else TernarySampleIW
-        if is_dataclass(sample):
-            return tuple_class(**shallow_asdict(sample), iw=iw)
-        return tuple_class(*sample, iw=iw)
+        if isinstance(sample, (BinarySample, TernarySample)):
+            return sample.add_field(iw=iw)
+        elif isinstance(sample, tuple):
+            if len(sample) == 2:
+                x, y = sample
+                return BinarySampleIW(x=x, y=y, iw=iw)
+            else:
+                x, y, s = sample
+                return TernarySampleIW(x=x, y=y, s=s, iw=iw)
+        elif is_dataclass(sample):
+            tuple_class = BinarySampleIW if len(sample) == 2 else TernarySampleIW
+            attr_dict = shallow_asdict(sample)
+            attr_dict["iw"] = iw  # Covers the corner-case of 'sample' already being an IW sample
+            return tuple_class(**attr_dict)
+        else:
+            raise TypeError(
+                f"Sample of type '{type(sample)}` incompatible cannot be converted into an "
+                "instance-weighted sample."
+            )
 
     def __len__(self) -> int:
         return len(self.iw)
