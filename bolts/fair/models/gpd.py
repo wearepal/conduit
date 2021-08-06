@@ -13,9 +13,9 @@ import torchmetrics
 from torchmetrics import MetricCollection
 from typing_inspect import get_args
 
-from bolts.common import Stage
 from bolts.data.structures import TernarySample
 from bolts.models.base import ModelBase
+from bolts.structures import Stage
 
 __all__ = ["Gpd"]
 
@@ -93,7 +93,7 @@ class Gpd(ModelBase):
 
         self.accs = MetricCollection(
             {
-                f"{stage}_{label}": torchmetrics.Accuracy()
+                f"{stage.value}_{label}": torchmetrics.Accuracy()
                 for stage in get_args(Stage)
                 for label in ("s", "y")
             }
@@ -125,9 +125,10 @@ class Gpd(ModelBase):
         )
 
         results_dict = {
-            f"{stage}/acc_{label}": self.accs[f"{stage}_{label}"].compute() for label in ("s", "y")
+            f"{stage.value}/acc_{label}": self.accs[f"{stage.value}_{label}"].compute()
+            for label in ("s", "y")
         }
-        results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
+        results_dict.update({f"{stage.value}/{k}": v for k, v in results.items()})
         return results_dict
 
     def _get_losses(
@@ -178,16 +179,16 @@ class Gpd(ModelBase):
         model_out: GpdOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
         logs = {
-            f"{stage}/loss": loss.item(),
-            f"{stage}/loss_adv": loss_adv.item(),
-            f"{stage}/loss_clf": loss_clf.item(),
+            f"{stage.value}/loss": loss.item(),
+            f"{stage.value}/loss_adv": loss_adv.item(),
+            f"{stage.value}/loss_clf": loss_clf.item(),
         }
 
         for _label in ("s", "y"):
-            tm_acc = self.accs[f"{stage}_{_label}"]
+            tm_acc = self.accs[f"{stage.value}_{_label}"]
             _target = getattr(batch, _label).view(-1).long()
             _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"{stage}/acc_{_label}": _acc})
+            logs.update({f"{stage.value}/acc_{_label}": _acc})
         self.log_dict(logs)
         return {
             "y": batch.y.view(-1),

@@ -14,10 +14,10 @@ from torch import Tensor, nn, optim
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torchmetrics
 
-from bolts.common import LRScheduler, MetricDict, Stage
 from bolts.data.structures import TernarySample
 from bolts.fair.misc import FairnessType
 from bolts.models.base import ModelBase
+from bolts.structures import LRScheduler, MetricDict, Stage
 
 __all__ = ["Laftr"]
 
@@ -105,9 +105,11 @@ class Laftr(ModelBase):
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
 
-        tm_acc = self.val_acc if stage == "validate" else self.test_acc
-        results_dict = {f"{stage}/acc": tm_acc.compute()}
-        results_dict.update({f"{stage}/{self.target_name}_{k}": v for k, v in results.items()})
+        tm_acc = self.val_acc if stage is Stage.validate else self.test_acc
+        results_dict = {f"{stage.value}/acc": tm_acc.compute()}
+        results_dict.update(
+            {f"{stage.value}/{self.target_name}_{k}": v for k, v in results.items()}
+        )
 
         return results_dict
 
@@ -116,15 +118,15 @@ class Laftr(ModelBase):
         model_out = self.forward(x=batch.x, s=batch.s)
         laftr_loss = self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch)
         adv_loss = self._loss_adv(s_pred=model_out.s, batch=batch)
-        tm_acc = self.val_acc if stage == "validate" else self.test_acc
+        tm_acc = self.val_acc if stage is Stage.validate else self.test_acc
         target = batch.y.view(-1).long()
         _acc = tm_acc(model_out.y.argmax(-1), target)
         self.log_dict(
             {
-                f"{stage}/loss": (laftr_loss + adv_loss).item(),
-                f"{stage}/model_loss": laftr_loss.item(),
-                f"{stage}/adv_loss": adv_loss.item(),
-                f"{stage}/{self.target_name}_acc": _acc,
+                f"{stage.value}/loss": (laftr_loss + adv_loss).item(),
+                f"{stage.value}/model_loss": laftr_loss.item(),
+                f"{stage.value}/adv_loss": adv_loss.item(),
+                f"{stage.value}/{self.target_name}_acc": _acc,
             }
         )
         return {

@@ -16,10 +16,10 @@ from torch import Tensor, nn
 from torch.distributions import Beta
 import torchmetrics
 
-from bolts.common import MetricDict, Stage
 from bolts.data import TernarySample
 from bolts.fair.misc import FairnessType
 from bolts.models.base import ModelBase
+from bolts.structures import MetricDict, Stage
 
 __all__ = ["FairMixup"]
 
@@ -120,13 +120,13 @@ class FairMixup(ModelBase):
         logits = self.net(batch.x)
 
         loss = self._get_loss(logits, batch)
-        tm_acc = self.val_acc if stage == "validate" else self.test_acc
+        tm_acc = self.val_acc if stage is Stage.validate else self.test_acc
         target = batch.y.view(-1).long()
         _acc = tm_acc(logits.argmax(-1), target)
         self.log_dict(
             {
-                f"{stage}/loss": loss.item(),
-                f"{stage}/{self.target_name}_acc": _acc,
+                f"{stage.value}/loss": loss.item(),
+                f"{stage.value}/{self.target_name}_acc": _acc,
             }
         )
 
@@ -161,13 +161,15 @@ class FairMixup(ModelBase):
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
 
-        tm_acc = self.val_acc if stage == "validate" else self.test_acc
-        results_dict = {f"{stage}/acc": tm_acc.compute().item()}
-        results_dict.update({f"{stage}/{self.target_name}_{k}": v for k, v in results.items()})
+        tm_acc = self.val_acc if stage is Stage.validate else self.test_acc
+        results_dict = {f"{stage.value}/acc": tm_acc.compute().item()}
+        results_dict.update(
+            {f"{stage.value}/{self.target_name}_{k}": v for k, v in results.items()}
+        )
         results_dict.update(
             {
-                f"{stage}/DP_Gap": abs(mean_preds_s0 - mean_preds_s1),
-                f"{stage}/mean_pred": mean_preds,
+                f"{stage.value}/DP_Gap": abs(mean_preds_s0 - mean_preds_s1),
+                f"{stage.value}/mean_pred": mean_preds,
             }
         )
         return results_dict

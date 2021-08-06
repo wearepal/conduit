@@ -9,8 +9,8 @@ from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 from torch import optim
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
-from bolts.common import LRScheduler, MetricDict, Stage
 from bolts.data import NamedSample
+from bolts.structures import LRScheduler, MetricDict, Stage
 
 __all__ = ["ModelBase"]
 
@@ -74,18 +74,18 @@ class ModelBase(pl.LightningModule):
 
     @implements(pl.LightningModule)
     def validation_step(self, batch: NamedSample, batch_idx: int) -> STEP_OUTPUT:
-        return self._inference_step(batch=batch, stage="validate")
+        return self._inference_step(batch=batch, stage=Stage.validate)
 
     @implements(pl.LightningModule)
     def validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        results_dict = self._inference_epoch_end(outputs=outputs, stage="validate")
+        results_dict = self._inference_epoch_end(outputs=outputs, stage=Stage.validate)
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
     def test_step(self, batch: NamedSample, batch_idx: int) -> STEP_OUTPUT:
-        return self._inference_step(batch=batch, stage="test")
+        return self._inference_step(batch=batch, stage=Stage.test)
 
     @implements(pl.LightningModule)
     def test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        results_dict = self._inference_epoch_end(outputs=outputs, stage="test")
+        results_dict = self._inference_epoch_end(outputs=outputs, stage=Stage.test)
         self.log_dict(results_dict)
