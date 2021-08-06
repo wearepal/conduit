@@ -38,23 +38,23 @@ class _SampleBase:
 @dataclass(frozen=True)
 class NamedSample(_SampleBase):
     @overload
-    def add_field(self, *, y: None, s: None, iw: None) -> NamedSample:
+    def add_field(self, *, y: None = ..., s: None = ..., iw: None = ...) -> NamedSample:
         ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: None, iw: None) -> BinarySample:
+    def add_field(self, *, y: Tensor = ..., s: None = ..., iw: None = ...) -> BinarySample:
         ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: None, iw: Tensor) -> BinarySampleIW:
+    def add_field(self, *, y: Tensor = ..., s: None = ..., iw: Tensor = ...) -> BinarySampleIW:
         ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: Tensor, iw: None) -> TernarySample:
+    def add_field(self, *, y: Tensor = ..., s: Tensor = ..., iw: None = ...) -> TernarySample:
         ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: Tensor, iw: Tensor) -> TernarySampleIW:
+    def add_field(self, *, y: Tensor = ..., s: Tensor = ..., iw: Tensor = ...) -> TernarySampleIW:
         ...
 
     def add_field(
@@ -114,11 +114,11 @@ class _IwMixin:
 @dataclass(frozen=True)
 class BinarySampleIW(_SampleBase, _BinarySampleMixin, _IwMixin):
     @overload
-    def add_field(self, s: None) -> BinarySampleIW:
+    def add_field(self, s: None = ...) -> BinarySampleIW:
         ...
 
     @overload
-    def add_field(self, s: Tensor) -> TernarySampleIW:
+    def add_field(self, s: Tensor = ...) -> TernarySampleIW:
         ...
 
     def add_field(self, s: Tensor | None = None) -> BinarySampleIW | TernarySampleIW:
@@ -135,11 +135,11 @@ class _TernarySampleMixin:
 @dataclass(frozen=True)
 class TernarySample(_SampleBase, _BinarySampleMixin, _TernarySampleMixin):
     @overload
-    def add_field(self, iw: None) -> TernarySample:
+    def add_field(self, iw: None = ...) -> TernarySample:
         ...
 
     @overload
-    def add_field(self, iw: Tensor) -> TernarySampleIW:
+    def add_field(self, iw: Tensor = ...) -> TernarySampleIW:
         ...
 
     def add_field(self, iw: Tensor | None = None) -> TernarySample | TernarySampleIW:
