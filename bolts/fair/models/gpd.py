@@ -124,7 +124,7 @@ class Gpd(ModelBase):
         )
 
         results_dict = {
-            f"{stage.value}/acc_{label}": self.accs[f"{stage.value}_{label}"].compute()
+            f"{stage.value}/acc_{label}": self.accs[f"{stage.name}_{label}"].compute()
             for label in ("s", "y")
         }
         results_dict.update({f"{stage.value}/{k}": v for k, v in results.items()})
@@ -148,9 +148,9 @@ class Gpd(ModelBase):
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
 
         logs = {
-            f"train/adv_loss": loss_adv.item(),
-            f"train/clf_loss": loss_clf.item(),
-            f"train/loss": loss.item(),
+            f"{Stage.fit.value}/adv_loss": loss_adv.item(),
+            f"{Stage.fit.value}/clf_loss": loss_clf.item(),
+            f"{Stage.fit.value}/loss": loss.item(),
         }
         compute_proj_grads(model=self.enc, loss_p=loss_clf, loss_a=loss_adv, alpha=1.0)
         compute_grad(model=self.adv, loss=loss_adv)
@@ -184,7 +184,7 @@ class Gpd(ModelBase):
         }
 
         for _label in ("s", "y"):
-            tm_acc = self.accs[f"{stage.value}_{_label}"]
+            tm_acc = self.accs[f"{stage.name}_{_label}"]
             _target = getattr(batch, _label).view(-1).long()
             _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
             logs.update({f"{stage.value}/acc_{_label}": _acc})
