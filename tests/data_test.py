@@ -28,7 +28,7 @@ def test_datasets(ds_cls: type[VisionDataset]) -> None:
         assert _ds[0] is not None
 
 
-def test_add_field():
+def test_add_field() -> None:
     x = torch.rand(3, 2)
     s = torch.randint(0, 2, (1, 2))
     y = torch.randint(0, 2, (1, 2))
