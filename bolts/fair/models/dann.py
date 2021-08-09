@@ -12,11 +12,10 @@ import torch
 from torch import Tensor, autograd, nn
 import torchmetrics
 from torchmetrics import MetricCollection
-from typing_inspect import get_args
 
-from bolts.common import MetricDict, Stage
 from bolts.data.structures import TernarySample
 from bolts.models.base import ModelBase
+from bolts.structures import MetricDict, Stage
 
 __all__ = ["Dann"]
 
@@ -91,8 +90,8 @@ class Dann(ModelBase):
 
         self.accs = MetricCollection(
             {
-                f"{stage}_{label}": torchmetrics.Accuracy()
-                for stage in get_args(Stage)
+                f"{stage.name}_{label}": torchmetrics.Accuracy()
+                for stage in Stage
                 for label in ("s", "y")
             }
         )
@@ -112,15 +111,15 @@ class Dann(ModelBase):
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
 
         logs = {
-            f"train/adv_loss": loss_adv.item(),
-            f"train/clf_loss": loss_clf.item(),
-            f"train/loss": loss.item(),
+            f"{Stage.fit.value}/adv_loss": loss_adv.item(),
+            f"{Stage.fit.value}": loss_clf.item(),
+            f"{Stage.fit.value}/loss": loss.item(),
         }
         for _label in ("s", "y"):
-            tm_acc = self.accs[f"fit_{_label}"]
+            tm_acc = self.accs[f"{Stage.fit.name}_{_label}"]
             _target = getattr(batch, _label).view(-1).long()
             _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"train/acc_{_label}": _acc})
+            logs.update({f"{Stage.fit.value}/acc_{_label}": _acc})
         self.log_dict(logs)
         return loss
 
@@ -146,9 +145,10 @@ class Dann(ModelBase):
         )
 
         results_dict = {
-            f"{stage}/acc_{label}": self.accs[f"{stage}_{label}"].compute() for label in ("s", "y")
+            f"{stage.value}/acc_{label}": self.accs[f"{stage.name}_{label}"].compute()
+            for label in ("s", "y")
         }
-        results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
+        results_dict.update({f"{stage.value}/{k}": v for k, v in results.items()})
         return results_dict
 
     @implements(ModelBase)
@@ -156,16 +156,16 @@ class Dann(ModelBase):
         model_out: DannOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
         logs = {
-            f"{stage}/loss": loss.item(),
-            f"{stage}/loss_adv": loss_adv.item(),
-            f"{stage}/loss_clf": loss_clf.item(),
+            f"{stage.value}/loss": loss.item(),
+            f"{stage.value}/loss_adv": loss_adv.item(),
+            f"{stage.value}/loss_clf": loss_clf.item(),
         }
 
         for _label in ("s", "y"):
-            tm_acc = self.accs[f"{stage}_{_label}"]
+            tm_acc = self.accs[f"{stage.name}_{_label}"]
             _target = getattr(batch, _label).view(-1).long()
             _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"{stage}/acc_{_label}": _acc})
+            logs.update({f"{stage.value}/acc_{_label}": _acc})
         self.log_dict(logs)
         return {
             "y": batch.y.view(-1),

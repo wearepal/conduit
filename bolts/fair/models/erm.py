@@ -11,9 +11,9 @@ import torch
 from torch import Tensor, nn
 import torchmetrics
 
-from bolts.common import MetricDict, Stage
 from bolts.data.structures import TernarySample
 from bolts.models import ModelBase
+from bolts.structures import MetricDict, Stage
 
 __all__ = ["ErmBaseline"]
 
@@ -90,22 +90,24 @@ class ErmBaseline(ModelBase):
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
 
-        tm_acc = self.val_acc if stage == "validate" else self.test_acc
-        results_dict = {f"{stage}/acc": tm_acc.compute().item()}
-        results_dict.update({f"{stage}/{self.target_name}_{k}": v for k, v in results.items()})
+        tm_acc = self.val_acc if stage is Stage.validate else self.test_acc
+        results_dict = {f"{stage.value}/acc": tm_acc.compute().item()}
+        results_dict.update(
+            {f"{stage.value}/{self.target_name}_{k}": v for k, v in results.items()}
+        )
         return results_dict
 
     @implements(ModelBase)
     def _inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
         logits = self.forward(batch.x)
         loss = self._get_loss(logits=logits, batch=batch)
-        tm_acc = self.val_acc if stage == "validate" else self.test_acc
+        tm_acc = self.val_acc if stage is Stage.validate else self.test_acc
         target = batch.y.view(-1).long()
         _acc = tm_acc(logits.argmax(-1), target)
         self.log_dict(
             {
-                f"{stage}/loss": loss.item(),
-                f"{stage}/{self.target_name}_acc": _acc,
+                f"{stage.value}/loss": loss.item(),
+                f"{stage.value}/{self.target_name}_acc": _acc,
             }
         )
         return {
