@@ -12,6 +12,7 @@ from bolts.data.structures import (
     BinarySample,
     InputData,
     NamedSample,
+    SubgroupSample,
     TargetData,
     TernarySample,
 )
@@ -116,13 +117,18 @@ class PBDataset(Dataset):
         return self._card_s
 
     @implements(Dataset)
-    def __getitem__(self, index: int) -> NamedSample | BinarySample | TernarySample:
+    def __getitem__(
+        self, index: int
+    ) -> NamedSample | BinarySample | SubgroupSample | TernarySample:
         x = self._sample_x(index)
         y = self._sample_y(index)
+        s = self._sample_s(index)
+        # Fetch the appropriate 'Sample' class
         if y is None:
-            return NamedSample(x=x)
+            if s is None:
+                return NamedSample(x=x)
+            return SubgroupSample(x=x, s=s)
         else:
-            s = self._sample_s(index)
             if s is None:
                 return BinarySample(x=x, y=y)
             return TernarySample(x=x, y=y, s=s)

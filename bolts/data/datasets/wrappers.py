@@ -17,6 +17,8 @@ from bolts.data.structures import (
     BinarySample,
     BinarySampleIW,
     NamedSample,
+    SubgroupSample,
+    SubgroupSampleIW,
     TernarySample,
     TernarySampleIW,
     shallow_asdict,
@@ -66,10 +68,10 @@ class InstanceWeightedDataset(Dataset):
         self.dataset = dataset
         self.iw = compute_instance_weights(dataset)
 
-    def __getitem__(self, index: int) -> BinarySampleIW | TernarySampleIW:
+    def __getitem__(self, index: int) -> BinarySampleIW | SubgroupSampleIW | TernarySampleIW:
         sample = self.dataset[index]
         iw = self.iw[index]
-        if isinstance(sample, (BinarySample, TernarySample)):
+        if isinstance(sample, (BinarySample, SubgroupSample, TernarySample)):
             return sample.add_field(iw=iw)
         elif isinstance(sample, tuple):
             if len(sample) == 2:

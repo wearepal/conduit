@@ -12,6 +12,8 @@ from torch.utils.data import Dataset
 __all__ = [
     "BinarySample",
     "BinarySampleIW",
+    "SubgroupSample",
+    "SubgroupSampleIW",
     "InputData",
     "InputSize",
     "NamedSample",
@@ -77,6 +79,11 @@ class _BinarySampleMixin:
 
 
 @dataclass(frozen=True)
+class _SubgroupSampleMixin:
+    s: Tensor
+
+
+@dataclass(frozen=True)
 class BinarySample(_SampleBase, _BinarySampleMixin):
     @overload
     def add_field(self, *, s: None = ..., iw: None = ...) -> BinarySample:
@@ -107,6 +114,36 @@ class BinarySample(_SampleBase, _BinarySampleMixin):
 
 
 @dataclass(frozen=True)
+class SubgroupSample(_SampleBase, _SubgroupSampleMixin):
+    @overload
+    def add_field(self, *, y: None = ..., iw: None = ...) -> SubgroupSample:
+        ...
+
+    @overload
+    def add_field(self, *, y: None = ..., iw: Tensor = ...) -> SubgroupSampleIW:
+        ...
+
+    @overload
+    def add_field(self, *, y: Tensor = ..., iw: None = ...) -> TernarySample:
+        ...
+
+    @overload
+    def add_field(self, *, y: Tensor = ..., iw: Tensor = ...) -> TernarySampleIW:
+        ...
+
+    def add_field(
+        self, *, y: Tensor | None = None, iw: Tensor | None = None
+    ) -> SubgroupSample | SubgroupSampleIW | TernarySample | TernarySampleIW:
+        if y is not None:
+            if iw is not None:
+                return TernarySampleIW(x=self.x, s=self.s, y=y, iw=iw)
+            return TernarySample(x=self.x, s=self.s, y=y)
+        if iw is not None:
+            return SubgroupSampleIW(x=self.x, s=self.s, iw=iw)
+        return self
+
+
+@dataclass(frozen=True)
 class _IwMixin:
     iw: Tensor
 
@@ -128,18 +165,29 @@ class BinarySampleIW(_SampleBase, _BinarySampleMixin, _IwMixin):
 
 
 @dataclass(frozen=True)
-class _TernarySampleMixin:
-    s: Tensor
+class SubgroupSampleIW(_SampleBase, _SubgroupSampleMixin, _IwMixin):
+    @overload
+    def add_field(self, y: None = ...) -> SubgroupSampleIW:
+        ...
+
+    @overload
+    def add_field(self, y: Tensor = ...) -> TernarySampleIW:
+        ...
+
+    def add_field(self, y: Tensor | None = None) -> SubgroupSampleIW | TernarySampleIW:
+        if y is not None:
+            return TernarySampleIW(x=self.x, s=self.s, y=y, iw=self.iw)
+        return self
 
 
 @dataclass(frozen=True)
-class TernarySample(_SampleBase, _BinarySampleMixin, _TernarySampleMixin):
+class TernarySample(_SampleBase, _BinarySampleMixin, _SubgroupSampleMixin):
     @overload
     def add_field(self, iw: None = ...) -> TernarySample:
         ...
 
     @overload
-    def add_field(self, iw: Tensor = ...) -> TernarySampleIW:
+    def add_field(self, iw: Tensor) -> TernarySampleIW:
         ...
 
     def add_field(self, iw: Tensor | None = None) -> TernarySample | TernarySampleIW:
@@ -149,7 +197,7 @@ class TernarySample(_SampleBase, _BinarySampleMixin, _TernarySampleMixin):
 
 
 @dataclass(frozen=True)
-class TernarySampleIW(_SampleBase, _BinarySampleMixin, _TernarySampleMixin, _IwMixin):
+class TernarySampleIW(_SampleBase, _BinarySampleMixin, _SubgroupSampleMixin, _IwMixin):
     def add_field(self) -> TernarySampleIW:
         return self
 
