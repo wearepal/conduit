@@ -1,7 +1,7 @@
 """Data structures."""
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import NamedTuple, Union
+from dataclasses import dataclass, fields, is_dataclass
+from typing import Any, NamedTuple, Union, overload
 
 from PIL import Image
 import numpy as np
@@ -12,6 +12,8 @@ from torch.utils.data import Dataset
 __all__ = [
     "BinarySample",
     "BinarySampleIW",
+    "SubgroupSample",
+    "SubgroupSampleIW",
     "InputData",
     "InputSize",
     "NamedSample",
@@ -21,11 +23,14 @@ __all__ = [
     "TernarySampleIW",
     "TrainTestSplit",
     "TrainValTestSplit",
+    "shallow_astuple",
+    "shallow_asdict",
 ]
 
 
 @dataclass(frozen=True)
-class NamedSample:
+class _SampleBase:
+    # Instantiate as NamedSample
     x: Tensor | np.ndarray | Image.Image
 
     def __len__(self) -> int:
@@ -33,24 +38,182 @@ class NamedSample:
 
 
 @dataclass(frozen=True)
-class BinarySample(NamedSample):
+class NamedSample(_SampleBase):
+    @overload
+    def add_field(self, *, y: None = ..., s: None = ..., iw: None = ...) -> NamedSample:
+        ...
+
+    @overload
+    def add_field(self, *, y: Tensor = ..., s: None = ..., iw: None = ...) -> BinarySample:
+        ...
+
+    @overload
+    def add_field(self, *, y: Tensor = ..., s: None = ..., iw: Tensor = ...) -> BinarySampleIW:
+        ...
+
+    @overload
+    def add_field(self, *, y: Tensor = ..., s: Tensor = ..., iw: None = ...) -> TernarySample:
+        ...
+
+    @overload
+    def add_field(self, *, y: Tensor = ..., s: Tensor = ..., iw: Tensor = ...) -> TernarySampleIW:
+        ...
+
+    def add_field(
+        self, y: Tensor | None = None, s: Tensor | None = None, iw: Tensor | None = None
+    ) -> NamedSample | BinarySample | BinarySampleIW | TernarySample | TernarySampleIW:
+        if y is not None:
+            if s is not None:
+                if iw is not None:
+                    return TernarySampleIW(x=self.x, s=s, y=y, iw=iw)
+                return TernarySample(x=self.x, s=s, y=y)
+            if iw is not None:
+                return BinarySampleIW(x=self.x, y=y, iw=iw)
+            return BinarySample(x=self.x, y=y)
+        return self
+
+
+@dataclass(frozen=True)
+class _BinarySampleMixin:
     y: Tensor
 
 
 @dataclass(frozen=True)
-class BinarySampleIW(BinarySample):
-    iw: Tensor
-
-
-@dataclass(frozen=True)
-class TernarySample(BinarySample):
-    y: Tensor
+class _SubgroupSampleMixin:
     s: Tensor
 
 
 @dataclass(frozen=True)
-class TernarySampleIW(TernarySample):
+class BinarySample(_SampleBase, _BinarySampleMixin):
+    @overload
+    def add_field(self, *, s: None = ..., iw: None = ...) -> BinarySample:
+        ...
+
+    @overload
+    def add_field(self, *, s: None = ..., iw: Tensor = ...) -> BinarySampleIW:
+        ...
+
+    @overload
+    def add_field(self, *, s: Tensor = ..., iw: None = ...) -> TernarySample:
+        ...
+
+    @overload
+    def add_field(self, *, s: Tensor = ..., iw: Tensor = ...) -> TernarySampleIW:
+        ...
+
+    def add_field(
+        self, *, s: Tensor | None = None, iw: Tensor | None = None
+    ) -> BinarySample | BinarySampleIW | TernarySample | TernarySampleIW:
+        if s is not None:
+            if iw is not None:
+                return TernarySampleIW(x=self.x, s=s, y=self.y, iw=iw)
+            return TernarySample(x=self.x, s=s, y=self.y)
+        if iw is not None:
+            return BinarySampleIW(x=self.x, y=self.y, iw=iw)
+        return self
+
+
+@dataclass(frozen=True)
+class SubgroupSample(_SampleBase, _SubgroupSampleMixin):
+    @overload
+    def add_field(self, *, y: None = ..., iw: None = ...) -> SubgroupSample:
+        ...
+
+    @overload
+    def add_field(self, *, y: None = ..., iw: Tensor = ...) -> SubgroupSampleIW:
+        ...
+
+    @overload
+    def add_field(self, *, y: Tensor = ..., iw: None = ...) -> TernarySample:
+        ...
+
+    @overload
+    def add_field(self, *, y: Tensor = ..., iw: Tensor = ...) -> TernarySampleIW:
+        ...
+
+    def add_field(
+        self, *, y: Tensor | None = None, iw: Tensor | None = None
+    ) -> SubgroupSample | SubgroupSampleIW | TernarySample | TernarySampleIW:
+        if y is not None:
+            if iw is not None:
+                return TernarySampleIW(x=self.x, s=self.s, y=y, iw=iw)
+            return TernarySample(x=self.x, s=self.s, y=y)
+        if iw is not None:
+            return SubgroupSampleIW(x=self.x, s=self.s, iw=iw)
+        return self
+
+
+@dataclass(frozen=True)
+class _IwMixin:
     iw: Tensor
+
+
+@dataclass(frozen=True)
+class BinarySampleIW(_SampleBase, _BinarySampleMixin, _IwMixin):
+    @overload
+    def add_field(self, s: None = ...) -> BinarySampleIW:
+        ...
+
+    @overload
+    def add_field(self, s: Tensor = ...) -> TernarySampleIW:
+        ...
+
+    def add_field(self, s: Tensor | None = None) -> BinarySampleIW | TernarySampleIW:
+        if s is not None:
+            return TernarySampleIW(x=self.x, s=s, y=self.y, iw=self.iw)
+        return self
+
+
+@dataclass(frozen=True)
+class SubgroupSampleIW(_SampleBase, _SubgroupSampleMixin, _IwMixin):
+    @overload
+    def add_field(self, y: None = ...) -> SubgroupSampleIW:
+        ...
+
+    @overload
+    def add_field(self, y: Tensor = ...) -> TernarySampleIW:
+        ...
+
+    def add_field(self, y: Tensor | None = None) -> SubgroupSampleIW | TernarySampleIW:
+        if y is not None:
+            return TernarySampleIW(x=self.x, s=self.s, y=y, iw=self.iw)
+        return self
+
+
+@dataclass(frozen=True)
+class TernarySample(_SampleBase, _BinarySampleMixin, _SubgroupSampleMixin):
+    @overload
+    def add_field(self, iw: None = ...) -> TernarySample:
+        ...
+
+    @overload
+    def add_field(self, iw: Tensor) -> TernarySampleIW:
+        ...
+
+    def add_field(self, iw: Tensor | None = None) -> TernarySample | TernarySampleIW:
+        if iw is not None:
+            return TernarySampleIW(x=self.x, s=self.s, y=self.y, iw=iw)
+        return self
+
+
+@dataclass(frozen=True)
+class TernarySampleIW(_SampleBase, _BinarySampleMixin, _SubgroupSampleMixin, _IwMixin):
+    def add_field(self) -> TernarySampleIW:
+        return self
+
+
+def shallow_astuple(dataclass: object) -> tuple[Any, ...]:
+    """dataclasses.astuple() but without the deep-copying/recursion." """
+    if not is_dataclass(dataclass):
+        raise TypeError("shallow_astuple() should be called on dataclass instances")
+    return tuple(getattr(dataclass, field.name) for field in fields(dataclass))
+
+
+def shallow_asdict(dataclass: object) -> dict[str, Any]:
+    """dataclasses.asdict() but without the deep-copying/recursion." """
+    if not is_dataclass(dataclass):
+        raise TypeError("shallow_asdict() should be called on dataclass instances")
+    return {field.name: getattr(dataclass, field.name) for field in fields(dataclass)}
 
 
 class InputSize(NamedTuple):

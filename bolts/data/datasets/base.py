@@ -8,7 +8,14 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset
 
-from bolts.data.structures import BinarySample, InputData, TargetData, TernarySample
+from bolts.data.structures import (
+    BinarySample,
+    InputData,
+    NamedSample,
+    SubgroupSample,
+    TargetData,
+    TernarySample,
+)
 
 __all__ = ["PBDataset"]
 
@@ -59,6 +66,16 @@ class PBDataset(Dataset):
             x = torch.as_tensor(x)
         return x
 
+    def _sample_s(self, index: int) -> Tensor | None:
+        if self.s is None:
+            return None
+        return self.s[index]
+
+    def _sample_y(self, index: int) -> Tensor | None:
+        if self.y is None:
+            return None
+        return self.y[index]
+
     @property
     def dim_x(
         self,
@@ -100,17 +117,21 @@ class PBDataset(Dataset):
         return self._card_s
 
     @implements(Dataset)
-    def __getitem__(self, index: int) -> Tensor | BinarySample | TernarySample:
-        data = [self._sample_x(index)]
-        if self.y is not None:
-            data.append(self.y[index])
-        if self.s is not None:
-            data.append(self.s[index])
-        if len(data) == 2:
-            return BinarySample(*data)
-        if len(data) == 3:
-            return TernarySample(*data)
-        return data[0]
+    def __getitem__(
+        self, index: int
+    ) -> NamedSample | BinarySample | SubgroupSample | TernarySample:
+        x = self._sample_x(index)
+        y = self._sample_y(index)
+        s = self._sample_s(index)
+        # Fetch the appropriate 'Sample' class
+        if y is None:
+            if s is None:
+                return NamedSample(x=x)
+            return SubgroupSample(x=x, s=s)
+        else:
+            if s is None:
+                return BinarySample(x=x, y=y)
+            return TernarySample(x=x, y=y, s=s)
 
     def __len__(self) -> int:
         return len(self.x)
