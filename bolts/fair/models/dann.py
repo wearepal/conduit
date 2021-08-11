@@ -111,15 +111,15 @@ class Dann(ModelBase):
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
 
         logs = {
-            f"{Stage.fit.value}/adv_loss": loss_adv.item(),
-            f"{Stage.fit.value}": loss_clf.item(),
-            f"{Stage.fit.value}/loss": loss.item(),
+            f"{Stage.fit}/adv_loss": loss_adv.item(),
+            f"{Stage.fit}": loss_clf.item(),
+            f"{Stage.fit}/loss": loss.item(),
         }
         for _label in ("s", "y"):
             tm_acc = self.accs[f"{Stage.fit.name}_{_label}"]
             _target = getattr(batch, _label).view(-1).long()
             _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"{Stage.fit.value}/acc_{_label}": _acc})
+            logs.update({f"{Stage.fit}/acc_{_label}": _acc})
         self.log_dict(logs)
         return loss
 
@@ -145,10 +145,10 @@ class Dann(ModelBase):
         )
 
         results_dict = {
-            f"{stage.value}/acc_{label}": self.accs[f"{stage.name}_{label}"].compute()
+            f"{stage}/acc_{label}": self.accs[f"{stage.name}_{label}"].compute()
             for label in ("s", "y")
         }
-        results_dict.update({f"{stage.value}/{k}": v for k, v in results.items()})
+        results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
         return results_dict
 
     @implements(ModelBase)
@@ -156,16 +156,16 @@ class Dann(ModelBase):
         model_out: DannOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
         logs = {
-            f"{stage.value}/loss": loss.item(),
-            f"{stage.value}/loss_adv": loss_adv.item(),
-            f"{stage.value}/loss_clf": loss_clf.item(),
+            f"{stage}/loss": loss.item(),
+            f"{stage}/loss_adv": loss_adv.item(),
+            f"{stage}/loss_clf": loss_clf.item(),
         }
 
         for _label in ("s", "y"):
             tm_acc = self.accs[f"{stage.name}_{_label}"]
             _target = getattr(batch, _label).view(-1).long()
             _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"{stage.value}/acc_{_label}": _acc})
+            logs.update({f"{stage}/acc_{_label}": _acc})
         self.log_dict(logs)
         return {
             "y": batch.y.view(-1),
