@@ -17,7 +17,7 @@ class Stage(Enum):
     validate = "validate"
     test = "test"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.value)
 
 
