@@ -17,6 +17,9 @@ class Stage(Enum):
     validate = "validate"
     test = "test"
 
+    def __str__(self) -> str:
+        return str(self.value)
+
 
 LRScheduler = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
 MetricDict = Dict[str, _METRIC_COLLECTION]

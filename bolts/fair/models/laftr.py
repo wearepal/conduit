@@ -106,10 +106,8 @@ class Laftr(ModelBase):
         )
 
         tm_acc = self.val_acc if stage is Stage.validate else self.test_acc
-        results_dict = {f"{stage.value}/acc": tm_acc.compute()}
-        results_dict.update(
-            {f"{stage.value}/{self.target_name}_{k}": v for k, v in results.items()}
-        )
+        results_dict = {f"{stage}/acc": tm_acc.compute()}
+        results_dict.update({f"{stage}/{self.target_name}_{k}": v for k, v in results.items()})
 
         return results_dict
 
@@ -123,10 +121,10 @@ class Laftr(ModelBase):
         _acc = tm_acc(model_out.y.argmax(-1), target)
         self.log_dict(
             {
-                f"{stage.value}/loss": (laftr_loss + adv_loss).item(),
-                f"{stage.value}/model_loss": laftr_loss.item(),
-                f"{stage.value}/adv_loss": adv_loss.item(),
-                f"{stage.value}/{self.target_name}_acc": _acc,
+                f"{stage}/loss": (laftr_loss + adv_loss).item(),
+                f"{stage}/model_loss": laftr_loss.item(),
+                f"{stage}/adv_loss": adv_loss.item(),
+                f"{stage}/{self.target_name}_acc": _acc,
             }
         )
         return {

@@ -91,10 +91,8 @@ class ErmBaseline(ModelBase):
         )
 
         tm_acc = self.val_acc if stage is Stage.validate else self.test_acc
-        results_dict = {f"{stage.value}/acc": tm_acc.compute().item()}
-        results_dict.update(
-            {f"{stage.value}/{self.target_name}_{k}": v for k, v in results.items()}
-        )
+        results_dict = {f"{stage}/acc": tm_acc.compute().item()}
+        results_dict.update({f"{stage}/{self.target_name}_{k}": v for k, v in results.items()})
         return results_dict
 
     @implements(ModelBase)
@@ -106,8 +104,8 @@ class ErmBaseline(ModelBase):
         _acc = tm_acc(logits.argmax(-1), target)
         self.log_dict(
             {
-                f"{stage.value}/loss": loss.item(),
-                f"{stage.value}/{self.target_name}_acc": _acc,
+                f"{stage}/loss": loss.item(),
+                f"{stage}/{self.target_name}_acc": _acc,
             }
         )
         return {
