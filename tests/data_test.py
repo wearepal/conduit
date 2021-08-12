@@ -14,6 +14,7 @@ from bolts.data import (
     TernarySampleIW,
 )
 from bolts.data.datasets import ISIC, ColoredMNIST
+from bolts.data.datasets.audio.base import PBAudioDataset
 
 
 @pytest.mark.slow
@@ -26,6 +27,12 @@ def test_datasets(ds_cls: type[VisionDataset]) -> None:
     ds = ds_cls(root=Path("~/Data").expanduser(), transform=transform)
     for _ds in ds:
         assert _ds[0] is not None
+
+
+def test_audio_dataset() -> None:
+    """Tests basic functionality of an audio dataset."""
+    dataset = PBAudioDataset()
+    assert dataset is not None
 
 
 def test_add_field() -> None:
