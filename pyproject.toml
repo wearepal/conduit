@@ -28,6 +28,7 @@ lightning-bolts = "^0.3.4"
 palkit = "^0.3.8"
 torch = "*"
 torchvision = "*"
+torchaudio = "*"
 gdown = "^3.13.0"
 opencv-python = "^4.5.3"
 
