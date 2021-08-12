@@ -11,7 +11,7 @@ from bolts.data.datamodules.vision.celeba import CelebADataModule
 from bolts.fair.data import CrimeDataModule, HealthDataModule
 from bolts.fair.data.datamodules import AdultDataModule, CompasDataModule
 from bolts.fair.data.datamodules.tabular.admissions import AdmissionsDataModule
-from bolts.fair.data.datamodules.tabular.base import TabularDataModule
+from bolts.fair.data.datamodules.tabular.base import EthicMlDataModule
 from bolts.fair.data.datamodules.tabular.credit import CreditDataModule
 from bolts.fair.data.datamodules.tabular.law import LawDataModule
 

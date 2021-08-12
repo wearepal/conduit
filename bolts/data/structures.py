@@ -12,24 +12,25 @@ from torch.utils.data import Dataset
 __all__ = [
     "BinarySample",
     "BinarySampleIW",
-    "SubgroupSample",
-    "SubgroupSampleIW",
     "InputData",
-    "InputSize",
+    "ImageSize",
     "NamedSample",
     "NormalizationValues",
+    "SampleBase",
+    "SubgroupSample",
+    "SubgroupSampleIW",
     "TargetData",
     "TernarySample",
     "TernarySampleIW",
     "TrainTestSplit",
     "TrainValTestSplit",
-    "shallow_astuple",
     "shallow_asdict",
+    "shallow_astuple",
 ]
 
 
 @dataclass(frozen=True)
-class _SampleBase:
+class SampleBase:
     # Instantiate as NamedSample
     x: Tensor | np.ndarray | Image.Image
 
@@ -38,7 +39,7 @@ class _SampleBase:
 
 
 @dataclass(frozen=True)
-class NamedSample(_SampleBase):
+class NamedSample(SampleBase):
     @overload
     def add_field(self, *, y: None = ..., s: None = ..., iw: None = ...) -> NamedSample:
         ...
@@ -84,7 +85,7 @@ class _SubgroupSampleMixin:
 
 
 @dataclass(frozen=True)
-class BinarySample(_SampleBase, _BinarySampleMixin):
+class BinarySample(SampleBase, _BinarySampleMixin):
     @overload
     def add_field(self, *, s: None = ..., iw: None = ...) -> BinarySample:
         ...
@@ -114,7 +115,7 @@ class BinarySample(_SampleBase, _BinarySampleMixin):
 
 
 @dataclass(frozen=True)
-class SubgroupSample(_SampleBase, _SubgroupSampleMixin):
+class SubgroupSample(SampleBase, _SubgroupSampleMixin):
     @overload
     def add_field(self, *, y: None = ..., iw: None = ...) -> SubgroupSample:
         ...
@@ -149,7 +150,7 @@ class _IwMixin:
 
 
 @dataclass(frozen=True)
-class BinarySampleIW(_SampleBase, _BinarySampleMixin, _IwMixin):
+class BinarySampleIW(SampleBase, _BinarySampleMixin, _IwMixin):
     @overload
     def add_field(self, s: None = ...) -> BinarySampleIW:
         ...
@@ -165,7 +166,7 @@ class BinarySampleIW(_SampleBase, _BinarySampleMixin, _IwMixin):
 
 
 @dataclass(frozen=True)
-class SubgroupSampleIW(_SampleBase, _SubgroupSampleMixin, _IwMixin):
+class SubgroupSampleIW(SampleBase, _SubgroupSampleMixin, _IwMixin):
     @overload
     def add_field(self, y: None = ...) -> SubgroupSampleIW:
         ...
@@ -181,7 +182,7 @@ class SubgroupSampleIW(_SampleBase, _SubgroupSampleMixin, _IwMixin):
 
 
 @dataclass(frozen=True)
-class TernarySample(_SampleBase, _BinarySampleMixin, _SubgroupSampleMixin):
+class TernarySample(SampleBase, _BinarySampleMixin, _SubgroupSampleMixin):
     @overload
     def add_field(self, iw: None = ...) -> TernarySample:
         ...
@@ -197,7 +198,7 @@ class TernarySample(_SampleBase, _BinarySampleMixin, _SubgroupSampleMixin):
 
 
 @dataclass(frozen=True)
-class TernarySampleIW(_SampleBase, _BinarySampleMixin, _SubgroupSampleMixin, _IwMixin):
+class TernarySampleIW(SampleBase, _BinarySampleMixin, _SubgroupSampleMixin, _IwMixin):
     def add_field(self) -> TernarySampleIW:
         return self
 
@@ -216,7 +217,7 @@ def shallow_asdict(dataclass: object) -> dict[str, Any]:
     return {field.name: getattr(dataclass, field.name) for field in fields(dataclass)}
 
 
-class InputSize(NamedTuple):
+class ImageSize(NamedTuple):
     C: int
     H: int
     W: int
