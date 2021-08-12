@@ -4,6 +4,7 @@ from dataclasses import fields, is_dataclass
 from functools import lru_cache
 import logging
 from pathlib import Path
+import platform
 from typing import Any, Callable, NamedTuple, Union, overload
 
 from PIL import Image
@@ -19,6 +20,7 @@ from torch.utils.data._utils.collate import (
     np_str_obj_array_pattern,
     string_classes,
 )
+import torchaudio.transforms as TF_audio
 from torchvision.transforms import functional as TF
 from typing_extensions import Literal, get_args
 
@@ -39,6 +41,8 @@ __all__ = [
     "infer_il_backend",
     "load_image",
     "pb_default_collate",
+    "AudioTform",
+    "infer_al_backend",
 ]
 
 
@@ -106,6 +110,19 @@ def img_to_tensor(img: Image.Image | np.ndarray) -> Tensor:
     return torch.from_numpy(
         np.moveaxis(img / (255.0 if img.dtype == np.uint8 else 1), -1, 0).astype(np.float32)
     )
+
+
+AudioLoadingBackend = Literal["sox_io", "soundfile"]
+
+AudioTform = Union[TF_audio.Spectrogram, TF_audio.MelSpectrogram]
+
+
+def infer_al_backend() -> AudioLoadingBackend:
+    """Infer which audio-loading backend to use based on the operating system."""
+    if platform.system() == 'Windows':
+        return 'soundfile'
+    else:
+        return 'sox_io'
 
 
 @overload
