@@ -31,7 +31,9 @@ def test_datasets(ds_cls: type[VisionDataset]) -> None:
 
 def test_audio_dataset() -> None:
     """Tests basic functionality of an audio dataset."""
-    dataset = PBAudioDataset()
+    x = torch.tensor([1, 2, 3])
+    audio_dir = 'Fake path'
+    dataset = PBAudioDataset(x = x, audio_dir = audio_dir)
     assert dataset is not None
 
 
