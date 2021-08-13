@@ -16,6 +16,8 @@ from bolts.data.datasets.utils import (
 )
 from bolts.data.structures import TargetData
 
+__all__ = ["PBAudioDataset"]
+
 
 class PBAudioDataset(PBDataset):
     """Base dataset for audio data."""
@@ -44,6 +46,16 @@ class PBAudioDataset(PBDataset):
         self.al_backend: AudioLoadingBackend = infer_al_backend()
         self.log(f'Using {self.al_backend} as backend for audio-loading')
         torchaudio.set_audio_backend(self.al_backend)
+
+    def __repr__(self) -> str:
+        head = "Dataset " + self.__class__.__name__
+        body = [f"Number of datapoints: {len(self)}"]
+        body.append(f"Base audio-directory location: {self.audio_dir.resolve()}")
+        body += self.extra_repr().splitlines()
+        if hasattr(self, "transform") and self.transform is not None:
+            body += [repr(self.transform)]
+        lines = [head] + [" " * self._repr_indent + line for line in body]
+        return '\n'.join(lines)
 
     def load_waveform(self, index: int) -> Tensor:
         return torchaudio.load(self.audio_dir / self.x[index])
