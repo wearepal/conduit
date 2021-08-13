@@ -148,13 +148,13 @@ class CelebA(PBVisionDataset):
         )
 
         x = np.array(attrs.index)
-        _s = torch.as_tensor(attrs[subclass.name].to_numpy())
-        _y = torch.as_tensor(attrs[superclass.name].to_numpy())
+        s_unmapped = torch.as_tensor(attrs[subclass.name].to_numpy())
+        y_unmapped = torch.as_tensor(attrs[superclass.name].to_numpy())
         # map from {-1, 1} to {0, 1}
-        s = torch.div(_s + 1, 2, rounding_mode='floor')
-        y = torch.div(_y + 1, 2, rounding_mode='floor')
+        s_binary = torch.div(s_unmapped + 1, 2, rounding_mode='floor')
+        y_binary = torch.div(y_unmapped + 1, 2, rounding_mode='floor')
 
-        super().__init__(x=x, y=y, s=s, transform=transform, image_dir=image_dir)
+        super().__init__(x=x, y=y_binary, s=s_binary, transform=transform, image_dir=image_dir)
 
     def _check_unzipped(self) -> bool:
         return (self._base_dir / self._IMAGE_DIR).is_dir()

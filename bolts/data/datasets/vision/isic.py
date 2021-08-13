@@ -229,7 +229,7 @@ class ISIC(PBVisionDataset):
             metadata_df["meta.clinical.benign_malignant"].isin({"benign", "malignant"})
         ]  # throw out unknowns
         malignant_mask = labels_df["meta.clinical.benign_malignant"] == "malignant"
-        labels_df["malignant"] = malignant_mask.astype("int8")
+        labels_df["malignant"] = malignant_mask.astype(np.uint8)
 
         labels_df["meta.clinical.diagnosis_confirm_type"].fillna(
             value="non-histopathology", inplace=True
