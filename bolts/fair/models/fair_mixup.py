@@ -3,7 +3,7 @@
 https://github.com/chingyaoc/fair-mixup
 """
 from __future__ import annotations
-from typing import Dict, Mapping, NamedTuple, Optional, Protocol
+from typing import Dict, Mapping, NamedTuple, Optional
 
 import ethicml as em
 from kit import implements, parsable
@@ -15,6 +15,7 @@ import torch
 from torch import Tensor, nn
 from torch.distributions import Beta
 import torchmetrics
+from typing_extensions import Protocol
 
 from bolts.data import TernarySample
 from bolts.fair.misc import FairnessType
