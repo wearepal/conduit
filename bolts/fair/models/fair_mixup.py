@@ -3,7 +3,7 @@
 https://github.com/chingyaoc/fair-mixup
 """
 from __future__ import annotations
-from typing import Callable, Dict, Mapping, NamedTuple, Optional
+from typing import Dict, Mapping, NamedTuple, Optional, Protocol
 
 import ethicml as em
 from kit import implements, parsable
@@ -22,6 +22,11 @@ from bolts.models.base import ModelBase
 from bolts.structures import MetricDict, Stage
 
 __all__ = ["FairMixup"]
+
+
+class Criterion(Protocol):
+    def __call__(self, input: Tensor, target: Tensor) -> Tensor:
+        ...
 
 
 class Mixed(NamedTuple):
@@ -278,7 +283,7 @@ class FairMixup(ModelBase):
     @staticmethod
     def mixup_criterion(
         *,
-        criterion: Callable[[Tensor, Tensor], Tensor],
+        criterion: Criterion,
         pred: Tensor,
         tgt_a: Tensor,
         tgt_b: Tensor,

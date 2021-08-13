@@ -148,7 +148,7 @@ class ISIC(PBVisionDataset):
         with tqdm(
             total=(len(image_ids) - 1) // 50 + 1, desc="Downloading images", colour=self._PBAR_COL
         ) as pbar:
-            for i, block in enumerate(self.chunk(image_ids, 50)):
+            for i, block in enumerate(self.chunk(image_ids, size=50)):
                 pbar.set_postfix(image_id=block[0])
                 args = ""
                 args += template_start
@@ -229,7 +229,7 @@ class ISIC(PBVisionDataset):
             metadata_df["meta.clinical.benign_malignant"].isin({"benign", "malignant"})
         ]  # throw out unknowns
         malignant_mask = labels_df["meta.clinical.benign_malignant"] == "malignant"
-        labels_df["malignant"] = malignant_mask.astype(np.uint8)
+        labels_df["malignant"] = malignant_mask.astype("int8")
 
         labels_df["meta.clinical.diagnosis_confirm_type"].fillna(
             value="non-histopathology", inplace=True
