@@ -39,7 +39,6 @@ def test_audio_dataset() -> None:
     assert len(dataset) == len(x)
 
 
-
 def test_add_field() -> None:
     x = torch.rand(3, 2)
     s = torch.randint(0, 2, (1, 2))

@@ -65,4 +65,3 @@ class PBAudioDataset(PBDataset):
         waveform = self.load_waveform(index)
         waveform_t = apply_waveform_transform(waveform)
         return waveform_t
-      
