@@ -1,7 +1,6 @@
 """Base class for tabular data-modules."""
 from __future__ import annotations
 from enum import Enum
-from typing import Optional, Union
 
 from kit import implements
 from kit.torch import TrainingMode
@@ -30,7 +29,7 @@ class TabularDataModule(PBDataModule):
         self,
         *,
         train_batch_size: int = 100,
-        eval_batch_size: Optional[int] = 256,
+        eval_batch_size: int | None = 256,
         num_workers: int = 0,
         val_prop: float = 0.2,
         test_prop: float = 0.2,
@@ -39,9 +38,9 @@ class TabularDataModule(PBDataModule):
         pin_memory: bool = True,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
-        training_mode: Union[TrainingMode, str] = "epoch",
-        feature_normalizer: Optional[TabularNormalizer] = TabularNormalizer.zscore,
-        target_normalizer: Optional[TabularNormalizer] = None,
+        training_mode: TrainingMode | str = "epoch",
+        feature_normalizer: TabularNormalizer | None = TabularNormalizer.zscore,
+        target_normalizer: TabularNormalizer | None = None,
     ) -> None:
         """Base data-module for tabular data.
 
