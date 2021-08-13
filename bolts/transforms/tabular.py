@@ -50,7 +50,7 @@ class TabularTransform:
         return self._transform(self._maybe_clone(data))
 
     def __call__(self, data: Tensor) -> Tensor:
-        return self._transform(data)
+        return self.transform(data)
 
 
 class ZScoreNormalization(TabularTransform):
@@ -117,20 +117,14 @@ class QuantileNormalization(TabularTransform):
 
     @implements(TabularTransform)
     def _inverse_transform(self, data: Tensor) -> Tensor:
-        if self.inplace:
-            data *= self.iqr
-            data += self.median
-        else:
-            data = (data * self.iqr) + self.median
+        data *= self.iqr
+        data += self.median
         return data
 
     @implements(TabularTransform)
     def _transform(self, data: Tensor) -> Tensor:
-        if self.inplace:
-            data -= self.median
-            data /= self.iqr.clamp_min(self._EPS)
-        else:
-            data = (data - self.median) / self.iqr.clamp_min(self._EPS)
+        data -= self.median
+        data /= self.iqr.clamp_min(self._EPS)
         return data
 
 
@@ -157,24 +151,16 @@ class MinMaxNormalization(TabularTransform):
 
     @implements(TabularTransform)
     def _inverse_transform(self, data: Tensor) -> Tensor:
-        if self.inplace:
-            data -= self.new_min
-            data /= self.new_range + self._EPS
-            data *= self.orig_range
-            data += self.orig_min
-        else:
-            output_std = (data - self.new_min) / (self.new_range)
-            data = output_std * self.orig_range + self.orig_min
+        data -= self.new_min
+        data /= self.new_range + self._EPS
+        data *= self.orig_range
+        data += self.orig_min
         return data
 
     @implements(TabularTransform)
     def _transform(self, data: Tensor) -> Tensor:
-        if self.inplace:
-            data -= self.orig_min
-            data /= self.orig_range.clamp_min(self._EPS)
-            data *= self.new_range
-            data += self.new_min
-        else:
-            input_std = (data - self.orig_min) / (self.orig_range.clamp_min(self._EPS))
-            data = input_std * self.new_range + self.new_min
+        data -= self.orig_min
+        data /= self.orig_range.clamp_min(self._EPS)
+        data *= self.new_range
+        data += self.new_min
         return data
