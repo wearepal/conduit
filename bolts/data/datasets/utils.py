@@ -119,10 +119,14 @@ AudioTform = Union[TF_audio.Spectrogram, TF_audio.MelSpectrogram]
 
 def infer_al_backend() -> AudioLoadingBackend:
     """Infer which audio-loading backend to use based on the operating system."""
-    if platform.system() == 'Windows':
-        return 'soundfile'
-    else:
-        return 'sox_io'
+    return 'soundfile' if platform.system() == 'Windows' else 'sox_io'
+
+
+def apply_waveform_transform(waveform: Tensor, *, transform: AudioTform | None) -> Tensor:
+    waveform_ = waveform
+    if transform is not None:
+        waveform_ = transform(waveform_)
+    return waveform_
 
 
 @overload
