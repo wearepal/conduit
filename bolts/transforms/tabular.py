@@ -21,6 +21,10 @@ class TabularTransform:
     def __init__(self, inplace: bool = False, indices: slice | list[int] = slice(None)) -> None:
         self.inplace = inplace
         self.col_indexes = indices
+        self._is_fitted = False
+
+    def is_fitted(self):
+        return self._is_fitted
 
     def _maybe_clone(self, data: Tensor) -> Tensor:
         if not self.inplace:
@@ -28,26 +32,38 @@ class TabularTransform:
         return data
 
     @abstractmethod
-    def fit(self, data: Tensor) -> TabularTransform:
+    def _fit(self, data: Tensor) -> None:
+        """inplace operation."""
         ...
+
+    def fit(self, data: Tensor) -> TabularTransform:
+        self._fit(data[:, self.col_indexes])
+        self._is_fitted = False
+        return self
 
     def fit_transform(self, data: Tensor) -> Tensor:
         self.fit(data)
-        return self._transform(data)
+        return self.transform(data)
 
     @abstractmethod
-    def _inverse_transform(self, data: Tensor) -> Tensor:
+    def _inverse_transform(self, data: Tensor) -> None:
+        """inplace operation."""
         ...
 
     def inverse_transform(self, data: Tensor) -> Tensor:
-        return self._inverse_transform(self._maybe_clone(data))
+        data = self._maybe_clone(data)
+        self._inverse_transform(data[:, self.col_indexes])
+        return data
 
     @abstractmethod
-    def _transform(self, data: Tensor) -> Tensor:
+    def _transform(self, data: Tensor) -> None:
+        """inplace operation."""
         ...
 
     def transform(self, data: Tensor) -> Tensor:
-        return self._transform(self._maybe_clone(data))
+        data = self._maybe_clone(data)
+        self._transform(data[:, self.col_indexes])
+        return data
 
     def __call__(self, data: Tensor) -> Tensor:
         return self.transform(data)
@@ -59,23 +75,18 @@ class ZScoreNormalization(TabularTransform):
     std: Tensor
 
     @implements(TabularTransform)
-    def fit(self, data: Tensor) -> ZScoreNormalization:
-        self.std, self.mean = torch.std_mean(
-            data[:, self.col_indexes], dim=0, keepdim=True, unbiased=True
-        )
-        return self
+    def _fit(self, data: Tensor) -> None:
+        self.std, self.mean = torch.std_mean(data, dim=0, keepdim=True, unbiased=True)
 
     @implements(TabularTransform)
-    def _inverse_transform(self, data: Tensor) -> Tensor:
-        data[:, self.col_indexes] *= self.std
-        data[:, self.col_indexes] += self.mean
-        return data
+    def _inverse_transform(self, data: Tensor) -> None:
+        data *= self.std
+        data += self.mean
 
     @implements(TabularTransform)
-    def _transform(self, data: Tensor) -> Tensor:
+    def _transform(self, data: Tensor) -> None:
         data -= self.mean
         data /= self.std.clamp_min(self._EPS)
-        return data
 
 
 class QuantileNormalization(TabularTransform):
@@ -104,8 +115,8 @@ class QuantileNormalization(TabularTransform):
         return q_quantile
 
     @implements(TabularTransform)
-    def fit(self, data: Tensor) -> QuantileNormalization:
-        sorted_values = data[:, self.col_indexes].sort(dim=0, descending=False).values
+    def _fit(self, data: Tensor) -> None:
+        sorted_values = data.sort(dim=0, descending=False).values
         # Compute the 'lower quantile'
         q_min_quantile = self._compute_quantile(q=self.q_min, sorted_values=sorted_values)
         # Compute the 'upper quantile'
@@ -113,19 +124,16 @@ class QuantileNormalization(TabularTransform):
         # Compute the interquantile range
         self.iqr = q_max_quantile - q_min_quantile
         self.median = self._compute_quantile(q=0.5, sorted_values=sorted_values)
-        return self
 
     @implements(TabularTransform)
-    def _inverse_transform(self, data: Tensor) -> Tensor:
-        data[:, self.col_indexes] *= self.iqr
-        data[:, self.col_indexes] += self.median
-        return data
+    def _inverse_transform(self, data: Tensor) -> None:
+        data *= self.iqr
+        data += self.median
 
     @implements(TabularTransform)
-    def _transform(self, data: Tensor) -> Tensor:
-        data[:, self.col_indexes] -= self.median
-        data[:, self.col_indexes] /= self.iqr.clamp_min(self._EPS)
-        return data
+    def _transform(self, data: Tensor) -> None:
+        data -= self.median
+        data /= self.iqr.clamp_min(self._EPS)
 
 
 class MinMaxNormalization(TabularTransform):
@@ -143,24 +151,21 @@ class MinMaxNormalization(TabularTransform):
         self.new_range = self.new_max - self.new_min
 
     @implements(TabularTransform)
-    def fit(self, data: Tensor) -> MinMaxNormalization:
-        self.orig_min = torch.min(data[:, self.col_indexes], dim=0, keepdim=True).values
-        self.orig_max = torch.max(data[:, self.col_indexes], dim=0, keepdim=True).values
+    def _fit(self, data: Tensor) -> None:
+        self.orig_min = torch.min(data, dim=0, keepdim=True).values
+        self.orig_max = torch.max(data, dim=0, keepdim=True).values
         self.orig_range = self.orig_max - self.orig_min
-        return self
 
     @implements(TabularTransform)
-    def _inverse_transform(self, data: Tensor) -> Tensor:
-        data[:, self.col_indexes] -= self.new_min
-        data[:, self.col_indexes] /= self.new_range + self._EPS
-        data[:, self.col_indexes] *= self.orig_range
-        data[:, self.col_indexes] += self.orig_min
-        return data
+    def _inverse_transform(self, data: Tensor) -> None:
+        data -= self.new_min
+        data /= self.new_range + self._EPS
+        data *= self.orig_range
+        data += self.orig_min
 
     @implements(TabularTransform)
-    def _transform(self, data: Tensor) -> Tensor:
-        data[:, self.col_indexes] -= self.orig_min
-        data[:, self.col_indexes] /= self.orig_range.clamp_min(self._EPS)
-        data[:, self.col_indexes] *= self.new_range
-        data[:, self.col_indexes] += self.new_min
-        return data
+    def _transform(self, data: Tensor) -> None:
+        data -= self.orig_min
+        data /= self.orig_range.clamp_min(self._EPS)
+        data *= self.new_range
+        data += self.new_min
