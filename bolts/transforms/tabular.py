@@ -105,7 +105,7 @@ class QuantileNormalization(TabularTransform):
 
     @implements(TabularTransform)
     def fit(self, data: Tensor) -> QuantileNormalization:
-        sorted_values = data.sort(dim=0, descending=False).values
+        sorted_values = data[:, self.col_indexes].sort(dim=0, descending=False).values
         # Compute the 'lower quantile'
         q_min_quantile = self._compute_quantile(q=self.q_min, sorted_values=sorted_values)
         # Compute the 'upper quantile'
@@ -117,14 +117,14 @@ class QuantileNormalization(TabularTransform):
 
     @implements(TabularTransform)
     def _inverse_transform(self, data: Tensor) -> Tensor:
-        data *= self.iqr
-        data += self.median
+        data[:, self.col_indexes] *= self.iqr
+        data[:, self.col_indexes] += self.median
         return data
 
     @implements(TabularTransform)
     def _transform(self, data: Tensor) -> Tensor:
-        data -= self.median
-        data /= self.iqr.clamp_min(self._EPS)
+        data[:, self.col_indexes] -= self.median
+        data[:, self.col_indexes] /= self.iqr.clamp_min(self._EPS)
         return data
 
 
@@ -144,23 +144,23 @@ class MinMaxNormalization(TabularTransform):
 
     @implements(TabularTransform)
     def fit(self, data: Tensor) -> MinMaxNormalization:
-        self.orig_min = torch.min(data, dim=0, keepdim=True).values
-        self.orig_max = torch.max(data, dim=0, keepdim=True).values
+        self.orig_min = torch.min(data[:, self.col_indexes], dim=0, keepdim=True).values
+        self.orig_max = torch.max(data[:, self.col_indexes], dim=0, keepdim=True).values
         self.orig_range = self.orig_max - self.orig_min
         return self
 
     @implements(TabularTransform)
     def _inverse_transform(self, data: Tensor) -> Tensor:
-        data -= self.new_min
-        data /= self.new_range + self._EPS
-        data *= self.orig_range
-        data += self.orig_min
+        data[:, self.col_indexes] -= self.new_min
+        data[:, self.col_indexes] /= self.new_range + self._EPS
+        data[:, self.col_indexes] *= self.orig_range
+        data[:, self.col_indexes] += self.orig_min
         return data
 
     @implements(TabularTransform)
     def _transform(self, data: Tensor) -> Tensor:
-        data -= self.orig_min
-        data /= self.orig_range.clamp_min(self._EPS)
-        data *= self.new_range
-        data += self.new_min
+        data[:, self.col_indexes] -= self.orig_min
+        data[:, self.col_indexes] /= self.orig_range.clamp_min(self._EPS)
+        data[:, self.col_indexes] *= self.new_range
+        data[:, self.col_indexes] += self.new_min
         return data
