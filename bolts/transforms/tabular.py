@@ -38,7 +38,7 @@ class TabularTransform:
 
     def fit(self, data: Tensor) -> TabularTransform:
         self._fit(data[:, self.col_indexes])
-        self._is_fitted = False
+        self._is_fitted = True
         return self
 
     def fit_transform(self, data: Tensor) -> Tensor:
@@ -51,6 +51,11 @@ class TabularTransform:
         ...
 
     def inverse_transform(self, data: Tensor) -> Tensor:
+        if not self.is_fitted:
+            raise RuntimeError(
+                f"Cannot inverse-transform the data with {self.__class__.__name__} because "
+                "'fit' has not yet been called."
+            )
         data = self._maybe_clone(data)
         self._inverse_transform(data[:, self.col_indexes])
         return data
@@ -61,6 +66,11 @@ class TabularTransform:
         ...
 
     def transform(self, data: Tensor) -> Tensor:
+        if not self.is_fitted:
+            raise RuntimeError(
+                f"Cannot transform the data with {self.__class__.__name__}.fit because "
+                "'fit' has not yet been called."
+            )
         data = self._maybe_clone(data)
         self._transform(data[:, self.col_indexes])
         return data
