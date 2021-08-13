@@ -34,7 +34,6 @@ class TabularTransform:
     @abstractmethod
     def _fit(self, data: Tensor) -> None:
         """inplace operation."""
-        ...
 
     def fit(self, data: Tensor) -> TabularTransform:
         self._fit(data[:, self.col_indexes])
@@ -48,7 +47,6 @@ class TabularTransform:
     @abstractmethod
     def _inverse_transform(self, data: Tensor) -> None:
         """inplace operation."""
-        ...
 
     def inverse_transform(self, data: Tensor) -> Tensor:
         if not self.is_fitted:
@@ -63,7 +61,6 @@ class TabularTransform:
     @abstractmethod
     def _transform(self, data: Tensor) -> None:
         """inplace operation."""
-        ...
 
     def transform(self, data: Tensor) -> Tensor:
         if not self.is_fitted:
