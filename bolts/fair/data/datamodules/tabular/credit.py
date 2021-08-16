@@ -7,7 +7,7 @@ from ethicml.preprocessing.scaling import ScalerType
 from kit import parsable
 from kit.torch import TrainingMode
 
-from .base import TabularDataModule
+from .base import EthicMlDataModule
 
 __all__ = ["CreditDataModule"]
 
@@ -17,7 +17,7 @@ class CrimeSens(Enum):
     custom = "Custom"
 
 
-class CreditDataModule(TabularDataModule):
+class CreditDataModule(EthicMlDataModule):
     """Data Module for the Credit Dataset."""
 
     @parsable

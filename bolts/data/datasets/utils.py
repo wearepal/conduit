@@ -48,7 +48,7 @@ __all__ = [
 ImageLoadingBackend = Literal["opencv", "pillow"]
 
 
-RawImage = Union[npt.NDArray[np.int_], Image.Image]
+RawImage = Union[npt.NDArray[np.integer], Image.Image]
 
 
 @overload

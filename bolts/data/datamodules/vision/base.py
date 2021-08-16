@@ -12,14 +12,14 @@ from kit.torch import TrainingMode
 from bolts.data.datamodules import PBDataModule
 from bolts.data.datasets.utils import AlbumentationsTform
 from bolts.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
-from bolts.data.structures import InputSize, NormalizationValues
+from bolts.data.structures import ImageSize, NormalizationValues
 from bolts.structures import Stage
 
 __all__ = ["PBVisionDataModule"]
 
 
 class PBVisionDataModule(PBDataModule):
-    _input_size: InputSize
+    _input_size: ImageSize
     norm_values: ClassVar[NormalizationValues] = NormalizationValues(
         mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
     )
@@ -56,11 +56,11 @@ class PBVisionDataModule(PBDataModule):
         self.root = root
 
     @property
-    def input_size(self) -> InputSize:
+    def size(self) -> ImageSize:
         if hasattr(self, "_input_size"):
             return self._input_size
         if hasattr(self, "_train_data"):
-            self._input_size = InputSize(*self._train_data[0].x.shape)  # type: ignore
+            self._input_size = ImageSize(*self._train_data[0].x.shape)  # type: ignore
             return self._input_size
         raise AttributeError("Input size unavailable because setup has not yet been called.")
 
@@ -93,7 +93,6 @@ class PBVisionDataModule(PBDataModule):
         self._train_data = train
         self._val_data = ImageTransformer(val, transform=self._augmentations(train=False))
         self._test_data = ImageTransformer(test, transform=self._augmentations(train=False))
-        self.dims = self.input_size
 
     def _augmentations(self, train: bool) -> A.Compose:
         # Base augmentations (augmentations that are applied to all splits of the data)
