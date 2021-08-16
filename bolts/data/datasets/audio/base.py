@@ -63,5 +63,4 @@ class PBAudioDataset(PBDataset):
     @implements(PBDataset)
     def _sample_x(self, index: int) -> Tensor:
         waveform = self.load_waveform(index)
-        waveform_t = apply_waveform_transform(waveform)
-        return waveform_t
+        return apply_waveform_transform(waveform)
