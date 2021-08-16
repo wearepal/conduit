@@ -30,9 +30,15 @@ def test_datasets(ds_cls: type[VisionDataset]) -> None:
 
 
 def test_audio_dataset() -> None:
-    """Tests basic functionality of an audio dataset."""
-    dataset = PBAudioDataset()
+    """Tests basic functionality of an audio dataset base class."""
+    x = torch.rand(1, 10)
+    audio_dir = Path(r"Sample path")
+    dataset = PBAudioDataset(x=x, audio_dir=audio_dir)
+
     assert dataset is not None
+    assert len(dataset) == len(x)
+    assert str(dataset).splitlines()[0] == "Dataset PBAudioDataset"
+    assert str(dataset).splitlines()[1].strip() == "Number of datapoints: 1"
 
 
 def test_add_field() -> None:
