@@ -8,19 +8,27 @@ import torch
 from torch import Tensor
 
 __all__ = [
-    "MinMaxNormalization",
-    "QuantileNormalization",
     "TabularTransform",
-    "ZScoreNormalization",
+    "MinMaxNormalize",
+    "QuantileNormalize",
+    "TabularNormalize",
+    "ZScoreNormalize",
 ]
 
 
 class TabularTransform:
+    """PLaceholder base class."""
+
+    def __call__(self, data: Tensor) -> Tensor:
+        ...
+
+
+class TabularNormalize(TabularTransform):
     _EPS: ClassVar[float] = torch.finfo(torch.float32).eps
 
     def __init__(self, inplace: bool = False, indices: slice | list[int] = slice(None)) -> None:
         self.inplace = inplace
-        self.col_indexes = indices
+        self.col_indices = indices
         self._is_fitted = False
 
     def is_fitted(self):
@@ -35,8 +43,8 @@ class TabularTransform:
     def _fit(self, data: Tensor) -> None:
         """inplace operation."""
 
-    def fit(self, data: Tensor) -> TabularTransform:
-        self._fit(data[:, self.col_indexes])
+    def fit(self, data: Tensor) -> TabularNormalize:
+        self._fit(data[:, self.col_indices])
         self._is_fitted = True
         return self
 
@@ -55,7 +63,7 @@ class TabularTransform:
                 "'fit' has not yet been called."
             )
         data = self._maybe_clone(data)
-        self._inverse_transform(data[:, self.col_indexes])
+        self._inverse_transform(data[:, self.col_indices])
         return data
 
     @abstractmethod
@@ -69,34 +77,34 @@ class TabularTransform:
                 "'fit' has not yet been called."
             )
         data = self._maybe_clone(data)
-        self._transform(data[:, self.col_indexes])
+        self._transform(data[:, self.col_indices])
         return data
 
     def __call__(self, data: Tensor) -> Tensor:
         return self.transform(data)
 
 
-class ZScoreNormalization(TabularTransform):
+class ZScoreNormalize(TabularNormalize):
 
     mean: Tensor
     std: Tensor
 
-    @implements(TabularTransform)
+    @implements(TabularNormalize)
     def _fit(self, data: Tensor) -> None:
         self.std, self.mean = torch.std_mean(data, dim=0, keepdim=True, unbiased=True)
 
-    @implements(TabularTransform)
+    @implements(TabularNormalize)
     def _inverse_transform(self, data: Tensor) -> None:
         data *= self.std
         data += self.mean
 
-    @implements(TabularTransform)
+    @implements(TabularNormalize)
     def _transform(self, data: Tensor) -> None:
         data -= self.mean
         data /= self.std.clamp_min(self._EPS)
 
 
-class QuantileNormalization(TabularTransform):
+class QuantileNormalize(TabularNormalize):
 
     iqr: Tensor
     median: Tensor
@@ -121,7 +129,7 @@ class QuantileNormalization(TabularTransform):
             q_quantile += (sorted_values[q_ind_int + 1] - q_quantile) * q_ind_frac
         return q_quantile
 
-    @implements(TabularTransform)
+    @implements(TabularNormalize)
     def _fit(self, data: Tensor) -> None:
         sorted_values = data.sort(dim=0, descending=False).values
         # Compute the 'lower quantile'
@@ -132,18 +140,18 @@ class QuantileNormalization(TabularTransform):
         self.iqr = q_max_quantile - q_min_quantile
         self.median = self._compute_quantile(q=0.5, sorted_values=sorted_values)
 
-    @implements(TabularTransform)
+    @implements(TabularNormalize)
     def _inverse_transform(self, data: Tensor) -> None:
         data *= self.iqr
         data += self.median
 
-    @implements(TabularTransform)
+    @implements(TabularNormalize)
     def _transform(self, data: Tensor) -> None:
         data -= self.median
         data /= self.iqr.clamp_min(self._EPS)
 
 
-class MinMaxNormalization(TabularTransform):
+class MinMaxNormalize(TabularNormalize):
 
     orig_max: Tensor
     orig_min: Tensor
@@ -157,20 +165,20 @@ class MinMaxNormalization(TabularTransform):
         self.new_max = new_max
         self.new_range = self.new_max - self.new_min
 
-    @implements(TabularTransform)
+    @implements(TabularNormalize)
     def _fit(self, data: Tensor) -> None:
         self.orig_min = torch.min(data, dim=0, keepdim=True).values
         self.orig_max = torch.max(data, dim=0, keepdim=True).values
         self.orig_range = self.orig_max - self.orig_min
 
-    @implements(TabularTransform)
+    @implements(TabularNormalize)
     def _inverse_transform(self, data: Tensor) -> None:
         data -= self.new_min
         data /= self.new_range + self._EPS
         data *= self.orig_range
         data += self.orig_min
 
-    @implements(TabularTransform)
+    @implements(TabularNormalize)
     def _transform(self, data: Tensor) -> None:
         data -= self.orig_min
         data /= self.orig_range.clamp_min(self._EPS)
