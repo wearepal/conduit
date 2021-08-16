@@ -4,6 +4,7 @@ from dataclasses import fields, is_dataclass
 from functools import lru_cache
 import logging
 from pathlib import Path
+import platform
 from typing import Any, Callable, NamedTuple, Union, overload
 
 from PIL import Image
@@ -39,6 +40,8 @@ __all__ = [
     "infer_il_backend",
     "load_image",
     "pb_default_collate",
+    "AudioTform",
+    "infer_al_backend",
 ]
 
 
@@ -106,6 +109,20 @@ def img_to_tensor(img: Image.Image | np.ndarray) -> Tensor:
     return torch.from_numpy(
         np.moveaxis(img / (255.0 if img.dtype == np.uint8 else 1), -1, 0).astype(np.float32)
     )
+
+
+AudioLoadingBackend = Literal["sox_io", "soundfile"]
+
+AudioTform = Callable[[Tensor], Tensor]
+
+
+def infer_al_backend() -> AudioLoadingBackend:
+    """Infer which audio-loading backend to use based on the operating system."""
+    return 'soundfile' if platform.system() == 'Windows' else 'sox_io'
+
+
+def apply_waveform_transform(waveform: Tensor, *, transform: AudioTform | None) -> Tensor:
+    return waveform if transform is None else transform(waveform)
 
 
 @overload
