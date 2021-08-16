@@ -60,7 +60,7 @@ class PBDataset(Dataset):
     def log(self, msg: str) -> None:
         self.logger.info(msg)
 
-    def _sample_x(self, index: int, coerce_to_tensor: bool = False) -> Tensor:
+    def _sample_x(self, index: int, *, coerce_to_tensor: bool = False) -> Tensor:
         x = self.x[index]
         if coerce_to_tensor and (not isinstance(x, Tensor)):
             x = torch.as_tensor(x)

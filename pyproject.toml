@@ -28,8 +28,11 @@ lightning-bolts = "^0.3.4"
 palkit = "^0.3.8"
 torch = "*"
 torchvision = "*"
+torchaudio = "*"
 gdown = "^3.13.0"
 opencv-python = "^4.5.3"
+soundfile = {version = "*", markers = "platform_system == 'Windows'"}
+sox = {version = "*", markers = "platform_system == 'Linux' or platform_system == 'macOS'"}
 
 [tool.poetry.dev-dependencies]
 black = "*"
@@ -68,7 +71,7 @@ exclude = '''
 )
 '''
 [tool.isort]
-known_third_party = ["PIL", "albumentations", "cv2", "ethicml", "kit", "numpy", "pandas", "pytest", "pytorch_lightning", "requests", "sklearn", "torch", "torchmetrics", "torchvision", "tqdm", "typing_extensions"]
+known_third_party = ["PIL", "albumentations", "cv2", "ethicml", "kit", "numpy", "pandas", "pytest", "pytorch_lightning", "requests", "sklearn", "torch", "torchaudio", "torchmetrics", "torchvision", "tqdm", "typing_extensions"]
 known_future_library = []
 extra_standard_library = ["dataclasses", "__future__", "typing_extensions"]
 line_length = 88
