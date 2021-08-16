@@ -22,7 +22,7 @@ class EcoacousticsDS(PBAudioDataset):
     """Dataset for audio data collected in various geographic locations."""
 
     _FILE_INFO: ClassVar[FileInfo] = FileInfo(name="EcoacousticsDS.zip", id="PLACEHOLDER")
-    _BASE_FOLDER: ClassVar[str] = "EcoacosticsDS"
+    _BASE_FOLDER: ClassVar[str] = "EcoacousticsDS"
 
     def __init__(
         self,
@@ -52,7 +52,7 @@ class EcoacousticsDS(PBAudioDataset):
             pass
 
     def _files_unzipped(self) -> bool:
-        dir = self._BASE_FOLDER
+        dir = self.root / self._BASE_FOLDER
         zip_checks = [
             zipfile.is_zipfile(join(dir, f)) for f in listdir(dir) if isfile(join(dir, f))
         ]

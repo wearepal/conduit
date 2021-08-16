@@ -40,8 +40,11 @@ def test_audio_dataset() -> None:
 
 
 def test_audio_dataset() -> None:
-    ds_cls = EcoacousticsDS(root=Path("~/Data").expanduser())
-    assert ds_cls is not None
+    ds_cls_dnwld = EcoacousticsDS(root=Path("~/Data").expanduser())
+    assert ds_cls_dnwld is not None
+
+    ds_cls_no_dnwld = EcoacousticsDS(root=Path("~/Data").expanduser(), download=False)
+    assert ds_cls_no_dnwld is not None
 
 
 def test_add_field() -> None:
