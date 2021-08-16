@@ -52,7 +52,7 @@ class PBAudioDataset(PBDataset):
         body = [
             f"Number of datapoints: {len(self)}",
             f"Base audio-directory location: {self.audio_dir.resolve()}",
-            *self.extra_repr().splitlines()
+            *self.extra_repr().splitlines(),
         ]
         if hasattr(self, "transform") and self.transform is not None:
             body += [repr(self.transform)]
@@ -63,6 +63,6 @@ class PBAudioDataset(PBDataset):
         return torchaudio.load(self.audio_dir / self.x[index])
 
     @implements(PBDataset)
-    def _sample_x(self, index: int) -> Tensor:
+    def _sample_x(self, index: int, *, coerce_to_tensor: bool = False) -> Tensor:
         waveform = self.load_waveform(index)
         return apply_waveform_transform(waveform)
