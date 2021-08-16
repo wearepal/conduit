@@ -25,8 +25,8 @@ class PBTabularDataset(PBDataset):
         s: TargetData | None = None,
         transform: TabularTransform | None = None,
         target_transform: TabularTransform | None = None,
-        cont_indexes: set[int] | list[int] | None = None,
-        disc_indexes: set[int] | list[int] | None = None,
+        cont_indexes: list[int] | None = None,
+        disc_indexes: list[int] | None = None,
         feature_groups: list[slice] | None = None,
         target_groups: list[slice] | None = None,
     ) -> None:
