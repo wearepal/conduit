@@ -4,6 +4,7 @@ from dataclasses import fields, is_dataclass
 from functools import lru_cache
 import logging
 from pathlib import Path
+import platform
 from typing import Any, Callable, NamedTuple, Union, overload
 
 from PIL import Image
@@ -39,6 +40,8 @@ __all__ = [
     "infer_il_backend",
     "load_image",
     "pb_default_collate",
+    "AudioTform",
+    "infer_al_backend",
 ]
 
 
@@ -106,6 +109,20 @@ def img_to_tensor(img: Image.Image | np.ndarray) -> Tensor:
     return torch.from_numpy(
         np.moveaxis(img / (255.0 if img.dtype == np.uint8 else 1), -1, 0).astype(np.float32)
     )
+
+
+AudioLoadingBackend = Literal["sox_io", "soundfile"]
+
+AudioTform = Callable[[Tensor], Tensor]
+
+
+def infer_al_backend() -> AudioLoadingBackend:
+    """Infer which audio-loading backend to use based on the operating system."""
+    return 'soundfile' if platform.system() == 'Windows' else 'sox_io'
+
+
+def apply_waveform_transform(waveform: Tensor, *, transform: AudioTform | None) -> Tensor:
+    return waveform if transform is None else transform(waveform)
 
 
 @overload
@@ -183,18 +200,17 @@ def extract_labels_from_dataset(dataset: Dataset) -> tuple[Tensor | None, Tensor
 
 def get_group_ids(dataset: Dataset) -> Tensor:
     s_all, y_all = extract_labels_from_dataset(dataset)
-    group_ids = None
+    group_ids: Tensor | None = None
     if s_all is None:
         if y_all is None:
             raise ValueError(
                 "Unable to compute group ids for dataset because no labels could be extracted."
             )
         group_ids = y_all
+    elif group_ids is None:
+        group_ids = s_all
     else:
-        if group_ids is None:
-            group_ids = s_all
-        else:
-            group_ids = (group_ids * len(s_all.unique()) + s_all).squeeze()
+        group_ids = (group_ids * len(s_all.unique()) + s_all).squeeze()
     return group_ids.long()
 
 
@@ -220,7 +236,7 @@ def pb_default_collate(batch: list[Any]) -> Any:
         if torch.utils.data.get_worker_info() is not None:
             # If we're in a background process, concatenate directly into a
             # shared memory tensor to avoid an extra copy
-            numel = sum([x.numel() for x in batch])
+            numel = sum(x.numel() for x in batch)
             storage = elem.storage()._new_shared(numel)
             out = elem.new(storage)
         ndims = elem.dim()
