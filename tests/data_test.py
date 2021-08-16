@@ -13,7 +13,7 @@ from bolts.data import (
     TernarySample,
     TernarySampleIW,
 )
-from bolts.data.datasets import ISIC, ColoredMNIST
+from bolts.data.datasets import ISIC, ColoredMNIST, EcoacousticsDS
 from bolts.data.datasets.audio.base import PBAudioDataset
 
 
@@ -30,13 +30,18 @@ def test_datasets(ds_cls: type[VisionDataset]) -> None:
 
 
 def test_audio_dataset() -> None:
-    """Tests basic functionality of an audio dataset base class."""
+    """Tests basic functionality of the base audio dataset class."""
     x = torch.rand(1, 10)
     audio_dir = Path(r"Sample path")
     dataset = PBAudioDataset(x=x, audio_dir=audio_dir)
 
     assert dataset is not None
     assert len(dataset) == len(x)
+
+
+def test_audio_dataset() -> None:
+    ds_cls = EcoacousticsDS(root=Path("~/Data").expanduser())
+    assert ds_cls is not None
 
 
 def test_add_field() -> None:

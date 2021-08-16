@@ -36,7 +36,7 @@ class EcoacousticsDS(PBAudioDataset):
         self._base_dir = self.root / self._BASE_FOLDER
         self._acoustic_indices_dir = self._base_dir / "AvianID_AcousticIndices"
 
-        # Labels' files
+        # Acoustic indices files
         self._EC_AI_path = self._acoustic_indices_dir / "EC_AI.csv"
         self._UK_AI_path = self._acoustic_indices_dir / "UK_AI.csv"
 
