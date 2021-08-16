@@ -20,7 +20,7 @@ from torch.utils.data._utils.collate import (
     np_str_obj_array_pattern,
     string_classes,
 )
-import torchaudio.transforms as TF_audio
+import torchaudio.transforms as T
 from torchvision.transforms import functional as TF
 from typing_extensions import Literal, get_args
 
@@ -114,7 +114,9 @@ def img_to_tensor(img: Image.Image | np.ndarray) -> Tensor:
 
 AudioLoadingBackend = Literal["sox_io", "soundfile"]
 
-AudioTform = Union[TF_audio.Spectrogram, TF_audio.MelSpectrogram]
+Spectrogram = Callable[T.Spectrogram, Tensor]
+MelSpectrogram = Callable[T.MelSpectrogram, Tensor]
+AudioTform = Union[Spectrogram, Spectrogram]
 
 
 def infer_al_backend() -> AudioLoadingBackend:
@@ -123,7 +125,7 @@ def infer_al_backend() -> AudioLoadingBackend:
 
 
 def apply_waveform_transform(waveform: Tensor, *, transform: AudioTform | None) -> Tensor:
-   return waveform if transform is None else transform(waveform)
+    return waveform if transform is None else transform(waveform)
 
 
 @overload
