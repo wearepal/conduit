@@ -20,7 +20,7 @@ class PBTabularDataset(PBDataset):
     def __init__(
         self,
         *,
-        x: Tensor | npt.NDArray[Union[np.floating, np.integer]],
+        x: Tensor | npt.NDArray[np.floating] | npt.NDArray[np.integer],
         y: TargetData | None = None,
         s: TargetData | None = None,
         transform: TabularTransform | None = None,
