@@ -123,10 +123,7 @@ def infer_al_backend() -> AudioLoadingBackend:
 
 
 def apply_waveform_transform(waveform: Tensor, *, transform: AudioTform | None) -> Tensor:
-    waveform_ = waveform
-    if transform is not None:
-        waveform_ = transform(waveform_)
-    return waveform_
+   return waveform if transform is None else transform(waveform)
 
 
 @overload
