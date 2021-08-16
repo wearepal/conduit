@@ -44,9 +44,11 @@ class PBVisionDataset(PBDataset):
 
     def __repr__(self) -> str:
         head = "Dataset " + self.__class__.__name__
-        body = [f"Number of datapoints: {len(self)}"]
-        body.append(f"Base image-directory location: {self.image_dir.resolve()}")
-        body += self.extra_repr().splitlines()
+        body = [
+            f"Number of datapoints: {len(self)}",
+            f"Base image-directory location: {self.image_dir.resolve()}",
+            *self.extra_repr().splitlines(),
+        ]
         if hasattr(self, "transform") and self.transform is not None:
             body += [repr(self.transform)]
         lines = [head] + [" " * self._repr_indent + line for line in body]
