@@ -37,7 +37,8 @@ def test_audio_dataset() -> None:
 
     assert dataset is not None
     assert len(dataset) == len(x)
-
+    assert str(dataset).splitlines()[0] == "Dataset PBAudioDataset"
+    assert str(dataset).splitlines()[1].strip() == "Number of datapoints: 1"
 
 def test_add_field() -> None:
     x = torch.rand(3, 2)
