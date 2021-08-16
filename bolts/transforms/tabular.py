@@ -53,8 +53,8 @@ class TabularNormalize(TabularTransform):
         return self.transform(data)
 
     @abstractmethod
-    def _inverse_transform(self, data: Tensor) -> None:
-        """inplace operation."""
+    def _inverse_transform(self, data: Tensor) -> Tensor:
+        """Can be in-place."""
 
     def inverse_transform(self, data: Tensor) -> Tensor:
         if not self.is_fitted:
@@ -63,12 +63,12 @@ class TabularNormalize(TabularTransform):
                 "'fit' has not yet been called."
             )
         data = self._maybe_clone(data)
-        self._inverse_transform(data[:, self.col_indices])
+        data[:, self.col_indices] = self._inverse_transform(data[:, self.col_indices])
         return data
 
     @abstractmethod
-    def _transform(self, data: Tensor) -> None:
-        """inplace operation."""
+    def _transform(self, data: Tensor) -> Tensor:
+        """Can be in-place."""
 
     def transform(self, data: Tensor) -> Tensor:
         if not self.is_fitted:
@@ -77,7 +77,7 @@ class TabularNormalize(TabularTransform):
                 "'fit' has not yet been called."
             )
         data = self._maybe_clone(data)
-        self._transform(data[:, self.col_indices])
+        data[:, self.col_indices] = self._transform(data[:, self.col_indices])
         return data
 
     def __call__(self, data: Tensor) -> Tensor:
@@ -94,14 +94,16 @@ class ZScoreNormalize(TabularNormalize):
         self.std, self.mean = torch.std_mean(data, dim=0, keepdim=True, unbiased=True)
 
     @implements(TabularNormalize)
-    def _inverse_transform(self, data: Tensor) -> None:
+    def _inverse_transform(self, data: Tensor) -> Tensor:
         data *= self.std
         data += self.mean
+        return data
 
     @implements(TabularNormalize)
-    def _transform(self, data: Tensor) -> None:
+    def _transform(self, data: Tensor) -> Tensor:
         data -= self.mean
         data /= self.std.clamp_min(self._EPS)
+        return data
 
 
 class QuantileNormalize(TabularNormalize):
@@ -141,14 +143,16 @@ class QuantileNormalize(TabularNormalize):
         self.median = self._compute_quantile(q=0.5, sorted_values=sorted_values)
 
     @implements(TabularNormalize)
-    def _inverse_transform(self, data: Tensor) -> None:
+    def _inverse_transform(self, data: Tensor) -> Tensor:
         data *= self.iqr
         data += self.median
+        return data
 
     @implements(TabularNormalize)
-    def _transform(self, data: Tensor) -> None:
+    def _transform(self, data: Tensor) -> Tensor:
         data -= self.median
         data /= self.iqr.clamp_min(self._EPS)
+        return data
 
 
 class MinMaxNormalize(TabularNormalize):
@@ -172,15 +176,17 @@ class MinMaxNormalize(TabularNormalize):
         self.orig_range = self.orig_max - self.orig_min
 
     @implements(TabularNormalize)
-    def _inverse_transform(self, data: Tensor) -> None:
+    def _inverse_transform(self, data: Tensor) -> Tensor:
         data -= self.new_min
         data /= self.new_range + self._EPS
         data *= self.orig_range
         data += self.orig_min
+        return data
 
     @implements(TabularNormalize)
-    def _transform(self, data: Tensor) -> None:
+    def _transform(self, data: Tensor) -> Tensor:
         data -= self.orig_min
         data /= self.orig_range.clamp_min(self._EPS)
         data *= self.new_range
         data += self.new_min
+        return data
