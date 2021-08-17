@@ -46,6 +46,8 @@ def test_audio_dataset() -> None:
     ds_cls_no_dnwld = EcoacousticsDS(root=Path("~/Data").expanduser(), download=False)
     assert ds_cls_no_dnwld is not None
 
+    assert len(ds_cls_dnwld) == 9  # Num of samples on my machine. TEMP TEST
+
 
 def test_add_field() -> None:
     x = torch.rand(3, 2)
