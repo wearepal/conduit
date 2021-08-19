@@ -40,13 +40,19 @@ def test_audio_dataset() -> None:
 
 
 def test_audio_dataset() -> None:
-    ds_cls_dnwld = EcoacousticsDS(root=Path("~/Data").expanduser())
+    root_dir = Path("~/Data").expanduser()
+    ds_cls_dnwld = EcoacousticsDS(root=root_dir)
     assert ds_cls_dnwld is not None
 
-    ds_cls_no_dnwld = EcoacousticsDS(root=Path("~/Data").expanduser(), download=False)
+    ds_cls_no_dnwld = EcoacousticsDS(root=root_dir, download=False)
     assert ds_cls_no_dnwld is not None
 
-    assert len(ds_cls_dnwld) == 9  # Num of samples on my machine. TEMP TEST
+    num_audio_samples = []
+    num_audio_samples.extend(root_dir.glob("**/*.wav"))
+    assert len(ds_cls_dnwld) == len(num_audio_samples)
+    assert len(ds_cls_no_dnwld) == len(num_audio_samples)
+
+    # Test at least one file where you know the metadata.
 
 
 def test_add_field() -> None:
