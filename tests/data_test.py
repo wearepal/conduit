@@ -1,6 +1,8 @@
 from __future__ import annotations
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
 import pytest
 import torch
 from torchvision import transforms as T
@@ -41,18 +43,34 @@ def test_audio_dataset() -> None:
 
 def test_audio_dataset() -> None:
     root_dir = Path("~/Data").expanduser()
-    ds_cls_dnwld = EcoacousticsDS(root=root_dir)
+    metadata = pd.read_csv(root_dir / "EcoacousticsDS" / "metadata.csv")
+    target_attribute = "habitat"
+
+    ds_cls_dnwld = EcoacousticsDS(root=root_dir, target_attr=target_attribute)
     assert ds_cls_dnwld is not None
 
-    ds_cls_no_dnwld = EcoacousticsDS(root=root_dir, download=False)
+    ds_cls_no_dnwld = EcoacousticsDS(root=root_dir, download=False, target_attr=target_attribute)
     assert ds_cls_no_dnwld is not None
 
+    # Test __len__
     num_audio_samples = []
     num_audio_samples.extend(root_dir.glob("**/*.wav"))
     assert len(ds_cls_dnwld) == len(num_audio_samples)
     assert len(ds_cls_no_dnwld) == len(num_audio_samples)
 
-    # Test at least one file where you know the metadata.
+    # Test metadata aligns with labels file.
+    audio_samples_to_check = [
+        "FS-08_0_20150802_0625.wav",
+        "PL-10_0_20150604_0445.wav",
+        "KNEPP-02_0_20150510_0730.wav",
+    ]
+    habitat_target_attributes = ["EC2", "UK1", np.nan]
+    for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
+        matched_row = metadata.loc[metadata['fileName'] == sample]
+        if type(label) == str:
+            assert matched_row.iloc[0][target_attribute] == label
+        else:
+            assert np.isnan(matched_row.iloc[0][target_attribute])
 
 
 def test_add_field() -> None:
