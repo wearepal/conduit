@@ -87,7 +87,8 @@ class SSRP(PBVisionDataset):
         metadata = self._label_encode_metadata(metadata)
         metadata.to_csv(self._metadata_path)
 
-    def _label_encode_metadata(self, metadata: pd.DataFrame) -> pd.DataFrame:
+    @staticmethod
+    def _label_encode_metadata(metadata: pd.DataFrame) -> pd.DataFrame:
         """Label encode the extracted concept/context/superclass information."""
         for col in metadata.columns:
             # Skip over filepath and filename columns

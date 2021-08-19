@@ -148,7 +148,7 @@ class ISIC(PBVisionDataset):
         with tqdm(
             total=(len(image_ids) - 1) // 50 + 1, desc="Downloading images", colour=self._PBAR_COL
         ) as pbar:
-            for i, block in enumerate(self.chunk(image_ids, 50)):
+            for i, block in enumerate(self.chunk(image_ids, size=50)):
                 pbar.set_postfix(image_id=block[0])
                 args = ""
                 args += template_start

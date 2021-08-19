@@ -67,11 +67,11 @@ class CelebASplit(Enum):
 class CelebA(PBVisionDataset):
     """CelebA dataset."""
 
-    """The data is downloaded to `download_dir` / `_BASE_FOLDER`."""
+    # The data is downloaded to `download_dir` / `_BASE_FOLDER`.
     _BASE_FOLDER: ClassVar[str] = "celeba"
-    """The data is downloaded to `download_dir` / `_BASE_FOLDER` / `_IMAGE_DIR`."""
+    # The data is downloaded to `download_dir` / `_BASE_FOLDER` / `_IMAGE_DIR`.
     _IMAGE_DIR: ClassVar[str] = "img_align_celeba"
-    """Google drive IDs, MD5 hashes and filenames for the CelebA files."""
+    # Google drive IDs, MD5 hashes and filenames for the CelebA files.
     _FILE_LIST: ClassVar[list[FileInfo]] = [
         FileInfo(
             name="img_align_celeba.zip",
@@ -113,7 +113,6 @@ class CelebA(PBVisionDataset):
         assert isinstance(split, CelebASplit) or split is None
 
         self.root = Path(root)
-        self._image_dir = self.root / self._BASE_FOLDER
         self._base_dir = self.root / self._BASE_FOLDER
         image_dir = self._base_dir / self._IMAGE_DIR
         self.superclass: CelebAttr = superclass
@@ -149,13 +148,13 @@ class CelebA(PBVisionDataset):
         )
 
         x = np.array(attrs.index)
-        s = torch.as_tensor(attrs[subclass.name].to_numpy())
-        y = torch.as_tensor(attrs[superclass.name].to_numpy())
+        s_unmapped = torch.as_tensor(attrs[subclass.name].to_numpy())
+        y_unmapped = torch.as_tensor(attrs[superclass.name].to_numpy())
         # map from {-1, 1} to {0, 1}
-        s = torch.div(s + 1, 2, rounding_mode='floor')
-        y = torch.div(s + 1, 2, rounding_mode='floor')
+        s_binary = torch.div(s_unmapped + 1, 2, rounding_mode='floor')
+        y_binary = torch.div(y_unmapped + 1, 2, rounding_mode='floor')
 
-        super().__init__(x=x, y=y, s=s, transform=transform, image_dir=image_dir)
+        super().__init__(x=x, y=y_binary, s=s_binary, transform=transform, image_dir=image_dir)
 
     def _check_unzipped(self) -> bool:
         return (self._base_dir / self._IMAGE_DIR).is_dir()

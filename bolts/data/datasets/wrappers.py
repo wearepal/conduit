@@ -17,14 +17,21 @@ from bolts.data.structures import (
     BinarySample,
     BinarySampleIW,
     NamedSample,
+    SampleBase,
     SubgroupSample,
     SubgroupSampleIW,
     TernarySample,
     TernarySampleIW,
+    _BinarySampleMixin,
     shallow_asdict,
 )
+from bolts.transforms.tabular import TabularTransform
 
-__all__ = ["ImageTransformer", "InstanceWeightedDataset"]
+__all__ = [
+    "ImageTransformer",
+    "InstanceWeightedDataset",
+    "TabularTransformer",
+]
 
 
 class ImageTransformer(Dataset):
@@ -58,6 +65,58 @@ class ImageTransformer(Dataset):
                 image = apply_image_transform(image=sample[0], transform=self.transform)
                 data_type = type(sample)
                 sample = data_type(image, *sample[1:])
+        return sample
+
+
+class TabularTransformer(Dataset):
+    """
+    Wrapper class for applying transformations to tabular data.
+
+    Useful when wanting to have different transformations for different subsets of the data
+    that share the same underlying dataset.
+    """
+
+    def __init__(
+        self,
+        dataset: Dataset,
+        *,
+        transform: TabularTransform | None,
+        target_transform: TabularTransform | None,
+    ) -> None:
+        self.dataset = dataset
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def __len__(self) -> int | None:
+        if hasattr(self.dataset, "__len__"):
+            return len(self.dataset)  # type: ignore
+        return None
+
+    def __getitem__(self, index: int) -> Any:
+        sample = self.dataset[index]
+        if self.transform is not None:
+            if isinstance(sample, SampleBase):
+                new_values = {"x": self.transform(sample.x)}
+                if (self.target_transform is not None) and (isinstance(sample, _BinarySampleMixin)):
+                    new_values["y"] = self.target_transform(sample.y)
+                sample = replace(sample, **new_values)
+            elif isinstance(sample, Tensor):
+                sample = self.transform(sample)
+            else:
+                input_ = self.transform(sample[0])
+                data_type = type(sample)
+                if (self.target_transform is not None) and len(sample) > 1:
+                    target = self.target_transform(sample[1])
+                    sample = data_type(input_, target, *sample[2:])
+                else:
+                    sample = data_type(input_, *sample[1:])
+        elif self.target_transform is not None:
+            if isinstance(sample, _BinarySampleMixin):
+                sample = replace(sample, y=self.target_transform(sample.y))
+            elif len(sample) > 1:
+                data_type = type(sample)
+                target = self.target_transform(sample[1])
+                sample = data_type(sample[0], target, *sample[2:])
         return sample
 
 

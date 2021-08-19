@@ -7,7 +7,7 @@ from ethicml.preprocessing.scaling import ScalerType
 from kit import parsable
 from kit.torch import TrainingMode
 
-from .base import TabularDataModule
+from .base import EthicMlDataModule
 
 __all__ = ["AdultDataModule"]
 
@@ -22,7 +22,7 @@ class AdultSens(Enum):
     education = "Education"
 
 
-class AdultDataModule(TabularDataModule):
+class AdultDataModule(EthicMlDataModule):
     """UCI Adult Income Dataset."""
 
     @parsable

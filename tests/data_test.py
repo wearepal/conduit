@@ -40,7 +40,7 @@ def test_audio_dataset() -> None:
     assert dataset is not None
     assert len(dataset) == len(x)
 
-
+    
 def test_audio_dataset() -> None:
     root_dir = Path("~/Data").expanduser()
     metadata = pd.read_csv(root_dir / "EcoacousticsDS" / "metadata.csv")
@@ -71,6 +71,9 @@ def test_audio_dataset() -> None:
             assert matched_row.iloc[0][target_attribute] == label
         else:
             assert np.isnan(matched_row.iloc[0][target_attribute])
+    
+    # Test __repr__
+    assert str(dataset).splitlines()[0] == "Dataset PBAudioDataset"
 
 
 def test_add_field() -> None:

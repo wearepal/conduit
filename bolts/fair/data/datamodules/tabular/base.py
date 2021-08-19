@@ -14,10 +14,10 @@ from bolts.data.datamodules import PBDataModule
 from bolts.data.structures import TrainValTestSplit
 from bolts.fair.data.datasets import DataTupleDataset
 
-__all__ = ["TabularDataModule"]
+__all__ = ["EthicMlDataModule"]
 
 
-class TabularDataModule(PBDataModule):
+class EthicMlDataModule(PBDataModule):
     """Base data-module for tabular datasets."""
 
     def __init__(

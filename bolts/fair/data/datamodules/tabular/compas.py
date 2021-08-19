@@ -7,7 +7,7 @@ from ethicml.preprocessing.scaling import ScalerType
 from kit import parsable
 from kit.torch import TrainingMode
 
-from .base import TabularDataModule
+from .base import EthicMlDataModule
 
 __all__ = ["CompasDataModule"]
 
@@ -18,7 +18,7 @@ class CompasSens(Enum):
     raceSex = "Race-Sex"
 
 
-class CompasDataModule(TabularDataModule):
+class CompasDataModule(EthicMlDataModule):
     """COMPAS Dataset."""
 
     @parsable
