@@ -15,7 +15,7 @@ from bolts.data import (
     TernarySample,
     TernarySampleIW,
 )
-from bolts.data.datasets import ISIC, ColoredMNIST, EcoacousticsDS
+from bolts.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 from bolts.data.datasets.audio.base import PBAudioDataset
 
 
@@ -40,17 +40,20 @@ def test_audio_dataset() -> None:
     assert dataset is not None
     assert len(dataset) == len(x)
 
-    
+
 def test_audio_dataset() -> None:
     root_dir = Path("~/Data").expanduser()
-    metadata = pd.read_csv(root_dir / "EcoacousticsDS" / "metadata.csv")
+    metadata = pd.read_csv(root_dir / "Ecoacoustics" / "metadata.csv")
     target_attribute = "habitat"
 
-    ds_cls_dnwld = EcoacousticsDS(root=root_dir, target_attr=target_attribute)
+    ds_cls_dnwld = Ecoacoustics(root=root_dir, target_attr=target_attribute)
     assert ds_cls_dnwld is not None
 
-    ds_cls_no_dnwld = EcoacousticsDS(root=root_dir, download=False, target_attr=target_attribute)
+    ds_cls_no_dnwld = Ecoacoustics(root=root_dir, download=False, target_attr=target_attribute)
     assert ds_cls_no_dnwld is not None
+
+    # Test __str__
+    assert str(ds_cls_no_dnwld).splitlines()[0] == "Dataset Ecoacoustics"
 
     # Test __len__
     num_audio_samples = []
@@ -71,9 +74,6 @@ def test_audio_dataset() -> None:
             assert matched_row.iloc[0][target_attribute] == label
         else:
             assert np.isnan(matched_row.iloc[0][target_attribute])
-    
-    # Test __repr__
-    assert str(dataset).splitlines()[0] == "Dataset PBAudioDataset"
 
 
 def test_add_field() -> None:

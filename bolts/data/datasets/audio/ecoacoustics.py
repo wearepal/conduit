@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import ClassVar, Optional, Union
 import zipfile
 
+from kit import parsable
 import numpy as np
 import pandas as pd
 import torch
@@ -21,21 +22,22 @@ from typing_extensions import Literal
 from bolts.data.datasets.audio.base import PBAudioDataset
 from bolts.data.datasets.utils import AudioTform, FileInfo
 
-__all__ = ["EcoacousticsDS"]
+__all__ = ["Ecoacoustics"]
 SoundscapeAttr = Literal["habitat", "site"]
 
 
-class EcoacousticsDS(PBAudioDataset):
+class Ecoacoustics(PBAudioDataset):
     """Dataset for audio data collected in various geographic locations."""
 
     LABELS_DIR: ClassVar[str] = "AvianID_AcousticIndices"
     METADATA_FILENAME: ClassVar[str] = "metadata.csv"
 
-    _FILE_INFO: ClassVar[FileInfo] = FileInfo(name="EcoacousticsDS.zip", id="PLACEHOLDER")
-    _BASE_FOLDER: ClassVar[str] = "EcoacousticsDS"
+    _FILE_INFO: ClassVar[FileInfo] = FileInfo(name="Ecoacoustics.zip", id="PLACEHOLDER")
+    _BASE_FOLDER: ClassVar[str] = "Ecoacoustics"
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
     _UK_LABELS_FILENAME: ClassVar[str] = "UK_AI.csv"
-@parsable
+
+    @parsable
     def __init__(
         self,
         root: Union[str, Path],

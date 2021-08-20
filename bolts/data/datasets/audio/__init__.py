@@ -1,1 +1,1 @@
-from .ecoacoustics_ds import *
+from .ecoacoustics import *
