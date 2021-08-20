@@ -20,7 +20,7 @@ from torch.utils.data._utils.collate import (
     np_str_obj_array_pattern,
     string_classes,
 )
-import torchaudio.transforms as TF_audio
+import torchaudio.transforms as T
 from torchvision.transforms import functional as TF
 from typing_extensions import Literal, get_args
 
