@@ -35,7 +35,7 @@ class EcoacousticsDS(PBAudioDataset):
     _BASE_FOLDER: ClassVar[str] = "EcoacousticsDS"
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
     _UK_LABELS_FILENAME: ClassVar[str] = "UK_AI.csv"
-
+@parsable
     def __init__(
         self,
         root: Union[str, Path],
