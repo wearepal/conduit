@@ -14,7 +14,6 @@ from typing import ClassVar, Optional, Union
 import zipfile
 
 from kit import parsable
-import numpy as np
 import pandas as pd
 import torch
 from typing_extensions import Literal
@@ -100,24 +99,18 @@ class Ecoacoustics(PBAudioDataset):
         filepaths = pd.Series(waveform_paths_str)
         filenames = pd.Series([path_str.split(os.sep)[-1] for path_str in waveform_paths_str])
 
-        # Extract labels.
-        ec_labels = pd.read_csv(self.ec_labels_path, encoding="ISO-8859-1")
-        uk_labels = pd.read_csv(self.uk_labels_path, encoding="ISO-8859-1")
-        all_labels = pd.concat([ec_labels, uk_labels])
-
-        target_attrs: list[SoundscapeAttr] = []
-
-        for f_name in filenames:
-            matched_row = all_labels.loc[all_labels['fileName'] == f_name]
-            target_attrs.append(np.nan if matched_row.empty else matched_row.iloc[0][target_attr])
-        target_attrs = pd.Series(target_attrs)
-
         metadata = pd.DataFrame(
             {
                 "fileName": filenames,
                 "filePath": filepaths,
-                f"{target_attr}": target_attrs,
             }
         )
+
+        # Extract labels.
+        ec_labels = pd.read_csv(self.ec_labels_path, encoding="ISO-8859-1")
+        uk_labels = pd.read_csv(self.uk_labels_path, encoding="ISO-8859-1")
+        metadata = metadata.merge(pd.concat([uk_labels, ec_labels]), how="left")
+
+        # Encode labels.
         metadata = self._label_encode_metadata(metadata)
         metadata.to_csv(self._metadata_path)

@@ -43,7 +43,6 @@ def test_audio_dataset() -> None:
 
 def test_audio_dataset() -> None:
     root_dir = Path("~/Data").expanduser()
-    metadata = pd.read_csv(root_dir / "Ecoacoustics" / "metadata.csv")
     target_attribute = "habitat"
 
     ds_cls_dnwld = Ecoacoustics(root=root_dir, target_attr=target_attribute)
@@ -51,6 +50,8 @@ def test_audio_dataset() -> None:
 
     ds_cls_no_dnwld = Ecoacoustics(root=root_dir, download=False, target_attr=target_attribute)
     assert ds_cls_no_dnwld is not None
+
+    metadata = pd.read_csv(root_dir / "Ecoacoustics" / "metadata.csv")
 
     # Test __str__
     assert str(ds_cls_no_dnwld).splitlines()[0] == "Dataset Ecoacoustics"
