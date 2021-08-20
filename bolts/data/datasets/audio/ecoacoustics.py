@@ -28,7 +28,7 @@ SoundscapeAttr = Literal["habitat", "site"]
 class Ecoacoustics(PBAudioDataset):
     """Dataset for audio data collected in various geographic locations."""
 
-    LABELS_DIR: ClassVar[str] = "AvianID_AcousticIndices"
+    INDICES_DIR: ClassVar[str] = "AvianID_AcousticIndices"
     METADATA_FILENAME: ClassVar[str] = "metadata.csv"
 
     _FILE_INFO: ClassVar[FileInfo] = FileInfo(name="Ecoacoustics.zip", id="PLACEHOLDER")
@@ -49,7 +49,7 @@ class Ecoacoustics(PBAudioDataset):
         self.root = Path(root)
         self.download = download
         self._base_dir = self.root / self._BASE_FOLDER
-        self.labels_dir = self._base_dir / self.LABELS_DIR
+        self.labels_dir = self._base_dir / self.INDICES_DIR
         self._metadata_path = self._base_dir / self.METADATA_FILENAME
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
