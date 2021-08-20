@@ -78,7 +78,7 @@ class Ecoacoustics(PBAudioDataset):
         zip_checks = [
             zipfile.is_zipfile(join(dir, f)) for f in listdir(dir) if isfile(join(dir, f))
         ]
-        return False if True in zip_checks else True
+        return True not in zip_checks
 
     def _label_encode_metadata(self, metadata: pd.DataFrame) -> pd.DataFrame:
         """Label encode the extracted concept/context/superclass information."""
