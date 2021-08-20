@@ -74,9 +74,9 @@ class Ecoacoustics(PBAudioDataset):
         super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self._base_dir)
 
     def _files_unzipped(self) -> bool:
-        dir = self.root / self._BASE_FOLDER
+        dir_ = self.root / self._BASE_FOLDER
         zip_checks = [
-            zipfile.is_zipfile(join(dir, f)) for f in listdir(dir) if isfile(join(dir, f))
+            zipfile.is_zipfile(join(dir_, f)) for f in listdir(dir_) if isfile(join(dir_, f))
         ]
         return True not in zip_checks
 
@@ -91,8 +91,7 @@ class Ecoacoustics(PBAudioDataset):
 
     def _extract_metadata(self, target_attr) -> None:
         self.log("Extracting metadata.")
-        waveform_paths: list[Path] = []
-        waveform_paths.extend(self._base_dir.glob("**/*.wav"))
+        waveform_paths = list(self._base_dir.glob("**/*.wav"))
 
         # Extract filepaths and names.
         waveform_paths_str = [str(wvfrm.relative_to(self._base_dir)) for wvfrm in waveform_paths]
