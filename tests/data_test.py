@@ -41,6 +41,7 @@ def test_audio_dataset() -> None:
     assert len(dataset) == len(x)
 
 
+@pytest.mark.slow
 def test_audio_dataset() -> None:
     root_dir = Path("~/Data").expanduser()
     target_attribute = "habitat"
