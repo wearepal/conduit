@@ -50,7 +50,7 @@ class Ecoacoustics(PBAudioDataset):
         self.download = download
         self._base_dir = self.root / self._BASE_FOLDER
         self.labels_dir = self._base_dir / self.LABELS_DIR
-        self._metadata_path = self._base_dir / "metadata.csv"
+        self._metadata_path = self._base_dir / self.METADATA_FILENAME
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
 
@@ -65,7 +65,7 @@ class Ecoacoustics(PBAudioDataset):
         if not self._metadata_path.exists():
             self._extract_metadata(target_attr)
 
-        self.metadata = pd.read_csv(self._base_dir / "metadata.csv")
+        self.metadata = pd.read_csv(self._base_dir / self.METADATA_FILENAME)
 
         x = self.metadata["filePath"].to_numpy()
         y = torch.as_tensor(self.metadata[f'{target_attr}_le'])
