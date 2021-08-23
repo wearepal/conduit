@@ -1,23 +1,16 @@
 from __future__ import annotations
 
-from kit.torch import ReductionType
 from torch import Tensor, nn
-from typing_extensions import Protocol
 
-__all__ = ["OnlineReweightingLoss", "ReductionType"]
+from bolts.types import Loss
 
-
-class BaseLossFn(Protocol):
-    reduction: str | ReductionType
-
-    def __call__(self, input: Tensor, target: Tensor) -> Tensor:
-        ...
+__all__ = ["OnlineReweightingLoss"]
 
 
 class OnlineReweightingLoss(nn.Module):
     """Wrapper that computes a loss balanced by intersectional group size."""
 
-    def __init__(self, loss_fn: BaseLossFn) -> None:
+    def __init__(self, loss_fn: Loss) -> None:
         super().__init__()
         # the base loss function needs to produce instance-wise losses for the
         # reweighting (determined by subgroup cardinality) to be applied

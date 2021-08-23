@@ -14,7 +14,7 @@ from torchmetrics import MetricCollection
 
 from bolts.data.structures import TernarySample
 from bolts.models.base import ModelBase
-from bolts.structures import Stage
+from bolts.types import Stage
 
 __all__ = ["Gpd"]
 

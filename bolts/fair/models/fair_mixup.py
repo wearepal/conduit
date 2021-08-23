@@ -7,6 +7,7 @@ from typing import Dict, Mapping, NamedTuple, Optional
 
 import ethicml as em
 from kit import implements, parsable
+from kit.misc import str_to_enum
 from kit.torch import CrossEntropyLoss, ReductionType, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
@@ -20,7 +21,7 @@ from typing_extensions import Protocol
 from bolts.data import TernarySample
 from bolts.fair.misc import FairnessType
 from bolts.models.base import ModelBase
-from bolts.structures import MetricDict, Stage
+from bolts.types import MetricDict, Stage
 
 __all__ = ["FairMixup"]
 
@@ -189,9 +190,11 @@ class FairMixup(ModelBase):
         device: torch.device,
         mix_lambda: Optional[float],
         alpha: float,
-        fairness: FairnessType,
+        fairness: FairnessType | str,
     ) -> Mixed:
         '''Returns mixed inputs, pairs of targets, and lambda'''
+        if isinstance(fairness, str):
+            fairness = str_to_enum(str_=fairness, enum=FairnessType)
         lam = (
             Beta(
                 torch.tensor([alpha]).to(device),

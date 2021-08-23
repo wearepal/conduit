@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Union, overload
 from PIL import Image
 from ethicml.vision import LdColorizer
 from kit.decorators import implements, parsable
+import numpy.typing as npt
 import torch
 from torch.functional import Tensor
 from torchvision.datasets import MNIST
@@ -54,6 +55,8 @@ def _filter_data_by_labels(
 
 
 class ColoredMNIST(PBVisionDataset):
+    x: npt.NDArray[np.floating]
+
     @parsable
     def __init__(
         self,

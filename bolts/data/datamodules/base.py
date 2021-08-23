@@ -12,14 +12,10 @@ from torch.utils.data import DataLoader, Sampler
 from torch.utils.data.dataset import Dataset
 
 from bolts.data.datasets.base import PBDataset
-from bolts.data.datasets.utils import (
-    extract_base_dataset,
-    get_group_ids,
-    pb_default_collate,
-)
+from bolts.data.datasets.utils import PBDataLoader, extract_base_dataset, get_group_ids
 from bolts.data.datasets.wrappers import InstanceWeightedDataset
 from bolts.data.structures import TrainValTestSplit
-from bolts.structures import Stage
+from bolts.types import Stage
 
 __all__ = ["PBDataModule"]
 
@@ -27,9 +23,6 @@ __all__ = ["PBDataModule"]
 class PBDataModule(pl.LightningDataModule):
     """Base DataModule for both Tabular and Vision data-modules."""
 
-    _train_data: Dataset
-    _val_data: Dataset
-    _test_data: Dataset
     _logger: logging.Logger | None = None
 
     def __init__(
@@ -61,6 +54,10 @@ class PBDataModule(pl.LightningDataModule):
         if isinstance(training_mode, str):
             training_mode = str_to_enum(str_=training_mode, enum=TrainingMode)
         self.training_mode = training_mode
+
+        self._train_data: Dataset | None = None
+        self._val_data: Dataset | None = None
+        self._test_data: Dataset | None = None
         # Information (cardinality/dimensionality) about the data
         self._card_s: int | None = None
         self._card_y: int | None = None
@@ -91,7 +88,7 @@ class PBDataModule(pl.LightningDataModule):
         batch_sampler: Sampler[Sequence[int]] | None = None,
     ) -> DataLoader:
         """Make DataLoader."""
-        return DataLoader(
+        return PBDataLoader(
             ds,
             batch_size=batch_size if batch_sampler is None else 1,
             shuffle=shuffle,
@@ -100,8 +97,37 @@ class PBDataModule(pl.LightningDataModule):
             drop_last=drop_last,
             persistent_workers=self.persist_workers,
             batch_sampler=batch_sampler,
-            collate_fn=pb_default_collate,
         )
+
+    @property
+    def train_data(self) -> Dataset:
+        if self._train_data is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.train_data' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called.'"
+            )
+        return self._train_data
+
+    @property
+    def val_data(self) -> Dataset:
+        if self._val_data is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.val_data' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called.'"
+            )
+        return self._val_data
+
+    @property
+    def test_data(self) -> Dataset:
+        if self._test_data is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.test_data' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called.'"
+            )
+        return self._test_data
 
     def train_dataloader(
         self, *, shuffle: bool = False, drop_last: bool = False, batch_size: int | None = None
@@ -109,7 +135,7 @@ class PBDataModule(pl.LightningDataModule):
         batch_size = self.train_batch_size if batch_size is None else batch_size
 
         if self.stratified_sampling:
-            group_ids = get_group_ids(self._train_data)
+            group_ids = get_group_ids(self.train_data)
             num_groups = len(group_ids.unique())
             num_samples_per_group = batch_size // num_groups
             if batch_size % num_groups:
@@ -135,16 +161,16 @@ class PBDataModule(pl.LightningDataModule):
                 drop_last=drop_last,
             )
         return self.make_dataloader(
-            batch_size=self.train_batch_size, ds=self._train_data, batch_sampler=batch_sampler
+            batch_size=self.train_batch_size, ds=self.train_data, batch_sampler=batch_sampler
         )
 
     @implements(pl.LightningDataModule)
     def val_dataloader(self) -> DataLoader:
-        return self.make_dataloader(batch_size=self.eval_batch_size, ds=self._val_data)
+        return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.val_data)
 
     @implements(pl.LightningDataModule)
     def test_dataloader(self) -> DataLoader:
-        return self.make_dataloader(batch_size=self.eval_batch_size, ds=self._test_data)
+        return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.test_data)
 
     def _num_samples(self, dataset: Dataset) -> int:
         if hasattr(dataset, "__len__"):
@@ -156,15 +182,15 @@ class PBDataModule(pl.LightningDataModule):
 
     @property
     def num_train_samples(self) -> int:
-        return self._num_samples(self._train_data)
+        return self._num_samples(self.train_data)
 
     @property
     def num_val_samples(self) -> int:
-        return self._num_samples(self._val_data)
+        return self._num_samples(self.val_data)
 
     @property
     def num_test_samples(self) -> int:
-        return self._num_samples(self._test_data)
+        return self._num_samples(self.test_data)
 
     def _get_splits(self) -> TrainValTestSplit:
         ...

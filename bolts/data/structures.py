@@ -15,7 +15,6 @@ __all__ = [
     "InputData",
     "ImageSize",
     "NamedSample",
-    "NormalizationValues",
     "SampleBase",
     "SubgroupSample",
     "SubgroupSampleIW",
@@ -223,9 +222,9 @@ class ImageSize(NamedTuple):
     W: int
 
 
-class NormalizationValues(NamedTuple):
-    mean: tuple[float, ...]
-    std: tuple[float, ...]
+class MeanStd(NamedTuple):
+    mean: tuple[float, ...] | list[float]
+    std: tuple[float, ...] | list[float]
 
 
 class TrainTestSplit(NamedTuple):

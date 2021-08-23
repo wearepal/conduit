@@ -10,7 +10,9 @@ from torch import optim
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
 from bolts.data import NamedSample
-from bolts.structures import LRScheduler, MetricDict, Stage
+from bolts.types import LRScheduler, MetricDict, Stage
+
+from .utils import prefix_keys
 
 __all__ = ["ModelBase"]
 
@@ -79,6 +81,7 @@ class ModelBase(pl.LightningModule):
     @implements(pl.LightningModule)
     def validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         results_dict = self._inference_epoch_end(outputs=outputs, stage=Stage.validate)
+        results_dict = prefix_keys(dict_=results_dict, prefix=str(Stage.validate), sep="/")
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
@@ -88,4 +91,5 @@ class ModelBase(pl.LightningModule):
     @implements(pl.LightningModule)
     def test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         results_dict = self._inference_epoch_end(outputs=outputs, stage=Stage.test)
+        results_dict = prefix_keys(dict_=results_dict, prefix=str(Stage.test), sep="/")
         self.log_dict(results_dict)

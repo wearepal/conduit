@@ -15,7 +15,7 @@ from torchmetrics import MetricCollection
 
 from bolts.data.structures import TernarySample
 from bolts.models.base import ModelBase
-from bolts.structures import MetricDict, Stage
+from bolts.types import MetricDict, Stage
 
 __all__ = ["Dann"]
 

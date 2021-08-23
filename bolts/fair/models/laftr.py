@@ -17,7 +17,7 @@ import torchmetrics
 from bolts.data.structures import TernarySample
 from bolts.fair.misc import FairnessType
 from bolts.models.base import ModelBase
-from bolts.structures import LRScheduler, MetricDict, Stage
+from bolts.types import LRScheduler, MetricDict, Stage
 
 __all__ = ["Laftr"]
 
