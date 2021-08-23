@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any, Callable, Optional, cast
 
 from kit import gcopy, implements, parsable
+from kit.torch.data import TrainingMode
 import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import ProgressBar
@@ -27,7 +28,7 @@ from .utils import cosine_scheduler, get_params_groups
 __all__ = ["DINO"]
 
 
-class DINO(pl.LightningDataModule):
+class DINO(ModelBase):
     _loss_fn: DINOLoss
     student: MultiCropNet
     teacher: MultiCropNet
@@ -172,13 +173,17 @@ class DINO(pl.LightningDataModule):
         # fit_and_test, for instance, expects a model to comprise of two parts: enc and clf.
         return self.student.backbone
 
+    @torch.no_grad()
     def _encode_dataset(self, stage: Stage) -> SampleBase:
         # It's not strictly necessary to disable shuffling but pytorch-lightning complains if its
         # enabled during 'testing'
-        dl_kwargs = dict(eval=True) if stage == "train" else {}
+        dl_kwargs = dict(shuffle=False) if stage == "train" else {}
+        dm_cp = gcopy(self._datamodule, deep=False)
         # Sampler needs to be set to None, meaning the default sequential/batch sampler combination
         # is used, so that the full dataset is encoded (with no duplicates)
-        dataloader = cast(DataLoader, getattr(self._datamodule, f"{stage}_dataloader")(**dl_kwargs))
+        dm_cp.stratified_sampling = False
+        dm_cp.training_mode = TrainingMode.epoch
+        dataloader = cast(DataLoader, getattr(dm_cp, f"{stage}_dataloader")(**dl_kwargs))
         # Encode the dataset
         dataset_encoder = DatasetEncoder(model=self.student.backbone)
         self._eval_trainer.test(
@@ -203,6 +208,7 @@ class DINO(pl.LightningDataModule):
                 p.grad = None
 
     def _get_loss(self, batch: SampleBase, batch_idx: int) -> Tensor:
+        assert isinstance(batch.x, list)
         teacher_output = self.teacher(
             batch.x[:2]
         )  # only the 2 global views pass through the teacher
@@ -211,6 +217,7 @@ class DINO(pl.LightningDataModule):
 
     @implements(pl.LightningModule)
     def training_step(self, batch: SampleBase, batch_idx: int) -> Tensor:
+        assert self._trainer.optimizers is not None
         for i, param_group in enumerate(self._trainer.optimizers[0].param_groups):
             param_group["lr"] = self._lr_schedule[batch_idx]
             if i == 0:  # only the first group is regularized

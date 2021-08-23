@@ -4,7 +4,6 @@ from typing import Protocol, Sequence, cast
 from kit import implements, parsable
 from kit.misc import gcopy
 from kit.torch.loss import CrossEntropyLoss, ReductionType
-from pl_bolts.metrics import mean
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
@@ -12,14 +11,17 @@ from torch import Tensor, optim
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import resnet
+from torchvision.models.resnet import ResNet
 
 from bolts.callbacks.posthoc_eval import PostHocEval
 from bolts.data.datamodules.base import PBDataModule
 from bolts.data.datamodules.vision.base import PBVisionDataModule
-from bolts.data.structures import NamedSample
+from bolts.data.structures import BinarySample, NamedSample
+from bolts.models.base import ModelBase
+from bolts.models.erm import FineTuner
 from bolts.models.self_supervised.moco.transforms import TwoCropsTransform
 from bolts.models.utils import precision_at_k
-from bolts.types import MetricDict
+from bolts.types import MetricDict, Stage
 
 from .callbacks import MeanTeacherWeightUpdate
 from .utils import MemoryBank, ResNetArch, concat_all_gather
@@ -32,7 +34,14 @@ class EncoderFn(Protocol):
         ...
 
 
-class MoCoV2(pl.LightningModule):
+class MoCoV2(ModelBase):
+    eval_clf: FineTuner
+    student: ResNet
+    teacher: ResNet
+    _eval_trainer: pl.Trainer
+    _datamodule: PBDataModule
+    _trainer: pl.Trainer
+
     @parsable
     def __init__(
         self,
@@ -71,23 +80,11 @@ class MoCoV2(pl.LightningModule):
         self.weight_decay = weight_decay
         self.momentum = momentum
 
-        # create the encoders
-        # num_classes is the output fc dimension
-        self.student, self.teacher = self._init_encoders()
-
-        if use_mlp:  # hack: brute-force replacement
-            dim_mlp = self.student.fc.weight.shape[1]
-            self.student.fc = nn.Sequential(  # type: ignore
-                nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), self.student.fc
-            )
-            self.teacher.fc = nn.Sequential(  # type: ignore
-                nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), self.teacher.fc
-            )
         self.momentum_update = MeanTeacherWeightUpdate(em=encoder_momentum)
-
         self.num_negatives = num_negatives
         # create the queue
         self.mb = MemoryBank(dim=emb_dim, capacity=num_negatives)
+        self.use_mlp = use_mlp
         self._loss_fn = CrossEntropyLoss(reduction=ReductionType.mean)
 
     def build(self, *, datamodule: PBDataModule, trainer: pl.Trainer) -> None:
@@ -96,8 +93,29 @@ class MoCoV2(pl.LightningModule):
             # self._datamodule.train_transforms = mocov2_transform()
             self._datamodule.train_transforms = TwoCropsTransform.with_mocov2_transform()
         self._trainer = gcopy(trainer)
-        self.lin_eval_trainer = gcopy(trainer)
-        # self.lin_eval_trainer.callbacks.append(PostHocEval)
+
+        # create the encoders
+        # num_classes is the output fc dimension
+        self.student, self.teacher = self._init_encoders()
+
+        if self.use_mlp:  # hack: brute-force replacement
+            dim_mlp = self.student.fc.weight.shape[1]
+            self.student.fc = nn.Sequential(  # type: ignore
+                nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), self.student.fc
+            )
+            self.teacher.fc = nn.Sequential(  # type: ignore
+                nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), self.teacher.fc
+            )
+        self._eval_trainer = gcopy(trainer)
+        self._eval_trainer.callbacks.append(PostHocEval())
+        self.eval_clf = FineTuner(
+            encoder=self.student,
+            classifier=nn.Linear(in_features=self.emb_dim, out_features=datamodule.card_y),
+        )
+
+    @property
+    def features(self) -> nn.Module:
+        return self.student
 
     @torch.no_grad()
     def _init_encoders(self) -> tuple[resnet.ResNet, resnet.ResNet]:
@@ -112,6 +130,7 @@ class MoCoV2(pl.LightningModule):
 
         return encoder_q, encoder_k
 
+    @implements(pl.LightningModule)
     def configure_optimizers(self) -> optim.Optimizer:
         optimizer = optim.SGD(
             self.parameters(),
@@ -175,7 +194,7 @@ class MoCoV2(pl.LightningModule):
 
         return x_gather[idx_this]
 
-    def forward(self, img_q: Tensor, img_k: Tensor) -> Tensor:
+    def _get_loss(self, img_q: Tensor, img_k: Tensor) -> Tensor:
         """
         Input:
             im_q: a batch of query images
@@ -185,8 +204,8 @@ class MoCoV2(pl.LightningModule):
         """
 
         # compute query features
-        q = self.student(img_q)  # queries: NxC
-        q = F.normalize(q, dim=1)
+        student_out = self.student(img_q)  # queries: NxC
+        student_out = F.normalize(student_out, dim=1)
 
         # compute key features
         with torch.no_grad():  # no gradient to keys
@@ -195,20 +214,20 @@ class MoCoV2(pl.LightningModule):
             if self.use_ddp or self.use_ddp2:
                 img_k, idx_unshuffle = self._batch_shuffle_ddp(img_k)
 
-            k = self.teacher(img_k)  # keys: NxC
-            k = F.normalize(k, dim=1)
+            teacher_out = self.teacher(img_k)  # keys: NxC
+            teacher_out = F.normalize(teacher_out, dim=1)
 
             # undo shuffle
             if self.use_ddp or self.use_ddp2:
                 assert idx_unshuffle is not None
-                k = self._batch_unshuffle_ddp(k, idx_unshuffle)
+                teacher_out = self._batch_unshuffle_ddp(teacher_out, idx_unshuffle)
 
         # compute logits
         # Einstein sum is more intuitive
         # positive logits: Nx1
-        l_pos = torch.einsum('nc,nc->n', [q, k]).unsqueeze(-1)
+        l_pos = torch.einsum('nc,nc->n', [student_out, teacher_out]).unsqueeze(-1)
         # negative logits: NxK
-        l_neg = torch.einsum('nc,kc->nk', [q, self.mb.memory])
+        l_neg = torch.einsum('nc,kc->nk', [student_out, self.mb.memory])
 
         # logits: Nx(1+K)
         logits = torch.cat([l_pos, l_neg], dim=1)
@@ -217,13 +236,14 @@ class MoCoV2(pl.LightningModule):
         logits /= self.temp
 
         # dequeue and enqueue
-        self._dequeue_and_enqueue(k)
+        self._dequeue_and_enqueue(teacher_out)
 
         return logits
 
     def training_step(self, batch: NamedSample, batch_idx: int) -> MetricDict:
+        assert isinstance(batch.x, list)
         img_1, img_2 = batch.x
-        logits = self.forward(img_q=img_1, img_k=img_2)
+        logits = self._get_loss(img_q=img_1, img_k=img_2)
         targets = logits.new_zeros(size=(logits.size(0),))
         loss = self._loss_fn(input=logits, targets=targets)
         acc1, acc5 = precision_at_k(logits, targets, top_k=(1, 5))
@@ -242,19 +262,14 @@ class MoCoV2(pl.LightningModule):
     ) -> None:
         self.momentum_update.update_weights(student=self.student, teacher=self.teacher)
 
-    def validation_step(self, batch: NamedSample, batch_idx: int) -> MetricDict:
-        breakpoint()
-        output, target = self.forward(*batch.x)
-        loss = F.cross_entropy(output, target.long())
+    @implements(ModelBase)
+    def _inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
+        return self.eval_clf._inference_step(batch=batch, stage=stage)
 
-        acc1, acc5 = precision_at_k(output, target, top_k=(1, 5))
+    @implements(ModelBase)
+    def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
+        return self.eval_clf._inference_epoch_end(outputs=outputs, stage=stage)
 
-        return {'val_loss': loss, 'val_acc1': acc1, 'val_acc5': acc5}
-
-    def validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> MetricDict:
-        val_loss = mean(outputs, 'val_loss')
-        val_acc1 = mean(outputs, 'val_acc1')
-        val_acc5 = mean(outputs, 'val_acc5')
-
-        log = {'val_loss': val_loss, 'val_acc1': val_acc1, 'val_acc5': val_acc5}
-        return {'val_loss': val_loss, 'log': log, 'progress_bar': log}
+    @implements(nn.Module)
+    def forward(self, x: Tensor) -> Tensor:
+        return self.student(x)

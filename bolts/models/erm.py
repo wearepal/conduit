@@ -19,10 +19,10 @@ from .utils import (
     prefix_keys,
 )
 
-__all__ = ["ClassifierERM", "FineTuner"]
+__all__ = ["ERMClassifier", "FineTuner"]
 
 
-class ClassifierERM(ModelBase):
+class ERMClassifier(ModelBase):
     def __init__(
         self,
         model: nn.Module,
@@ -47,6 +47,7 @@ class ClassifierERM(ModelBase):
 
     @implements(pl.LightningModule)
     def training_step(self, batch: BinarySample, batch_idx: int) -> Tensor:
+        assert isinstance(batch.x, Tensor)
         logits = self.forward(batch.x)
         loss = self.loss_fn(input=batch.x, target=batch.y)
         results_dict = {
@@ -84,7 +85,7 @@ class ClassifierERM(ModelBase):
         return self.model(x)
 
 
-class FineTuner(ClassifierERM):
+class FineTuner(ERMClassifier):
     def __init__(
         self,
         encoder: nn.Module,
