@@ -16,7 +16,6 @@ from bolts.data import (
     TernarySampleIW,
 )
 from bolts.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
-from bolts.data.datasets.audio.base import PBAudioDataset
 
 
 @pytest.mark.slow
@@ -29,16 +28,6 @@ def test_datasets(ds_cls: type[VisionDataset]) -> None:
     ds = ds_cls(root=Path("~/Data").expanduser(), transform=transform)
     for _ds in ds:
         assert _ds[0] is not None
-
-
-def test_audio_dataset() -> None:
-    """Tests basic functionality of the base audio dataset class."""
-    x = torch.rand(1, 10)
-    audio_dir = Path(r"Sample path")
-    dataset = PBAudioDataset(x=x, audio_dir=audio_dir)
-
-    assert dataset is not None
-    assert len(dataset) == len(x)
 
 
 @pytest.mark.slow

@@ -6,7 +6,6 @@
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
 from __future__ import annotations
-import os
 from os import listdir
 from os.path import isfile, join
 from pathlib import Path
@@ -96,16 +95,15 @@ class Ecoacoustics(PBAudioDataset):
         # Extract filepaths and names.
         waveform_paths_str = [str(wvfrm.relative_to(self._base_dir)) for wvfrm in waveform_paths]
         filepaths = pd.Series(waveform_paths_str)
-        filenames = pd.Series([path_str.split(os.sep)[-1] for path_str in waveform_paths_str])
+        pd.Series([path_str.split(os.sep)[-1] for path_str in waveform_paths_str])
 
-        metadata = pd.DataFrame(
-            {
-                "fileName": filenames,
-                "filePath": filepaths,
-            }
+        metadata = filepaths.str.rpartition(
+            "\\",
         )
+        metadata[0] = metadata[0] + metadata[1]
+        metadata = metadata.drop(columns=[1]).rename(columns={0: "filePath", 2: "fileName"})
 
-        # Extract labels.
+        # Incorporate labels into metadata file.
         ec_labels = pd.read_csv(self.ec_labels_path, encoding="ISO-8859-1")
         uk_labels = pd.read_csv(self.uk_labels_path, encoding="ISO-8859-1")
         metadata = metadata.merge(pd.concat([uk_labels, ec_labels]), how="left")
