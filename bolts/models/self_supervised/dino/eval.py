@@ -8,7 +8,7 @@ import torch
 from torch import Tensor, optim
 import torch.nn as nn
 
-from bolts.data.structures import SampleBase, shallow_asdict
+from bolts.data.structures import NamedSample, shallow_asdict
 from bolts.models.erm import FineTuner
 
 from .vit import VisionTransformer
@@ -61,10 +61,10 @@ class DatasetEncoder(pl.LightningModule):
     def __init__(self, model: nn.Module) -> None:
         super().__init__()
         self.model = model
-        self._dataset: SampleBase | None = None
+        self._dataset: NamedSample | None = None
 
     @property
-    def dataset(self) -> SampleBase:
+    def dataset(self) -> NamedSample:
         if self._dataset is None:
             raise AttributeError(
                 "Attribute 'dataset' cannot be accessed because the module has not yet been run."
@@ -76,12 +76,12 @@ class DatasetEncoder(pl.LightningModule):
         return self.model(x)
 
     @implements(pl.LightningModule)
-    def test_step(self, batch: SampleBase, batch_idx: int) -> SampleBase:
+    def test_step(self, batch: NamedSample, batch_idx: int) -> NamedSample:
         x = self(batch.x).detach()
         return replace(batch, x=x)
 
     @implements(pl.LightningModule)
-    def test_epoch_end(self, outputs: list[SampleBase]) -> None:
+    def test_epoch_end(self, outputs: list[NamedSample]) -> None:
         cls = type(outputs[0])
         agg_dict = defaultdict(list)
         for step_output in outputs:

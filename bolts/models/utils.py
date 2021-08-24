@@ -11,10 +11,11 @@ import torch.nn as nn
 __all__ = [
     "accuracy",
     "aggregate_over_epoch",
-    "precision_at_k",
-    "prefix_keys",
-    "make_no_grad",
     "decorate_all_methods",
+    "make_no_grad",
+    "precision_at_k",
+    "prediction",
+    "prefix_keys",
 ]
 
 
@@ -29,30 +30,38 @@ def prefix_keys(dict_: dict[str, Any], *, prefix: str, sep: str = "/") -> dict[s
 
 
 @torch.no_grad()
+def prediction(logits: Tensor) -> Tensor:
+    logits = torch.atleast_1d(logits.squeeze())
+    if logits.ndim == 1:
+        return (logits > 0).long()
+    return logits.argmax(dim=1)
+
+
+@torch.no_grad()
 def accuracy(logits: Tensor, targets: Tensor) -> Tensor:
     logits = torch.atleast_1d(logits.squeeze())
-    targets = torch.atleast_1d(logits.squeeze())
+    targets = torch.atleast_1d(logits.squeeze()).long()
     if len(logits) != len(targets):
         raise ValueError("'logits' and 'targets' must match in size at dimension 0.")
     if logits.ndim == 1:
         preds = logits > 0
     else:
-        preds = logits.argmax()
+        preds = logits.argmax(dim=1)
     return (preds == targets).float().mean()
 
 
 @torch.no_grad()
 def precision_at_k(
-    logits: Tensor, target: Tensor, top_k: int | tuple[int, ...] = (1,)
+    logits: Tensor, targets: Tensor, top_k: int | tuple[int, ...] = (1,)
 ) -> list[Tensor]:
     """Computes the accuracy over the k top predictions for the specified values of k"""
     if isinstance(top_k, int):
         top_k = (top_k,)
     maxk = max(top_k)
-    batch_size = target.size(0)
+    batch_size = targets.size(0)
     _, pred = logits.topk(k=maxk, dim=1, largest=True, sorted=True)
     pred = pred.t()
-    correct = pred.eq(target.view(1, -1).expand_as(pred))
+    correct = pred.eq(targets.view(1, -1).expand_as(pred))
 
     res: list[Tensor] = []
     for k in top_k:

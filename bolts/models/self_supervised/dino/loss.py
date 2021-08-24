@@ -39,7 +39,7 @@ class DINOLoss(nn.Module):
             )
         )
 
-    def forward(self, student_output: Tensor, teacher_output: Tensor, epoch: Tensor) -> Tensor:
+    def forward(self, student_output: Tensor, teacher_output: Tensor, step: int) -> Tensor:
         """
         Cross-entropy between softmax outputs of the teacher and student networks.
         """
@@ -47,7 +47,7 @@ class DINOLoss(nn.Module):
         student_out = student_out.chunk(self.num_crops)
 
         # teacher centering and sharpening
-        temp = self.teacher_temp_schedule[epoch]
+        temp = self.teacher_temp_schedule[step]
         teacher_out = ((teacher_output - self.center) / temp).softmax(dim=-1)
         teacher_out = teacher_out.detach().chunk(2)
 

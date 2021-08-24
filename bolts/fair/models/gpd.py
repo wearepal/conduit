@@ -16,7 +16,7 @@ from bolts.data.structures import TernarySample
 from bolts.models.base import PBModel
 from bolts.types import Stage
 
-__all__ = ["Gpd"]
+__all__ = ["GPD"]
 
 
 def compute_proj_grads(*, model: nn.Module, loss_p: Tensor, loss_a: Tensor, alpha: float) -> None:
@@ -53,12 +53,12 @@ def compute_grad(*, model: nn.Module, loss: Tensor) -> None:
         param.grad = grad
 
 
-class GpdOut(NamedTuple):
+class ModelOut(NamedTuple):
     s: Tensor
     y: Tensor
 
 
-class Gpd(PBModel):
+class GPD(PBModel):
     """Zhang Mitigating Unwanted Biases."""
 
     def __init__(
@@ -131,12 +131,10 @@ class Gpd(PBModel):
         return results_dict
 
     def _get_losses(
-        self, model_out: GpdOut, *, batch: TernarySample
+        self, model_out: ModelOut, *, batch: TernarySample
     ) -> tuple[Tensor, Tensor, Tensor]:
-        target_s = batch.s.view(-1, 1).float()
-        loss_adv = self._loss_adv_fn(model_out.s, target=target_s)
-        target_y = batch.y.view(-1, 1).float()
-        loss_clf = self._loss_clf_fn(model_out.y, target=target_y)
+        loss_adv = self._loss_adv_fn(model_out.s, target=batch.s)
+        loss_clf = self._loss_clf_fn(model_out.y, target=batch.y)
         return loss_adv, loss_clf, loss_adv + loss_clf
 
     @implements(pl.LightningModule)
@@ -144,7 +142,7 @@ class Gpd(PBModel):
         opt = self.optimizers()
         opt.zero_grad()
 
-        model_out: GpdOut = self.forward(batch.x)
+        model_out: ModelOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
 
         logs = {
@@ -174,8 +172,9 @@ class Gpd(PBModel):
             sch.step()
 
     @implements(PBModel)
+    @torch.no_grad()
     def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
-        model_out: GpdOut = self.forward(batch.x)
+        model_out: ModelOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
         logs = {
             f"{stage}/loss": loss.item(),
@@ -194,19 +193,3 @@ class Gpd(PBModel):
             "s": batch.s.view(-1),
             "preds": model_out.y.sigmoid().round().squeeze(-1),
         }
-
-    def reset_parameters(self) -> None:
-        """Reset the models."""
-        self.apply(self._maybe_reset_parameters)
-
-    @staticmethod
-    def _maybe_reset_parameters(module: nn.Module) -> None:
-        if hasattr(module, 'reset_parameters'):
-            module.reset_parameters()
-
-    @implements(nn.Module)
-    def forward(self, x: Tensor) -> GpdOut:
-        z = self.enc(x)
-        y = self.clf(z)
-        s = self.adv(z)
-        return GpdOut(s=s, y=y)

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from kit import implements
 from kit.torch import CrossEntropyLoss, TrainingMode
+from kit.torch.loss import ReductionType
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT
+import torch
 from torch import Tensor, nn
 import torch.nn as nn
 
@@ -32,7 +34,7 @@ class ERMClassifier(PBModel):
         lr_restart_mult: int = 2,
         lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
-        loss_fn: Loss = CrossEntropyLoss(reduction="mean"),
+        loss_fn: Loss = CrossEntropyLoss(reduction=ReductionType.mean),
     ) -> None:
         super().__init__(
             lr=lr,
@@ -63,12 +65,14 @@ class ERMClassifier(PBModel):
         return loss
 
     @implements(PBModel)
-    def _inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
+    @torch.no_grad()
+    def _inference_step(self, batch: BinarySample, stage: Stage) -> dict[str, Tensor]:
         assert isinstance(batch.x, Tensor)
         logits = self.forward(batch.x)
         return {"logits": logits, "targets": batch.y}
 
     @implements(PBModel)
+    @torch.no_grad()
     def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
         logits_all = aggregate_over_epoch(outputs=outputs, metric="logits")
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
@@ -85,10 +89,12 @@ class ERMClassifier(PBModel):
         return results_dict
 
     @staticmethod
+    @torch.no_grad()
     def _maybe_reset_parameters(module: nn.Module) -> None:
         if hasattr(module, 'reset_parameters'):
             module.reset_parameters()  # type: ignore
 
+    @torch.no_grad()
     def reset_parameters(self) -> None:
         self.apply(self._maybe_reset_parameters)
 

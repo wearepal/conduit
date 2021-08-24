@@ -11,8 +11,9 @@ import torch
 from torch import Tensor, nn, optim
 from torch.utils.data import DataLoader
 
-from bolts.data import BinarySample, SampleBase
+from bolts.data import BinarySample, NamedSample
 from bolts.data.datamodules.vision.base import PBVisionDataModule
+from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
 from bolts.models.self_supervised.dino.transforms import (
     MultiCropTransform,
@@ -160,8 +161,8 @@ class DINO(PBModel):
 
         # student and teacher networks start with the same weights
         teacher.load_state_dict(student.state_dict())
-        # there is no backpropagation through the key-encoder, so no need for gradients
-        for p in student.parameters():
+        # there is no backpropagation through the teacher so no need for gradients
+        for p in teacher.parameters():
             p.requires_grad = False
 
         return student, teacher
@@ -173,7 +174,7 @@ class DINO(PBModel):
         return self.student.backbone
 
     @torch.no_grad()
-    def _encode_dataset(self, stage: Stage) -> SampleBase:
+    def _encode_dataset(self, stage: Stage) -> NamedSample:
         # It's not strictly necessary to disable shuffling but pytorch-lightning complains if its
         # enabled during 'testing'
         dl_kwargs = (
@@ -213,16 +214,18 @@ class DINO(PBModel):
             if "last_layer" in n:
                 p.grad = None
 
-    def _get_loss(self, batch: SampleBase, batch_idx: int) -> Tensor:
+    def _get_loss(self, batch: NamedSample, batch_idx: int) -> Tensor:
         assert isinstance(batch.x, list)
         teacher_output = self.teacher(
             batch.x[:2]
         )  # only the 2 global views pass through the teacher
         student_output = self.student(batch.x)
-        return self._loss_fn(student_output, teacher_output, batch_idx)
+        return self._loss_fn(
+            student_output=student_output, teacher_output=teacher_output, step=batch_idx
+        )
 
     @implements(pl.LightningModule)
-    def training_step(self, batch: SampleBase, batch_idx: int) -> Tensor:
+    def training_step(self, batch: NamedSample, batch_idx: int) -> Tensor:
         assert self._trainer.optimizers is not None
         for i, param_group in enumerate(self._trainer.optimizers[0].param_groups):
             param_group["lr"] = self._lr_schedule[batch_idx]

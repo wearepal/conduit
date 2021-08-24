@@ -8,7 +8,7 @@ from kit import implements
 from kit.torch import CrossEntropyLoss, ReductionType, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
 from torch import Tensor, nn, optim
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
@@ -17,9 +17,10 @@ import torchmetrics
 from bolts.data.structures import TernarySample
 from bolts.fair.misc import FairnessType
 from bolts.models.base import PBModel
-from bolts.types import LRScheduler, MetricDict, Stage
+from bolts.models.utils import accuracy, aggregate_over_epoch, prediction, prefix_keys
+from bolts.types import LRScheduler, Stage
 
-__all__ = ["Laftr"]
+__all__ = ["LAFTR"]
 
 
 class ModelOut(NamedTuple):
@@ -29,7 +30,7 @@ class ModelOut(NamedTuple):
     x: Tensor
 
 
-class Laftr(PBModel):
+class LAFTR(PBModel):
     """Learning Adversarially Fair and Transferrable Representations model.
 
     The model is only defined with respect to binary S and binary Y.
@@ -82,65 +83,60 @@ class Laftr(PBModel):
         self.train_acc = torchmetrics.Accuracy()
         self.val_acc = torchmetrics.Accuracy()
 
-        self._target_name: str = "y"
+    @implements(PBModel)
+    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
+        assert isinstance(batch.x, Tensor)
+        model_out = self.forward(x=batch.x, s=batch.s)
+        logging_dict = dict(
+            laftr_loss=self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch),
+            adv_loss=self._loss_adv(s_pred=model_out.s, batch=batch),
+        )
+        logging_dict = prefix_keys(dict_=logging_dict, prefix=str(stage), sep="/")
+        self.log_dict(logging_dict)
+
+        return {
+            "y": batch.y.view(-1),
+            "s": batch.s.view(-1),
+            "logits_y": model_out.y,
+            "logits_s": model_out.s,
+        }
 
     @implements(PBModel)
-    def _inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
-        all_y = torch.cat([output_step["y"] for output_step in outputs], 0)
-        all_s = torch.cat([output_step["s"] for output_step in outputs], 0)
-        all_preds = torch.cat([output_step["preds"] for output_step in outputs], 0)
+    def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
+        targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
+        subgroups_all = aggregate_over_epoch(outputs=outputs, metric="subgroup")
+        logits_y_all = aggregate_over_epoch(outputs=outputs, metric="logits_y")
+        logits_s_all = aggregate_over_epoch(outputs=outputs, metric="logits_s")
+
+        preds_y_all = prediction(logits_y_all)
+        preds_s_all = prediction(logits_s_all)
 
         dt = em.DataTuple(
-            x=pd.DataFrame(
-                torch.rand_like(all_s, dtype=float).detach().cpu().numpy(), columns=["x0"]
-            ),
-            s=pd.DataFrame(all_s.detach().cpu().numpy(), columns=["s"]),
-            y=pd.DataFrame(all_y.detach().cpu().numpy(), columns=["y"]),
+            x=pd.DataFrame(torch.rand_like(subgroups_all).detach().cpu().numpy(), columns=["x0"]),
+            s=pd.DataFrame(subgroups_all.detach().cpu().numpy(), columns=["s"]),
+            y=pd.DataFrame(targets_all.detach().cpu().numpy(), columns=["y"]),
         )
 
-        results = em.run_metrics(
-            predictions=em.Prediction(hard=pd.Series(all_preds.argmax(-1).detach().cpu().numpy())),
+        results_dict = em.run_metrics(
+            predictions=em.Prediction(hard=pd.Series(preds_y_all.detach().cpu().numpy())),
             actual=dt,
             metrics=[em.Accuracy(), em.RenyiCorrelation(), em.Yanovich()],
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
-
-        tm_acc = self.val_acc if stage is Stage.validate else self.test_acc
-        results_dict = {f"{stage}/acc": tm_acc.compute()}
-        results_dict.update({f"{stage}/{self.target_name}_{k}": v for k, v in results.items()})
+        results_dict["pred_s_acc"] = float(
+            accuracy(logits=preds_s_all, targets=subgroups_all).item()
+        )
 
         return results_dict
-
-    @implements(PBModel)
-    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
-        model_out = self.forward(x=batch.x, s=batch.s)
-        laftr_loss = self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch)
-        adv_loss = self._loss_adv(s_pred=model_out.s, batch=batch)
-        tm_acc = self.val_acc if stage is Stage.validate else self.test_acc
-        target = batch.y.view(-1).long()
-        _acc = tm_acc(model_out.y.argmax(-1), target)
-        self.log_dict(
-            {
-                f"{stage}/loss": (laftr_loss + adv_loss).item(),
-                f"{stage}/model_loss": laftr_loss.item(),
-                f"{stage}/adv_loss": adv_loss.item(),
-                f"{stage}/{self.target_name}_acc": _acc,
-            }
-        )
-        return {
-            "y": batch.y.view(-1),
-            "s": batch.s.view(-1),
-            "preds": model_out.y.sigmoid().round().squeeze(-1),
-        }
 
     def _loss_adv(self, s_pred: Tensor, *, batch: TernarySample) -> Tensor:
         # For Demographic Parity, for EqOpp is a different loss term.
         if self.fairness is FairnessType.DP:
-            losses = self._adv_clf_loss(s_pred, batch.s.view(-1, 1))
+            unweighted_loss = self._adv_clf_loss(s_pred, batch.s.view(-1, 1))
             for s in (0, 1):
                 mask = batch.s.view(-1) == s
-                losses[mask] /= mask.sum()
-            loss = 1 - losses.sum() / 2
+                unweighted_loss[mask] /= mask.sum()
+            loss = 1 - unweighted_loss.sum() / 2
         elif self.fairness is FairnessType.EO:
             unweighted_loss = self._adv_clf_loss(s_pred, batch.s.view(-1, 1))
             count = 0
@@ -157,7 +153,7 @@ class Laftr(PBModel):
                 unweighted_loss[mask] /= mask.sum()
             unweighted_loss[batch.y.view(-1) == 0] *= 0.0
             loss = 2 - unweighted_loss.sum() / 2
-        elif self.fairness is FairnessType.No:
+        else:
             loss = s_pred.sum() * 0
         self.log(f"{self.fairness}_adv_loss", self.adv_weight * loss)
         return self.adv_weight * loss
@@ -219,22 +215,20 @@ class Laftr(PBModel):
 
     @implements(pl.LightningModule)
     def training_step(self, batch: TernarySample, batch_idx: int, optimizer_idx: int) -> Tensor:
+        assert isinstance(batch.x, Tensor)
         if optimizer_idx == 0:
             # Main model update
             self.set_requires_grad(self.adv, requires_grad=False)
             model_out = self.forward(x=batch.x, s=batch.s)
             laftr_loss = self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch)
             adv_loss = self._loss_adv(s_pred=model_out.s, batch=batch)
-            target = batch.y.view(-1).long()
-            _acc = self.train_acc(model_out.y.argmax(-1), target)
-            self.log_dict(
-                {
-                    f"train/loss": (laftr_loss + adv_loss).item(),
-                    f"train/model_loss": laftr_loss.item(),
-                    f"train/acc": _acc,
-                }
-            )
-            return laftr_loss + adv_loss
+            _acc = accuracy(logits=model_out.y, targets=batch.y)
+            logging_dict = {
+                "loss": (laftr_loss + adv_loss).item(),
+                "model_loss": laftr_loss.item(),
+                "acc": _acc,
+            }
+            loss = laftr_loss + adv_loss
         elif optimizer_idx == 1:
             # Adversarial update
             self.set_requires_grad([self.enc, self.dec, self.clf], requires_grad=False)
@@ -244,16 +238,17 @@ class Laftr(PBModel):
             laftr_loss = self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch)
             target = batch.y.view(-1).long()
             _acc = self.train_acc(model_out.y.argmax(-1), target)
-            self.log_dict(
-                {
-                    f"train/loss": (laftr_loss + adv_loss).item(),
-                    f"train/adv_loss": adv_loss.item(),
-                    f"train/acc": _acc,
-                }
-            )
-            return -(laftr_loss + adv_loss)
+            logging_dict = {
+                "loss": (laftr_loss + adv_loss).item(),
+                "adv_loss": adv_loss.item(),
+                "acc": _acc,
+            }
+            loss = -(laftr_loss + adv_loss)
         else:
             raise RuntimeError("There should only be 2 optimizers, but 3rd received.")
+        logging_dict = prefix_keys(dict_=logging_dict, prefix="train", sep="/")
+        self.log_dict(logging_dict)
+        return loss
 
     @staticmethod
     def set_requires_grad(nets: nn.Module | list[nn.Module], requires_grad: bool) -> None:

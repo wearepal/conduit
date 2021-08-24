@@ -1,5 +1,4 @@
 """Implementation of ICLR 21 Fair Mixup.
-
 https://github.com/chingyaoc/fair-mixup
 """
 from __future__ import annotations
@@ -16,19 +15,13 @@ import torch
 from torch import Tensor, nn
 from torch.distributions import Beta
 import torchmetrics
-from typing_extensions import Protocol
 
 from bolts.data import TernarySample
 from bolts.fair.misc import FairnessType
 from bolts.models.base import PBModel
-from bolts.types import MetricDict, Stage
+from bolts.types import Loss, MetricDict, Stage
 
 __all__ = ["FairMixup"]
-
-
-class Criterion(Protocol):
-    def __call__(self, input: Tensor, target: Tensor) -> Tensor:
-        ...
 
 
 class Mixed(NamedTuple):
@@ -74,7 +67,6 @@ class FairMixup(PBModel):
         self.mixup_lambda = mixup_lambda
         self.alpha = alpha
 
-        self._target_name = "y"
         self._loss_fn = CrossEntropyLoss(reduction=ReductionType.mean)
 
         self.test_acc = torchmetrics.Accuracy()
@@ -133,7 +125,7 @@ class FairMixup(PBModel):
         self.log_dict(
             {
                 f"{stage}/loss": loss.item(),
-                f"{stage}/{self.target_name}_acc": _acc,
+                f"{stage}/acc": _acc,
             }
         )
 
@@ -170,7 +162,7 @@ class FairMixup(PBModel):
 
         tm_acc = self.val_acc if stage is Stage.validate else self.test_acc
         results_dict = {f"{stage}/acc": tm_acc.compute().item()}
-        results_dict.update({f"{stage}/{self.target_name}_{k}": v for k, v in results.items()})
+        results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
         results_dict.update(
             {
                 f"{stage}/DP_Gap": abs(mean_preds_s0 - mean_preds_s1),
@@ -287,7 +279,7 @@ class FairMixup(PBModel):
     @staticmethod
     def mixup_criterion(
         *,
-        criterion: Criterion,
+        criterion: Loss,
         pred: Tensor,
         tgt_a: Tensor,
         tgt_b: Tensor,
