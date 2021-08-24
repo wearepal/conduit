@@ -84,7 +84,7 @@ class LAFTR(PBModel):
         self.val_acc = torchmetrics.Accuracy()
 
     @implements(PBModel)
-    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
+    def inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
         assert isinstance(batch.x, Tensor)
         model_out = self.forward(x=batch.x, s=batch.s)
         logging_dict = dict(
@@ -102,7 +102,7 @@ class LAFTR(PBModel):
         }
 
     @implements(PBModel)
-    def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
         subgroups_all = aggregate_over_epoch(outputs=outputs, metric="subgroup")
         logits_y_all = aggregate_over_epoch(outputs=outputs, metric="logits_y")

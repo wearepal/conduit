@@ -101,7 +101,7 @@ class GPD(PBModel):
         self.automatic_optimization = False  # Mark for manual optimization
 
     @implements(PBModel)
-    def _inference_epoch_end(
+    def inference_epoch_end(
         self, outputs: list[Mapping[str, Tensor]], stage: Stage
     ) -> dict[str, Tensor]:
         all_y = torch.cat([step_output["y"] for step_output in outputs], 0)
@@ -173,7 +173,7 @@ class GPD(PBModel):
 
     @implements(PBModel)
     @torch.no_grad()
-    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
+    def inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
         model_out: ModelOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
         logs = {

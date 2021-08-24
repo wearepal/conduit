@@ -115,7 +115,7 @@ class FairMixup(PBModel):
         return loss
 
     @implements(PBModel)
-    def _inference_step(self, batch: TernarySample, stage: Stage) -> STEP_OUTPUT:
+    def inference_step(self, batch: TernarySample, stage: Stage) -> STEP_OUTPUT:
         logits = self.net(batch.x)
 
         loss = self._get_loss(logits, batch)
@@ -136,7 +136,7 @@ class FairMixup(PBModel):
         }
 
     @implements(PBModel)
-    def _inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
+    def inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
         all_y = torch.cat([step_output["y"] for step_output in outputs], 0)
         all_s = torch.cat([step_output["s"] for step_output in outputs], 0)
         all_preds = torch.cat([step_output["preds"] for step_output in outputs], 0)

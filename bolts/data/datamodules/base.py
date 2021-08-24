@@ -7,6 +7,7 @@ from typing import Optional, Sequence, Union
 from kit import implements
 from kit.misc import str_to_enum
 from kit.torch import SequentialBatchSampler, StratifiedBatchSampler, TrainingMode
+from kit.torch.data import num_batches_per_epoch
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader, Sampler
@@ -215,6 +216,18 @@ class PBDataModule(pl.LightningDataModule):
     @final
     def num_test_samples(self) -> int:
         return self._num_samples(self.test_data)
+
+    @final
+    def num_train_batches(self, drop_last: bool = False) -> int:
+        if self.training_mode is TrainingMode.step:
+            raise AttributeError(
+                "'num_train_batches' can only be computed when 'training_mode' is set to 'epoch'."
+            )
+        return num_batches_per_epoch(
+            num_samples=self.num_train_samples,
+            batch_size=self.train_batch_size,
+            drop_last=drop_last,
+        )
 
     @property
     @final

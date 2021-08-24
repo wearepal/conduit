@@ -5,24 +5,24 @@ from kit import gcopy, implements, parsable
 from kit.torch.data import TrainingMode
 import numpy as np
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.progress import ProgressBar
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 import torch
 from torch import Tensor, nn, optim
 from torch.utils.data import DataLoader
 
-from bolts.data import BinarySample, NamedSample
+from bolts.data import NamedSample
 from bolts.data.datamodules.vision.base import PBVisionDataModule
+from bolts.data.datasets.utils import ImageTform
 from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
+from bolts.models.self_supervised.base import SelfDistillation, SelfSupervisedModel
 from bolts.models.self_supervised.dino.transforms import (
     MultiCropTransform,
     dino_eval_transform,
 )
-from bolts.types import MetricDict, Stage
+from bolts.types import Stage
 
 from . import vit
-from .callbacks import MeanTeacherWeightUpdate
 from .eval import DatasetEncoder, DINOLinearClassifier
 from .head import MultiCropNet
 from .loss import DINOLoss
@@ -31,15 +31,12 @@ from .utils import cosine_scheduler, get_params_groups
 __all__ = ["DINO"]
 
 
-class DINO(PBModel):
+class DINO(SelfDistillation):
     _loss_fn: DINOLoss
     student: MultiCropNet
     teacher: MultiCropNet
-    eval_trainer: pl.Trainer
     _lr_schedule: np.ndarray
     _wd_schedule: np.ndarray
-    momentum_schedule: np.ndarray
-    lin_clf: DINOLinearClassifier
 
     @parsable
     def __init__(
@@ -107,15 +104,7 @@ class DINO(PBModel):
             self.datamodule.train_transforms = mc_transform
             self.datamodule.test_transforms = dino_eval_transform(train=False)
 
-        self.eval_trainer = gcopy(self.trainer, deep=False)
-        bar = ProgressBar()
-        bar._trainer = self.eval_trainer
-        self.eval_trainer.callbacks = [bar]
-
-        max_steps = self.trainer.max_steps or self.trainer.max_epochs or 1
-        self.momentum_update = MeanTeacherWeightUpdate(
-            max_steps=max_steps, initial_tau=self.momentum_teacher
-        )
+        max_steps = self.trainer.max_steps
 
         self._loss_fn = DINOLoss(
             out_dim=self.out_dim,
@@ -142,7 +131,17 @@ class DINO(PBModel):
 
         self.student, self.teacher = self._init_encoders()
 
+    @property
+    @implements(SelfDistillation)
+    def momentum_schedule(self) -> np.ndarray:
+        return cosine_scheduler(
+            base_value=self.initial_tau,
+            final_value=1,
+            total_iters=self.num_training_steps,
+        )
+
     @torch.no_grad()
+    @implements(SelfDistillation)
     def _init_encoders(self) -> tuple[MultiCropNet, MultiCropNet]:
         student = MultiCropNet(
             arch_fn=self.arch_fn,
@@ -161,13 +160,11 @@ class DINO(PBModel):
 
         # student and teacher networks start with the same weights
         teacher.load_state_dict(student.state_dict())
-        # there is no backpropagation through the teacher so no need for gradients
-        for p in teacher.parameters():
-            p.requires_grad = False
 
         return student, teacher
 
     @property
+    @implements(SelfSupervisedModel)
     def features(self) -> vit.VisionTransformer:
         # We define an encoder-extracting method for consistency with the other models -
         # fit_and_test, for instance, expects a model to comprise of two parts: enc and clf.
@@ -269,42 +266,21 @@ class DINO(PBModel):
             using_lbfgs=using_lbfgs,
         )
 
-    @implements(PBModel)
-    def _inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
-        return self.lin_clf._inference_step(batch=batch, stage=stage)
-
-    @implements(PBModel)
-    def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
-        return self.lin_clf._inference_epoch_end(outputs=outputs, stage=stage)
-
     @implements(nn.Module)
     def forward(self, x: Tensor) -> Tensor:
         return self.student(x)
 
-    def _eval_routine(self) -> None:
-        self.lin_clf = DINOLinearClassifier(
+    @property
+    @implements(SelfSupervisedModel)
+    def eval_transform(self) -> ImageTform:
+        return dino_eval_transform(train=True)
+
+    @implements(SelfSupervisedModel)
+    def _init_eval_clf(self) -> DINOLinearClassifier:
+        return DINOLinearClassifier(
             encoder=self.features,
             target_dim=self.datamodule.card_y,
             epochs=self.lin_clf_epochs,
             weight_decay=0,
             lr=self.lr_eval,
         )
-        train_transform = dino_eval_transform(train=True)
-        dm_cp = gcopy(
-            self.datamodule,
-            deep=False,
-            stratified_sampling=False,
-            training_mode=TrainingMode.epoch,
-            train_transforms=train_transform,
-        )
-        if self.lin_clf_batch_size is not None:
-            dm_cp.train_batch_size = self.lin_clf_batch_size
-        self.eval_trainer.fit(self.lin_clf, datamodule=dm_cp)
-
-    @implements(pl.LightningModule)
-    def on_validation_start(self) -> None:
-        self._eval_routine()
-
-    @implements(pl.LightningModule)
-    def on_test_start(self) -> None:
-        self._eval_routine()

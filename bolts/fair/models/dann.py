@@ -124,7 +124,7 @@ class Dann(PBModel):
         return loss
 
     @implements(PBModel)
-    def _inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
+    def inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
         all_y = torch.cat([output_step["y"] for output_step in outputs], 0)
         all_s = torch.cat([output_step["s"] for output_step in outputs], 0)
         all_preds = torch.cat([output_step["preds"] for output_step in outputs], 0)
@@ -152,7 +152,8 @@ class Dann(PBModel):
         return results_dict
 
     @implements(PBModel)
-    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
+    def inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
+        assert isinstance(batch.x, Tensor)
         model_out: DannOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
         logs = {

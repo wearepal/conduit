@@ -89,7 +89,6 @@ class PBModel(pl.LightningModule):
     def trainer(self, trainer: pl.Trainer) -> None:
         self._trainer = trainer
 
-    @final
     def build(self, datamodule: PBDataModule, *, trainer: pl.Trainer, copy: bool = True) -> None:
         if copy:
             datamodule = gcopy(datamodule, deep=False)
@@ -109,34 +108,55 @@ class PBModel(pl.LightningModule):
     def _build(self) -> None:
         ...
 
+    @property
+    def num_training_steps(self) -> int:
+        """Total training steps inferred from datamodule and devices."""
+        if self.trainer.max_steps:
+            return self.trainer.max_steps
+
+        limit_batches = self.trainer.limit_train_batches
+        batches = self.datamodule.num_train_batches(drop_last=False)
+        batches = (
+            min(batches, limit_batches)
+            if isinstance(limit_batches, int)
+            else int(limit_batches * batches)
+        )
+
+        num_devices = max(1, self.trainer.num_gpus, self.trainer.num_processes)
+        if self.trainer.tpu_cores:
+            num_devices = max(num_devices, self.trainer.tpu_cores)
+
+        effective_accum = self.trainer.accumulate_grad_batches * num_devices
+        return (batches // effective_accum) * self.trainer.max_epochs
+
     @abstractmethod
-    def _inference_step(self, batch: NamedSample, stage: Stage) -> STEP_OUTPUT:
+    def inference_step(self, batch: NamedSample, stage: Stage) -> STEP_OUTPUT:
         ...
 
     @abstractmethod
-    def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
         ...
 
     @implements(pl.LightningModule)
     @torch.no_grad()
     def validation_step(self, batch: NamedSample, batch_idx: int) -> STEP_OUTPUT:
-        return self._inference_step(batch=batch, stage=Stage.validate)
+        return self.inference_step(batch=batch, stage=Stage.validate)
 
     @implements(pl.LightningModule)
     @torch.no_grad()
     def validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        results_dict = self._inference_epoch_end(outputs=outputs, stage=Stage.validate)
+        results_dict = self.inference_epoch_end(outputs=outputs, stage=Stage.validate)
         results_dict = prefix_keys(dict_=results_dict, prefix=str(Stage.validate), sep="/")
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
     @torch.no_grad()
     def test_step(self, batch: NamedSample, batch_idx: int) -> STEP_OUTPUT:
-        return self._inference_step(batch=batch, stage=Stage.test)
+        return self.inference_step(batch=batch, stage=Stage.test)
 
     @implements(pl.LightningModule)
     @torch.no_grad()
     def test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        results_dict = self._inference_epoch_end(outputs=outputs, stage=Stage.test)
+        results_dict = self.inference_epoch_end(outputs=outputs, stage=Stage.test)
         results_dict = prefix_keys(dict_=results_dict, prefix=str(Stage.test), sep="/")
         self.log_dict(results_dict)

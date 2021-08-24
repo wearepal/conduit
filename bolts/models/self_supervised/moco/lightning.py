@@ -13,11 +13,11 @@ import torch.nn.functional as F
 from torchvision.models import resnet
 from torchvision.models.resnet import ResNet
 
-from bolts.callbacks.posthoc_eval import PostHocEval
 from bolts.data.datamodules.vision.base import PBVisionDataModule
 from bolts.data.structures import BinarySample, NamedSample
 from bolts.models.base import PBModel
 from bolts.models.erm import FineTuner
+from bolts.models.self_supervised.base import SelfDistillation, SelfSupervisedModel
 from bolts.models.self_supervised.moco.transforms import TwoCropsTransform
 from bolts.models.utils import precision_at_k
 from bolts.types import MetricDict, Stage
@@ -33,7 +33,7 @@ class EncoderFn(Protocol):
         ...
 
 
-class MoCoV2(PBModel):
+class MoCoV2(SelfSupervisedModel, SelfDistillation):
     eval_clf: FineTuner
     student: ResNet
     teacher: ResNet
@@ -88,12 +88,11 @@ class MoCoV2(PBModel):
     @implements(PBModel)
     def _build(self) -> None:
         self.use_ddp = "ddp" in str(self.trainer.distributed_backend)
-
         if isinstance(self.datamodule, PBVisionDataModule):
             # self._datamodule.train_transforms = mocov2_transform()
             self.datamodule.train_transforms = TwoCropsTransform.with_mocov2_transform()
 
-        self.student, self.teacher = self._init_encoders()
+        self.student, self.teacher = self.init_encoders()
 
         self._eval_trainer = gcopy(self.trainer, deep=True)
         # self._eval_trainer.callbacks = [PostHocEval()]
@@ -107,6 +106,7 @@ class MoCoV2(PBModel):
         return self.student
 
     @torch.no_grad()
+    @implements(SelfDistillation)
     def _init_encoders(self) -> tuple[resnet.ResNet, resnet.ResNet]:
         # create the encoders
         # num_classes is the output fc dimension
@@ -260,12 +260,12 @@ class MoCoV2(PBModel):
         self.momentum_update.update_weights(student=self.student, teacher=self.teacher)
 
     @implements(PBModel)
-    def _inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
-        return self.eval_clf._inference_step(batch=batch, stage=stage)
+    def inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
+        return self.eval_clf.inference_step(batch=batch, stage=stage)
 
     @implements(PBModel)
-    def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
-        return self.eval_clf._inference_epoch_end(outputs=outputs, stage=stage)
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
+        return self.eval_clf.inference_epoch_end(outputs=outputs, stage=stage)
 
     @implements(nn.Module)
     def forward(self, x: Tensor) -> Tensor:

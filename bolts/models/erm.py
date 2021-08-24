@@ -66,14 +66,14 @@ class ERMClassifier(PBModel):
 
     @implements(PBModel)
     @torch.no_grad()
-    def _inference_step(self, batch: BinarySample, stage: Stage) -> dict[str, Tensor]:
+    def inference_step(self, batch: BinarySample, stage: Stage) -> dict[str, Tensor]:
         assert isinstance(batch.x, Tensor)
         logits = self.forward(batch.x)
         return {"logits": logits, "targets": batch.y}
 
     @implements(PBModel)
     @torch.no_grad()
-    def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
         logits_all = aggregate_over_epoch(outputs=outputs, metric="logits")
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
         loss = self.loss_fn(input=logits_all, target=targets_all)
