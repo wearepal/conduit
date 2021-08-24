@@ -35,6 +35,7 @@ class Ecoacoustics(PBAudioDataset):
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
     _UK_LABELS_FILENAME: ClassVar[str] = "UK_AI.csv"
     _PROCESSED_DIR: ClassVar[str] = "processed_audio"
+    _AUDIO_LEN: ClassVar[float] = 60.0  # Audio samples' durations in seconds.
 
     @parsable
     def __init__(
@@ -126,3 +127,13 @@ class Ecoacoustics(PBAudioDataset):
 
         waveform_paths = list(self._base_dir.glob("**/*.wav"))
         waveform_paths = [path.relative_to(self._base_dir) for path in waveform_paths]
+
+    def _segment_spectrogram(
+        self, specgram: torch.Tensor, segment_len: float
+    ) -> list[torch.Tensor]:
+        """
+        Takes a spectrogram and segments it into as many segments of segment_len width as possible.
+        """
+        seg_sz = int(specgram.shape[-1] / (self.AUDIO_LEN / segment_len))
+        segment_boundaries = [(i - seg_sz, i) for i in range(seg_sz, specgram.shape[-1], seg_sz)]
+        return [specgram[:, :, start:end] for start, end in segment_boundaries]
