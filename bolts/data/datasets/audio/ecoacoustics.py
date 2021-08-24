@@ -6,7 +6,7 @@
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
 from __future__ import annotations
-from os import listdir
+from os import listdir, mkdir
 from os.path import isfile, join
 from pathlib import Path
 from typing import ClassVar, Optional, Union
@@ -34,6 +34,7 @@ class Ecoacoustics(PBAudioDataset):
     _BASE_FOLDER: ClassVar[str] = "Ecoacoustics"
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
     _UK_LABELS_FILENAME: ClassVar[str] = "UK_AI.csv"
+    _PROCESSED_DIR: ClassVar[str] = "processed_audio"
 
     @parsable
     def __init__(
@@ -49,6 +50,7 @@ class Ecoacoustics(PBAudioDataset):
         self.download = download
         self._base_dir = self.root / self._BASE_FOLDER
         self.labels_dir = self._base_dir / self.INDICES_DIR
+        self.processed_audio_dir = self._base_dir / self._PROCESSED_DIR
         self._metadata_path = self._base_dir / self.METADATA_FILENAME
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
@@ -60,6 +62,9 @@ class Ecoacoustics(PBAudioDataset):
             raise RuntimeError(
                 f"Data not found at location {self._base_dir.resolve()}. " "Have you downloaded it?"
             )
+
+        # Preprocess audio
+        self._preprocess_audio(10)
 
         if not self._metadata_path.exists():
             self._extract_metadata(target_attr)
@@ -95,7 +100,6 @@ class Ecoacoustics(PBAudioDataset):
         # Extract filepaths and names.
         waveform_paths_str = [str(wvfrm.relative_to(self._base_dir)) for wvfrm in waveform_paths]
         filepaths = pd.Series(waveform_paths_str)
-        pd.Series([path_str.split(os.sep)[-1] for path_str in waveform_paths_str])
 
         metadata = filepaths.str.rpartition(
             "\\",
@@ -111,3 +115,14 @@ class Ecoacoustics(PBAudioDataset):
         # Encode labels.
         metadata = self._label_encode_metadata(metadata)
         metadata.to_csv(self._metadata_path)
+
+    def _preprocess_audio(self, audio_split_secs: float):
+        """
+        Splits 1 minute audio sections into specifed chunks, spectrograms them and stores the results in processed file.
+        """
+
+        if not self.processed_audio_dir.exists():
+            mkdir(self.processed_audio_dir)
+
+        waveform_paths = list(self._base_dir.glob("**/*.wav"))
+        waveform_paths = [path.relative_to(self._base_dir) for path in waveform_paths]

@@ -66,6 +66,10 @@ def test_audio_dataset() -> None:
         else:
             assert np.isnan(matched_row.iloc[0][target_attribute])
 
+    # Test processed folder
+    processed_audio_dir = root_dir / "Ecoacoustics" / "processed_audio"
+    assert processed_audio_dir.exists()
+
 
 def test_add_field() -> None:
     x = torch.rand(3, 2)
