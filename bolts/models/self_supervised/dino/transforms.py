@@ -9,7 +9,7 @@ from torchvision.transforms.functional import InterpolationMode
 
 from bolts.models.self_supervised.moco import GaussianBlur
 
-__all__ = ["Solarization", "MultiCropTransform"]
+__all__ = ["Solarization", "MultiCropTransform", "dino_eval_transform"]
 
 
 class Solarization:
@@ -25,6 +25,27 @@ class Solarization:
             return ImageOps.solarize(img)
         else:
             return img
+
+
+def dino_eval_transform(train: bool) -> T.Compose:
+    if train:
+        return T.Compose(
+            [
+                T.RandomResizedCrop(224, interpolation=InterpolationMode.BICUBIC),
+                T.RandomHorizontalFlip(),
+                T.ToTensor(),
+                T.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            ]
+        )
+
+    return T.Compose(
+        [
+            T.Resize(256, interpolation=InterpolationMode.BICUBIC),
+            T.CenterCrop(224),
+            T.ToTensor(),
+            T.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ]
+    )
 
 
 class MultiCropTransform:

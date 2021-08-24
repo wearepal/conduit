@@ -12,10 +12,12 @@ from torch import Tensor, nn, optim
 from torch.utils.data import DataLoader
 
 from bolts.data import BinarySample, SampleBase
-from bolts.data.datamodules.base import PBDataModule
 from bolts.data.datamodules.vision.base import PBVisionDataModule
-from bolts.models.base import ModelBase
-from bolts.models.self_supervised.dino.transforms import MultiCropTransform
+from bolts.models.base import PBModel
+from bolts.models.self_supervised.dino.transforms import (
+    MultiCropTransform,
+    dino_eval_transform,
+)
 from bolts.types import MetricDict, Stage
 
 from . import vit
@@ -28,17 +30,15 @@ from .utils import cosine_scheduler, get_params_groups
 __all__ = ["DINO"]
 
 
-class DINO(ModelBase):
+class DINO(PBModel):
     _loss_fn: DINOLoss
     student: MultiCropNet
     teacher: MultiCropNet
-    _eval_trainer: pl.Trainer
+    eval_trainer: pl.Trainer
     _lr_schedule: np.ndarray
     _wd_schedule: np.ndarray
     momentum_schedule: np.ndarray
-    eval_clf: DINOLinearClassifier
-    _datamodule: PBDataModule
-    _trainer: pl.Trainer
+    lin_clf: DINOLinearClassifier
 
     @parsable
     def __init__(
@@ -61,7 +61,7 @@ class DINO(ModelBase):
         num_eval_blocks: int = 1,
         lr_eval: float = 1.0e-4,
         lin_clf_epochs: int = 100,
-        batch_size_eval: Optional[int] = None,
+        lin_clf_batch_size: Optional[int] = None,
         global_crops_scale: tuple[float, float] = (0.4, 1.0),
         local_crops_scale: tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
@@ -89,30 +89,29 @@ class DINO(ModelBase):
         self.warmup_teacher_temp_iters = warmup_teacher_temp_iters
         self.lr_eval = lr_eval
         self.lin_clf_epochs = lin_clf_epochs
-        self.batch_size_eval = batch_size_eval
+        self.lin_clf_batch_size = lin_clf_batch_size
         self.local_crops_number = local_crops_number
         self.local_crops_scale = local_crops_scale
         self.global_crops_scale = global_crops_scale
 
-    def build(self, datamodule: PBDataModule, *, trainer: pl.Trainer) -> None:
-        self._datamodule = gcopy(datamodule)
-        if isinstance(self._datamodule, PBVisionDataModule):
+    @implements(PBModel)
+    def _build(self) -> None:
+        if isinstance(self.datamodule, PBVisionDataModule):
             mc_transform = MultiCropTransform(
                 global_crops_scale=self.global_crops_scale,
                 local_crops_scale=self.local_crops_scale,
                 local_crops_number=self.local_crops_number,
             )
 
-            self._datamodule.train_transforms = mc_transform
+            self.datamodule.train_transforms = mc_transform
+            self.datamodule.test_transforms = dino_eval_transform(train=False)
 
-        self._trainer = gcopy(trainer)
-
-        self._eval_trainer = gcopy(trainer)
+        self.eval_trainer = gcopy(self.trainer, deep=False)
         bar = ProgressBar()
-        bar._trainer = self._eval_trainer
-        self._eval_trainer.callbacks = [bar]
+        bar._trainer = self.eval_trainer
+        self.eval_trainer.callbacks = [bar]
 
-        max_steps = trainer.max_steps or trainer.max_epochs or 1
+        max_steps = self.trainer.max_steps or self.trainer.max_epochs or 1
         self.momentum_update = MeanTeacherWeightUpdate(
             max_steps=max_steps, initial_tau=self.momentum_teacher
         )
@@ -128,7 +127,7 @@ class DINO(ModelBase):
 
         self._lr_schedule = cosine_scheduler(
             base_value=self.learning_rate
-            * datamodule.train_batch_size
+            * self.datamodule.train_batch_size
             / 256.0,  # linear scaling rule
             final_value=self.min_lr,
             total_iters=max_steps,  # type: ignore
@@ -177,16 +176,23 @@ class DINO(ModelBase):
     def _encode_dataset(self, stage: Stage) -> SampleBase:
         # It's not strictly necessary to disable shuffling but pytorch-lightning complains if its
         # enabled during 'testing'
-        dl_kwargs = dict(shuffle=False) if stage == "train" else {}
-        dm_cp = gcopy(self._datamodule, deep=False)
-        # Sampler needs to be set to None, meaning the default sequential/batch sampler combination
-        # is used, so that the full dataset is encoded (with no duplicates)
-        dm_cp.stratified_sampling = False
-        dm_cp.training_mode = TrainingMode.epoch
+        dl_kwargs = (
+            dict(shuffle=False, train_batch_size=self.datamodule.eval_batch_size)
+            if stage == "train"
+            else {}
+        )
+        train_transform = dino_eval_transform(train=True)
+        dm_cp = gcopy(
+            self.datamodule,
+            deep=False,
+            stratified_sampling=False,
+            training_mode=TrainingMode.epoch,
+            train_transforms=train_transform,
+        )
         dataloader = cast(DataLoader, getattr(dm_cp, f"{stage}_dataloader")(**dl_kwargs))
         # Encode the dataset
         dataset_encoder = DatasetEncoder(model=self.student.backbone)
-        self._eval_trainer.test(
+        self.eval_trainer.test(
             dataset_encoder,
             test_dataloaders=dataloader,
             verbose=False,
@@ -260,14 +266,42 @@ class DINO(ModelBase):
             using_lbfgs=using_lbfgs,
         )
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
-        return self.eval_clf._inference_step(batch=batch, stage=stage)
+        return self.lin_clf._inference_step(batch=batch, stage=stage)
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
-        return self.eval_clf._inference_epoch_end(outputs=outputs, stage=stage)
+        return self.lin_clf._inference_epoch_end(outputs=outputs, stage=stage)
 
     @implements(nn.Module)
     def forward(self, x: Tensor) -> Tensor:
         return self.student(x)
+
+    def _eval_routine(self) -> None:
+        self.lin_clf = DINOLinearClassifier(
+            encoder=self.features,
+            target_dim=self.datamodule.card_y,
+            epochs=self.lin_clf_epochs,
+            weight_decay=0,
+            lr=self.lr_eval,
+        )
+        train_transform = dino_eval_transform(train=True)
+        dm_cp = gcopy(
+            self.datamodule,
+            deep=False,
+            stratified_sampling=False,
+            training_mode=TrainingMode.epoch,
+            train_transforms=train_transform,
+        )
+        if self.lin_clf_batch_size is not None:
+            dm_cp.train_batch_size = self.lin_clf_batch_size
+        self.eval_trainer.fit(self.lin_clf, datamodule=dm_cp)
+
+    @implements(pl.LightningModule)
+    def on_validation_start(self) -> None:
+        self._eval_routine()
+
+    @implements(pl.LightningModule)
+    def on_test_start(self) -> None:
+        self._eval_routine()

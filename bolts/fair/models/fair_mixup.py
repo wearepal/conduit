@@ -20,7 +20,7 @@ from typing_extensions import Protocol
 
 from bolts.data import TernarySample
 from bolts.fair.misc import FairnessType
-from bolts.models.base import ModelBase
+from bolts.models.base import PBModel
 from bolts.types import MetricDict, Stage
 
 __all__ = ["FairMixup"]
@@ -43,7 +43,7 @@ class Mixed(NamedTuple):
     stats: Dict[str, float]
 
 
-class FairMixup(ModelBase):
+class FairMixup(PBModel):
     @parsable
     def __init__(
         self,
@@ -122,7 +122,7 @@ class FairMixup(ModelBase):
 
         return loss
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_step(self, batch: TernarySample, stage: Stage) -> STEP_OUTPUT:
         logits = self.net(batch.x)
 
@@ -143,7 +143,7 @@ class FairMixup(ModelBase):
             "preds": logits.softmax(-1)[:, 1],
         }
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
         all_y = torch.cat([step_output["y"] for step_output in outputs], 0)
         all_s = torch.cat([step_output["s"] for step_output in outputs], 0)

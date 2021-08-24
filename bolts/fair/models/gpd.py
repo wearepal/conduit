@@ -13,7 +13,7 @@ import torchmetrics
 from torchmetrics import MetricCollection
 
 from bolts.data.structures import TernarySample
-from bolts.models.base import ModelBase
+from bolts.models.base import PBModel
 from bolts.types import Stage
 
 __all__ = ["Gpd"]
@@ -58,7 +58,7 @@ class GpdOut(NamedTuple):
     y: Tensor
 
 
-class Gpd(ModelBase):
+class Gpd(PBModel):
     """Zhang Mitigating Unwanted Biases."""
 
     def __init__(
@@ -100,7 +100,7 @@ class Gpd(ModelBase):
 
         self.automatic_optimization = False  # Mark for manual optimization
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_epoch_end(
         self, outputs: list[Mapping[str, Tensor]], stage: Stage
     ) -> dict[str, Tensor]:
@@ -173,7 +173,7 @@ class Gpd(ModelBase):
             sch = self.lr_schedulers()
             sch.step()
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
         model_out: GpdOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)

@@ -84,7 +84,7 @@ class _SubgroupSampleMixin:
 
 
 @dataclass(frozen=True)
-class BinarySample(SampleBase, _BinarySampleMixin):
+class BinarySample(NamedSample, _BinarySampleMixin):
     @overload
     def add_field(self, *, s: None = ..., iw: None = ...) -> BinarySample:
         ...
@@ -114,7 +114,7 @@ class BinarySample(SampleBase, _BinarySampleMixin):
 
 
 @dataclass(frozen=True)
-class SubgroupSample(SampleBase, _SubgroupSampleMixin):
+class SubgroupSample(NamedSample, _SubgroupSampleMixin):
     @overload
     def add_field(self, *, y: None = ..., iw: None = ...) -> SubgroupSample:
         ...
@@ -165,7 +165,7 @@ class BinarySampleIW(SampleBase, _BinarySampleMixin, _IwMixin):
 
 
 @dataclass(frozen=True)
-class SubgroupSampleIW(SampleBase, _SubgroupSampleMixin, _IwMixin):
+class SubgroupSampleIW(SubgroupSample, _IwMixin):
     @overload
     def add_field(self, y: None = ...) -> SubgroupSampleIW:
         ...
@@ -181,7 +181,7 @@ class SubgroupSampleIW(SampleBase, _SubgroupSampleMixin, _IwMixin):
 
 
 @dataclass(frozen=True)
-class TernarySample(SampleBase, _BinarySampleMixin, _SubgroupSampleMixin):
+class TernarySample(BinarySample, _SubgroupSampleMixin):
     @overload
     def add_field(self, iw: None = ...) -> TernarySample:
         ...
@@ -197,7 +197,7 @@ class TernarySample(SampleBase, _BinarySampleMixin, _SubgroupSampleMixin):
 
 
 @dataclass(frozen=True)
-class TernarySampleIW(SampleBase, _BinarySampleMixin, _SubgroupSampleMixin, _IwMixin):
+class TernarySampleIW(TernarySample, _IwMixin):
     def add_field(self) -> TernarySampleIW:
         return self
 

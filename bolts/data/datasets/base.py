@@ -7,6 +7,7 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
+from typing_extensions import final
 
 from bolts.data.structures import (
     BinarySample,
@@ -77,6 +78,7 @@ class PBDataset(Dataset):
         return self.y[index]
 
     @property
+    @final
     def dim_x(
         self,
     ) -> tuple[int, ...]:
@@ -85,38 +87,63 @@ class PBDataset(Dataset):
         return self._dim_x
 
     @property
+    @final
     def dim_s(
         self,
-    ) -> tuple[int, ...] | None:
-        if self._dim_s is None and self.s is not None:
+    ) -> tuple[int, ...]:
+        if self.s is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.dim_s' cannot be determined as '{cls_name}.s' is 'None'"
+            )
+        elif self._dim_s is None:
             self._dim_s = torch.Size((1,)) if self.s.ndim == 1 else self.s.shape[1:]
         return self._dim_s
 
     @property
+    @final
     def dim_y(
         self,
-    ) -> tuple[int, ...] | None:
-        if self._dim_y is None and self.y is not None:
+    ) -> tuple[int, ...]:
+        if self.y is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.dim_y' cannot be determined as '{cls_name}.y' is 'None'"
+            )
+        elif self._dim_y is None:
             self._dim_y = torch.Size((1,)) if self.y.ndim == 1 else self.y.shape[1:]
         return self._dim_y
 
     @property
+    @final
     def card_y(
         self,
-    ) -> int | None:
-        if (self._card_y is None) and (self.y is not None):
+    ) -> int:
+        if self.y is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.card_y' cannot be determined as '{cls_name}.y' is 'None'"
+            )
+        elif self._card_y is None:
             self._card_y = len(self.y.unique())
         return self._card_y
 
     @property
+    @final
     def card_s(
         self,
-    ) -> int | None:
-        if (self._card_s is None) and (self.s is not None):
+    ) -> int:
+        if self.s is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.card_s' cannot be determined as '{cls_name}.s' is 'None'"
+            )
+        elif self._card_s is None:
             self._card_s = len(self.s.unique())
         return self._card_s
 
     @implements(Dataset)
+    @final
     def __getitem__(
         self, index: int
     ) -> NamedSample | BinarySample | SubgroupSample | TernarySample:

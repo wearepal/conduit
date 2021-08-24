@@ -10,7 +10,7 @@ import torch.nn as nn
 from bolts.data import BinarySample
 from bolts.types import Loss, MetricDict, Stage
 
-from .base import ModelBase
+from .base import PBModel
 from .utils import (
     accuracy,
     aggregate_over_epoch,
@@ -22,7 +22,7 @@ from .utils import (
 __all__ = ["ERMClassifier", "FineTuner"]
 
 
-class ERMClassifier(ModelBase):
+class ERMClassifier(PBModel):
     def __init__(
         self,
         model: nn.Module,
@@ -45,11 +45,14 @@ class ERMClassifier(ModelBase):
         self.model = model
         self.loss_fn = loss_fn
 
+    def _get_loss(self, logits: Tensor, *, batch: BinarySample) -> Tensor:
+        return self.loss_fn(input=logits, target=batch.y)
+
     @implements(pl.LightningModule)
     def training_step(self, batch: BinarySample, batch_idx: int) -> Tensor:
         assert isinstance(batch.x, Tensor)
         logits = self.forward(batch.x)
-        loss = self.loss_fn(input=batch.x, target=batch.y)
+        loss = self._get_loss(logits=logits, batch=batch)
         results_dict = {
             "loss": loss.item(),
             "acc": accuracy(logits=logits, targets=batch.y),
@@ -59,18 +62,27 @@ class ERMClassifier(ModelBase):
 
         return loss
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
+        assert isinstance(batch.x, Tensor)
         logits = self.forward(batch.x)
         return {"logits": logits, "targets": batch.y}
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
         logits_all = aggregate_over_epoch(outputs=outputs, metric="logits")
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
-        acc1, acc5 = precision_at_k(logits=logits_all, target=targets_all, top_k=(1, 5))
         loss = self.loss_fn(input=logits_all, target=targets_all)
-        return {'loss': loss, 'acc1': acc1, 'acc5': acc5}
+
+        results_dict: MetricDict = {"loss": loss}
+        if logits_all.size(1) > 5:
+            acc1, acc5 = precision_at_k(logits=logits_all, targets=targets_all, top_k=(1, 5))
+            results_dict["acc5"] = acc5
+        else:
+            acc1 = accuracy(logits=logits_all, targets=targets_all)
+        results_dict["acc1"] = acc1
+
+        return results_dict
 
     @staticmethod
     def _maybe_reset_parameters(module: nn.Module) -> None:

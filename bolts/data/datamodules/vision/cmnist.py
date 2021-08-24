@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Union
 
 import albumentations as A
+from albumentations.pytorch.transforms import ToTensorV2
 from kit import implements, parsable
 from kit.torch import TrainingMode, prop_random_split
 import numpy as np
@@ -87,7 +88,7 @@ class ColoredMNISTDataModule(PBVisionDataModule):
     @implements(PBVisionDataModule)
     def _default_train_transforms(self) -> A.Compose:
         base_transforms = A.Compose([A.Resize(self.image_size, self.image_size)])
-        normalization = A.Normalize(self.norm_values)
+        normalization = A.Compose([A.Normalize(self.norm_values), ToTensorV2])
         return A.Compose([base_transforms, normalization])
 
     @implements(LightningDataModule)
@@ -128,8 +129,8 @@ class ColoredMNISTDataModule(PBVisionDataModule):
             channel_means, channel_stds = torch.std_mean(
                 train_data.x[train_data_new.indices], dim=[0, 2, 3]
             )
-            channel_means = np.mean(train_data.x[train_data_new.indices], axis=(0, 2, 3))
-            channel_stds = np.std(train_data.x[train_data_new.indices], axis=(0, 2, 3))
+            channel_means = np.mean(train_data.x[train_data_new.indices], axis=(0, 2, 3)) / 255.0
+            channel_stds = np.std(train_data.x[train_data_new.indices], axis=(0, 2, 3)) / 255.0
         else:
             # Split the data randomly according to val- and test-prop
             all_data = ConcatDataset([train_data, test_data])
@@ -137,8 +138,8 @@ class ColoredMNISTDataModule(PBVisionDataModule):
             val_data, test_data, train_data_new = prop_random_split(
                 dataset=all_data, props=(self.val_prop, self.test_prop)
             )
-            channel_means = np.mean(all_x[train_data_new.indices], axis=(0, 2, 3))
-            channel_stds = np.std(all_x[train_data_new.indices], axis=(0, 2, 3))
+            channel_means = np.mean(all_x[train_data_new.indices], axis=(0, 2, 3)) / 255.0
+            channel_stds = np.std(all_x[train_data_new.indices], axis=(0, 2, 3)) / 255.0
 
         self.norm_values = MeanStd(mean=channel_means.tolist(), std=channel_stds.tolist())
 

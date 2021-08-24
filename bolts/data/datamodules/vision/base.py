@@ -8,15 +8,12 @@ from albumentations.pytorch import ToTensorV2
 from kit import implements
 from kit.torch import TrainingMode
 import pytorch_lightning as pl
+from typing_extensions import final
 
 from bolts.constants import IMAGENET_STATS
 from bolts.data.datamodules import PBDataModule
-from bolts.data.datasets.utils import (
-    AlbumentationsTform,
-    ImageTform,
-    extract_base_dataset,
-)
-from bolts.data.datasets.vision.base import PBVisionDataset
+from bolts.data.datasets.base import PBDataset
+from bolts.data.datasets.utils import AlbumentationsTform, ImageTform
 from bolts.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
 from bolts.data.structures import ImageSize, MeanStd
 from bolts.types import Stage
@@ -65,15 +62,20 @@ class PBVisionDataModule(PBDataModule):
         self._input_size: ImageSize | None = None
 
     @property
+    @final
     def size(self) -> ImageSize:
         if self._input_size is not None:
             return self._input_size
         if self._train_data is not None:
             self._input_size = ImageSize(*self._train_data[0].x.shape)  # type: ignore
             return self._input_size
-        raise AttributeError("'size' cannot be determined because 'setup' has not yet been called.")
+        cls_name = self.__class__.__name__
+        raise AttributeError(
+            f"'{cls_name}.size' cannot be determined because 'setup' has not yet been called."
+        )
 
     @property
+    @final
     def train_transforms(self) -> ImageTform:
         return (
             self._default_train_transforms
@@ -87,14 +89,8 @@ class PBVisionDataModule(PBDataModule):
         if isinstance(self._train_data, ImageTransformer):
             self._train_data.transform = transform
 
-    # @staticmethod
-    # def _update_il_backend(dataset: ImageTransformer) -> None:
-    #     # Update the image-loading backend if necessary
-    #     base_dataset = extract_base_dataset(dataset)
-    #     if isinstance(base_dataset, PBVisionDataset):
-    #         base_dataset.set_il_backend(dataset.transform)
-
     @property
+    @final
     def test_transforms(self) -> ImageTform:
         return (
             self._default_test_transforms
@@ -103,6 +99,7 @@ class PBVisionDataModule(PBDataModule):
         )
 
     @test_transforms.setter
+    @final
     def test_transforms(self, transform: ImageTform | None) -> None:  # type: ignore
         self._test_transforms = transform
         if isinstance(self._val_data, ImageTransformer):
@@ -122,10 +119,17 @@ class PBVisionDataModule(PBDataModule):
 
     @property
     def _default_test_transforms(self) -> A.Compose:
-        return self._default_train_transforms
+        transform_ls: list[AlbumentationsTform] = [
+            A.ToFloat(),
+        ]
+        if self.norm_values is not None:
+            transform_ls.append(A.Normalize(mean=self.norm_values.mean, std=self.norm_values.std))
+        transform_ls.append(ToTensorV2())
+        return A.Compose(transform_ls)
 
     @implements(PBDataModule)
-    def setup(self, stage: Stage | None = None) -> None:
+    @final
+    def _setup(self, stage: Stage | None = None) -> None:
         train, val, test = self._get_splits()
         train = ImageTransformer(train, transform=self.train_transforms)
         if self.instance_weighting:

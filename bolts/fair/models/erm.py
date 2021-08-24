@@ -12,13 +12,13 @@ from torch import Tensor, nn
 import torchmetrics
 
 from bolts.data.structures import TernarySample
-from bolts.models import ModelBase
+from bolts.models import PBModel
 from bolts.types import MetricDict, Stage
 
 __all__ = ["ErmBaseline"]
 
 
-class ErmBaseline(ModelBase):
+class ErmBaseline(PBModel):
     """Empirical Risk Minimisation baseline."""
 
     def __init__(
@@ -69,7 +69,7 @@ class ErmBaseline(ModelBase):
         )
         return loss
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
         all_y = torch.cat([step_output["y"] for step_output in outputs], 0)
         all_s = torch.cat([step_output["s"] for step_output in outputs], 0)
@@ -95,7 +95,7 @@ class ErmBaseline(ModelBase):
         results_dict.update({f"{stage}/{self.target_name}_{k}": v for k, v in results.items()})
         return results_dict
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
         logits = self.forward(batch.x)
         loss = self._get_loss(logits=logits, batch=batch)

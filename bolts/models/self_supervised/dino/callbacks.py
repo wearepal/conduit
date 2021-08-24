@@ -1,9 +1,8 @@
 from __future__ import annotations
-
 from typing import TYPE_CHECKING, Sequence
 
-import pytorch_lightning as pl
 from kit import implements
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import nn
 
@@ -12,7 +11,9 @@ from .utils import cosine_scheduler
 if TYPE_CHECKING:
     from .lightning import DINO
 
-__all__ = ["MeanTeacherWeightUpdate"]
+__all__ = [
+    "MeanTeacherWeightUpdate",
+]
 
 
 class MeanTeacherWeightUpdate(pl.Callback):

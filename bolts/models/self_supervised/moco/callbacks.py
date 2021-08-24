@@ -48,7 +48,7 @@ class MeanTeacherWeightUpdate(pl.Callback):
         dataloader_idx: int,
     ) -> None:
         # get networks
-        student_net = pl_module.student
+        student_net = pl_module.encoder_q
         teacher_net = pl_module.teacher
 
         # update weights

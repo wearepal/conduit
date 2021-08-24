@@ -16,7 +16,7 @@ import torchmetrics
 
 from bolts.data.structures import TernarySample
 from bolts.fair.misc import FairnessType
-from bolts.models.base import ModelBase
+from bolts.models.base import PBModel
 from bolts.types import LRScheduler, MetricDict, Stage
 
 __all__ = ["Laftr"]
@@ -29,7 +29,7 @@ class ModelOut(NamedTuple):
     x: Tensor
 
 
-class Laftr(ModelBase):
+class Laftr(PBModel):
     """Learning Adversarially Fair and Transferrable Representations model.
 
     The model is only defined with respect to binary S and binary Y.
@@ -84,7 +84,7 @@ class Laftr(ModelBase):
 
         self._target_name: str = "y"
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
         all_y = torch.cat([output_step["y"] for output_step in outputs], 0)
         all_s = torch.cat([output_step["s"] for output_step in outputs], 0)
@@ -111,7 +111,7 @@ class Laftr(ModelBase):
 
         return results_dict
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
         model_out = self.forward(x=batch.x, s=batch.s)
         laftr_loss = self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch)
@@ -170,7 +170,7 @@ class Laftr(ModelBase):
         )
         return self.clf_weight * clf_loss + self.recon_weight * recon_loss
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def configure_optimizers(
         self,
     ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:

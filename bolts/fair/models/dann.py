@@ -14,7 +14,7 @@ import torchmetrics
 from torchmetrics import MetricCollection
 
 from bolts.data.structures import TernarySample
-from bolts.models.base import ModelBase
+from bolts.models.base import PBModel
 from bolts.types import MetricDict, Stage
 
 __all__ = ["Dann"]
@@ -47,7 +47,7 @@ def grad_reverse(features: Tensor, *, lambda_: float = 1.0) -> Tensor:
     return GradReverse.apply(features, lambda_)
 
 
-class Dann(ModelBase):
+class Dann(PBModel):
     """Ganin's Domain Adversarial NN."""
 
     def __init__(
@@ -123,7 +123,7 @@ class Dann(ModelBase):
         self.log_dict(logs)
         return loss
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
         all_y = torch.cat([output_step["y"] for output_step in outputs], 0)
         all_s = torch.cat([output_step["s"] for output_step in outputs], 0)
@@ -151,7 +151,7 @@ class Dann(ModelBase):
         results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
         return results_dict
 
-    @implements(ModelBase)
+    @implements(PBModel)
     def _inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
         model_out: DannOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)

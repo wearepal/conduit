@@ -51,8 +51,7 @@ class DINOLinearClassifier(FineTuner):
 
     @implements(nn.Module)
     def forward(self, x: Tensor) -> Tensor:
-        with torch.no_grad():
-            features = self.encoder.encode(x, num_eval_blocks=self.num_eval_blocks)
+        features = self.encoder.encode(x, num_eval_blocks=self.num_eval_blocks)
         return self.classifier(features)
 
 
