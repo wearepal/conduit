@@ -21,9 +21,7 @@ from bolts.models.erm import ERMClassifier
 from bolts.models.self_supervised.callbacks import MeanTeacherWeightUpdate
 from bolts.types import MetricDict, Stage
 
-__all__ = [
-    "SelfSupervisedModel",
-]
+__all__ = ["SelfSupervisedModel", "SelfDistillation"]
 
 
 class SelfSupervisedModel(PBModel):
@@ -38,7 +36,7 @@ class SelfSupervisedModel(PBModel):
         super().__init__(lr=lr, weight_decay=weight_decay)
         self.eval_batch_size = eval_batch_size
         self.eval_epochs = eval_epochs
-        self.__eval_trainer: pl.Trainer | None = None
+        self._eval_trainer: pl.Trainer | None = None
         self._eval_clf: ERMClassifier | None = None
 
     @property
@@ -46,16 +44,33 @@ class SelfSupervisedModel(PBModel):
     def features(self) -> nn.Module:
         ...
 
-    def on_inference_start(self) -> None:
-        self._eval_routine()
+    @property
+    def eval_clf(self) -> ERMClassifier:
+        if self._eval_clf is None:
+            self._eval_clf = self._init_eval_clf()
+        return self._eval_clf
 
-    @implements(pl.LightningModule)
-    def on_validation_start(self) -> None:
-        self.on_inference_start()
+    @eval_clf.setter
+    def eval_clf(self, clf: ERMClassifier) -> None:
+        self._eval_clf = clf
 
-    @implements(pl.LightningModule)
-    def on_test_start(self) -> None:
-        self.on_inference_start()
+    @property
+    def eval_trainer(self) -> pl.Trainer:
+        if self._eval_trainer is None:
+            self._eval_trainer = gcopy(
+                self.trainer,
+                deep=True,
+                max_epochs=self.eval_epochs,
+                max_steps=None,
+            )
+            bar = ProgressBar()
+            bar._trainer = self._eval_trainer
+            self._eval_trainer.callbacks = [bar]
+        return self._eval_trainer
+
+    @eval_trainer.setter
+    def eval_trainer(self, trainer: pl.Trainer) -> None:
+        self._eval_trainer = trainer
 
     @implements(PBModel)
     def inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
@@ -73,25 +88,8 @@ class SelfSupervisedModel(PBModel):
         ...
 
     @property
-    def eval_clf(self) -> ERMClassifier:
-        if self._eval_clf is None:
-            self._eval_clf = self._init_eval_clf()
-        return self._eval_clf
-
-    @property
-    def _eval_trainer(self) -> pl.Trainer:
-        if self.__eval_trainer is None:
-            self.__eval_trainer = gcopy(
-                self.trainer, deep=True, max_epochs=self.eval_epochs, max_steps=None
-            )
-            bar = ProgressBar()
-            bar._trainer = self.__eval_trainer
-            self.__eval_trainer.callbacks = [bar]
-        return self.__eval_trainer
-
-    @property
     @abstractmethod
-    def eval_transform(self) -> ImageTform:
+    def _eval_train_transform(self) -> ImageTform:
         ...
 
     def _eval_routine(self) -> None:
@@ -102,11 +100,22 @@ class SelfSupervisedModel(PBModel):
             training_mode=TrainingMode.epoch,
         )
         if isinstance(dm_cp, PBVisionDataModule):
-            dm_cp.train_transforms = self.eval_transform
+            dm_cp.train_transforms = self._eval_train_transform
         if self.eval_batch_size is not None:
             dm_cp.train_batch_size = self.eval_batch_size
 
-        self._eval_trainer.fit(self.eval_clf, datamodule=dm_cp)
+        self.eval_trainer.fit(self.eval_clf, datamodule=dm_cp)
+
+    def on_inference_start(self) -> None:
+        self._eval_routine()
+
+    @implements(pl.LightningModule)
+    def on_validation_start(self) -> None:
+        self.on_inference_start()
+
+    @implements(pl.LightningModule)
+    def on_test_start(self) -> None:
+        self.on_inference_start()
 
 
 class SelfDistillation(SelfSupervisedModel):
@@ -131,13 +140,15 @@ class SelfDistillation(SelfSupervisedModel):
     def _init_encoders(self) -> tuple[nn.Module, nn.Module]:
         ...
 
-    def build(self, datamodule: PBDataModule, *, trainer: pl.Trainer, copy: bool) -> None:
+    def build(self, datamodule: PBDataModule, *, trainer: pl.Trainer, copy: bool = True) -> None:
         super().build(datamodule=datamodule, trainer=trainer, copy=copy)
         self.student, self.teacher = self.init_encoders()
-        mt_cb = MeanTeacherWeightUpdate(
-            student=self.student, teacher=self.teacher, momentum_schedule=self.momentum_schedule
-        )
+        mt_cb = MeanTeacherWeightUpdate(momentum_schedule=self.momentum_schedule)
         if self.trainer.callbacks is None:
             self.trainer.callbacks = [mt_cb]
         else:
             self.trainer.callbacks.append(mt_cb)
+
+    @implements(nn.Module)
+    def forward(self, x: Tensor) -> Tensor:
+        return self.student(x)

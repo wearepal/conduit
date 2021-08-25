@@ -1,13 +1,12 @@
 from __future__ import annotations
-from typing import Any, Callable, Optional, cast
+from typing import Callable, Optional, cast
 
 from kit import gcopy, implements, parsable
 from kit.torch.data import TrainingMode
 import numpy as np
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import STEP_OUTPUT
 import torch
-from torch import Tensor, nn, optim
+from torch import Tensor, optim
 from torch.utils.data import DataLoader
 
 from bolts.data import NamedSample
@@ -16,10 +15,8 @@ from bolts.data.datasets.utils import ImageTform
 from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
 from bolts.models.self_supervised.base import SelfDistillation, SelfSupervisedModel
-from bolts.models.self_supervised.dino.transforms import (
-    MultiCropTransform,
-    dino_eval_transform,
-)
+from bolts.models.self_supervised.dino.transforms import MultiCropTransform
+from bolts.models.self_supervised.moco.transforms import moco_eval_transform
 from bolts.types import Stage
 
 from . import vit
@@ -58,22 +55,25 @@ class DINO(SelfDistillation):
         warmup_teacher_temp_iters: int = 30,
         num_eval_blocks: int = 1,
         lr_eval: float = 1.0e-4,
-        lin_clf_epochs: int = 100,
-        lin_clf_batch_size: Optional[int] = None,
         global_crops_scale: tuple[float, float] = (0.4, 1.0),
         local_crops_scale: tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
+        eval_epochs: int = 100,
+        eval_batch_size: Optional[int] = None,
     ) -> None:
         """
         Args:
             num_eval_blocks: Concatenate [CLS] tokens for the `n` last blocks.
             We use `n=4` when evaluating ViT-Small and `n=1` with ViT-Base.
         """
-        super().__init__()
-        self.learning_rate = lr
+        super().__init__(
+            lr=lr,
+            weight_decay=weight_decay,
+            eval_epochs=eval_epochs,
+            eval_batch_size=eval_batch_size,
+        )
         self.num_eval_blocks = num_eval_blocks
         self.warmup_iters = warmup_iters
-        self.weight_decay = weight_decay
         self.weight_decay_end = weight_decay_end
         self.min_lr = min_lr
         self.freeze_last_layer = freeze_last_layer
@@ -85,9 +85,7 @@ class DINO(SelfDistillation):
         self.momentum_teacher = momentum_teacher
         self.teacher_temp = teacher_temp
         self.warmup_teacher_temp_iters = warmup_teacher_temp_iters
-        self.lr_eval = lr_eval
-        self.lin_clf_epochs = lin_clf_epochs
-        self.lin_clf_batch_size = lin_clf_batch_size
+        self.eval_lr = lr_eval
         self.local_crops_number = local_crops_number
         self.local_crops_scale = local_crops_scale
         self.global_crops_scale = global_crops_scale
@@ -102,9 +100,9 @@ class DINO(SelfDistillation):
             )
 
             self.datamodule.train_transforms = mc_transform
-            self.datamodule.test_transforms = dino_eval_transform(train=False)
+            self.datamodule.test_transforms = moco_eval_transform(train=False)
 
-        max_steps = self.trainer.max_steps
+        max_steps = self.num_training_steps
 
         self._loss_fn = DINOLoss(
             out_dim=self.out_dim,
@@ -116,9 +114,7 @@ class DINO(SelfDistillation):
         )
 
         self._lr_schedule = cosine_scheduler(
-            base_value=self.learning_rate
-            * self.datamodule.train_batch_size
-            / 256.0,  # linear scaling rule
+            base_value=self.lr * self.datamodule.train_batch_size / 256.0,  # linear scaling rule
             final_value=self.min_lr,
             total_iters=max_steps,  # type: ignore
             warmup_iters=min(max_steps - 1, self.warmup_iters),
@@ -129,13 +125,18 @@ class DINO(SelfDistillation):
             total_iters=max_steps,
         )
 
-        self.student, self.teacher = self._init_encoders()
+    @property
+    @implements(SelfSupervisedModel)
+    def features(self) -> vit.VisionTransformer:
+        # We define an encoder-extracting method for consistency with the other models -
+        # fit_and_test, for instance, expects a model to comprise of two parts: enc and clf.
+        return self.student.backbone
 
     @property
     @implements(SelfDistillation)
     def momentum_schedule(self) -> np.ndarray:
         return cosine_scheduler(
-            base_value=self.initial_tau,
+            base_value=self.momentum_teacher,
             final_value=1,
             total_iters=self.num_training_steps,
         )
@@ -163,13 +164,6 @@ class DINO(SelfDistillation):
 
         return student, teacher
 
-    @property
-    @implements(SelfSupervisedModel)
-    def features(self) -> vit.VisionTransformer:
-        # We define an encoder-extracting method for consistency with the other models -
-        # fit_and_test, for instance, expects a model to comprise of two parts: enc and clf.
-        return self.student.backbone
-
     @torch.no_grad()
     def _encode_dataset(self, stage: Stage) -> NamedSample:
         # It's not strictly necessary to disable shuffling but pytorch-lightning complains if its
@@ -179,7 +173,7 @@ class DINO(SelfDistillation):
             if stage == "train"
             else {}
         )
-        train_transform = dino_eval_transform(train=True)
+        train_transform = self._eval_train_transform
         dm_cp = gcopy(
             self.datamodule,
             deep=False,
@@ -201,7 +195,7 @@ class DINO(SelfDistillation):
     @implements(pl.LightningModule)
     def configure_optimizers(self) -> optim.Optimizer:
         return optim.AdamW(
-            get_params_groups(self.student), lr=self.learning_rate, weight_decay=self.weight_decay
+            get_params_groups(self.student), lr=self.lr, weight_decay=self.weight_decay
         )
 
     def _cancel_gradients_last_layer(self, train_itr: int) -> None:
@@ -232,14 +226,6 @@ class DINO(SelfDistillation):
         return self._get_loss(batch=batch, batch_idx=batch_idx)
 
     @implements(pl.LightningModule)
-    def on_train_batch_end(
-        self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
-        self.momentum_update.update_weights(
-            self.global_step, student=self.student, teacher=self.teacher
-        )
-
-    @implements(pl.LightningModule)
     def optimizer_step(
         self,
         epoch: int,
@@ -266,21 +252,18 @@ class DINO(SelfDistillation):
             using_lbfgs=using_lbfgs,
         )
 
-    @implements(nn.Module)
-    def forward(self, x: Tensor) -> Tensor:
-        return self.student(x)
-
     @property
     @implements(SelfSupervisedModel)
-    def eval_transform(self) -> ImageTform:
-        return dino_eval_transform(train=True)
+    def _eval_train_transform(self) -> ImageTform:
+        return moco_eval_transform(train=True)
 
     @implements(SelfSupervisedModel)
+    @torch.no_grad()
     def _init_eval_clf(self) -> DINOLinearClassifier:
         return DINOLinearClassifier(
             encoder=self.features,
             target_dim=self.datamodule.card_y,
-            epochs=self.lin_clf_epochs,
+            epochs=self.eval_epochs,
             weight_decay=0,
-            lr=self.lr_eval,
+            lr=self.eval_lr,
         )

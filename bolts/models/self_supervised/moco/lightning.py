@@ -1,11 +1,9 @@
 from __future__ import annotations
-from typing import Protocol, cast
+from typing import Optional, Protocol, cast
 
 from kit import implements, parsable
-from kit.misc import gcopy
 from kit.torch.loss import CrossEntropyLoss, ReductionType
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
 from torch import Tensor, optim
 import torch.nn as nn
@@ -14,15 +12,18 @@ from torchvision.models import resnet
 from torchvision.models.resnet import ResNet
 
 from bolts.data.datamodules.vision.base import PBVisionDataModule
-from bolts.data.structures import BinarySample, NamedSample
+from bolts.data.datasets.utils import ImageTform
+from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
 from bolts.models.erm import FineTuner
 from bolts.models.self_supervised.base import SelfDistillation, SelfSupervisedModel
-from bolts.models.self_supervised.moco.transforms import TwoCropsTransform
+from bolts.models.self_supervised.moco.transforms import (
+    TwoCropsTransform,
+    moco_eval_transform,
+)
 from bolts.models.utils import precision_at_k
-from bolts.types import MetricDict, Stage
+from bolts.types import MetricDict
 
-from .callbacks import MeanTeacherWeightUpdate
 from .utils import MemoryBank, ResNetArch, concat_all_gather
 
 __all__ = ["MoCoV2"]
@@ -33,11 +34,10 @@ class EncoderFn(Protocol):
         ...
 
 
-class MoCoV2(SelfSupervisedModel, SelfDistillation):
+class MoCoV2(SelfDistillation):
     eval_clf: FineTuner
     student: ResNet
     teacher: ResNet
-    _eval_trainer: pl.Trainer
     use_ddp: bool
 
     @parsable
@@ -47,12 +47,14 @@ class MoCoV2(SelfSupervisedModel, SelfDistillation):
         arch: ResNetArch = ResNetArch.resnet18,
         emb_dim: int = 128,
         num_negatives: int = 65_536,
-        encoder_momentum: float = 0.999,
+        momentum_teacher: float = 0.999,
         temp: float = 0.07,
         lr: float = 0.03,
         momentum: float = 0.9,
         weight_decay: float = 1.0e-4,
         use_mlp: bool = False,
+        eval_epochs: int = 100,
+        eval_batch_size: Optional[int] = None,
     ) -> None:
         """
         PyTorch Lightning implementation of `MoCo <https://arxiv.org/abs/2003.04297>`_
@@ -70,15 +72,20 @@ class MoCoV2(SelfSupervisedModel, SelfDistillation):
             weight_decay: optimizer weight decay
             use_mlp: add an mlp to the encoders
         """
-        super().__init__()
+        super().__init__(
+            lr=lr,
+            weight_decay=weight_decay,
+            eval_epochs=eval_epochs,
+            eval_batch_size=eval_batch_size,
+        )
         self._arch_fn = cast(EncoderFn, arch.value)
         self.emb_dim = emb_dim
         self.temp = temp
         self.lr = lr
         self.weight_decay = weight_decay
+        self.momentum_teacher = momentum_teacher
         self.momentum = momentum
 
-        self.momentum_update = MeanTeacherWeightUpdate(em=encoder_momentum)
         self.num_negatives = num_negatives
         # create the queue
         self.mb = MemoryBank(dim=emb_dim, capacity=num_negatives)
@@ -91,19 +98,17 @@ class MoCoV2(SelfSupervisedModel, SelfDistillation):
         if isinstance(self.datamodule, PBVisionDataModule):
             # self._datamodule.train_transforms = mocov2_transform()
             self.datamodule.train_transforms = TwoCropsTransform.with_mocov2_transform()
-
-        self.student, self.teacher = self.init_encoders()
-
-        self._eval_trainer = gcopy(self.trainer, deep=True)
-        # self._eval_trainer.callbacks = [PostHocEval()]
-        self.eval_clf = FineTuner(
-            encoder=self.student,
-            classifier=nn.Linear(in_features=self.emb_dim, out_features=self.datamodule.card_y),
-        )
+            self.datamodule.test_transforms = moco_eval_transform(train=False)
 
     @property
+    @implements(SelfSupervisedModel)
     def features(self) -> nn.Module:
         return self.student
+
+    @property
+    @implements(SelfDistillation)
+    def momentum_schedule(self) -> float:
+        return self.momentum_teacher
 
     @torch.no_grad()
     @implements(SelfDistillation)
@@ -134,7 +139,7 @@ class MoCoV2(SelfSupervisedModel, SelfDistillation):
     @implements(pl.LightningModule)
     def configure_optimizers(self) -> optim.Optimizer:
         optimizer = optim.SGD(
-            self.parameters(),
+            self.student.parameters(),
             self.lr,
             momentum=self.momentum,
             weight_decay=self.weight_decay,
@@ -253,20 +258,15 @@ class MoCoV2(SelfSupervisedModel, SelfDistillation):
         log = {'train_loss': loss.detach(), 'train_acc1': acc1, 'train_acc5': acc5}
         return {'loss': loss, 'log': log, 'progress_bar': log}
 
-    @implements(pl.LightningModule)
-    def on_train_batch_end(
-        self, outputs: STEP_OUTPUT, batch: NamedSample, batch_idx: int, dataloader_idx: int
-    ) -> None:
-        self.momentum_update.update_weights(student=self.student, teacher=self.teacher)
+    @property
+    @implements(SelfDistillation)
+    def _eval_train_transform(self) -> ImageTform:
+        return moco_eval_transform(train=True)
 
-    @implements(PBModel)
-    def inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
-        return self.eval_clf.inference_step(batch=batch, stage=stage)
-
-    @implements(PBModel)
-    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
-        return self.eval_clf.inference_epoch_end(outputs=outputs, stage=stage)
-
-    @implements(nn.Module)
-    def forward(self, x: Tensor) -> Tensor:
-        return self.student(x)
+    @implements(SelfDistillation)
+    @torch.no_grad()
+    def _init_eval_clf(self) -> FineTuner:
+        return FineTuner(
+            encoder=self.student,
+            classifier=nn.Linear(in_features=self.emb_dim, out_features=self.datamodule.card_y),
+        )

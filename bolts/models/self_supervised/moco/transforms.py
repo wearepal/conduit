@@ -5,15 +5,21 @@ from typing import Sequence
 from PIL import Image, ImageFilter
 from torch import Tensor
 from torchvision import transforms as T
+from torchvision.transforms.functional import InterpolationMode
 
 from bolts.data import ImageTform, apply_image_transform, img_to_tensor
 
-__all__ = ["GaussianBlur", "mocov2_transform", "TwoCropsTransform"]
+__all__ = [
+    "GaussianBlur",
+    "TwoCropsTransform",
+    "moco_eval_transform",
+    "mocov2_transform",
+]
 
 
 class GaussianBlur:
     """
-    Apply Gaussian Blur to the PIL image.
+    Apply Gaussian Blur to the PIL image with some probability.
     """
 
     def __init__(self, p: float = 0.5, *, radius_min: float = 0.1, radius_max: float = 2.0) -> None:
@@ -67,3 +73,24 @@ class TwoCropsTransform:
             else:
                 views.append(view)
         return views
+
+
+def moco_eval_transform(train: bool) -> T.Compose:
+    if train:
+        return T.Compose(
+            [
+                T.RandomResizedCrop(224, interpolation=InterpolationMode.BICUBIC),
+                T.RandomHorizontalFlip(),
+                T.ToTensor(),
+                T.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            ]
+        )
+
+    return T.Compose(
+        [
+            T.Resize(256, interpolation=InterpolationMode.BICUBIC),
+            T.CenterCrop(224),
+            T.ToTensor(),
+            T.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ]
+    )
