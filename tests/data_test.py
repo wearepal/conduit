@@ -34,11 +34,20 @@ def test_datasets(ds_cls: type[VisionDataset]) -> None:
 def test_audio_dataset() -> None:
     root_dir = Path("~/Data").expanduser()
     target_attribute = "habitat"
+    waveform_length = 60  # Length in seconds.
+    specgram_segment_len = 11.3  # Length in seconds.
 
-    ds_cls_dnwld = Ecoacoustics(root=root_dir, target_attr=target_attribute)
+    ds_cls_dnwld = Ecoacoustics(
+        root=root_dir, target_attr=target_attribute, specgram_segment_len=specgram_segment_len
+    )
     assert ds_cls_dnwld is not None
 
-    ds_cls_no_dnwld = Ecoacoustics(root=root_dir, download=False, target_attr=target_attribute)
+    ds_cls_no_dnwld = Ecoacoustics(
+        root=root_dir,
+        download=False,
+        target_attr=target_attribute,
+        specgram_segment_len=specgram_segment_len,
+    )
     assert ds_cls_no_dnwld is not None
 
     metadata = pd.read_csv(root_dir / "Ecoacoustics" / "metadata.csv")
@@ -69,6 +78,12 @@ def test_audio_dataset() -> None:
     # Test processed folder
     processed_audio_dir = root_dir / "Ecoacoustics" / "processed_audio"
     assert processed_audio_dir.exists()
+
+    # Test correct number of segments are produced.
+    min_segments_per_waveform = int(waveform_length / specgram_segment_len)
+    min_num_processed_files = len(ds_cls_no_dnwld) * min_segments_per_waveform
+    num_processed_files = len(list(root_dir.glob("**/*.pt")))
+    assert num_processed_files >= min_num_processed_files
 
 
 def test_add_field() -> None:
