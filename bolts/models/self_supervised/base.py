@@ -1,12 +1,13 @@
 from __future__ import annotations
 from abc import abstractmethod
+from typing import Callable, Optional, Sequence
 
+from PIL import Image
 from kit.decorators import implements
 from kit.misc import gcopy
 from kit.torch.data import TrainingMode
 import numpy as np
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
 from torch.functional import Tensor
@@ -15,13 +16,20 @@ import torch.nn as nn
 from bolts.data.datamodules.base import PBDataModule
 from bolts.data.datamodules.vision.base import PBVisionDataModule
 from bolts.data.datasets.utils import ImageTform
-from bolts.data.structures import BinarySample
+from bolts.data.structures import BinarySample, NamedSample
 from bolts.models.base import PBModel
 from bolts.models.erm import ERMClassifier
-from bolts.models.self_supervised.callbacks import MeanTeacherWeightUpdate
+from bolts.models.self_supervised.callbacks import (
+    MeanTeacherWeightUpdate,
+    PostHocProgressBar,
+)
 from bolts.types import MetricDict, Stage
 
-__all__ = ["SelfSupervisedModel", "SelfDistillation"]
+__all__ = [
+    "InstanceDiscriminator",
+    "SelfDistiller",
+    "SelfSupervisedModel",
+]
 
 
 class SelfSupervisedModel(PBModel):
@@ -48,6 +56,7 @@ class SelfSupervisedModel(PBModel):
     def eval_clf(self) -> ERMClassifier:
         if self._eval_clf is None:
             self._eval_clf = self._init_eval_clf()
+            self._eval_clf.build(datamodule=self.datamodule, trainer=self.eval_trainer, copy=False)
         return self._eval_clf
 
     @eval_clf.setter
@@ -57,10 +66,10 @@ class SelfSupervisedModel(PBModel):
     @property
     def eval_trainer(self) -> pl.Trainer:
         if self._eval_trainer is None:
-            self._eval_trainer = gcopy(self.trainer, deep=True)
+            self._eval_trainer = gcopy(self.trainer, deep=True, num_sanity_val_batches=0)
             self._eval_trainer.fit_loop.max_epochs = self.eval_epochs
             self._eval_trainer.fit_loop.max_steps = None  # type: ignore
-            bar = ProgressBar()
+            bar = PostHocProgressBar()
             bar._trainer = self._eval_trainer
             self._eval_trainer.callbacks = [bar]
         return self._eval_trainer
@@ -68,17 +77,6 @@ class SelfSupervisedModel(PBModel):
     @eval_trainer.setter
     def eval_trainer(self, trainer: pl.Trainer) -> None:
         self._eval_trainer = trainer
-
-    @implements(PBModel)
-    def inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
-        return self.eval_clf.inference_step(batch=batch, stage=stage)
-
-    @implements(PBModel)
-    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
-        results_dict = self.eval_clf.inference_epoch_end(outputs=outputs, stage=stage)
-        # Free up memory
-        self._eval_clf = None
-        return results_dict
 
     @abstractmethod
     def _init_eval_clf(self) -> ERMClassifier:
@@ -101,7 +99,21 @@ class SelfSupervisedModel(PBModel):
         if self.eval_batch_size is not None:
             dm_cp.train_batch_size = self.eval_batch_size
 
-        self.eval_trainer.fit(self.eval_clf, datamodule=dm_cp)
+        self.eval_trainer.fit(
+            self.eval_clf,
+            train_dataloaders=dm_cp.train_dataloader(),
+        )
+
+    @implements(PBModel)
+    def inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
+        return self.eval_clf.inference_step(batch=batch, stage=stage)
+
+    @implements(PBModel)
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
+        results_dict = self.eval_clf.inference_epoch_end(outputs=outputs, stage=stage)
+        # Free up memory
+        self._eval_clf = None
+        return results_dict
 
     def on_inference_start(self) -> None:
         self._eval_routine()
@@ -115,7 +127,50 @@ class SelfSupervisedModel(PBModel):
         self.on_inference_start()
 
 
-class SelfDistillation(SelfSupervisedModel):
+class InstanceDiscriminator(SelfSupervisedModel):
+    def __init__(
+        self,
+        *,
+        lr: float,
+        weight_decay: float,
+        eval_batch_size: int | None,
+        eval_epochs: int,
+        instance_transforms: Optional[Callable[[Image.Image], Sequence[Tensor]]] = None,
+        batch_transforms: Optional[Callable[[Tensor], Tensor]] = None,
+    ) -> None:
+        super().__init__(
+            lr=lr,
+            weight_decay=weight_decay,
+            eval_batch_size=eval_batch_size,
+            eval_epochs=eval_epochs,
+        )
+        self.instance_transforms = instance_transforms
+        self.batch_transforms = batch_transforms
+
+    def _get_positive_views(self, batch: NamedSample) -> Sequence[Tensor]:
+        if isinstance(batch.x, Tensor):
+            if self.batch_transforms is None:
+                return [batch.x, batch.x]
+            else:
+                view1, view2 = self.batch_transforms(torch.cat([batch.x, batch.x], dim=0)).chunk(
+                    2, dim=0
+                )
+                return view1, view2
+        elif isinstance(batch.x, Sequence):
+            if self.batch_transforms is None:
+                return batch.x
+            else:
+                return [self.batch_transforms(view) for view in batch.x]
+        else:
+            raise TypeError("'x' must be  a Tensor or a Sequence of Tensors.")
+
+    def build(self, datamodule: PBDataModule, *, trainer: pl.Trainer, copy: bool = True) -> None:
+        super().build(datamodule=datamodule, trainer=trainer, copy=copy)
+        if isinstance(datamodule, PBVisionDataModule):
+            datamodule.train_transforms = self.instance_transforms
+
+
+class SelfDistiller(InstanceDiscriminator):
     student: nn.Module
     teacher: nn.Module
 

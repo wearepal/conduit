@@ -80,7 +80,9 @@ def load_image(filepath: Path | str, *, backend: ImageLoadingBackend = "opencv")
 
 
 AlbumentationsTform = Union[A.Compose, A.BasicTransform]
-PillowTform = Callable[[Image.Image], Union[Tensor, Image.Image, Sequence[Tensor]]]
+PillowTform = Callable[
+    [Image.Image], Union[Tensor, Image.Image, Sequence[Union[Tensor, Image.Image]]]
+]
 ImageTform = Union[AlbumentationsTform, PillowTform]
 
 

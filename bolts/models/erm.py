@@ -116,7 +116,7 @@ class FineTuner(ERMClassifier):
         lr_sched_freq: int = 1,
         loss_fn: Loss = CrossEntropyLoss(reduction="mean"),
     ) -> None:
-        encoder = make_no_grad(encoder)
+        encoder = make_no_grad(encoder).eval()
         model = nn.Sequential(encoder, classifier)
         super().__init__(
             model=model,

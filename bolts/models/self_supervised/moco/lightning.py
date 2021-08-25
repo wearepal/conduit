@@ -1,27 +1,27 @@
 from __future__ import annotations
-from typing import Optional, Protocol, cast
+from typing import Callable, Optional, Sequence, Union
 
+from PIL import Image
 from kit import implements, parsable
+from kit.misc import gcopy
 from kit.torch.loss import CrossEntropyLoss, ReductionType
 import pytorch_lightning as pl
 import torch
 from torch import Tensor, optim
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import resnet
-from torchvision.models.resnet import ResNet
 
 from bolts.data.datamodules.vision.base import PBVisionDataModule
 from bolts.data.datasets.utils import ImageTform
 from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
 from bolts.models.erm import FineTuner
-from bolts.models.self_supervised.base import SelfDistillation, SelfSupervisedModel
+from bolts.models.self_supervised.base import SelfDistiller, SelfSupervisedModel
 from bolts.models.self_supervised.moco.transforms import (
     TwoCropsTransform,
     moco_eval_transform,
 )
-from bolts.models.utils import precision_at_k
+from bolts.models.utils import precision_at_k, prefix_keys
 from bolts.types import MetricDict
 
 from .utils import MemoryBank, ResNetArch, concat_all_gather
@@ -29,22 +29,15 @@ from .utils import MemoryBank, ResNetArch, concat_all_gather
 __all__ = ["MoCoV2"]
 
 
-class EncoderFn(Protocol):
-    def __call__(self, **kwargs) -> resnet.ResNet:
-        ...
-
-
-class MoCoV2(SelfDistillation):
+class MoCoV2(SelfDistiller):
     eval_clf: FineTuner
-    student: ResNet
-    teacher: ResNet
     use_ddp: bool
 
     @parsable
     def __init__(
         self,
         *,
-        arch: ResNetArch = ResNetArch.resnet18,
+        arch: Union[nn.Module, ResNetArch, Callable[[int], nn.Module]] = ResNetArch.resnet18,
         emb_dim: int = 128,
         num_negatives: int = 65_536,
         momentum_teacher: float = 0.999,
@@ -55,6 +48,8 @@ class MoCoV2(SelfDistillation):
         use_mlp: bool = False,
         eval_epochs: int = 100,
         eval_batch_size: Optional[int] = None,
+        instance_transforms: Optional[Callable[[Image.Image], Sequence[Tensor]]] = None,
+        batch_transforms: Optional[Callable[[Tensor], Tensor]] = None,
     ) -> None:
         """
         PyTorch Lightning implementation of `MoCo <https://arxiv.org/abs/2003.04297>`_
@@ -77,8 +72,10 @@ class MoCoV2(SelfDistillation):
             weight_decay=weight_decay,
             eval_epochs=eval_epochs,
             eval_batch_size=eval_batch_size,
+            instance_transforms=instance_transforms,
+            batch_transforms=batch_transforms,
         )
-        self._arch_fn = cast(EncoderFn, arch.value)
+        self.arch = arch
         self.emb_dim = emb_dim
         self.temp = temp
         self.lr = lr
@@ -97,8 +94,33 @@ class MoCoV2(SelfDistillation):
         self.use_ddp = "ddp" in str(self.trainer.distributed_backend)
         if isinstance(self.datamodule, PBVisionDataModule):
             # self._datamodule.train_transforms = mocov2_transform()
-            self.datamodule.train_transforms = TwoCropsTransform.with_mocov2_transform()
+            if (self.instance_transforms is None) and (self.batch_transforms is None):
+                self.instance_transforms = TwoCropsTransform.with_mocov2_transform()
             self.datamodule.test_transforms = moco_eval_transform(train=False)
+
+    @torch.no_grad()
+    @implements(SelfDistiller)
+    def _init_encoders(self) -> tuple[nn.Module, nn.Module]:
+        # create the encoders
+        # num_classes is the output fc dimension
+        if isinstance(self.arch, nn.Module):
+            student = self.arch
+        elif isinstance(self.arch, ResNetArch):
+            student = self.arch.value(num_classes=self.emb_dim)
+            if self.use_mlp:  # hack: brute-force replacement
+                dim_mlp = student.fc.weight.shape[1]
+                student.fc = nn.Sequential(  # type: ignore
+                    nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), student.fc
+                )
+        else:
+            student = self.arch(self.emb_dim)
+
+        teacher = gcopy(student, deep=True)
+        # there is no backpropagation through the key-encoder, so no need for gradients
+        for p in teacher.parameters():
+            p.requires_grad = False
+
+        return student, teacher
 
     @property
     @implements(SelfSupervisedModel)
@@ -106,35 +128,9 @@ class MoCoV2(SelfDistillation):
         return self.student
 
     @property
-    @implements(SelfDistillation)
+    @implements(SelfDistiller)
     def momentum_schedule(self) -> float:
         return self.momentum_teacher
-
-    @torch.no_grad()
-    @implements(SelfDistillation)
-    def _init_encoders(self) -> tuple[resnet.ResNet, resnet.ResNet]:
-        # create the encoders
-        # num_classes is the output fc dimension
-        student = self._arch_fn(num_classes=self.emb_dim)
-        teacher = self._arch_fn(num_classes=self.emb_dim)
-
-        # key and query encoders start with the same weights
-        teacher.load_state_dict(student.state_dict())  # type: ignore
-
-        if self.use_mlp:  # hack: brute-force replacement
-            dim_mlp = self.student.fc.weight.shape[1]
-            student.fc = nn.Sequential(  # type: ignore
-                nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), student.fc
-            )
-            teacher.fc = nn.Sequential(  # type: ignore
-                nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), teacher.fc
-            )
-
-        # there is no backpropagation through the key-encoder, so no need for gradients
-        for p in teacher.parameters():
-            p.requires_grad = False
-
-        return student, teacher
 
     @implements(pl.LightningModule)
     def configure_optimizers(self) -> optim.Optimizer:
@@ -200,15 +196,30 @@ class MoCoV2(SelfDistillation):
 
         return x_gather[idx_this]
 
-    def _get_loss(self, img_q: Tensor, img_k: Tensor) -> Tensor:
-        """
-        Input:
-            im_q: a batch of query images
-            im_k: a batch of key images
-        Output:
-            logits, targets
-        """
+    def _get_loss(
+        self,
+        *,
+        l_pos: Tensor,
+        l_neg: Tensor,
+    ) -> tuple[Tensor, dict[str, Tensor]]:
+        loss, log_dict = self._inst_disc_loss(l_pos=l_pos, l_neg=l_neg)
+        log_dict = prefix_keys(dict_=log_dict, prefix="inst_disc", sep="/")
+        return loss, log_dict
 
+    def _inst_disc_loss(self, l_pos: Tensor, l_neg: Tensor) -> tuple[Tensor, dict[str, Tensor]]:
+        # logits: Nx(1+K)
+        logits = torch.cat([l_pos, l_neg], dim=1)
+        # apply temperature
+        logits /= self.temp
+        targets = logits.new_zeros(size=(logits.size(0),))
+        loss = self._loss_fn(input=logits, target=targets)
+        acc1, acc5 = precision_at_k(logits, targets, top_k=(1, 5))
+
+        return loss, {'loss': loss.detach(), 'acc1': acc1, 'acc5': acc5}
+
+    @implements(pl.LightningModule)
+    def training_step(self, batch: NamedSample, batch_idx: int) -> MetricDict:
+        img_q, img_k = self._get_positive_views(batch=batch)
         # compute query features
         student_out = self.student(img_q)  # queries: NxC
         student_out = F.normalize(student_out, dim=1)
@@ -235,35 +246,19 @@ class MoCoV2(SelfDistillation):
         # negative logits: NxK
         l_neg = torch.einsum('nc,kc->nk', [student_out, self.mb.memory.clone()])
 
-        # logits: Nx(1+K)
-        logits = torch.cat([l_pos, l_neg], dim=1)
-
-        # apply temperature
-        logits /= self.temp
+        loss, log_dict = self._get_loss(l_pos=l_pos, l_neg=l_neg)
 
         # dequeue and enqueue
         self._dequeue_and_enqueue(teacher_out)
 
-        return logits
-
-    @implements(pl.LightningModule)
-    def training_step(self, batch: NamedSample, batch_idx: int) -> MetricDict:
-        assert isinstance(batch.x, list)
-        img_1, img_2 = batch.x
-        logits = self._get_loss(img_q=img_1, img_k=img_2)
-        targets = logits.new_zeros(size=(logits.size(0),))
-        loss = self._loss_fn(input=logits, target=targets)
-        acc1, acc5 = precision_at_k(logits, targets, top_k=(1, 5))
-
-        log = {'train_loss': loss.detach(), 'train_acc1': acc1, 'train_acc5': acc5}
-        return {'loss': loss, 'log': log, 'progress_bar': log}
+        return {'loss': loss, 'log': log_dict, 'progress_bar': log_dict}
 
     @property
-    @implements(SelfDistillation)
+    @implements(SelfDistiller)
     def _eval_train_transform(self) -> ImageTform:
         return moco_eval_transform(train=True)
 
-    @implements(SelfDistillation)
+    @implements(SelfDistiller)
     @torch.no_grad()
     def _init_eval_clf(self) -> FineTuner:
         return FineTuner(

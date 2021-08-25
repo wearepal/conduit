@@ -14,7 +14,7 @@ from bolts.data.datamodules.vision.base import PBVisionDataModule
 from bolts.data.datasets.utils import ImageTform
 from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
-from bolts.models.self_supervised.base import SelfDistillation, SelfSupervisedModel
+from bolts.models.self_supervised.base import SelfDistiller, SelfSupervisedModel
 from bolts.models.self_supervised.dino.transforms import MultiCropTransform
 from bolts.models.self_supervised.moco.transforms import moco_eval_transform
 from bolts.types import Stage
@@ -28,7 +28,7 @@ from .utils import cosine_scheduler, get_params_groups
 __all__ = ["DINO"]
 
 
-class DINO(SelfDistillation):
+class DINO(SelfDistiller):
     _loss_fn: DINOLoss
     student: MultiCropNet
     teacher: MultiCropNet
@@ -58,6 +58,7 @@ class DINO(SelfDistillation):
         global_crops_scale: tuple[float, float] = (0.4, 1.0),
         local_crops_scale: tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
+        batch_transforms: Optional[Callable[[Tensor], Tensor]] = None,
         eval_epochs: int = 100,
         eval_batch_size: Optional[int] = None,
     ) -> None:
@@ -71,6 +72,7 @@ class DINO(SelfDistillation):
             weight_decay=weight_decay,
             eval_epochs=eval_epochs,
             eval_batch_size=eval_batch_size,
+            batch_transforms=batch_transforms,
         )
         self.num_eval_blocks = num_eval_blocks
         self.warmup_iters = warmup_iters
@@ -93,13 +95,12 @@ class DINO(SelfDistillation):
     @implements(PBModel)
     def _build(self) -> None:
         if isinstance(self.datamodule, PBVisionDataModule):
-            mc_transform = MultiCropTransform(
+            self.instance_transforms = MultiCropTransform(
                 global_crops_scale=self.global_crops_scale,
                 local_crops_scale=self.local_crops_scale,
                 local_crops_number=self.local_crops_number,
             )
 
-            self.datamodule.train_transforms = mc_transform
             self.datamodule.test_transforms = moco_eval_transform(train=False)
 
         max_steps = self.num_training_steps
@@ -133,7 +134,7 @@ class DINO(SelfDistillation):
         return self.student.backbone
 
     @property
-    @implements(SelfDistillation)
+    @implements(SelfDistiller)
     def momentum_schedule(self) -> np.ndarray:
         return cosine_scheduler(
             base_value=self.momentum_teacher,
@@ -142,7 +143,7 @@ class DINO(SelfDistillation):
         )
 
     @torch.no_grad()
-    @implements(SelfDistillation)
+    @implements(SelfDistiller)
     def _init_encoders(self) -> tuple[MultiCropNet, MultiCropNet]:
         student = MultiCropNet(
             arch_fn=self.arch_fn,
@@ -206,19 +207,17 @@ class DINO(SelfDistillation):
                 p.grad = None
 
     def _get_loss(self, batch: NamedSample, batch_idx: int) -> Tensor:
-        assert isinstance(batch.x, list)
-        teacher_output = self.teacher(
-            batch.x[:2]
-        )  # only the 2 global views pass through the teacher
-        student_output = self.student(batch.x)
+        views = self._get_positive_views(batch=batch)
+        teacher_output = self.teacher(views[:2])  # only the 2 global views pass through the teacher
+        student_output = self.student(views)
         return self._loss_fn(
             student_output=student_output, teacher_output=teacher_output, step=batch_idx
         )
 
     @implements(pl.LightningModule)
     def training_step(self, batch: NamedSample, batch_idx: int) -> Tensor:
-        assert self._trainer.optimizers is not None
-        for i, param_group in enumerate(self._trainer.optimizers[0].param_groups):
+        assert self._trainer.optimizers is not None  # type: ignore
+        for i, param_group in enumerate(self._trainer.optimizers[0].param_groups):  # type: ignore
             param_group["lr"] = self._lr_schedule[batch_idx]
             if i == 0:  # only the first group is regularized
                 param_group["weight_decay"] = self._wd_schedule[batch_idx]
