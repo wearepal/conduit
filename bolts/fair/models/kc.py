@@ -26,7 +26,7 @@ class KC(ERMClassifierF):
         lr_sched_freq: int = 1,
     ) -> None:
         super().__init__(
-            enc=enc,
+            encoder=enc,
             clf=clf,
             lr=lr,
             weight_decay=weight_decay,

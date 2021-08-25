@@ -13,7 +13,7 @@ __all__ = [
     "GaussianBlur",
     "TwoCropsTransform",
     "moco_eval_transform",
-    "mocov2_transform",
+    "mocov2_train_transform",
 ]
 
 
@@ -37,7 +37,7 @@ class GaussianBlur:
         )
 
 
-def mocov2_transform() -> T.Compose:
+def mocov2_train_transform() -> T.Compose:
     return T.Compose(
         [
             T.RandomResizedCrop(224, scale=(0.2, 1.0)),
@@ -57,7 +57,7 @@ class TwoCropsTransform:
 
     @classmethod
     def with_mocov2_transform(cls: type[TwoCropsTransform]):
-        return cls(transform=mocov2_transform())
+        return cls(transform=mocov2_train_transform())
 
     def __call__(self, anchor: Image.Image) -> list[Tensor]:
         views: list[Tensor] = []
