@@ -150,7 +150,7 @@ class InstanceDiscriminator(SelfSupervisedModel):
     def _get_positive_views(self, batch: NamedSample) -> Sequence[Tensor]:
         if isinstance(batch.x, Tensor):
             if self.batch_transforms is None:
-                return [batch.x, batch.x]
+                return batch.x, batch.x
             else:
                 view1, view2 = self.batch_transforms(torch.cat([batch.x, batch.x], dim=0)).chunk(
                     2, dim=0
