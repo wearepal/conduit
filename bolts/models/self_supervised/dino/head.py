@@ -5,8 +5,8 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.init import trunc_normal_
 
-from .utils import trunc_normal_
 from .vit import VisionTransformer
 
 __all__ = [
