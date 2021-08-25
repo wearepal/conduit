@@ -1,17 +1,12 @@
 from __future__ import annotations
 import random
-from typing import Sequence
 
 from PIL import Image, ImageFilter
-from torch import Tensor
 from torchvision import transforms as T
 from torchvision.transforms.functional import InterpolationMode
 
-from bolts.data import ImageTform, apply_image_transform, img_to_tensor
-
 __all__ = [
     "GaussianBlur",
-    "TwoCropsTransform",
     "moco_eval_transform",
     "mocov2_train_transform",
 ]
@@ -49,30 +44,6 @@ def mocov2_train_transform() -> T.Compose:
             T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ]
     )
-
-
-class TwoCropsTransform:
-    def __init__(self, transform: ImageTform) -> None:
-        self.transform = transform
-
-    @classmethod
-    def with_mocov2_transform(cls: type[TwoCropsTransform]):
-        return cls(transform=mocov2_train_transform())
-
-    def __call__(self, anchor: Image.Image) -> list[Tensor]:
-        views: list[Tensor] = []
-        for _ in range(2):
-            view = apply_image_transform(image=anchor, transform=self.transform)
-            if not isinstance(view, Tensor):
-                if isinstance(view, Sequence):
-                    view = [img_to_tensor(subview) for subview in view]
-                else:
-                    view = img_to_tensor(view)
-            if isinstance(view, Sequence):
-                views.extend(view)
-            else:
-                views.append(view)
-        return views
 
 
 def moco_eval_transform(train: bool) -> T.Compose:

@@ -95,7 +95,7 @@ class DINO(SelfDistiller):
     @implements(PBModel)
     def _build(self) -> None:
         if isinstance(self.datamodule, PBVisionDataModule):
-            self.instance_transforms = MultiCropTransform(
+            self.instance_transforms = MultiCropTransform.with_dino_transform(
                 global_crops_scale=self.global_crops_scale,
                 local_crops_scale=self.local_crops_scale,
                 local_crops_number=self.local_crops_number,
@@ -208,8 +208,10 @@ class DINO(SelfDistiller):
 
     def _get_loss(self, batch: NamedSample, batch_idx: int) -> Tensor:
         views = self._get_positive_views(batch=batch)
-        teacher_output = self.teacher(views[:2])  # only the 2 global views pass through the teacher
-        student_output = self.student(views)
+        teacher_output = self.teacher(
+            views.global_crops
+        )  # only the 2 global views pass through the teacher
+        student_output = self.student(views.all_crops)
         return self._loss_fn(
             student_output=student_output, teacher_output=teacher_output, step=batch_idx
         )

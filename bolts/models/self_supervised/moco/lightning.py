@@ -1,7 +1,6 @@
 from __future__ import annotations
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Optional, Union
 
-from PIL import Image
 from kit import implements, parsable
 from kit.misc import gcopy
 from kit.torch.loss import CrossEntropyLoss, ReductionType
@@ -17,10 +16,8 @@ from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
 from bolts.models.erm import FineTuner
 from bolts.models.self_supervised.base import SelfDistiller, SelfSupervisedModel
-from bolts.models.self_supervised.moco.transforms import (
-    TwoCropsTransform,
-    moco_eval_transform,
-)
+from bolts.models.self_supervised.moco.transforms import moco_eval_transform
+from bolts.models.self_supervised.multicrop import MultiCropTransform
 from bolts.models.utils import precision_at_k, prefix_keys
 from bolts.types import MetricDict
 
@@ -48,7 +45,7 @@ class MoCoV2(SelfDistiller):
         use_mlp: bool = False,
         eval_epochs: int = 100,
         eval_batch_size: Optional[int] = None,
-        instance_transforms: Optional[Callable[[Image.Image], Sequence[Tensor]]] = None,
+        instance_transforms: MultiCropTransform = None,
         batch_transforms: Optional[Callable[[Tensor], Tensor]] = None,
     ) -> None:
         """
@@ -95,7 +92,7 @@ class MoCoV2(SelfDistiller):
         if isinstance(self.datamodule, PBVisionDataModule):
             # self._datamodule.train_transforms = mocov2_transform()
             if (self.instance_transforms is None) and (self.batch_transforms is None):
-                self.instance_transforms = TwoCropsTransform.with_mocov2_transform()
+                self.instance_transforms = MultiCropTransform.with_mocov2_transform()
             self.datamodule.test_transforms = moco_eval_transform(train=False)
 
     @torch.no_grad()
@@ -219,7 +216,10 @@ class MoCoV2(SelfDistiller):
 
     @implements(pl.LightningModule)
     def training_step(self, batch: NamedSample, batch_idx: int) -> MetricDict:
-        img_q, img_k = self._get_positive_views(batch=batch)
+        views = self._get_positive_views(batch=batch)
+        # TODO: Generalize to multicrops
+        img_q, img_k = views.global_crops
+
         # compute query features
         student_out = self.student(img_q)  # queries: NxC
         student_out = F.normalize(student_out, dim=1)

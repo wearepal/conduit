@@ -1,5 +1,6 @@
 from __future__ import annotations
 from abc import abstractmethod
+from dataclasses import replace
 from typing import Callable, Optional, Sequence
 
 from PIL import Image
@@ -23,6 +24,7 @@ from bolts.models.self_supervised.callbacks import (
     MeanTeacherWeightUpdate,
     PostHocProgressBar,
 )
+from bolts.models.self_supervised.multicrop import MultiCropOutput
 from bolts.types import MetricDict, Stage
 
 __all__ = [
@@ -147,22 +149,24 @@ class InstanceDiscriminator(SelfSupervisedModel):
         self.instance_transforms = instance_transforms
         self.batch_transforms = batch_transforms
 
-    def _get_positive_views(self, batch: NamedSample) -> Sequence[Tensor]:
+    def _get_positive_views(self, batch: NamedSample) -> MultiCropOutput:
         if isinstance(batch.x, Tensor):
             if self.batch_transforms is None:
-                return batch.x, batch.x
+                return MultiCropOutput(global_crops=[batch.x, batch.x])
             else:
                 view1, view2 = self.batch_transforms(torch.cat([batch.x, batch.x], dim=0)).chunk(
                     2, dim=0
                 )
-                return view1, view2
-        elif isinstance(batch.x, Sequence):
+                return MultiCropOutput(global_crops=[view1, view2])
+        elif isinstance(batch.x, MultiCropOutput):
             if self.batch_transforms is None:
                 return batch.x
             else:
-                return [self.batch_transforms(view) for view in batch.x]
+                global_crops = [self.batch_transforms(crop) for crop in batch.x.global_crops]
+                local_crops = [self.batch_transforms(crop) for crop in batch.x.local_crops]
+                return replace(batch.x, global_crops=global_crops, local_crops=local_crops)
         else:
-            raise TypeError("'x' must be  a Tensor or a Sequence of Tensors.")
+            raise TypeError("'x' must be  a Tensor or a 'MultiCropTransform' instance.")
 
     def build(self, datamodule: PBDataModule, *, trainer: pl.Trainer, copy: bool = True) -> None:
         super().build(datamodule=datamodule, trainer=trainer, copy=copy)

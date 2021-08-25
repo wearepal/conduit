@@ -80,9 +80,7 @@ def load_image(filepath: Path | str, *, backend: ImageLoadingBackend = "opencv")
 
 
 AlbumentationsTform = Union[A.Compose, A.BasicTransform]
-PillowTform = Callable[
-    [Image.Image], Union[Tensor, Image.Image, Sequence[Union[Tensor, Image.Image]]]
-]
+PillowTform = Callable[[Image.Image], Any]
 ImageTform = Union[AlbumentationsTform, PillowTform]
 
 
@@ -97,7 +95,7 @@ def infer_il_backend(transform: ImageTform | None) -> ImageLoadingBackend:
 
 def apply_image_transform(
     image: RawImage, *, transform: ImageTform | None
-) -> RawImage | Image.Image | Tensor | Sequence:
+) -> RawImage | Image.Image | Tensor:
     image_ = image
     if transform is not None:
         if isinstance(transform, (A.Compose, A.BasicTransform)):
@@ -121,12 +119,13 @@ def img_to_tensor(img: Image.Image | np.ndarray) -> Tensor:
 
 AudioLoadingBackend = Literal["sox_io", "soundfile"]
 
-AudioTform = Callable[[Tensor], Tensor]
-
 
 def infer_al_backend() -> AudioLoadingBackend:
     """Infer which audio-loading backend to use based on the operating system."""
     return 'soundfile' if platform.system() == 'Windows' else 'sox_io'
+
+
+AudioTform = Callable[[Tensor], Tensor]
 
 
 def apply_waveform_transform(waveform: Tensor, *, transform: AudioTform | None) -> Tensor:

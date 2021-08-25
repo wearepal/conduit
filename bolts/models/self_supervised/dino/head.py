@@ -20,6 +20,7 @@ class DINOHead(nn.Module):
     def __init__(
         self,
         in_dim: int,
+        *,
         out_dim: int,
         use_bn: bool = False,
         norm_last_layer: bool = True,
@@ -65,17 +66,18 @@ class DINOHead(nn.Module):
 class MultiCropWrapper(nn.Module):
     """
     Perform forward pass separately on each resolution input.
-    The inputs corresponding to a single resolution are clubbed and single
-    forward is run on the same resolution inputs. Hence we do several
+    The inputs corresponding to a single resolution are concatenated and a
+    single forward is run on the same resolution inputs. Hence we do several
     forward passes = number of different resolutions used. We then
     concatenate all the output features and run the head forward on these
     concatenated features.
     """
 
-    def __init__(self, backbone: VisionTransformer, head: DINOHead) -> None:
+    def __init__(self, backbone: nn.Module, *, head: nn.Module) -> None:
         super(MultiCropWrapper, self).__init__()
         # disable layers dedicated to ImageNet labels classification
-        backbone.fc, backbone.head = nn.Identity(), nn.Identity()
+        if isinstance(backbone, VisionTransformer):
+            backbone.fc, backbone.head = nn.Identity(), nn.Identity()
         self.backbone = backbone
         self.head = head
 
@@ -99,6 +101,7 @@ class MultiCropWrapper(nn.Module):
 class MultiCropNet(nn.Module):
     def __init__(
         self,
+        *,
         arch_fn: Callable[[int], VisionTransformer],
         patch_size: int,
         norm_last_layer: bool,
@@ -109,8 +112,8 @@ class MultiCropNet(nn.Module):
         self.backbone = arch_fn(patch_size)
         embed_dim = self.backbone.embed_dim
         self.head = DINOHead(
-            embed_dim,
-            out_dim,
+            in_dim=embed_dim,
+            out_dim=out_dim,
             use_bn=use_bn_in_head,
             norm_last_layer=norm_last_layer,
         )
