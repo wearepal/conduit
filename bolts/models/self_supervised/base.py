@@ -57,12 +57,9 @@ class SelfSupervisedModel(PBModel):
     @property
     def eval_trainer(self) -> pl.Trainer:
         if self._eval_trainer is None:
-            self._eval_trainer = gcopy(
-                self.trainer,
-                deep=True,
-                max_epochs=self.eval_epochs,
-                max_steps=None,
-            )
+            self._eval_trainer = gcopy(self.trainer, deep=True)
+            self._eval_trainer.fit_loop.max_epochs = self.eval_epochs
+            self._eval_trainer.fit_loop.max_steps = None  # type: ignore
             bar = ProgressBar()
             bar._trainer = self._eval_trainer
             self._eval_trainer.callbacks = [bar]

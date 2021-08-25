@@ -40,11 +40,11 @@ def prediction(logits: Tensor) -> Tensor:
 @torch.no_grad()
 def accuracy(logits: Tensor, targets: Tensor) -> Tensor:
     logits = torch.atleast_1d(logits.squeeze())
-    targets = torch.atleast_1d(logits.squeeze()).long()
+    targets = torch.atleast_1d(targets.squeeze()).long()
     if len(logits) != len(targets):
         raise ValueError("'logits' and 'targets' must match in size at dimension 0.")
     if logits.ndim == 1:
-        preds = logits > 0
+        preds = (logits > 0).long()
     else:
         preds = logits.argmax(dim=1)
     return (preds == targets).float().mean()
