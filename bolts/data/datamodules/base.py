@@ -68,7 +68,6 @@ class PBDataModule(pl.LightningDataModule):
         # Information (cardinality/dimensionality) about the data
         self._card_s: int | None = None
         self._card_y: int | None = None
-        self._dim_x: torch.Size | None = None
         self._dim_s: torch.Size | None = None
         self._dim_y: torch.Size | None = None
 
@@ -228,6 +227,32 @@ class PBDataModule(pl.LightningDataModule):
             batch_size=self.train_batch_size,
             drop_last=drop_last,
         )
+
+    @property
+    @final
+    def dim_y(self) -> tuple[int, ...]:
+        if self._train_data_base is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.dim_y' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called.'"
+            )
+        elif not isinstance(self._train_data_base, PBDataset):
+            raise AttributeError(f"'dim_y' can only determined for 'PBDataset' instances.")
+        return self._train_data_base.dim_y
+
+    @property
+    @final
+    def dim_s(self) -> tuple[int, ...]:
+        if self._train_data_base is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.dim_s' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called.'"
+            )
+        elif not isinstance(self._train_data_base, PBDataset):
+            raise AttributeError(f"'dim_s' can only determined for 'PBDataset' instances.")
+        return self._train_data_base.dim_s
 
     @property
     @final

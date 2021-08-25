@@ -9,11 +9,12 @@ import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
-from bolts.data.datasets.utils import pb_default_collate
+from bolts.data.datamodules.base import PBDataModule
+from bolts.data.datasets.utils import PBDataLoader
 from bolts.data.datasets.wrappers import InstanceWeightedDataset
 from bolts.fair.data.datasets import DummyDataset
 from bolts.fair.misc import FairnessType
-from bolts.fair.models import KC, Dann, ErmBaseline, FairMixup, Gpd, Laftr
+from bolts.fair.models import GPD, KC, LAFTR, Dann, ERMClassifierF, FairMixup
 
 
 class Mp64x64Net(nn.Module):
@@ -234,7 +235,7 @@ class DummyDataModule(DummyBase):
         train_ds = InstanceWeightedDataset(
             DummyDataset((3, 64, 64), (1,), (1,), (1,), num_samples=50)
         )
-        return DataLoader(train_ds, batch_size=25, collate_fn=pb_default_collate, shuffle=False)
+        return PBDataLoader(train_ds, batch_size=25, shuffle=False)
 
 
 class DummyDataModuleDim2(DummyBase):
@@ -242,13 +243,13 @@ class DummyDataModuleDim2(DummyBase):
         train_ds = InstanceWeightedDataset(
             DummyDataset((3, 64, 64), (1, 1), (1, 1), (1, 1), num_samples=50)
         )
-        return DataLoader(train_ds, batch_size=25, collate_fn=pb_default_collate, shuffle=False)
+        return PBDataLoader(train_ds, batch_size=25, shuffle=False)
 
 
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
 @pytest.mark.parametrize("fairness", FairnessType)
 def test_laftr(dm: pl.LightningDataModule, fairness: FairnessType) -> None:
-    """Test the Laftr model."""
+    """Test the LAFTR model."""
     trainer = pl.Trainer(fast_dev_run=True)
 
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
@@ -262,7 +263,7 @@ def test_laftr(dm: pl.LightningDataModule, fairness: FairnessType) -> None:
         decoding_dim=3,
         decoder_out_act=nn.Tanh(),
     )
-    model = Laftr(
+    model = LAFTR(
         enc=enc,
         dec=dec,
         adv=adv,
@@ -283,7 +284,7 @@ def test_laftr(dm: pl.LightningDataModule, fairness: FairnessType) -> None:
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
 @pytest.mark.parametrize("fairness", FairnessType)
 def test_laftr_gpu(dm: pl.LightningDataModule, fairness: FairnessType) -> None:
-    """Test the Laftr model."""
+    """Test the LAFTR model."""
     trainer = pl.Trainer(fast_dev_run=True, gpus=1)
 
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
@@ -297,7 +298,7 @@ def test_laftr_gpu(dm: pl.LightningDataModule, fairness: FairnessType) -> None:
         decoding_dim=3,
         decoder_out_act=nn.Tanh(),
     )
-    model = Laftr(
+    model = LAFTR(
         enc=enc,
         dec=dec,
         adv=adv,
@@ -316,7 +317,7 @@ def test_laftr_gpu(dm: pl.LightningDataModule, fairness: FairnessType) -> None:
 
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
 def test_dann(dm: pl.LightningDataModule) -> None:
-    """Test the Laftr model."""
+    """Test the LAFTR model."""
     trainer = pl.Trainer(fast_dev_run=True)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     adv = EmbeddingClf(encoding_dim=128, out_dim=2)
@@ -354,7 +355,7 @@ def test_dann_gpu(dm: pl.LightningDataModule) -> None:
 @pytest.mark.parametrize("fairness", FairnessType)
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
 def test_fairmixup(dm: pl.LightningDataModule, fairness: FairnessType) -> None:
-    """Test the Laftr model."""
+    """Test the LAFTR model."""
     trainer = pl.Trainer(fast_dev_run=True)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
@@ -369,7 +370,7 @@ def test_erm(dm: pl.LightningDataModule) -> None:
     trainer = pl.Trainer(fast_dev_run=True)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
-    model = ErmBaseline(
+    model = ERMClassifierF(
         enc=enc,
         clf=clf,
         weight_decay=1e-8,
@@ -386,7 +387,7 @@ def test_erm_gpu(dm: pl.LightningDataModule) -> None:
     trainer = pl.Trainer(fast_dev_run=True, gpus=1)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
-    model = ErmBaseline(
+    model = ERMClassifierF(
         enc=enc,
         clf=clf,
         weight_decay=1e-8,
@@ -436,7 +437,7 @@ def test_gpd(dm: pl.LightningDataModule) -> None:
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
     adv = EmbeddingClf(encoding_dim=128, out_dim=2)
-    model = Gpd(
+    model = GPD(
         enc=enc,
         clf=clf,
         adv=adv,
@@ -455,7 +456,7 @@ def test_gpd_gpu(dm: pl.LightningDataModule) -> None:
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
     adv = EmbeddingClf(encoding_dim=128, out_dim=2)
-    model = Gpd(
+    model = GPD(
         enc=enc,
         clf=clf,
         adv=adv,

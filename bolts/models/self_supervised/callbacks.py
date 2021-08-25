@@ -11,7 +11,7 @@ from torch import Tensor, nn
 from tqdm import tqdm
 
 if TYPE_CHECKING:
-    from bolts.models.self_supervised.base import SelfDistillation
+    from bolts.models.self_supervised.base import SelfDistiller
 
 __all__ = [
     "MeanTeacherWeightUpdate",
@@ -43,7 +43,7 @@ class MeanTeacherWeightUpdate(pl.Callback):
     def on_train_batch_end(
         self,
         trainer: pl.Trainer,
-        pl_module: SelfDistillation,
+        pl_module: SelfDistiller,
         outputs: STEP_OUTPUT,
         batch: Sequence,
         batch_idx: int,

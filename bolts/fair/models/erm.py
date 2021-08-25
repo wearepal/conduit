@@ -26,7 +26,7 @@ class ERMClassifierF(ERMClassifier):
     def __init__(
         self,
         *,
-        enc: nn.Module,
+        encoder: nn.Module,
         clf: nn.Module,
         lr: float = 3.0e-4,
         weight_decay: float = 0.0,
@@ -36,7 +36,7 @@ class ERMClassifierF(ERMClassifier):
         lr_sched_freq: int = 1,
         loss_fn: Loss = CrossEntropyLoss(reduction=ReductionType.mean),
     ) -> None:
-        model = nn.Sequential(self.enc, self.clf)
+        model = nn.Sequential(encoder, clf)
         super().__init__(
             model=model,
             lr=lr,
@@ -47,7 +47,7 @@ class ERMClassifierF(ERMClassifier):
             lr_sched_freq=lr_sched_freq,
             loss_fn=loss_fn,
         )
-        self.enc = enc
+        self.encoder = encoder
         self.clf = clf
 
     @implements(ERMClassifier)
