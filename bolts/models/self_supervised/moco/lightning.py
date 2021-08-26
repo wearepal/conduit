@@ -45,7 +45,7 @@ class MoCoV2(SelfDistiller):
         use_mlp: bool = False,
         eval_epochs: int = 100,
         eval_batch_size: Optional[int] = None,
-        instance_transforms: MultiCropTransform = None,
+        instance_transforms: Optional[MultiCropTransform] = None,
         batch_transforms: Optional[Callable[[Tensor], Tensor]] = None,
     ) -> None:
         """
@@ -113,9 +113,6 @@ class MoCoV2(SelfDistiller):
             student = self.arch(self.emb_dim)
 
         teacher = gcopy(student, deep=True)
-        # there is no backpropagation through the key-encoder, so no need for gradients
-        for p in teacher.parameters():
-            p.requires_grad = False
 
         return student, teacher
 

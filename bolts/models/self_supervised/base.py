@@ -24,7 +24,7 @@ from bolts.models.self_supervised.callbacks import (
     MeanTeacherWeightUpdate,
     PostHocProgressBar,
 )
-from bolts.models.self_supervised.multicrop import MultiCropOutput
+from bolts.models.self_supervised.multicrop import MultiCropOutput, MultiCropTransform
 from bolts.types import MetricDict, Stage
 
 __all__ = [
@@ -137,7 +137,7 @@ class InstanceDiscriminator(SelfSupervisedModel):
         weight_decay: float,
         eval_batch_size: int | None,
         eval_epochs: int,
-        instance_transforms: Optional[Callable[[Image.Image], Sequence[Tensor]]] = None,
+        instance_transforms: MultiCropTransform | None = None,
         batch_transforms: Optional[Callable[[Tensor], Tensor]] = None,
     ) -> None:
         super().__init__(
@@ -153,11 +153,10 @@ class InstanceDiscriminator(SelfSupervisedModel):
         if isinstance(batch.x, Tensor):
             if self.batch_transforms is None:
                 return MultiCropOutput(global_crops=[batch.x, batch.x])
-            else:
-                view1, view2 = self.batch_transforms(torch.cat([batch.x, batch.x], dim=0)).chunk(
-                    2, dim=0
-                )
-                return MultiCropOutput(global_crops=[view1, view2])
+            view1, view2 = self.batch_transforms(torch.cat([batch.x, batch.x], dim=0)).chunk(
+                2, dim=0
+            )
+            return MultiCropOutput(global_crops=[view1, view2])
         elif isinstance(batch.x, MultiCropOutput):
             if self.batch_transforms is None:
                 return batch.x
@@ -186,14 +185,14 @@ class SelfDistiller(InstanceDiscriminator):
             p.requires_grad = False
         return student, teacher
 
-    @property
-    @abstractmethod
-    def momentum_schedule(self) -> float | np.ndarray | Tensor:
-        ...
-
     @torch.no_grad()
     @abstractmethod
     def _init_encoders(self) -> tuple[nn.Module, nn.Module]:
+        ...
+
+    @property
+    @abstractmethod
+    def momentum_schedule(self) -> float | np.ndarray | Tensor:
         ...
 
     def build(self, datamodule: PBDataModule, *, trainer: pl.Trainer, copy: bool = True) -> None:
