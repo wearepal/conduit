@@ -7,6 +7,7 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 from torch import Tensor, optim
+import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from bolts.data import NamedSample
@@ -15,25 +16,27 @@ from bolts.data.datasets.utils import ImageTform
 from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
 from bolts.models.self_supervised.base import SelfDistiller, SelfSupervisedModel
+from bolts.models.self_supervised.dino.callbacks import DINOScheduler
 from bolts.models.self_supervised.dino.transforms import MultiCropTransform
-from bolts.models.self_supervised.moco.transforms import moco_eval_transform
+from bolts.models.self_supervised.moco.transforms import (
+    moco_ft_transform,
+    moco_test_transform,
+)
+from bolts.models.self_supervised.multicrop import MultiCropLoss
 from bolts.types import Stage
 
 from . import vit
 from .eval import DatasetEncoder, DINOLinearClassifier
 from .head import MultiCropNet
-from .loss import DINOLoss
+from .loss import EMACenter
 from .utils import cosine_scheduler, get_params_groups
 
 __all__ = ["DINO"]
 
 
 class DINO(SelfDistiller):
-    _loss_fn: DINOLoss
     student: MultiCropNet
     teacher: MultiCropNet
-    _lr_schedule: np.ndarray
-    _wd_schedule: np.ndarray
 
     @parsable
     def __init__(
@@ -43,7 +46,7 @@ class DINO(SelfDistiller):
         warmup_iters: int = 10,
         weight_decay: float = 4.0e-2,
         min_lr: float = 1.0e-6,
-        weight_decay_end: float = 0.4,
+        weight_decay_final: float = 0.4,
         freeze_last_layer: int = 1,
         arch: vit.VitArch = vit.VitArch.small,
         patch_size: int = 16,
@@ -51,7 +54,10 @@ class DINO(SelfDistiller):
         norm_last_layer: bool = True,
         use_bn_in_head: bool = False,
         momentum_teacher: float = 0.996,
+        momentum_center: float = 0.9,
         teacher_temp: float = 0.04,
+        warmup_teacher_temp: float = 0.04,
+        student_temp: float = 0.1,
         warmup_teacher_temp_iters: int = 30,
         num_eval_blocks: int = 1,
         lr_eval: float = 1.0e-4,
@@ -76,7 +82,7 @@ class DINO(SelfDistiller):
         )
         self.num_eval_blocks = num_eval_blocks
         self.warmup_iters = warmup_iters
-        self.weight_decay_end = weight_decay_end
+        self.min_weight_decay = weight_decay_final
         self.min_lr = min_lr
         self.freeze_last_layer = freeze_last_layer
         self.arch_fn = cast(Callable[[int], vit.VisionTransformer], arch.value)
@@ -85,46 +91,50 @@ class DINO(SelfDistiller):
         self.norm_last_layer = norm_last_layer
         self.use_bn_in_head = use_bn_in_head
         self.momentum_teacher = momentum_teacher
+        self.momentum_center = momentum_center
         self.teacher_temp = teacher_temp
+        self.warmup_teacher_temp = warmup_teacher_temp
         self.warmup_teacher_temp_iters = warmup_teacher_temp_iters
+        self.student_temp = student_temp
         self.eval_lr = lr_eval
         self.local_crops_number = local_crops_number
         self.local_crops_scale = local_crops_scale
         self.global_crops_scale = global_crops_scale
 
+        self.center = EMACenter(momentum=momentum_center)
+        self._loss_fn = MultiCropLoss(
+            student_temp=student_temp,
+            teacher_temp=teacher_temp,
+            warmup_teacher_temp=warmup_teacher_temp,
+            warmup_teacher_temp_iters=warmup_teacher_temp_iters,
+        )
+
     @implements(PBModel)
     def _build(self) -> None:
         if isinstance(self.datamodule, PBVisionDataModule):
             self.instance_transforms = MultiCropTransform.with_dino_transform(
+                global_crop_size=224,
+                local_crop_size=96,
                 global_crops_scale=self.global_crops_scale,
                 local_crops_scale=self.local_crops_scale,
                 local_crops_number=self.local_crops_number,
+                norm_values=self.datamodule.norm_values,
             )
 
-            self.datamodule.test_transforms = moco_eval_transform(train=False)
+            self.datamodule.test_transforms = moco_test_transform(
+                crop_size=224,
+                amount_to_crop=32,
+                norm_values=self.datamodule.norm_values,
+            )
 
-        max_steps = self.num_training_steps
-
-        self._loss_fn = DINOLoss(
-            out_dim=self.out_dim,
-            warmup_teacher_temp=self.teacher_temp,
-            teacher_temp=self.teacher_temp,
-            warmup_teacher_temp_iters=min(max_steps - 1, self.warmup_teacher_temp_iters),
-            total_iters=max_steps,  # type: ignore
-            num_crops=self.local_crops_number + 2,
+        scheduler_cb = DINOScheduler(
+            base_lr=self.lr * self.datamodule.train_batch_size / 256.0,  # linear scaling rule
+            min_lr=self.min_lr,
+            base_wd=self.weight_decay,
+            min_wd=self.min_weight_decay,
+            total_iters=self.num_training_steps,
         )
-
-        self._lr_schedule = cosine_scheduler(
-            base_value=self.lr * self.datamodule.train_batch_size / 256.0,  # linear scaling rule
-            final_value=self.min_lr,
-            total_iters=max_steps,  # type: ignore
-            warmup_iters=min(max_steps - 1, self.warmup_iters),
-        )
-        self._wd_schedule = cosine_scheduler(
-            base_value=self.weight_decay,
-            final_value=self.weight_decay_end,
-            total_iters=max_steps,
-        )
+        self.trainer.callbacks.append(scheduler_cb)
 
     @property
     @implements(SelfSupervisedModel)
@@ -174,7 +184,7 @@ class DINO(SelfDistiller):
             if stage == "train"
             else {}
         )
-        train_transform = self._eval_train_transform
+        train_transform = self._ft_transform
         dm_cp = gcopy(
             self.datamodule,
             deep=False,
@@ -185,7 +195,7 @@ class DINO(SelfDistiller):
         dataloader = cast(DataLoader, getattr(dm_cp, f"{stage}_dataloader")(**dl_kwargs))
         # Encode the dataset
         dataset_encoder = DatasetEncoder(model=self.student.backbone)
-        self.eval_trainer.test(
+        self.finetuner.test(
             dataset_encoder,
             test_dataloaders=dataloader,
             verbose=False,
@@ -255,8 +265,9 @@ class DINO(SelfDistiller):
 
     @property
     @implements(SelfSupervisedModel)
-    def _eval_train_transform(self) -> ImageTform:
-        return moco_eval_transform(train=True)
+    def _ft_transform(self) -> ImageTform:
+        assert isinstance(self.datamodule, PBVisionDataModule)
+        return moco_ft_transform(crop_size=224, norm_values=self.datamodule.norm_values)
 
     @implements(SelfSupervisedModel)
     @torch.no_grad()

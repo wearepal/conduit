@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from kit.decorators import implements
 import numpy as np
 import torch
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 
-__all__ = ["DINOLoss"]
+__all__ = ["DINOLoss", "EMACenter"]
 
 
 class DINOLoss(nn.Module):
@@ -75,3 +76,44 @@ class DINOLoss(nn.Module):
 
         # ema update
         self.center = self.center * self.center_momentum + batch_center * (1 - self.center_momentum)
+
+
+class EMACenter(nn.Module):
+    def __init__(
+        self, in_features: int | None = None, *, momentum: float = 0.9, auto_update: bool = True
+    ) -> None:
+        super().__init__()
+        self._center: Tensor | None
+        if in_features is not None:
+            self._initialize(in_features=in_features)
+        self.momentum = momentum
+        self.auto_update = auto_update
+
+    def _initialize(self, in_features: int) -> None:
+        self.register_buffer("_center", torch.zeros(1, in_features))
+
+    @property
+    def center(self) -> Tensor:
+        if self._center is None:
+            raise AttributeError(f"{__class__.__name__}.center has not yet been initialized.")
+        return self._center
+
+    @implements(nn.Module)
+    def forward(self, teacher_output: Tensor) -> Tensor:
+        if self._center is None:
+            self._initialize(in_features=teacher_output.size(1))
+        centered = teacher_output - self.center
+        if self.auto_update:
+            self.update_center(teacher_output)
+        return centered
+
+    @torch.no_grad()
+    def update_center(self, teacher_output: Tensor) -> None:
+        """
+        Update center used for teacher output.
+        """
+        if self._center is None:
+            self._initialize(in_features=teacher_output.size(1))
+        batch_center = teacher_output.mean(dim=0, keepdim=True)
+        # ema update
+        self._center = self.center * self.momentum + batch_center * (1 - self.momentum)

@@ -1,9 +1,8 @@
 from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import replace
-from typing import Callable, Optional, Sequence
+from typing import Callable, Optional
 
-from PIL import Image
 from kit.decorators import implements
 from kit.misc import gcopy
 from kit.torch.data import TrainingMode
@@ -46,7 +45,7 @@ class SelfSupervisedModel(PBModel):
         super().__init__(lr=lr, weight_decay=weight_decay)
         self.eval_batch_size = eval_batch_size
         self.eval_epochs = eval_epochs
-        self._eval_trainer: pl.Trainer | None = None
+        self._finetuner: pl.Trainer | None = None
         self._eval_clf: ERMClassifier | None = None
 
     @property
@@ -55,41 +54,41 @@ class SelfSupervisedModel(PBModel):
         ...
 
     @property
-    def eval_clf(self) -> ERMClassifier:
+    def ft_clf(self) -> ERMClassifier:
         if self._eval_clf is None:
-            self._eval_clf = self._init_eval_clf()
-            self._eval_clf.build(datamodule=self.datamodule, trainer=self.eval_trainer, copy=False)
+            self._eval_clf = self._init_ft_clf()
+            self._eval_clf.build(datamodule=self.datamodule, trainer=self.finetuner, copy=False)
         return self._eval_clf
 
-    @eval_clf.setter
-    def eval_clf(self, clf: ERMClassifier) -> None:
+    @ft_clf.setter
+    def ft_clf(self, clf: ERMClassifier) -> None:
         self._eval_clf = clf
 
     @property
-    def eval_trainer(self) -> pl.Trainer:
-        if self._eval_trainer is None:
-            self._eval_trainer = gcopy(self.trainer, deep=True, num_sanity_val_batches=0)
-            self._eval_trainer.fit_loop.max_epochs = self.eval_epochs
-            self._eval_trainer.fit_loop.max_steps = None  # type: ignore
+    def finetuner(self) -> pl.Trainer:
+        if self._finetuner is None:
+            self._finetuner = gcopy(self.trainer, deep=True, num_sanity_val_batches=0)
+            self._finetuner.fit_loop.max_epochs = self.eval_epochs
+            self._finetuner.fit_loop.max_steps = None  # type: ignore
             bar = PostHocProgressBar()
-            bar._trainer = self._eval_trainer
-            self._eval_trainer.callbacks = [bar]
-        return self._eval_trainer
+            bar._trainer = self._finetuner
+            self._finetuner.callbacks = [bar]
+        return self._finetuner
 
-    @eval_trainer.setter
-    def eval_trainer(self, trainer: pl.Trainer) -> None:
-        self._eval_trainer = trainer
+    @finetuner.setter
+    def finetuner(self, trainer: pl.Trainer) -> None:
+        self._finetuner = trainer
 
     @abstractmethod
-    def _init_eval_clf(self) -> ERMClassifier:
+    def _init_ft_clf(self) -> ERMClassifier:
         ...
 
     @property
     @abstractmethod
-    def _eval_train_transform(self) -> ImageTform:
+    def _ft_transform(self) -> ImageTform:
         ...
 
-    def _eval_routine(self) -> None:
+    def _finetune(self) -> None:
         dm_cp = gcopy(
             self.datamodule,
             deep=False,
@@ -97,28 +96,28 @@ class SelfSupervisedModel(PBModel):
             training_mode=TrainingMode.epoch,
         )
         if isinstance(dm_cp, PBVisionDataModule):
-            dm_cp.train_transforms = self._eval_train_transform
+            dm_cp.train_transforms = self._ft_transform
         if self.eval_batch_size is not None:
             dm_cp.train_batch_size = self.eval_batch_size
 
-        self.eval_trainer.fit(
-            self.eval_clf,
+        self.finetuner.fit(
+            self.ft_clf,
             train_dataloaders=dm_cp.train_dataloader(),
         )
 
     @implements(PBModel)
     def inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
-        return self.eval_clf.inference_step(batch=batch, stage=stage)
+        return self.ft_clf.inference_step(batch=batch, stage=stage)
 
     @implements(PBModel)
     def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
-        results_dict = self.eval_clf.inference_epoch_end(outputs=outputs, stage=stage)
+        results_dict = self.ft_clf.inference_epoch_end(outputs=outputs, stage=stage)
         # Free up memory
         self._eval_clf = None
         return results_dict
 
     def on_inference_start(self) -> None:
-        self._eval_routine()
+        self._finetune()
 
     @implements(pl.LightningModule)
     def on_validation_start(self) -> None:
@@ -192,13 +191,13 @@ class SelfDistiller(InstanceDiscriminator):
 
     @property
     @abstractmethod
-    def momentum_schedule(self) -> float | np.ndarray | Tensor:
+    def momentum_schedule(self) -> float | np.ndarray | Tensor | Callable[[int], float]:
         ...
 
     def build(self, datamodule: PBDataModule, *, trainer: pl.Trainer, copy: bool = True) -> None:
         super().build(datamodule=datamodule, trainer=trainer, copy=copy)
         self.student, self.teacher = self.init_encoders()
-        mt_cb = MeanTeacherWeightUpdate(momentum_schedule=self.momentum_schedule)
+        mt_cb = MeanTeacherWeightUpdate(momentum=self.momentum_schedule)
         if self.trainer.callbacks is None:
             self.trainer.callbacks = [mt_cb]
         else:

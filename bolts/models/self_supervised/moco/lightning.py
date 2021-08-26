@@ -5,6 +5,7 @@ from kit import implements, parsable
 from kit.misc import gcopy
 from kit.torch.loss import CrossEntropyLoss, ReductionType
 import pytorch_lightning as pl
+from pytorch_lightning.core import datamodule
 import torch
 from torch import Tensor, optim
 import torch.nn as nn
@@ -16,7 +17,10 @@ from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
 from bolts.models.erm import FineTuner
 from bolts.models.self_supervised.base import SelfDistiller, SelfSupervisedModel
-from bolts.models.self_supervised.moco.transforms import moco_eval_transform
+from bolts.models.self_supervised.moco.transforms import (
+    moco_ft_transform,
+    moco_test_transform,
+)
 from bolts.models.self_supervised.multicrop import MultiCropTransform
 from bolts.models.utils import precision_at_k, prefix_keys
 from bolts.types import MetricDict
@@ -40,7 +44,7 @@ class MoCoV2(SelfDistiller):
         momentum_teacher: float = 0.999,
         temp: float = 0.07,
         lr: float = 0.03,
-        momentum: float = 0.9,
+        momentum_sgd: float = 0.9,
         weight_decay: float = 1.0e-4,
         use_mlp: bool = False,
         eval_epochs: int = 100,
@@ -60,7 +64,7 @@ class MoCoV2(SelfDistiller):
             encoder_momentum: moco momentum of updating key encoder (default: 0.999)
             temp: softmax temperature (default: 0.07)
             lr: the learning rate
-            momentum: optimizer momentum
+            sgd_momentum: optimizer momentum
             weight_decay: optimizer weight decay
             use_mlp: add an mlp to the encoders
         """
@@ -78,7 +82,7 @@ class MoCoV2(SelfDistiller):
         self.lr = lr
         self.weight_decay = weight_decay
         self.momentum_teacher = momentum_teacher
-        self.momentum = momentum
+        self.momentum_sgd = momentum_sgd
 
         self.num_negatives = num_negatives
         # create the queue
@@ -92,8 +96,15 @@ class MoCoV2(SelfDistiller):
         if isinstance(self.datamodule, PBVisionDataModule):
             # self._datamodule.train_transforms = mocov2_transform()
             if (self.instance_transforms is None) and (self.batch_transforms is None):
-                self.instance_transforms = MultiCropTransform.with_mocov2_transform()
-            self.datamodule.test_transforms = moco_eval_transform(train=False)
+                self.instance_transforms = MultiCropTransform.with_mocov2_transform(
+                    crop_size=224,
+                    norm_values=self.datamodule.norm_values,
+                )
+            self.datamodule.test_transforms = moco_test_transform(
+                crop_size=224,
+                amount_to_crop=32,
+                norm_values=self.datamodule.norm_values,
+            )
 
     @torch.no_grad()
     @implements(SelfDistiller)
@@ -131,7 +142,7 @@ class MoCoV2(SelfDistiller):
         optimizer = optim.SGD(
             self.student.parameters(),
             self.lr,
-            momentum=self.momentum,
+            momentum=self.momentum_sgd,
             weight_decay=self.weight_decay,
         )
         return optimizer
@@ -147,7 +158,7 @@ class MoCoV2(SelfDistiller):
     def _batch_shuffle_ddp(self, x: Tensor) -> tuple[Tensor, Tensor]:  # pragma: no-cover
         """
         Batch shuffle, for making use of BatchNorm.
-        *** Only supports DistributedDataParallel (DDP) model. ***
+        *** Only supports DistributedDataParallel (DDP).***
         """
         # gather from all gpus
         batch_size_this = x.shape[0]
@@ -175,7 +186,7 @@ class MoCoV2(SelfDistiller):
     def _batch_unshuffle_ddp(self, x: Tensor, idx_unshuffle: Tensor) -> Tensor:  # pragma: no-cover
         """
         Undo batch shuffle.
-        *** Only support DistributedDataParallel (DDP) model. ***
+        *** Only supports DistributedDataParallel (DDP).***
         """
         # gather from all gpus
         batch_size_this = x.shape[0]
@@ -251,9 +262,10 @@ class MoCoV2(SelfDistiller):
         return {'loss': loss, 'log': log_dict, 'progress_bar': log_dict}
 
     @property
-    @implements(SelfDistiller)
-    def _eval_train_transform(self) -> ImageTform:
-        return moco_eval_transform(train=True)
+    @implements(SelfSupervisedModel)
+    def _ft_transform(self) -> ImageTform:
+        assert isinstance(self.datamodule, PBVisionDataModule)
+        return moco_ft_transform(crop_size=224, norm_values=self.datamodule.norm_values)
 
     @implements(SelfDistiller)
     @torch.no_grad()

@@ -1,18 +1,18 @@
 from __future__ import annotations
 from typing import Callable
 
-import torch
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import trunc_normal_
+
+from bolts.models.self_supervised.multicrop import MultiCropWrapper
 
 from .vit import VisionTransformer
 
 __all__ = [
     "DINOHead",
     "MultiCropNet",
-    "MultiCropWrapper",
 ]
 
 
@@ -63,41 +63,6 @@ class DINOHead(nn.Module):
         return x
 
 
-class MultiCropWrapper(nn.Module):
-    """
-    Perform forward pass separately on each resolution input.
-    The inputs corresponding to a single resolution are concatenated and a
-    single forward is run on the same resolution inputs. Hence we do several
-    forward passes = number of different resolutions used. We then
-    concatenate all the output features and run the head forward on these
-    concatenated features.
-    """
-
-    def __init__(self, backbone: nn.Module, *, head: nn.Module) -> None:
-        super(MultiCropWrapper, self).__init__()
-        # disable layers dedicated to ImageNet labels classification
-        if isinstance(backbone, VisionTransformer):
-            backbone.fc, backbone.head = nn.Identity(), nn.Identity()
-        self.backbone = backbone
-        self.head = head
-
-    def forward(self, x: list[Tensor]) -> Tensor:
-        idx_crops = torch.cumsum(
-            torch.unique_consecutive(
-                torch.tensor([inp.shape[-1] for inp in x]),
-                return_counts=True,
-            )[1],
-            0,
-        )
-        start_idx = 0
-        for end_idx in idx_crops:
-            _out = self.backbone(torch.cat(x[start_idx:end_idx]))
-            output: Tensor = _out if start_idx == 0 else torch.cat((output, _out))  # type: ignore
-            start_idx = end_idx
-        # Run the head forward on the concatenated features.
-        return self.head(output)  # type: ignore
-
-
 class MultiCropNet(nn.Module):
     def __init__(
         self,
@@ -111,6 +76,8 @@ class MultiCropNet(nn.Module):
         super().__init__()
         self.backbone = arch_fn(patch_size)
         embed_dim = self.backbone.embed_dim
+        if isinstance(self.backbone, VisionTransformer):
+            self.backbone.fc, self.backbone.head = nn.Identity(), nn.Identity()
         self.head = DINOHead(
             in_dim=embed_dim,
             out_dim=out_dim,
