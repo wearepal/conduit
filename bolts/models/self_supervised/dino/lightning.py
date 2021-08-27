@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Callable, Optional, Protocol, Union, cast
+from typing import Any, Callable, Optional, Union, cast
 
 from kit import gcopy, implements, parsable
 from kit.torch.data import TrainingMode
@@ -30,15 +30,14 @@ from bolts.types import Stage
 
 from . import vit
 from .eval import DatasetEncoder, DINOLinearClassifier
-from .head import DINOHead, MultiCropNet
+from .head import DINOHead
 from .utils import cosine_scheduler, get_params_groups
 
 __all__ = ["DINO"]
 
 
 class DINO(SelfDistiller):
-    student: MultiCropNet
-    teacher: MultiCropNet
+    ft_clf: DINOLinearClassifier
 
     @parsable
     def __init__(
@@ -55,6 +54,7 @@ class DINO(SelfDistiller):
         weight_decay_final: float = 0.4,
         freeze_last_layer: int = 1,
         patch_size: int = 16,
+        drop_path_rate: float = 0.1,
         norm_last_layer: bool = True,
         use_bn_in_head: bool = False,
         momentum_teacher: float = 0.996,
@@ -90,7 +90,7 @@ class DINO(SelfDistiller):
         self.min_lr = min_lr
         self.freeze_last_layer = freeze_last_layer
         self.backbone = backbone
-        self.patch_size = patch_size
+
         self.out_dim = out_dim
         self.norm_last_layer = norm_last_layer
         self.use_bn_in_head = use_bn_in_head
@@ -104,6 +104,10 @@ class DINO(SelfDistiller):
         self.local_crops_number = local_crops_number
         self.local_crops_scale = local_crops_scale
         self.global_crops_scale = global_crops_scale
+
+        # ViT-specific arguments
+        self.patch_size = patch_size
+        self.drop_path_rate = drop_path_rate
 
         self._loss_fn = DINOLoss(
             student_temp=student_temp,
@@ -156,7 +160,10 @@ class DINO(SelfDistiller):
     @implements(SelfDistiller)
     def _init_encoders(self) -> tuple[MultiCropWrapper, MultiCropWrapper]:
         if isinstance(self.backbone, vit.VitArch):
-            self.backbone = cast(vit.VisionTransformer, self.backbone.value(self.patch_size))
+            self.backbone = cast(
+                vit.VisionTransformer,
+                self.backbone.value(self.patch_size, drop_path_rate=self.drop_path_rate),
+            )
         if isinstance(self.backbone, vit.VisionTransformer):
             student_backbone = self.backbone
             self.embed_dim = student_backbone.embed_dim
@@ -282,7 +289,7 @@ class DINO(SelfDistiller):
     @torch.no_grad()
     def _init_ft_clf(self) -> DINOLinearClassifier:
         return DINOLinearClassifier(
-            encoder=self.features,
+            encoder=self.student.backbone,
             embed_dim=self.embed_dim,
             target_dim=self.datamodule.card_y,
             epochs=self.eval_epochs,

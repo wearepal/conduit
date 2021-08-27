@@ -30,7 +30,7 @@ from torch.nn.init import trunc_normal_
 __all__ = ["VisionTransformer", "vit_small", "vit_tiny", "vit_base", "VitArch"]
 
 
-def drop_path(x: Tensor, drop_prob: float = 0.0, training: bool = False) -> Tensor:
+def drop_path(x: Tensor, *, drop_prob: float = 0.0, training: bool = False) -> Tensor:
     if drop_prob == 0.0 or not training:
         return x
     keep_prob = 1 - drop_prob
@@ -48,7 +48,7 @@ class DropPath(nn.Module):
         self.drop_prob = drop_prob
 
     def forward(self, x: Tensor) -> Tensor:
-        return drop_path(x, self.drop_prob, self.training)
+        return drop_path(x, drop_prob=self.drop_prob, training=self.training)
 
 
 class Mlp(nn.Module):

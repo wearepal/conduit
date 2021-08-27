@@ -32,8 +32,6 @@ __all__ = ["MoCoV2"]
 class MoCoV2(SelfDistiller):
     ft_clf: FineTuner
     use_ddp: bool
-    student: MultiCropWrapper
-    teacher: MultiCropWrapper
 
     @parsable
     def __init__(

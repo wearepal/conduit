@@ -23,7 +23,11 @@ from bolts.models.self_supervised.callbacks import (
     MeanTeacherWeightUpdate,
     PostHocProgressBar,
 )
-from bolts.models.self_supervised.multicrop import MultiCropOutput, MultiCropTransform
+from bolts.models.self_supervised.multicrop import (
+    MultiCropOutput,
+    MultiCropTransform,
+    MultiCropWrapper,
+)
 from bolts.types import MetricDict, Stage
 
 __all__ = [
@@ -174,8 +178,8 @@ class InstanceDiscriminator(SelfSupervisedModel):
 
 
 class SelfDistiller(InstanceDiscriminator):
-    student: nn.Module
-    teacher: nn.Module
+    student: MultiCropWrapper
+    teacher: MultiCropWrapper
 
     @torch.no_grad()
     def init_encoders(self) -> tuple[nn.Module, nn.Module]:

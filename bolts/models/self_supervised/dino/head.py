@@ -12,7 +12,6 @@ from .vit import VisionTransformer
 
 __all__ = [
     "DINOHead",
-    "MultiCropNet",
 ]
 
 
@@ -61,30 +60,3 @@ class DINOHead(nn.Module):
         x = F.normalize(x, dim=-1, p=2)
         x = self.last_layer(x)
         return x
-
-
-class MultiCropNet(nn.Module):
-    def __init__(
-        self,
-        *,
-        arch_fn: Callable[[int], VisionTransformer],
-        patch_size: int,
-        norm_last_layer: bool,
-        use_bn_in_head: bool,
-        out_dim: int,
-    ) -> None:
-        super().__init__()
-        self.backbone = arch_fn(patch_size)
-        embed_dim = self.backbone.embed_dim
-        if isinstance(self.backbone, VisionTransformer):
-            self.backbone.fc, self.backbone.head = nn.Identity(), nn.Identity()
-        self.head = DINOHead(
-            in_dim=embed_dim,
-            out_dim=out_dim,
-            use_bn=use_bn_in_head,
-            norm_last_layer=norm_last_layer,
-        )
-        self.net = MultiCropWrapper(backbone=self.backbone, head=self.head)
-
-    def forward(self, x: Tensor) -> Tensor:
-        return self.net(x)
