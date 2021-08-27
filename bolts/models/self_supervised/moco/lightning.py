@@ -21,7 +21,7 @@ from bolts.models.self_supervised.moco.transforms import (
     moco_ft_transform,
     moco_test_transform,
 )
-from bolts.models.self_supervised.multicrop import MultiCropTransform
+from bolts.models.self_supervised.multicrop import MultiCropTransform, MultiCropWrapper
 from bolts.models.utils import precision_at_k, prefix_keys
 from bolts.types import MetricDict
 
@@ -31,14 +31,16 @@ __all__ = ["MoCoV2"]
 
 
 class MoCoV2(SelfDistiller):
-    eval_clf: FineTuner
+    ft_clf: FineTuner
     use_ddp: bool
+    student: MultiCropWrapper
+    teacher: MultiCropWrapper
 
     @parsable
     def __init__(
         self,
         *,
-        arch: Union[nn.Module, ResNetArch, Callable[[int], nn.Module]] = ResNetArch.resnet18,
+        arch: Union[MultiCropWrapper, ResNetArch] = ResNetArch.resnet18,
         emb_dim: int = 128,
         num_negatives: int = 65_536,
         momentum_teacher: float = 0.999,
@@ -111,17 +113,19 @@ class MoCoV2(SelfDistiller):
     def _init_encoders(self) -> tuple[nn.Module, nn.Module]:
         # create the encoders
         # num_classes is the output fc dimension
-        if isinstance(self.arch, nn.Module):
+        if isinstance(self.arch, MultiCropWrapper):
             student = self.arch
-        elif isinstance(self.arch, ResNetArch):
+        else:
             student = self.arch.value(num_classes=self.emb_dim)
             if self.use_mlp:  # hack: brute-force replacement
                 dim_mlp = student.fc.weight.shape[1]
-                student.fc = nn.Sequential(  # type: ignore
+                head = nn.Sequential(  # type: ignore
                     nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), student.fc
                 )
-        else:
-            student = self.arch(self.emb_dim)
+            else:
+                head = student.fc
+            student.fc = nn.Identity()
+            student = MultiCropWrapper(backbone=student, head=head)
 
         teacher = gcopy(student, deep=True)
 
@@ -225,12 +229,10 @@ class MoCoV2(SelfDistiller):
     @implements(pl.LightningModule)
     def training_step(self, batch: NamedSample, batch_idx: int) -> MetricDict:
         views = self._get_positive_views(batch=batch)
-        # TODO: Generalize to multicrops
         img_q, img_k = views.global_crops
-
         # compute query features
-        student_out = self.student(img_q)  # queries: NxC
-        student_out = F.normalize(student_out, dim=1)
+        student_logits = self.student([img_q] + views.local_crops)  # queries: NxC
+        student_logits = F.normalize(student_logits, dim=1)
 
         # compute key features
         with torch.no_grad():  # no gradient to keys
@@ -239,25 +241,25 @@ class MoCoV2(SelfDistiller):
             if self.use_ddp:
                 img_k, idx_unshuffle = self._batch_shuffle_ddp(img_k)
 
-            teacher_out = self.teacher(img_k)  # keys: NxC
-            teacher_out = F.normalize(teacher_out, dim=1)
+            teacher_logits = self.teacher(img_k)  # keys: NxC
+            teacher_logits = F.normalize(teacher_logits, dim=1)
 
             # undo shuffle
             if self.use_ddp:
                 assert idx_unshuffle is not None
-                teacher_out = self._batch_unshuffle_ddp(teacher_out, idx_unshuffle)
+                teacher_logits = self._batch_unshuffle_ddp(teacher_logits, idx_unshuffle)
 
         # compute logits
-        # Einstein sum is more intuitive
-        # positive logits: Nx1
-        l_pos = torch.einsum('nc,nc->n', [student_out, teacher_out]).unsqueeze(-1)
+        # positive logits: NxLx1
+        student_logits_crop_view = student_logits.view(-1, img_q.size(0), student_logits.size(-1))
+        l_pos = (student_logits_crop_view * teacher_logits.unsqueeze(0)).sum(-1).view(-1, 1)
         # negative logits: NxK
-        l_neg = torch.einsum('nc,kc->nk', [student_out, self.mb.memory.clone()])
+        l_neg = torch.einsum('nc,kc->nk', [student_logits, self.mb.memory.clone()])
 
         loss, log_dict = self._get_loss(l_pos=l_pos, l_neg=l_neg)
 
         # dequeue and enqueue
-        self._dequeue_and_enqueue(teacher_out)
+        self._dequeue_and_enqueue(teacher_logits)
 
         return {'loss': loss, 'log': log_dict, 'progress_bar': log_dict}
 
@@ -269,7 +271,7 @@ class MoCoV2(SelfDistiller):
 
     @implements(SelfDistiller)
     @torch.no_grad()
-    def _init_eval_clf(self) -> FineTuner:
+    def _init_ft_clf(self) -> FineTuner:
         return FineTuner(
             encoder=self.student,
             classifier=nn.Linear(in_features=self.emb_dim, out_features=self.datamodule.card_y),

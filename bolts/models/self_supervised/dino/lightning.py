@@ -17,18 +17,17 @@ from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
 from bolts.models.self_supervised.base import SelfDistiller, SelfSupervisedModel
 from bolts.models.self_supervised.dino.callbacks import DINOScheduler
+from bolts.models.self_supervised.dino.loss import DINOLoss
 from bolts.models.self_supervised.dino.transforms import MultiCropTransform
 from bolts.models.self_supervised.moco.transforms import (
     moco_ft_transform,
     moco_test_transform,
 )
-from bolts.models.self_supervised.multicrop import MultiCropLoss
 from bolts.types import Stage
 
 from . import vit
 from .eval import DatasetEncoder, DINOLinearClassifier
 from .head import MultiCropNet
-from .loss import EMACenter
 from .utils import cosine_scheduler, get_params_groups
 
 __all__ = ["DINO"]
@@ -101,8 +100,7 @@ class DINO(SelfDistiller):
         self.local_crops_scale = local_crops_scale
         self.global_crops_scale = global_crops_scale
 
-        self.center = EMACenter(momentum=momentum_center)
-        self._loss_fn = MultiCropLoss(
+        self._loss_fn = DINOLoss(
             student_temp=student_temp,
             teacher_temp=teacher_temp,
             warmup_teacher_temp=warmup_teacher_temp,
@@ -218,22 +216,16 @@ class DINO(SelfDistiller):
 
     def _get_loss(self, batch: NamedSample, batch_idx: int) -> Tensor:
         views = self._get_positive_views(batch=batch)
-        teacher_output = self.teacher(
+        teacher_logits = self.teacher(
             views.global_crops
         )  # only the 2 global views pass through the teacher
-        student_output = self.student(views.all_crops)
+        student_logits = self.student(views.all_crops)
         return self._loss_fn(
-            student_output=student_output, teacher_output=teacher_output, step=batch_idx
+            student_logits=student_logits, teacher_logits=teacher_logits, step=batch_idx
         )
 
     @implements(pl.LightningModule)
     def training_step(self, batch: NamedSample, batch_idx: int) -> Tensor:
-        assert self._trainer.optimizers is not None  # type: ignore
-        for i, param_group in enumerate(self._trainer.optimizers[0].param_groups):  # type: ignore
-            param_group["lr"] = self._lr_schedule[batch_idx]
-            if i == 0:  # only the first group is regularized
-                param_group["weight_decay"] = self._wd_schedule[batch_idx]
-
         return self._get_loss(batch=batch, batch_idx=batch_idx)
 
     @implements(pl.LightningModule)
@@ -271,7 +263,7 @@ class DINO(SelfDistiller):
 
     @implements(SelfSupervisedModel)
     @torch.no_grad()
-    def _init_eval_clf(self) -> DINOLinearClassifier:
+    def _init_ft_clf(self) -> DINOLinearClassifier:
         return DINOLinearClassifier(
             encoder=self.features,
             target_dim=self.datamodule.card_y,

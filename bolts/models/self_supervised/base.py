@@ -197,7 +197,7 @@ class SelfDistiller(InstanceDiscriminator):
     def build(self, datamodule: PBDataModule, *, trainer: pl.Trainer, copy: bool = True) -> None:
         super().build(datamodule=datamodule, trainer=trainer, copy=copy)
         self.student, self.teacher = self.init_encoders()
-        mt_cb = MeanTeacherWeightUpdate(momentum=self.momentum_schedule)
+        mt_cb = MeanTeacherWeightUpdate(momentum_schedule=self.momentum_schedule)
         if self.trainer.callbacks is None:
             self.trainer.callbacks = [mt_cb]
         else:

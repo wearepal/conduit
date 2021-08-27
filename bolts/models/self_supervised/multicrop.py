@@ -114,7 +114,7 @@ class MultiCropLoss(nn.Module):
         *,
         student_temp: float,
         teacher_temp: float,
-        warmup_teacher_temp: float,
+        warmup_teacher_temp: float | None = None,
         warmup_teacher_temp_iters: int = 0,
     ) -> None:
         super().__init__()
@@ -125,13 +125,13 @@ class MultiCropLoss(nn.Module):
         # a too high temperature makes the training instable at the beginning
         self.warmup_teacher_temp_iters = warmup_teacher_temp_iters
         self._warmup_step_size: float
-        if warmup_teacher_temp > 0:
+        if (warmup_teacher_temp is not None) and (warmup_teacher_temp_iters > 0):
             self._warmup_step_size = (
                 teacher_temp - warmup_teacher_temp
             ) / warmup_teacher_temp_iters
 
     def forward(
-        self, student_output: Tensor, teacher_output: Tensor, num_local_crops: int, step: int
+        self, *, student_output: Tensor, teacher_output: Tensor, num_local_crops: int, step: int
     ) -> Tensor:
         """
         Cross-entropy between softmax outputs of the teacher and student networks.
@@ -140,7 +140,7 @@ class MultiCropLoss(nn.Module):
         student_out = student_out.chunk(chunks=num_local_crops, dim=0)
 
         # teacher sharpening
-        if step < self.warmup_teacher_temp_iters:
+        if (self.warmup_teacher_temp is not None) and (step < self.warmup_teacher_temp_iters):
             teacher_temp = self.warmup_teacher_temp + (step * self._warmup_step_size)
         else:
             teacher_temp = self.teacher_temp
@@ -177,7 +177,10 @@ class MultiCropWrapper(nn.Module):
         self.backbone = backbone
         self.head = nn.Identity() if head is None else head
 
-    def forward(self, x: list[Tensor]) -> Tensor:
+    def forward(self, x: list[Tensor] | Tensor) -> Tensor:
+        if isinstance(x, Tensor):
+            return self.head(self.backbone(x))
+
         idx_crops = torch.cumsum(
             torch.unique_consecutive(
                 torch.tensor([inp.shape[-1] for inp in x]),
