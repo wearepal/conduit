@@ -20,8 +20,7 @@ def concat_all_gather(tensor: Tensor) -> Tensor:
     tensors_gather = [torch.ones_like(tensor) for _ in range(torch.distributed.get_world_size())]  # type: ignore
     torch.distributed.all_gather(tensors_gather, tensor, async_op=False)  # type: ignore
 
-    output = torch.cat(tensors_gather, dim=0)
-    return output
+    return torch.cat(tensors_gather, dim=0)
 
 
 class MemoryBank(nn.Module):
@@ -29,7 +28,6 @@ class MemoryBank(nn.Module):
         super().__init__()
         self.capacity = capacity
         self._ptr_pos = 0
-        # self.memory = self._init_memory(dim=dim)
         self.memory: Tensor
         self.register_buffer(name="memory", tensor=self._init_memory(dim=dim))
 

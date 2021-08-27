@@ -105,7 +105,6 @@ class MoCoV2(MomentumTeacherModel):
     def _build(self) -> None:
         self.use_ddp = "ddp" in str(self.trainer.distributed_backend)
         if isinstance(self.datamodule, PBVisionDataModule):
-            # self._datamodule.train_transforms = mocov2_transform()
             if (self.instance_transforms is None) and (self.batch_transforms is None):
                 if self.multicrop:
                     self.instance_transforms = MultiCropTransform.with_dino_transform(
