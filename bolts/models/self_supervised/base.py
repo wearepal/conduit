@@ -164,10 +164,9 @@ class InstanceDiscriminator(SelfSupervisedModel):
         elif isinstance(batch.x, MultiCropOutput):
             if self.batch_transforms is None:
                 return batch.x
-            else:
-                global_crops = [self.batch_transforms(crop) for crop in batch.x.global_crops]
-                local_crops = [self.batch_transforms(crop) for crop in batch.x.local_crops]
-                return replace(batch.x, global_crops=global_crops, local_crops=local_crops)
+            global_crops = [self.batch_transforms(crop) for crop in batch.x.global_crops]
+            local_crops = [self.batch_transforms(crop) for crop in batch.x.local_crops]
+            return replace(batch.x, global_crops=global_crops, local_crops=local_crops)
         else:
             raise TypeError("'x' must be  a Tensor or a 'MultiCropTransform' instance.")
 

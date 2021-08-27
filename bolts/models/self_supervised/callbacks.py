@@ -68,7 +68,7 @@ class MeanTeacherWeightUpdate(pl.Callback):
 class PostHocProgressBar(ProgressBar):
     def init_train_tqdm(self) -> tqdm:
         """Override this to customize the tqdm bar for training."""
-        bar = tqdm(
+        return tqdm(
             desc="Training (Post-Hoc)",
             initial=self.train_batch_idx,
             position=(2 * self.process_position),
@@ -78,13 +78,12 @@ class PostHocProgressBar(ProgressBar):
             file=sys.stdout,
             smoothing=0,
         )
-        return bar
 
     def init_validation_tqdm(self) -> tqdm:
         """Override this to customize the tqdm bar for validation."""
         # The main progress bar doesn't exist in `trainer.validate()`
         has_main_bar = self.main_progress_bar is not None
-        bar = tqdm(
+        return tqdm(
             desc="Validating (Post-Hoc)",
             position=(2 * self.process_position + has_main_bar),
             disable=self.is_disabled,
@@ -92,7 +91,6 @@ class PostHocProgressBar(ProgressBar):
             dynamic_ncols=True,
             file=sys.stdout,
         )
-        return bar
 
     def on_train_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._train_batch_idx = 0
