@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, Optional, cast
+from typing import Any, Callable, Optional, Protocol, Union, cast
 
 from kit import gcopy, implements, parsable
 from kit.torch.data import TrainingMode
@@ -9,6 +9,7 @@ import torch
 from torch import Tensor, optim
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torchvision.models.resnet import ResNet
 
 from bolts.data import NamedSample
 from bolts.data.datamodules.vision.base import PBVisionDataModule
@@ -23,11 +24,13 @@ from bolts.models.self_supervised.moco.transforms import (
     moco_ft_transform,
     moco_test_transform,
 )
+from bolts.models.self_supervised.moco.utils import ResNetArch
+from bolts.models.self_supervised.multicrop import MultiCropWrapper
 from bolts.types import Stage
 
 from . import vit
 from .eval import DatasetEncoder, DINOLinearClassifier
-from .head import MultiCropNet
+from .head import DINOHead, MultiCropNet
 from .utils import cosine_scheduler, get_params_groups
 
 __all__ = ["DINO"]
@@ -41,15 +44,17 @@ class DINO(SelfDistiller):
     def __init__(
         self,
         *,
+        backbone: Union[
+            nn.Module, vit.VitArch, vit.VisionTransformer, ResNetArch
+        ] = vit.VitArch.small,
+        out_dim: int = 65_536,
         lr: float = 5.0e-4,
         warmup_iters: int = 10,
         weight_decay: float = 4.0e-2,
         min_lr: float = 1.0e-6,
         weight_decay_final: float = 0.4,
         freeze_last_layer: int = 1,
-        arch: vit.VitArch = vit.VitArch.small,
         patch_size: int = 16,
-        out_dim: int = 65_536,
         norm_last_layer: bool = True,
         use_bn_in_head: bool = False,
         momentum_teacher: float = 0.996,
@@ -84,7 +89,7 @@ class DINO(SelfDistiller):
         self.min_weight_decay = weight_decay_final
         self.min_lr = min_lr
         self.freeze_last_layer = freeze_last_layer
-        self.arch_fn = cast(Callable[[int], vit.VisionTransformer], arch.value)
+        self.backbone = backbone
         self.patch_size = patch_size
         self.out_dim = out_dim
         self.norm_last_layer = norm_last_layer
@@ -134,12 +139,9 @@ class DINO(SelfDistiller):
         )
         self.trainer.callbacks.append(scheduler_cb)
 
-    @property
     @implements(SelfSupervisedModel)
-    def features(self) -> vit.VisionTransformer:
-        # We define an encoder-extracting method for consistency with the other models -
-        # fit_and_test, for instance, expects a model to comprise of two parts: enc and clf.
-        return self.student.backbone
+    def features(self, x: Tensor, **kwargs: Any) -> nn.Module:
+        return self.student.backbone(x, **kwargs)
 
     @property
     @implements(SelfDistiller)
@@ -152,24 +154,39 @@ class DINO(SelfDistiller):
 
     @torch.no_grad()
     @implements(SelfDistiller)
-    def _init_encoders(self) -> tuple[MultiCropNet, MultiCropNet]:
-        student = MultiCropNet(
-            arch_fn=self.arch_fn,
-            patch_size=self.patch_size,
-            norm_last_layer=self.norm_last_layer,
-            use_bn_in_head=self.use_bn_in_head,
-            out_dim=self.out_dim,
-        )
-        teacher = MultiCropNet(
-            arch_fn=self.arch_fn,
-            patch_size=self.patch_size,
-            norm_last_layer=True,
-            use_bn_in_head=self.use_bn_in_head,
-            out_dim=self.out_dim,
-        )
+    def _init_encoders(self) -> tuple[MultiCropWrapper, MultiCropWrapper]:
+        if isinstance(self.backbone, vit.VitArch):
+            self.backbone = cast(vit.VisionTransformer, self.backbone.value(self.patch_size))
+        if isinstance(self.backbone, vit.VisionTransformer):
+            student_backbone = self.backbone
+            self.embed_dim = student_backbone.embed_dim
+            # disable layers dedicated to ImageNet classification
+            student_backbone.fc = nn.Identity()
+            student_backbone.head = nn.Identity()
+        elif isinstance(self.backbone, ResNetArch):
+            student_backbone = cast(ResNet, self.backbone.value(self.patch_size))
+            self.embed_dim = student_backbone.fc.weight.shape[1]
+            student_backbone.fc = nn.Identity()  # type: ignore
+        else:
+            student_backbone = self.backbone
+            embed_dim_t = student_backbone(torch.zeros(1, *self.datamodule.size)).squeeze(0)
+            # If the backbone does not produce a 1-dimensional embedding, add a flattening layer
+            if embed_dim_t.ndim > 1:
+                student_backbone = nn.Sequential(student_backbone, nn.Flatten())
+            self.embed_dim = embed_dim_t.numel()
+        teacher_backbone = gcopy(student_backbone, deep=True)
 
-        # student and teacher networks start with the same weights
-        teacher.load_state_dict(student.state_dict())
+        student_head = DINOHead(
+            in_dim=self.embed_dim,
+            out_dim=self.out_dim,
+            use_bn=self.use_bn_in_head,
+            norm_last_layer=self.norm_last_layer,
+        )
+        teacher_head = gcopy(student_head, deep=True)
+        teacher_head.last_layer.weight_g.requires_grad = False
+
+        student = MultiCropWrapper(backbone=student_backbone, head=student_head)
+        teacher = MultiCropWrapper(backbone=teacher_backbone, head=teacher_head)
 
         return student, teacher
 
@@ -266,6 +283,7 @@ class DINO(SelfDistiller):
     def _init_ft_clf(self) -> DINOLinearClassifier:
         return DINOLinearClassifier(
             encoder=self.features,
+            embed_dim=self.embed_dim,
             target_dim=self.datamodule.card_y,
             epochs=self.eval_epochs,
             weight_decay=0,

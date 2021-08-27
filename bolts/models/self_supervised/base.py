@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import replace
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from kit.decorators import implements
 from kit.misc import gcopy
@@ -34,6 +34,8 @@ __all__ = [
 
 
 class SelfSupervisedModel(PBModel):
+    embed_dim: int
+
     def __init__(
         self,
         *,
@@ -48,9 +50,8 @@ class SelfSupervisedModel(PBModel):
         self._finetuner: pl.Trainer | None = None
         self._eval_clf: ERMClassifier | None = None
 
-    @property
     @abstractmethod
-    def features(self) -> nn.Module:
+    def features(self, x: Tensor, **kwargs: Any) -> nn.Module:
         ...
 
     @property

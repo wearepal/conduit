@@ -9,6 +9,7 @@ from torch import Tensor
 import torch.nn as nn
 
 __all__ = [
+    "PartialModule",
     "accuracy",
     "aggregate_over_epoch",
     "decorate_all_methods",
@@ -85,3 +86,13 @@ U = TypeVar("U", bound=nn.Module)
 
 def make_no_grad(module: U) -> U:
     return decorate_all_methods(torch.no_grad(), gcopy(module, deep=False))
+
+
+class PartialModule(nn.Module):
+    def __init__(self, func: Callable, **kwargs: Any):
+        super().__init__()
+        self.func = func
+        self.bound_kwargs = kwargs
+
+    def __call__(self, *args: Any, **kwargs: Any):
+        return self.func(*args, **kwargs, **self.bound_kwargs)

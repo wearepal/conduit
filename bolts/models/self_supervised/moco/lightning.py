@@ -1,11 +1,10 @@
 from __future__ import annotations
-from typing import Callable, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from kit import implements, parsable
 from kit.misc import gcopy
 from kit.torch.loss import CrossEntropyLoss, ReductionType
 import pytorch_lightning as pl
-from pytorch_lightning.core import datamodule
 import torch
 from torch import Tensor, optim
 import torch.nn as nn
@@ -40,8 +39,8 @@ class MoCoV2(SelfDistiller):
     def __init__(
         self,
         *,
-        arch: Union[MultiCropWrapper, ResNetArch] = ResNetArch.resnet18,
-        emb_dim: int = 128,
+        backbone: Union[nn.Module, ResNetArch] = ResNetArch.resnet18,
+        out_dim: int = 128,
         num_negatives: int = 65_536,
         momentum_teacher: float = 0.999,
         temp: float = 0.07,
@@ -78,8 +77,8 @@ class MoCoV2(SelfDistiller):
             instance_transforms=instance_transforms,
             batch_transforms=batch_transforms,
         )
-        self.arch = arch
-        self.emb_dim = emb_dim
+        self.backbone = backbone
+        self.out_dim = out_dim
         self.temp = temp
         self.lr = lr
         self.weight_decay = weight_decay
@@ -88,7 +87,7 @@ class MoCoV2(SelfDistiller):
 
         self.num_negatives = num_negatives
         # create the queue
-        self.mb = MemoryBank(dim=emb_dim, capacity=num_negatives)
+        self.mb = MemoryBank(dim=out_dim, capacity=num_negatives)
         self.use_mlp = use_mlp
         self._loss_fn = CrossEntropyLoss(reduction=ReductionType.mean)
 
@@ -110,31 +109,37 @@ class MoCoV2(SelfDistiller):
 
     @torch.no_grad()
     @implements(SelfDistiller)
-    def _init_encoders(self) -> tuple[nn.Module, nn.Module]:
+    def _init_encoders(self) -> tuple[MultiCropWrapper, MultiCropWrapper]:
         # create the encoders
-        # num_classes is the output fc dimension
-        if isinstance(self.arch, MultiCropWrapper):
-            student = self.arch
+        if isinstance(self.backbone, ResNetArch):
+            student_backbone = self.backbone.value(num_classes=self.out_dim)
+            self.embed_dim = student_backbone.fc.weight.shape[1]
+            head = student_backbone.fc
+            student_backbone.fc = nn.Identity()
         else:
-            student = self.arch.value(num_classes=self.emb_dim)
-            if self.use_mlp:  # hack: brute-force replacement
-                dim_mlp = student.fc.weight.shape[1]
-                head = nn.Sequential(  # type: ignore
-                    nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), student.fc
-                )
-            else:
-                head = student.fc
-            student.fc = nn.Identity()
-            student = MultiCropWrapper(backbone=student, head=head)
+            student_backbone = self.backbone
+            # Brute-force computation using a dummy input
+            embed_dim_t = student_backbone(torch.zeros(1, *self.datamodule.size)).squeeze(0)
+            # If the backbone does not produce a 1-dimensional embedding, add a flattening layer
+            if embed_dim_t.ndim > 1:
+                student_backbone = nn.Sequential(student_backbone, nn.Flatten())
+            self.embed_dim = embed_dim_t.numel()
+            head = (
+                nn.Identity()
+                if self.embed_dim == self.out_dim
+                else nn.Linear(self.embed_dim, self.out_dim)
+            )
+        if self.use_mlp:
+            head = nn.Sequential(nn.Linear(embed_dim, embed_dim), nn.ReLU(), head)  # type: ignore
+        student = MultiCropWrapper(backbone=student_backbone, head=head)
 
         teacher = gcopy(student, deep=True)
 
         return student, teacher
 
-    @property
     @implements(SelfSupervisedModel)
-    def features(self) -> nn.Module:
-        return self.student
+    def features(self, x: Tensor, **kwargs: Any) -> nn.Module:
+        return self.student(x, **kwargs)
 
     @property
     @implements(SelfDistiller)
@@ -274,5 +279,5 @@ class MoCoV2(SelfDistiller):
     def _init_ft_clf(self) -> FineTuner:
         return FineTuner(
             encoder=self.student,
-            classifier=nn.Linear(in_features=self.emb_dim, out_features=self.datamodule.card_y),
+            classifier=nn.Linear(in_features=self.out_dim, out_features=self.datamodule.card_y),
         )

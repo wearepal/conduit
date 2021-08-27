@@ -10,6 +10,7 @@ import torch.nn as nn
 
 from bolts.data.structures import NamedSample, shallow_asdict
 from bolts.models.erm import FineTuner
+from bolts.models.utils import PartialModule
 
 from .vit import VisionTransformer
 
@@ -20,26 +21,31 @@ __all__ = [
 
 
 class DINOLinearClassifier(FineTuner):
-    encoder: VisionTransformer
+    encoder: nn.Module
 
     def __init__(
         self,
-        encoder: VisionTransformer,
+        encoder: nn.Module,
+        *,
+        embed_dim: int,
         target_dim: int,
         weight_decay: float,
         lr: float,
         epochs: int,
         num_eval_blocks: int = 1,
     ) -> None:
-        classifier = nn.Linear(encoder.embed_dim * num_eval_blocks, target_dim)
+        self.epochs = epochs
+        self.num_eval_blocks = num_eval_blocks
+        if isinstance(encoder, VisionTransformer):
+            embed_dim = embed_dim * num_eval_blocks
+            encoder = PartialModule(VisionTransformer.encode, num_eval_blocks=num_eval_blocks)
+        classifier = nn.Linear(embed_dim, target_dim)
         super().__init__(
             encoder=encoder,
             classifier=classifier,
             lr=lr,
             weight_decay=weight_decay,
         )
-        self.epochs = epochs
-        self.num_eval_blocks = num_eval_blocks
 
     @implements(pl.LightningModule)
     def configure_optimizers(
@@ -48,11 +54,6 @@ class DINOLinearClassifier(FineTuner):
         opt = optim.SGD(self.classifier.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         sched = optim.lr_scheduler.CosineAnnealingLR(optimizer=opt, T_max=self.epochs, eta_min=0)
         return [opt], [sched]
-
-    @implements(nn.Module)
-    def forward(self, x: Tensor) -> Tensor:
-        features = self.encoder.encode(x, num_eval_blocks=self.num_eval_blocks)
-        return self.classifier(features)
 
 
 class DatasetEncoder(pl.LightningModule):
