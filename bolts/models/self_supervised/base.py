@@ -32,7 +32,7 @@ from bolts.types import MetricDict, Stage
 
 __all__ = [
     "InstanceDiscriminator",
-    "SelfDistiller",
+    "MomentumTeacherModel",
     "SelfSupervisedModel",
 ]
 
@@ -171,18 +171,19 @@ class InstanceDiscriminator(SelfSupervisedModel):
         else:
             raise TypeError("'x' must be  a Tensor or a 'MultiCropTransform' instance.")
 
+    @implements(PBModel)
     def build(self, datamodule: PBDataModule, *, trainer: pl.Trainer, copy: bool = True) -> None:
         super().build(datamodule=datamodule, trainer=trainer, copy=copy)
         if isinstance(datamodule, PBVisionDataModule):
             datamodule.train_transforms = self.instance_transforms
 
 
-class SelfDistiller(InstanceDiscriminator):
+class MomentumTeacherModel(InstanceDiscriminator):
     student: MultiCropWrapper
     teacher: MultiCropWrapper
 
     @torch.no_grad()
-    def init_encoders(self) -> tuple[nn.Module, nn.Module]:
+    def init_encoders(self) -> tuple[MultiCropWrapper, MultiCropWrapper]:
         student, teacher = self._init_encoders()
         # there is no backpropagation through the key-encoder, so no need for gradients
         for p in teacher.parameters():
@@ -191,7 +192,7 @@ class SelfDistiller(InstanceDiscriminator):
 
     @torch.no_grad()
     @abstractmethod
-    def _init_encoders(self) -> tuple[nn.Module, nn.Module]:
+    def _init_encoders(self) -> tuple[MultiCropWrapper, MultiCropWrapper]:
         ...
 
     @property
@@ -199,6 +200,7 @@ class SelfDistiller(InstanceDiscriminator):
     def momentum_schedule(self) -> float | np.ndarray | Tensor | Callable[[int], float]:
         ...
 
+    @implements(InstanceDiscriminator)
     def build(self, datamodule: PBDataModule, *, trainer: pl.Trainer, copy: bool = True) -> None:
         super().build(datamodule=datamodule, trainer=trainer, copy=copy)
         self.student, self.teacher = self.init_encoders()

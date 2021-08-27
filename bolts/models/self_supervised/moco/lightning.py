@@ -15,7 +15,7 @@ from bolts.data.datasets.utils import ImageTform
 from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
 from bolts.models.erm import FineTuner
-from bolts.models.self_supervised.base import SelfDistiller, SelfSupervisedModel
+from bolts.models.self_supervised.base import MomentumTeacherModel, SelfSupervisedModel
 from bolts.models.self_supervised.moco.transforms import (
     moco_ft_transform,
     moco_test_transform,
@@ -29,7 +29,7 @@ from .utils import MemoryBank, ResNetArch, concat_all_gather
 __all__ = ["MoCoV2"]
 
 
-class MoCoV2(SelfDistiller):
+class MoCoV2(MomentumTeacherModel):
     ft_clf: FineTuner
     use_ddp: bool
 
@@ -50,6 +50,10 @@ class MoCoV2(SelfDistiller):
         eval_batch_size: Optional[int] = None,
         instance_transforms: Optional[MultiCropTransform] = None,
         batch_transforms: Optional[Callable[[Tensor], Tensor]] = None,
+        multicrop: bool = False,
+        global_crops_scale: tuple[float, float] = (0.4, 1.0),
+        local_crops_scale: tuple[float, float] = (0.05, 0.4),
+        local_crops_number: int = 8,
     ) -> None:
         """
         PyTorch Lightning implementation of `MoCo <https://arxiv.org/abs/2003.04297>`_
@@ -57,8 +61,12 @@ class MoCoV2(SelfDistiller):
         Code adapted from `facebookresearch/moco <https://github.com/facebookresearch/moco>`
 
         Args:
-            arch: ResNet architecture to use for the encoders.
-            emb_dim: feature dimension (default: 128)
+            backbone: Backbone of the encoder. Can be any nn.Module with a unary forward method
+            (accepting a single input Tensor and returning a single output Tensor), in which case embed_dim
+            will be inferred by passing a dummy input through the backone, or a 'ResNetArch' instance
+            whose value is a resnet builder function which will be called with num_classes=out_dim.
+            emb_dim: Feature dimension of the ResNet model: 128); only applicable if backbone is
+            an 'ResNetArch' instance.
             num_negatives: queue size; number of negative keys (default: 65536)
             encoder_momentum: moco momentum of updating key encoder (default: 0.999)
             temp: softmax temperature (default: 0.07)
@@ -82,11 +90,15 @@ class MoCoV2(SelfDistiller):
         self.weight_decay = weight_decay
         self.momentum_teacher = momentum_teacher
         self.momentum_sgd = momentum_sgd
-
         self.num_negatives = num_negatives
+        self.use_mlp = use_mlp
+        self.multicrop = multicrop
+        self.local_crops_number = local_crops_number
+        self.local_crops_scale = local_crops_scale
+        self.global_crops_scale = global_crops_scale
+
         # create the queue
         self.mb = MemoryBank(dim=out_dim, capacity=num_negatives)
-        self.use_mlp = use_mlp
         self._loss_fn = CrossEntropyLoss(reduction=ReductionType.mean)
 
     @implements(PBModel)
@@ -95,10 +107,20 @@ class MoCoV2(SelfDistiller):
         if isinstance(self.datamodule, PBVisionDataModule):
             # self._datamodule.train_transforms = mocov2_transform()
             if (self.instance_transforms is None) and (self.batch_transforms is None):
-                self.instance_transforms = MultiCropTransform.with_mocov2_transform(
-                    crop_size=224,
-                    norm_values=self.datamodule.norm_values,
-                )
+                if self.multicrop:
+                    self.instance_transforms = MultiCropTransform.with_dino_transform(
+                        global_crop_size=224,
+                        local_crop_size=96,
+                        global_crops_scale=self.global_crops_scale,
+                        local_crops_scale=self.local_crops_scale,
+                        local_crops_number=self.local_crops_number,
+                        norm_values=self.datamodule.norm_values,
+                    )
+                else:
+                    self.instance_transforms = MultiCropTransform.with_mocov2_transform(
+                        crop_size=224,
+                        norm_values=self.datamodule.norm_values,
+                    )
             self.datamodule.test_transforms = moco_test_transform(
                 crop_size=224,
                 amount_to_crop=32,
@@ -106,7 +128,7 @@ class MoCoV2(SelfDistiller):
             )
 
     @torch.no_grad()
-    @implements(SelfDistiller)
+    @implements(MomentumTeacherModel)
     def _init_encoders(self) -> tuple[MultiCropWrapper, MultiCropWrapper]:
         # create the encoders
         if isinstance(self.backbone, ResNetArch):
@@ -116,21 +138,17 @@ class MoCoV2(SelfDistiller):
             student_backbone.fc = nn.Identity()
         else:
             student_backbone = self.backbone
-            # Brute-force computation using a dummy input
+            # Resort to computing embed_dim via the brute-force approach of passing in a dummy input.
             embed_dim_t = student_backbone(torch.zeros(1, *self.datamodule.size)).squeeze(0)
-            # If the backbone does not produce a 1-dimensional embedding, add a flattening layer
+            # If the backbone does not produce a 1-dimensional embedding, add a flattening layer.
             if embed_dim_t.ndim > 1:
                 student_backbone = nn.Sequential(student_backbone, nn.Flatten())
             self.embed_dim = embed_dim_t.numel()
-            head = (
-                nn.Identity()
-                if self.embed_dim == self.out_dim
-                else nn.Linear(self.embed_dim, self.out_dim)
-            )
+            head = nn.Linear(self.embed_dim, self.out_dim)
         if self.use_mlp:
             head = nn.Sequential(nn.Linear(embed_dim, embed_dim), nn.ReLU(), head)  # type: ignore
-        student = MultiCropWrapper(backbone=student_backbone, head=head)
 
+        student = MultiCropWrapper(backbone=student_backbone, head=head)
         teacher = gcopy(student, deep=True)
 
         return student, teacher
@@ -140,7 +158,7 @@ class MoCoV2(SelfDistiller):
         return self.student(x, **kwargs)
 
     @property
-    @implements(SelfDistiller)
+    @implements(MomentumTeacherModel)
     def momentum_schedule(self) -> float:
         return self.momentum_teacher
 
@@ -272,7 +290,7 @@ class MoCoV2(SelfDistiller):
         assert isinstance(self.datamodule, PBVisionDataModule)
         return moco_ft_transform(crop_size=224, norm_values=self.datamodule.norm_values)
 
-    @implements(SelfDistiller)
+    @implements(MomentumTeacherModel)
     @torch.no_grad()
     def _init_ft_clf(self) -> FineTuner:
         return FineTuner(

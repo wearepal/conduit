@@ -21,6 +21,7 @@ from functools import partial
 import math
 from typing import Any
 
+from kit.decorators import implements
 import torch
 from torch import Tensor
 import torch.nn as nn
@@ -47,14 +48,16 @@ class DropPath(nn.Module):
         super().__init__()
         self.drop_prob = drop_prob
 
+    @implements(nn.Module)
     def forward(self, x: Tensor) -> Tensor:
         return drop_path(x, drop_prob=self.drop_prob, training=self.training)
 
 
-class Mlp(nn.Module):
+class MLP(nn.Module):
     def __init__(
         self,
         in_features: int,
+        *,
         hidden_features: int | None = None,
         out_features: int | None = None,
         act_layer: type[nn.Module] = nn.GELU,
@@ -68,6 +71,7 @@ class Mlp(nn.Module):
         self.fc2 = nn.Linear(hidden_features, out_features)
         self.drop = nn.Dropout(drop)
 
+    @implements(nn.Module)
     def forward(self, x: Tensor) -> Tensor:
         x = self.fc1(x)
         x = self.act(x)
@@ -97,6 +101,7 @@ class Attention(nn.Module):
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
 
+    @implements(nn.Module)
     def forward(self, x: Tensor) -> tuple[Tensor, Tensor]:
         B, N, C = x.shape
         qkv = (
@@ -118,6 +123,7 @@ class Block(nn.Module):
     def __init__(
         self,
         dim: int,
+        *,
         num_heads: int,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
@@ -141,11 +147,12 @@ class Block(nn.Module):
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = Mlp(
+        self.mlp = MLP(
             in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop
         )
 
-    def forward(self, x: Tensor, return_attention: bool = False) -> Tensor:
+    @implements(nn.Module)
+    def forward(self, x: Tensor, *, return_attention: bool = False) -> Tensor:
         y, attn = self.attn(self.norm1(x))
         if return_attention:
             return attn
@@ -158,7 +165,7 @@ class PatchEmbed(nn.Module):
     """Image to Patch Embedding"""
 
     def __init__(
-        self, img_size: int, in_chans: int, patch_size: int = 16, embed_dim: int = 768
+        self, img_size: int, *, in_chans: int, patch_size: int = 16, embed_dim: int = 768
     ) -> None:
         super().__init__()
         num_patches = (img_size // patch_size) * (img_size // patch_size)
@@ -168,6 +175,7 @@ class PatchEmbed(nn.Module):
 
         self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
 
+    @implements(nn.Module)
     def forward(self, x: Tensor) -> Tensor:
         x = self.proj(x).flatten(2).transpose(1, 2)
         return x
@@ -281,13 +289,6 @@ class VisionTransformer(nn.Module):
 
         return self.pos_drop(x)
 
-    def forward(self, x: Tensor) -> Tensor:
-        x = self.prepare_tokens(x)
-        for blk in self.blocks:
-            x = blk(x)
-        x = self.norm(x)
-        return x[:, 0]
-
     def get_last_selfattention(self, x: Tensor) -> Tensor:
         x = self.prepare_tokens(x)
         for i, blk in enumerate(self.blocks):
@@ -312,6 +313,14 @@ class VisionTransformer(nn.Module):
         intermediate_output = self.get_intermediate_layers(x, n=num_eval_blocks)
         output = [x[:, 0] for x in intermediate_output]
         return torch.cat(output, dim=-1)
+
+    @implements(nn.Module)
+    def forward(self, x: Tensor) -> Tensor:
+        x = self.prepare_tokens(x)
+        for blk in self.blocks:
+            x = blk(x)
+        x = self.norm(x)
+        return x[:, 0]
 
 
 def vit_tiny(patch_size: int = 16, **kwargs: Any) -> VisionTransformer:

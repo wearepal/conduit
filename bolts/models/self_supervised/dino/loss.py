@@ -32,18 +32,6 @@ class EMACenter(nn.Module):
             raise AttributeError(f"{__class__.__name__}.center has not yet been initialized.")
         return self._center
 
-    @implements(nn.Module)
-    def forward(self, teacher_output: Tensor) -> Tensor:
-        if self._center is None:
-            self._initialize(
-                in_features=teacher_output.size(1),
-                device=teacher_output.device,
-            )
-        centered = teacher_output - self.center
-        if self.auto_update:
-            self.update_center(teacher_output)
-        return centered
-
     @torch.no_grad()
     def update_center(self, teacher_output: Tensor) -> None:
         """
@@ -57,6 +45,18 @@ class EMACenter(nn.Module):
         batch_center = teacher_output.mean(dim=0, keepdim=True)
         # ema update
         self._center = self.center * self.momentum + batch_center * (1 - self.momentum)
+
+    @implements(nn.Module)
+    def forward(self, teacher_output: Tensor) -> Tensor:
+        if self._center is None:
+            self._initialize(
+                in_features=teacher_output.size(1),
+                device=teacher_output.device,
+            )
+        centered = teacher_output - self.center
+        if self.auto_update:
+            self.update_center(teacher_output)
+        return centered
 
 
 class DINOLoss(nn.Module):
@@ -85,6 +85,7 @@ class DINOLoss(nn.Module):
         self.center_momentum = center_momentum
         self.center = EMACenter(momentum=self.center_momentum)
 
+    @implements(nn.Module)
     def forward(
         self, *, student_logits: Tensor, teacher_logits: Tensor, num_local_crops: int, step: int
     ) -> Tensor:

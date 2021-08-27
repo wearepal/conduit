@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from kit.decorators import implements
 from torch import Tensor, nn
 
 from bolts.types import Loss
@@ -17,6 +18,7 @@ class OnlineReweightingLoss(nn.Module):
         loss_fn.reduction = "none"
         self.loss_fn = loss_fn
 
+    @implements(nn.Module)
     def forward(self, logits: Tensor, targets: Tensor, subgroup_inf: Tensor) -> Tensor:
         unweighted_loss = self.loss_fn(logits, targets)
         for _y in targets.unique():

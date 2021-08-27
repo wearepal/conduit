@@ -1,14 +1,10 @@
 from __future__ import annotations
-from typing import Callable
 
+from kit.decorators import implements
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import trunc_normal_
-
-from bolts.models.self_supervised.multicrop import MultiCropWrapper
-
-from .vit import VisionTransformer
 
 __all__ = [
     "DINOHead",
@@ -55,6 +51,7 @@ class DINOHead(nn.Module):
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
 
+    @implements(nn.Module)
     def forward(self, x: Tensor) -> Tensor:
         x = self.mlp(x)
         x = F.normalize(x, dim=-1, p=2)

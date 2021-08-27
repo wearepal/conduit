@@ -2,6 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Sequence
 
+from kit.decorators import implements
 import numpy as np
 import torch
 from torch import Tensor
@@ -130,6 +131,7 @@ class MultiCropLoss(nn.Module):
                 teacher_temp - warmup_teacher_temp
             ) / warmup_teacher_temp_iters
 
+    @implements(nn.Module)
     def forward(
         self, *, student_output: Tensor, teacher_output: Tensor, num_local_crops: int, step: int
     ) -> Tensor:
@@ -177,6 +179,7 @@ class MultiCropWrapper(nn.Module):
         self.backbone = backbone
         self.head = nn.Identity() if head is None else head
 
+    @implements(nn.Module)
     def forward(self, x: list[Tensor] | Tensor) -> Tensor:
         if isinstance(x, Tensor):
             return self.head(self.backbone(x))

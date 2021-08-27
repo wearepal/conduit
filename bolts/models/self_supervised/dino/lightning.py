@@ -16,7 +16,7 @@ from bolts.data.datamodules.vision.base import PBVisionDataModule
 from bolts.data.datasets.utils import ImageTform
 from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
-from bolts.models.self_supervised.base import SelfDistiller, SelfSupervisedModel
+from bolts.models.self_supervised.base import MomentumTeacherModel, SelfSupervisedModel
 from bolts.models.self_supervised.dino.callbacks import DINOScheduler
 from bolts.models.self_supervised.dino.loss import DINOLoss
 from bolts.models.self_supervised.dino.transforms import MultiCropTransform
@@ -36,7 +36,7 @@ from .utils import cosine_scheduler, get_params_groups
 __all__ = ["DINO"]
 
 
-class DINO(SelfDistiller):
+class DINO(MomentumTeacherModel):
     ft_clf: DINOLinearClassifier
 
     @parsable
@@ -148,7 +148,7 @@ class DINO(SelfDistiller):
         return self.student.backbone(x, **kwargs)
 
     @property
-    @implements(SelfDistiller)
+    @implements(MomentumTeacherModel)
     def momentum_schedule(self) -> np.ndarray:
         return cosine_scheduler(
             base_value=self.momentum_teacher,
@@ -157,7 +157,7 @@ class DINO(SelfDistiller):
         )
 
     @torch.no_grad()
-    @implements(SelfDistiller)
+    @implements(MomentumTeacherModel)
     def _init_encoders(self) -> tuple[MultiCropWrapper, MultiCropWrapper]:
         if isinstance(self.backbone, vit.VitArch):
             self.backbone = cast(
