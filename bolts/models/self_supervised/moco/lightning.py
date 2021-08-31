@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Tuple, Union
 
 from kit import implements, parsable
 from kit.misc import gcopy
@@ -51,8 +51,8 @@ class MoCoV2(MomentumTeacherModel):
         instance_transforms: Optional[MultiCropTransform] = None,
         batch_transforms: Optional[Callable[[Tensor], Tensor]] = None,
         multicrop: bool = False,
-        global_crops_scale: tuple[float, float] = (0.4, 1.0),
-        local_crops_scale: tuple[float, float] = (0.05, 0.4),
+        global_crops_scale: Tuple[float, float] = (0.4, 1.0),
+        local_crops_scale: Tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
     ) -> None:
         """

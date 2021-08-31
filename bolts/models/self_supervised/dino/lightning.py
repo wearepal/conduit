@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Callable, Optional, Union, cast
+from typing import Any, Callable, Optional, Tuple, Union, cast
 
 from kit import gcopy, implements, parsable
 from kit.torch.data import TrainingMode
@@ -65,8 +65,8 @@ class DINO(MomentumTeacherModel):
         warmup_teacher_temp_iters: int = 30,
         num_eval_blocks: int = 1,
         lr_eval: float = 1.0e-4,
-        global_crops_scale: tuple[float, float] = (0.4, 1.0),
-        local_crops_scale: tuple[float, float] = (0.05, 0.4),
+        global_crops_scale: Tuple[float, float] = (0.4, 1.0),
+        local_crops_scale: Tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
         batch_transforms: Optional[Callable[[Tensor], Tensor]] = None,
         eval_epochs: int = 100,
