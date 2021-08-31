@@ -16,7 +16,7 @@ class KC(ERMClassifierF):
     def __init__(
         self,
         *,
-        enc: nn.Module,
+        encoder: nn.Module,
         clf: nn.Module,
         lr: float = 3.0e-4,
         weight_decay: float = 0.0,
@@ -26,7 +26,7 @@ class KC(ERMClassifierF):
         lr_sched_freq: int = 1,
     ) -> None:
         super().__init__(
-            encoder=enc,
+            encoder=encoder,
             clf=clf,
             lr=lr,
             weight_decay=weight_decay,

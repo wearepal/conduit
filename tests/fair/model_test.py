@@ -9,7 +9,6 @@ import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
-from bolts.data.datamodules.base import PBDataModule
 from bolts.data.datasets.utils import PBDataLoader
 from bolts.data.datasets.wrappers import InstanceWeightedDataset
 from bolts.fair.data.datasets import DummyDataset
@@ -359,7 +358,7 @@ def test_fairmixup(dm: pl.LightningDataModule, fairness: FairnessType) -> None:
     trainer = pl.Trainer(fast_dev_run=True)
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
-    model = FairMixup(enc=enc, clf=clf, weight_decay=1e-8, lr=1e-3, fairness=fairness)
+    model = FairMixup(encoder=enc, clf=clf, weight_decay=1e-8, lr=1e-3, fairness=fairness)
     trainer.fit(model, datamodule=dm)
     trainer.test(model=model, datamodule=dm)
 
@@ -371,7 +370,7 @@ def test_erm(dm: pl.LightningDataModule) -> None:
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
     model = ERMClassifierF(
-        enc=enc,
+        encoder=enc,
         clf=clf,
         weight_decay=1e-8,
         lr=1e-3,
@@ -388,7 +387,7 @@ def test_erm_gpu(dm: pl.LightningDataModule) -> None:
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
     model = ERMClassifierF(
-        enc=enc,
+        encoder=enc,
         clf=clf,
         weight_decay=1e-8,
         lr=1e-3,
@@ -404,7 +403,7 @@ def test_kc(dm: pl.LightningDataModule) -> None:
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
     model = KC(
-        enc=enc,
+        encoder=enc,
         clf=clf,
         weight_decay=1e-8,
         lr=1e-3,
@@ -421,7 +420,7 @@ def test_kc_gpu(dm: pl.LightningDataModule) -> None:
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
     model = KC(
-        enc=enc,
+        encoder=enc,
         clf=clf,
         weight_decay=1e-8,
         lr=1e-3,

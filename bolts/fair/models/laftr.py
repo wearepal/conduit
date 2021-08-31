@@ -87,16 +87,16 @@ class LAFTR(PBModel):
     def inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
         assert isinstance(batch.x, Tensor)
         model_out = self.forward(x=batch.x, s=batch.s)
-        logging_dict = dict(
-            laftr_loss=self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch),
-            adv_loss=self._loss_adv(s_pred=model_out.s, batch=batch),
-        )
+        logging_dict = {
+            "laftr_loss": self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch),
+            "adv_loss": self._loss_adv(s_pred=model_out.s, batch=batch),
+        }
         logging_dict = prefix_keys(dict_=logging_dict, prefix=str(stage), sep="/")
         self.log_dict(logging_dict)
 
         return {
-            "y": batch.y.view(-1),
-            "s": batch.s.view(-1),
+            "targets": batch.y.view(-1),
+            "subgroup_inf": batch.s.view(-1),
             "logits_y": model_out.y,
             "logits_s": model_out.s,
         }
@@ -104,7 +104,7 @@ class LAFTR(PBModel):
     @implements(PBModel)
     def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
-        subgroups_all = aggregate_over_epoch(outputs=outputs, metric="subgroup")
+        subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
         logits_y_all = aggregate_over_epoch(outputs=outputs, metric="logits_y")
         logits_s_all = aggregate_over_epoch(outputs=outputs, metric="logits_s")
 
@@ -112,8 +112,10 @@ class LAFTR(PBModel):
         preds_s_all = prediction(logits_s_all)
 
         dt = em.DataTuple(
-            x=pd.DataFrame(torch.rand_like(subgroups_all).detach().cpu().numpy(), columns=["x0"]),
-            s=pd.DataFrame(subgroups_all.detach().cpu().numpy(), columns=["s"]),
+            x=pd.DataFrame(
+                torch.rand_like(subgroup_inf_all).detach().cpu().numpy(), columns=["x0"]
+            ),
+            s=pd.DataFrame(subgroup_inf_all.detach().cpu().numpy(), columns=["s"]),
             y=pd.DataFrame(targets_all.detach().cpu().numpy(), columns=["y"]),
         )
 
@@ -124,7 +126,7 @@ class LAFTR(PBModel):
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
         results_dict["pred_s_acc"] = float(
-            accuracy(logits=preds_s_all, targets=subgroups_all).item()
+            accuracy(logits=preds_s_all, targets=subgroup_inf_all).item()
         )
 
         return results_dict

@@ -105,6 +105,7 @@ class MoCoV2(MomentumTeacherModel):
     def _build(self) -> None:
         self.use_ddp = "ddp" in str(self.trainer.distributed_backend)
         if isinstance(self.datamodule, PBVisionDataModule):
+            # self._datamodule.train_transforms = mocov2_transform()
             if (self.instance_transforms is None) and (self.batch_transforms is None):
                 if self.multicrop:
                     self.instance_transforms = MultiCropTransform.with_dino_transform(
@@ -249,9 +250,9 @@ class MoCoV2(MomentumTeacherModel):
     @implements(pl.LightningModule)
     def training_step(self, batch: NamedSample, batch_idx: int) -> MetricDict:
         views = self._get_positive_views(batch=batch)
-        img_q, img_k = views.global_crops
+        global_crop_s, global_crop_t = views.global_crops
         # compute query features
-        student_logits = self.student([img_q] + views.local_crops)  # queries: NxC
+        student_logits = self.student([global_crop_s] + views.local_crops)  # queries: NxC
         student_logits = F.normalize(student_logits, dim=1)
 
         # compute key features
@@ -259,9 +260,9 @@ class MoCoV2(MomentumTeacherModel):
             # shuffle for making use of BN
             idx_unshuffle = None
             if self.use_ddp:
-                img_k, idx_unshuffle = self._batch_shuffle_ddp(img_k)
+                global_crop_t, idx_unshuffle = self._batch_shuffle_ddp(global_crop_t)
 
-            teacher_logits = self.teacher(img_k)  # keys: NxC
+            teacher_logits = self.teacher(global_crop_t)  # keys: NxC
             teacher_logits = F.normalize(teacher_logits, dim=1)
 
             # undo shuffle
@@ -271,7 +272,9 @@ class MoCoV2(MomentumTeacherModel):
 
         # compute logits
         # positive logits: NxLx1
-        student_logits_crop_view = student_logits.view(-1, img_q.size(0), student_logits.size(-1))
+        student_logits_crop_view = student_logits.view(
+            -1, global_crop_s.size(0), student_logits.size(-1)
+        )
         l_pos = (student_logits_crop_view * teacher_logits.unsqueeze(0)).sum(-1).view(-1, 1)
         # negative logits: NxK
         l_neg = torch.einsum('nc,kc->nk', [student_logits, self.mb.memory.clone()])

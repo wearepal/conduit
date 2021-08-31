@@ -174,11 +174,12 @@ class Dann(PBModel):
             "preds": model_out.y.sigmoid().round().squeeze(-1),
         }
 
-    @staticmethod
-    def _maybe_reset_parameters(module: nn.Module) -> None:
-        if hasattr(module, 'reset_parameters'):
-            module.reset_parameters()
+    @torch.no_grad()
+    def _maybe_reset_parameters(self, module: nn.Module) -> None:
+        if (module != self) and hasattr(module, 'reset_parameters'):
+            module.reset_parameters()  # type: ignore
 
+    @torch.no_grad()
     def reset_parameters(self) -> None:
         """Reset the models."""
         self.apply(self._maybe_reset_parameters)

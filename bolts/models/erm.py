@@ -88,10 +88,9 @@ class ERMClassifier(PBModel):
 
         return results_dict
 
-    @staticmethod
     @torch.no_grad()
-    def _maybe_reset_parameters(module: nn.Module) -> None:
-        if hasattr(module, 'reset_parameters'):
+    def _maybe_reset_parameters(self, module: nn.Module) -> None:
+        if (module != self) and hasattr(module, 'reset_parameters'):
             module.reset_parameters()  # type: ignore
 
     @torch.no_grad()

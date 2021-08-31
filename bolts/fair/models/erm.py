@@ -54,7 +54,7 @@ class ERMClassifierF(ERMClassifier):
     @torch.no_grad()
     def inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
         results_dict = super().inference_step(batch=batch, stage=stage)
-        results_dict["subgroups"] = batch.s
+        results_dict["subgroup_inf"] = batch.s
         return results_dict
 
     @implements(PBModel)
@@ -62,7 +62,7 @@ class ERMClassifierF(ERMClassifier):
     def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
         logits_all = aggregate_over_epoch(outputs=outputs, metric="logits")
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
-        subgroups_all = aggregate_over_epoch(outputs=outputs, metric="subgroups")
+        subgroups_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
 
         preds_all = prediction(logits_all)
 

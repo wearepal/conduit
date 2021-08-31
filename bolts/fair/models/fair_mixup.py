@@ -40,7 +40,7 @@ class FairMixup(PBModel):
     @parsable
     def __init__(
         self,
-        enc: nn.Module,
+        encoder: nn.Module,
         clf: nn.Module,
         lr: float,
         weight_decay: float,
@@ -60,9 +60,9 @@ class FairMixup(PBModel):
             lr_sched_interval=lr_sched_interval,
             lr_sched_freq=lr_sched_freq,
         )
-        self.enc = enc
+        self.encoder = encoder
         self.clf = clf
-        self.net = nn.Sequential(self.enc, self.clf)
+        self.net = nn.Sequential(self.encoder, self.clf)
         self.fairness = fairness
         self.mixup_lambda = mixup_lambda
         self.alpha = alpha
