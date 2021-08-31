@@ -16,7 +16,11 @@ from bolts.data.datamodules.vision.base import PBVisionDataModule
 from bolts.data.datasets.utils import ImageTform
 from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
-from bolts.models.self_supervised.base import MomentumTeacherModel, SelfSupervisedModel
+from bolts.models.self_supervised.base import (
+    BatchTransform,
+    MomentumTeacherModel,
+    SelfSupervisedModel,
+)
 from bolts.models.self_supervised.dino.callbacks import DINOScheduler
 from bolts.models.self_supervised.dino.loss import DINOLoss
 from bolts.models.self_supervised.dino.transforms import MultiCropTransform
@@ -68,7 +72,7 @@ class DINO(MomentumTeacherModel):
         global_crops_scale: Tuple[float, float] = (0.4, 1.0),
         local_crops_scale: Tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
-        batch_transforms: Optional[Callable[[Tensor], Tensor]] = None,
+        batch_transforms: Optional[BatchTransform] = None,
         eval_epochs: int = 100,
         eval_batch_size: Optional[int] = None,
     ) -> None:

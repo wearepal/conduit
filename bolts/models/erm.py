@@ -1,6 +1,8 @@
 from __future__ import annotations
+from typing import Optional
 
 from kit import implements
+from kit.decorators import parsable
 from kit.torch import CrossEntropyLoss, TrainingMode
 from kit.torch.loss import ReductionType
 import pytorch_lightning as pl
@@ -25,6 +27,7 @@ __all__ = ["ERMClassifier", "FineTuner"]
 
 
 class ERMClassifier(PBModel):
+    @parsable
     def __init__(
         self,
         model: nn.Module,
@@ -34,7 +37,7 @@ class ERMClassifier(PBModel):
         lr_restart_mult: int = 2,
         lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
-        loss_fn: Loss = CrossEntropyLoss(reduction=ReductionType.mean),
+        loss_fn: Optional[Loss] = None,
     ) -> None:
         super().__init__(
             lr=lr,
@@ -45,7 +48,9 @@ class ERMClassifier(PBModel):
             lr_sched_freq=lr_sched_freq,
         )
         self.model = model
-        self.loss_fn = loss_fn
+        self.loss_fn = (
+            CrossEntropyLoss(reduction=ReductionType.mean) if loss_fn is None else loss_fn
+        )
 
     def _get_loss(self, logits: Tensor, *, batch: BinarySample) -> Tensor:
         return self.loss_fn(input=logits, target=batch.y)

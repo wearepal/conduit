@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 from kit import implements, parsable
 from kit.misc import gcopy
@@ -15,7 +15,11 @@ from bolts.data.datasets.utils import ImageTform
 from bolts.data.structures import NamedSample
 from bolts.models.base import PBModel
 from bolts.models.erm import FineTuner
-from bolts.models.self_supervised.base import MomentumTeacherModel, SelfSupervisedModel
+from bolts.models.self_supervised.base import (
+    BatchTransform,
+    MomentumTeacherModel,
+    SelfSupervisedModel,
+)
 from bolts.models.self_supervised.moco.transforms import (
     moco_ft_transform,
     moco_test_transform,
@@ -49,7 +53,7 @@ class MoCoV2(MomentumTeacherModel):
         eval_epochs: int = 100,
         eval_batch_size: Optional[int] = None,
         instance_transforms: Optional[MultiCropTransform] = None,
-        batch_transforms: Optional[Callable[[Tensor], Tensor]] = None,
+        batch_transforms: Optional[BatchTransform] = None,
         multicrop: bool = False,
         global_crops_scale: Tuple[float, float] = (0.4, 1.0),
         local_crops_scale: Tuple[float, float] = (0.05, 0.4),

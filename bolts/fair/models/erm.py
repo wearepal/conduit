@@ -1,10 +1,11 @@
 """ERM Baseline Model."""
 from __future__ import annotations
+from typing import Optional
 
 import ethicml as em
 from kit import implements
 from kit.decorators import parsable
-from kit.torch import CrossEntropyLoss, ReductionType, TrainingMode
+from kit.torch import TrainingMode
 import pandas as pd
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
@@ -34,7 +35,7 @@ class ERMClassifierF(ERMClassifier):
         lr_restart_mult: int = 2,
         lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
-        loss_fn: Loss = CrossEntropyLoss(reduction=ReductionType.mean),
+        loss_fn: Optional[Loss] = None,
     ) -> None:
         model = nn.Sequential(encoder, clf)
         super().__init__(

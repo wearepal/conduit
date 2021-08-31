@@ -12,6 +12,7 @@ from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
 from torch.functional import Tensor
 import torch.nn as nn
+from typing_extensions import Protocol
 
 from bolts.data.datamodules.base import PBDataModule
 from bolts.data.datamodules.vision.base import PBVisionDataModule
@@ -31,6 +32,7 @@ from bolts.models.self_supervised.multicrop import (
 from bolts.types import MetricDict, Stage
 
 __all__ = [
+    "BatchTransform",
     "InstanceDiscriminator",
     "MomentumTeacherModel",
     "SelfSupervisedModel",
@@ -133,6 +135,11 @@ class SelfSupervisedModel(PBModel):
         self.on_inference_start()
 
 
+class BatchTransform(Protocol):
+    def __call__(self, Tensor) -> Any:
+        ...
+
+
 class InstanceDiscriminator(SelfSupervisedModel):
     def __init__(
         self,
@@ -142,7 +149,7 @@ class InstanceDiscriminator(SelfSupervisedModel):
         eval_batch_size: int | None,
         eval_epochs: int,
         instance_transforms: MultiCropTransform | None = None,
-        batch_transforms: Optional[Callable[[Tensor], Tensor]] = None,
+        batch_transforms: Optional[BatchTransform] = None,
     ) -> None:
         super().__init__(
             lr=lr,
