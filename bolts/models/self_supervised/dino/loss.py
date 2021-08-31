@@ -112,8 +112,7 @@ class DINOLoss(nn.Module):
                     # we skip cases where student and teacher operate on the same view
                     continue
                 loss = torch.sum(-q * F.log_softmax(student_logits_seq[v], dim=-1), dim=-1)
-                total_loss += loss.sum()
-                # total_loss += loss.mean()
+                total_loss += loss.mean()
                 n_loss_terms += 1
         total_loss /= n_loss_terms
         return total_loss
