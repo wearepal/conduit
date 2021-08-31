@@ -117,7 +117,7 @@ class MultiCropWrapper(nn.Module):
     """
 
     def __init__(self, backbone: nn.Module, *, head: nn.Module | None) -> None:
-        super(MultiCropWrapper, self).__init__()
+        super().__init__()
         self.backbone = backbone
         self.head = nn.Identity() if head is None else head
 
