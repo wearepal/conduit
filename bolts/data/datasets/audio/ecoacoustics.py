@@ -6,14 +6,15 @@
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
 from __future__ import annotations
-from os import listdir, mkdir
-from os.path import isfile, join
+import io
+from os import mkdir
 from pathlib import Path
 from typing import Callable, ClassVar, Optional, Union
 import zipfile
 
 from kit import parsable
 import pandas as pd
+import requests
 import torch
 from torch import Tensor
 import torchaudio
@@ -67,22 +68,16 @@ class Ecoacoustics(PBAudioDataset):
 
         self._n_sgram_segments = int(self._AUDIO_LEN / specgram_segment_len)
 
-        # Check data is downloaded and unzipped.
         if self.download:
-            if not self.base_dir.exists():
-                pass  # TODO: Implement download util function.
-        elif not self._files_unzipped():
-            raise RuntimeError(
-                f"Data not found at location {self.base_dir.resolve()}. " "Have you downloaded it?"
-            )
+            self._download_files()
+        self._check_files()
 
-        # Preprocess audio if no processed file found.
         if not self._processed_audio_dir.exists():
             self._preprocess_audio(
                 specgram_segment_len, resample_rate, num_freq_bins, hop_length, preprocess_transform
             )
 
-        # Extract annotations from labels files.
+        # Extract labels from indices files.
         if not self._metadata_path.exists():
             self._extract_metadata()
 
@@ -94,21 +89,64 @@ class Ecoacoustics(PBAudioDataset):
 
         super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self.base_dir)
 
-    def _files_unzipped(self) -> bool:
-        dir_ = self.root / self._BASE_FOLDER
-        zip_checks = [
-            zipfile.is_zipfile(join(dir_, f)) for f in listdir(dir_) if isfile(join(dir_, f))
-        ]
-        return True not in zip_checks
+    def _check_files(self) -> bool:
+        """Check necessary files are present and unzipped."""
+
+        if not self.labels_dir.exists():
+            raise RuntimeError(
+                f"Indices file not found at location {self.base_dir.resolve()}."
+                "Have you downloaded it?"
+            )
+        elif zipfile.is_zipfile(self.labels_dir):
+            raise RuntimeError("Indices file not unzipped.")
+
+        for dir_ in ["UK_BIRD", "EC_BIRD"]:
+            path = self.base_dir / dir_
+            if not path.exists():
+                raise RuntimeError(
+                    f"Data not found at location {self.base_dir.resolve()}."
+                    "Have you downloaded it?"
+                )
+            elif zipfile.is_zipfile(dir_):
+                raise RuntimeError(f"{dir_} file not unzipped.")
+
+        return True
 
     def _label_encode_metadata(self, metadata: pd.DataFrame) -> pd.DataFrame:
         """Label encode the extracted concept/context/superclass information."""
         for col in metadata.columns:
             # Skip over filepath and filename columns
-            if "file" not in col:
+            if "file" not in col and "File" not in col:
                 # Add a new column containing the label-encoded data
                 metadata[f"{col}_le"] = metadata[col].factorize()[0]
         return metadata
+
+    def _download_files(self) -> None:
+        """Download all files necessary for dataset to work."""
+
+        # Create necessary directories if they doesn't already exist.
+        self.root.mkdir(parents=True, exist_ok=True)
+        self.base_dir.mkdir(parents=True, exist_ok=True)
+
+        urls_with_fnames = {
+            "https://zenodo.org/record/1255218/files/EC_BIRD.zip?download=1": "EC_BIRD",
+            "https://zenodo.org/record/1255218/files/UK_BIRD.zip?download=1": "UK_BIRD",
+            "https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip?download=1": self.INDICES_DIR,
+        }
+
+        for url, fname in urls_with_fnames.items():
+            file_path = self.base_dir / fname
+            if not file_path.exists():
+                self.log(f"Downloading {fname}.")
+                r = requests.get(
+                    url,
+                    stream=True,
+                )
+                assert r.ok
+                z = zipfile.ZipFile(io.BytesIO(r.content))
+                z.extractall(self.base_dir)
+            else:
+                self.log(f"{fname} already downloaded.")
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with

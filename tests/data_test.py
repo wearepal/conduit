@@ -31,34 +31,29 @@ def test_datasets(ds_cls: type[VisionDataset]) -> None:
 
 
 @pytest.mark.slow
-def test_audio_dataset() -> None:
+@pytest.mark.parametrize("download_flag", [False, True])
+def test_audio_dataset(download_flag) -> None:
     root_dir = Path("~/Data").expanduser()
+    base_dir = root_dir / "Ecoacoustics"
     target_attribute = "habitat"
     waveform_length = 60  # Length in seconds.
     specgram_segment_len = 30  # Length in seconds.
 
-    ds_cls_dnwld = Ecoacoustics(
-        root=root_dir, target_attr=target_attribute, specgram_segment_len=specgram_segment_len
-    )
-    assert ds_cls_dnwld is not None
-
-    ds_cls_no_dnwld = Ecoacoustics(
+    ds = Ecoacoustics(
         root=root_dir,
-        download=False,
+        download=download_flag,
         target_attr=target_attribute,
         specgram_segment_len=specgram_segment_len,
     )
-    assert ds_cls_no_dnwld is not None
 
-    metadata = pd.read_csv(root_dir / "Ecoacoustics" / "metadata.csv")
+    metadata = pd.read_csv(base_dir / "metadata.csv")
 
     # Test __str__
-    assert str(ds_cls_no_dnwld).splitlines()[0] == "Dataset Ecoacoustics"
+    assert str(ds).splitlines()[0] == "Dataset Ecoacoustics"
 
     # Test __len__
-    num_processed_files = len(list(root_dir.glob("**/*.pt")))
-    assert len(ds_cls_dnwld) == num_processed_files
-    assert len(ds_cls_no_dnwld) == num_processed_files
+    num_processed_files = len(list(base_dir.glob("**/*.pt")))
+    assert len(ds) == num_processed_files
 
     # Test metadata aligns with labels file.
     audio_samples_to_check = [
