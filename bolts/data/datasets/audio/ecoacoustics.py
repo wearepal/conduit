@@ -65,9 +65,12 @@ class Ecoacoustics(PBAudioDataset):
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
 
+        self._n_sgram_segments = int(self._AUDIO_LEN / specgram_segment_len)
+
         # Check data is downloaded and unzipped.
         if self.download:
-            pass  # TODO: Implement download util function.
+            if not self.base_dir.exists():
+                pass  # TODO: Implement download util function.
         elif not self._files_unzipped():
             raise RuntimeError(
                 f"Data not found at location {self.base_dir.resolve()}. " "Have you downloaded it?"
@@ -79,8 +82,9 @@ class Ecoacoustics(PBAudioDataset):
                 specgram_segment_len, resample_rate, num_freq_bins, hop_length, preprocess_transform
             )
 
+        # Extract annotations from labels files.
         if not self._metadata_path.exists():
-            self._extract_metadata(target_attr)
+            self._extract_metadata()
 
         self.metadata = pd.read_csv(self.base_dir / self.METADATA_FILENAME)
 
@@ -106,26 +110,41 @@ class Ecoacoustics(PBAudioDataset):
                 metadata[f"{col}_le"] = metadata[col].factorize()[0]
         return metadata
 
-    def _extract_metadata(self, target_attr) -> None:
+    def _extract_metadata(self) -> None:
+        """Extract information such as labels from relevant csv files, combining them along with
+        information on processed files to produce a master file."""
         self.log("Extracting metadata.")
-        waveform_paths = list(self.base_dir.glob("**/*.wav"))
 
-        # Extract filepaths and names.
-        waveform_paths_str = [str(wvfrm.relative_to(self.base_dir)) for wvfrm in waveform_paths]
-        filepaths = pd.Series(waveform_paths_str)
+        Extension = Literal[".pt", ".wav"]
 
-        metadata = filepaths.str.rpartition(
-            "\\",
-        )
-        metadata[0] = metadata[0] + metadata[1]
-        metadata = metadata.drop(columns=[1]).rename(columns={0: "filePath", 2: "fileName"})
+        def gen_files_df(ext: Extension) -> pd.DataFrame:
+            paths: list[Path] = []
+            paths.extend(self.base_dir.glob(f"**/*{ext}"))
+            str_paths = pd.Series([str(path.relative_to(self.base_dir)) for path in paths])
 
-        # Incorporate labels into metadata file.
+            df = str_paths.str.rpartition(
+                "\\",
+            )
+            df[0] = df[0] + df[1]
+            return df.drop(columns=[1]).rename(columns={0: "filePath", 2: "fileName"})
+
         ec_labels = pd.read_csv(self.ec_labels_path, encoding="ISO-8859-1")
         uk_labels = pd.read_csv(self.uk_labels_path, encoding="ISO-8859-1")
-        metadata = metadata.merge(pd.concat([uk_labels, ec_labels]), how="left")
 
-        # Encode labels.
+        sgram_seg_metadata = gen_files_df(".pt")
+        sgram_seg_metadata.sort_values(by=["fileName"], axis=0, inplace=True)
+
+        # Merge labels and metadata files.
+        metadata = gen_files_df(".wav")
+        metadata = metadata.merge(pd.concat([uk_labels, ec_labels]), how="left")
+        metadata = metadata.loc[metadata.index.repeat(self._n_sgram_segments)]
+        metadata.sort_values(by=["fileName"], axis=0, inplace=True)
+
+        # Replace metadata filename and filepath column values with those in sgram_seg_info.
+        metadata["filePath"] = sgram_seg_metadata["filePath"].values
+        metadata["fileName"] = sgram_seg_metadata["fileName"].values
+
+        metadata.reset_index(inplace=True, drop=True)
         metadata = self._label_encode_metadata(metadata)
         metadata.to_csv(self._metadata_path)
 
@@ -146,7 +165,6 @@ class Ecoacoustics(PBAudioDataset):
             mkdir(self._processed_audio_dir)
 
         waveform_paths = list(self.base_dir.glob("**/*.wav"))
-        print(waveform_paths[0])
 
         tform = transform(n_fft=n_freq_bins, hop_length=hop_len)
         for path in waveform_paths:

@@ -35,7 +35,7 @@ def test_audio_dataset() -> None:
     root_dir = Path("~/Data").expanduser()
     target_attribute = "habitat"
     waveform_length = 60  # Length in seconds.
-    specgram_segment_len = 11.3  # Length in seconds.
+    specgram_segment_len = 30  # Length in seconds.
 
     ds_cls_dnwld = Ecoacoustics(
         root=root_dir, target_attr=target_attribute, specgram_segment_len=specgram_segment_len
@@ -56,16 +56,15 @@ def test_audio_dataset() -> None:
     assert str(ds_cls_no_dnwld).splitlines()[0] == "Dataset Ecoacoustics"
 
     # Test __len__
-    num_audio_samples = []
-    num_audio_samples.extend(root_dir.glob("**/*.wav"))
-    assert len(ds_cls_dnwld) == len(num_audio_samples)
-    assert len(ds_cls_no_dnwld) == len(num_audio_samples)
+    num_processed_files = len(list(root_dir.glob("**/*.pt")))
+    assert len(ds_cls_dnwld) == num_processed_files
+    assert len(ds_cls_no_dnwld) == num_processed_files
 
     # Test metadata aligns with labels file.
     audio_samples_to_check = [
-        "FS-08_0_20150802_0625.wav",
-        "PL-10_0_20150604_0445.wav",
-        "KNEPP-02_0_20150510_0730.wav",
+        "FS-08_0_20150802_0625_0.pt",
+        "PL-10_0_20150604_0445_0.pt",
+        "KNEPP-02_0_20150510_0730_0.pt",
     ]
     habitat_target_attributes = ["EC2", "UK1", np.nan]
     for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
@@ -79,11 +78,10 @@ def test_audio_dataset() -> None:
     processed_audio_dir = root_dir / "Ecoacoustics" / "processed_audio"
     assert processed_audio_dir.exists()
 
-    # Test correct number of segments are produced.
-    min_segments_per_waveform = int(waveform_length / specgram_segment_len)
-    min_num_processed_files = len(ds_cls_no_dnwld) * min_segments_per_waveform
-    num_processed_files = len(list(root_dir.glob("**/*.pt")))
-    assert num_processed_files >= min_num_processed_files
+    # Test correct number of spectrogram segments are produced.
+    segments_per_waveform = int(waveform_length / specgram_segment_len)
+    expected_num_processed_files = len(list(root_dir.glob("**/*.wav"))) * segments_per_waveform
+    assert num_processed_files == expected_num_processed_files
 
 
 def test_add_field() -> None:
