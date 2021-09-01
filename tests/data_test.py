@@ -31,8 +31,7 @@ def test_datasets(ds_cls: type[VisionDataset]) -> None:
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("download_flag", [False, True])
-def test_audio_dataset(download_flag) -> None:
+def test_audio_dataset() -> None:
     root_dir = Path("~/Data").expanduser()
     base_dir = root_dir / "Ecoacoustics"
     target_attribute = "habitat"
@@ -41,7 +40,7 @@ def test_audio_dataset(download_flag) -> None:
 
     ds = Ecoacoustics(
         root=root_dir,
-        download=download_flag,
+        download=True,
         target_attr=target_attribute,
         specgram_segment_len=specgram_segment_len,
     )

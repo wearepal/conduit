@@ -6,7 +6,6 @@
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
 from __future__ import annotations
-import io
 from os import mkdir
 from pathlib import Path
 from typing import Callable, ClassVar, Optional, Union
@@ -14,7 +13,6 @@ import zipfile
 
 from kit import parsable
 import pandas as pd
-import requests
 import torch
 from torch import Tensor
 import torchaudio
@@ -23,10 +21,11 @@ import torchaudio.transforms as T
 from typing_extensions import Literal
 
 from bolts.data.datasets.audio.base import PBAudioDataset
-from bolts.data.datasets.utils import AudioTform, FileInfo
+from bolts.data.datasets.utils import AudioTform, FileInfo, download_from_url
 
 __all__ = ["Ecoacoustics"]
 SoundscapeAttr = Literal["habitat", "site"]
+Extension = Literal[".pt", ".wav"]
 
 
 class Ecoacoustics(PBAudioDataset):
@@ -128,32 +127,23 @@ class Ecoacoustics(PBAudioDataset):
         self.root.mkdir(parents=True, exist_ok=True)
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
-        urls_with_fnames = {
-            "https://zenodo.org/record/1255218/files/EC_BIRD.zip?download=1": "EC_BIRD",
-            "https://zenodo.org/record/1255218/files/UK_BIRD.zip?download=1": "UK_BIRD",
-            "https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip?download=1": self.INDICES_DIR,
-        }
+        urls_with_fnames = [
+            (
+                "https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip?download=1",
+                f"{self.INDICES_DIR}.zip",
+            ),
+            ("https://zenodo.org/record/1255218/files/EC_BIRD.zip?download=1", "EC_BIRD.zip"),
+            ("https://zenodo.org/record/1255218/files/UK_BIRD.zip?download=1", "UK_BIRD.zip"),
+        ]
 
-        for url, fname in urls_with_fnames.items():
-            file_path = self.base_dir / fname
-            if not file_path.exists():
-                self.log(f"Downloading {fname}.")
-                r = requests.get(
-                    url,
-                    stream=True,
-                )
-                assert r.ok
-                z = zipfile.ZipFile(io.BytesIO(r.content))
-                z.extractall(self.base_dir)
-            else:
-                self.log(f"{fname} already downloaded.")
+        for url, fname in urls_with_fnames:
+            path = self.base_dir / fname
+            download_from_url(url=url, dst=path)
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
         information on processed files to produce a master file."""
         self.log("Extracting metadata.")
-
-        Extension = Literal[".pt", ".wav"]
 
         def gen_files_df(ext: Extension) -> pd.DataFrame:
             paths: list[Path] = []
