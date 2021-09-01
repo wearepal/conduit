@@ -66,8 +66,10 @@ class MeanTeacherWeightUpdate(pl.Callback):
 
 
 class PostHocProgressBar(ProgressBar):
+    """Progress bar with descriptions tailored for post-hoc evaluation."""
+
+    @implements(ProgressBar)
     def init_train_tqdm(self) -> tqdm:
-        """Override this to customize the tqdm bar for training."""
         return tqdm(
             desc="Training (Post-Hoc)",
             initial=self.train_batch_idx,
@@ -79,9 +81,8 @@ class PostHocProgressBar(ProgressBar):
             smoothing=0,
         )
 
+    @implements(ProgressBar)
     def init_validation_tqdm(self) -> tqdm:
-        """Override this to customize the tqdm bar for validation."""
-        # The main progress bar doesn't exist in `trainer.validate()`
         has_main_bar = self.main_progress_bar is not None
         return tqdm(
             desc="Validating (Post-Hoc)",
@@ -92,12 +93,12 @@ class PostHocProgressBar(ProgressBar):
             file=sys.stdout,
         )
 
+    @implements(ProgressBar)
     def on_train_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._train_batch_idx = 0
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
         if total_train_batches != float("inf") and total_val_batches != float("inf"):
-            # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
         total_batches = total_train_batches + total_val_batches
