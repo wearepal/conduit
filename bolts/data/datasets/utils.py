@@ -3,15 +3,18 @@ from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 from functools import lru_cache
 import logging
+import os
 from pathlib import Path
 import platform
 from typing import Any, Callable, NamedTuple, Union, overload
+from urllib.request import urlopen
 
 from PIL import Image
 import albumentations as A
 import cv2
 import numpy as np
 import numpy.typing as npt
+import requests
 import torch
 from torch import Tensor
 from torch.utils.data import ConcatDataset, Dataset, Subset
@@ -21,6 +24,7 @@ from torch.utils.data._utils.collate import (
     string_classes,
 )
 from torchvision.transforms import functional as TF
+from tqdm import tqdm
 from typing_extensions import Literal, get_args
 
 __all__ = [
@@ -333,3 +337,71 @@ def download_from_gdrive(
                 logger.info(f"Unzipping '{filepath.resolve()}'; this could take a while.")
                 with zipfile.ZipFile(filepath, "r") as fhandle:
                     fhandle.extractall(str(root))
+
+
+def download_from_url(
+    url: str,
+    *,
+    dst: str | Path,
+    chunk_size: int | None = 1024,
+    resume: bool = False,
+    logger: logging.Logger | None = None,
+) -> None:
+    """Download from a url."""
+    logger = logging.getLogger(__name__) if logger is None else logger
+
+    if isinstance(dst, str):
+        dst = Path(dst)
+
+    if not dst.exists() or resume:
+        if dst.is_file():
+            dst.parent.mkdir(parents=True, exist_ok=True)
+
+        logger.info(f"Downloading file {dst.name} from address '{url}'.")
+
+        file_size = int(urlopen(url).info().get("Content-Length", -1))
+        first_byte = os.path.getsize(dst) if dst.exists() else 0
+
+        if first_byte < file_size:
+            header = {"User-agent": "Mozilla/5.0"}
+            # Attempt to resume the download - doesn't work for all websites.
+            if resume:
+                header["Range"] = "bytes=%s-%s" % (first_byte, file_size)
+
+            req = requests.get(url, headers=header, stream=True)
+            req.raise_for_status()
+
+            pbar = tqdm(
+                total=file_size,
+                initial=first_byte,
+                unit="B",
+                unit_scale=True,
+                desc=url.split("/")[-1],
+            )
+            with (open(dst, "ab")) as f:
+                for chunk in req.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        f.write(chunk)
+                        pbar.update(chunk_size)
+            pbar.close()
+        else:
+            logger.info(f"File '{dst.name}' already downloaded.")
+
+    if dst.suffix in (".tar", ".zip"):
+        if dst.with_suffix("").exists():
+            logger.info(f"File '{dst.name}' already extracted.")
+        else:
+            if dst.suffix == ".tar":
+                import tarfile
+
+                ctx = tarfile.TarFile
+            else:
+                import zipfile
+
+                ctx = zipfile.ZipFile
+
+            logger.info(
+                f"Extracting '{dst.resolve()}' to {dst.parent.resolve()}; this could take a while."
+            )
+            with ctx(dst, "r") as fhandle:
+                fhandle.extractall(dst.parent)
