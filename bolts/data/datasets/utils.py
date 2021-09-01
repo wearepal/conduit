@@ -25,7 +25,7 @@ from torch.utils.data._utils.collate import (
 )
 from torchvision.transforms import functional as TF
 from tqdm import tqdm
-from typing_extensions import Literal, get_args
+from typing_extensions import Final, Literal, get_args
 
 __all__ = [
     "AlbumentationsTform",
@@ -302,7 +302,11 @@ def download_from_gdrive(
     root: Path | str,
     logger: logging.Logger | None = None,
 ) -> None:
-    """Attempt to download data if files cannot be found in the root directory."""
+    """
+    Download files from google drive and place them in the root directory.
+    .zip files will be automatically extracted if their unzipped
+    version cannot be found in 'root'.
+    """
 
     logger = logging.getLogger(__name__) if logger is None else logger
 
@@ -339,31 +343,38 @@ def download_from_gdrive(
                     fhandle.extractall(str(root))
 
 
+USER_AGENT: Final[str] = "Mozilla/5.0"
+
+
 def download_from_url(
     url: str,
     *,
-    dst: str | Path,
+    root: str | Path,
     chunk_size: int | None = 1024,
     resume: bool = False,
     logger: logging.Logger | None = None,
 ) -> None:
-    """Download from a url."""
+    """
+    Download a file from a url and place it in the root directory.
+    .zip and .tar files will be automatically extracted if their extracted
+    version cannot be found in 'root'.
+    """
     logger = logging.getLogger(__name__) if logger is None else logger
 
-    if isinstance(dst, str):
-        dst = Path(dst)
+    if isinstance(root, str):
+        root = Path(root)
 
-    if not dst.exists() or resume:
-        if dst.is_file():
-            dst.parent.mkdir(parents=True, exist_ok=True)
+    if not root.exists() or resume:
+        if root.is_file():
+            root.parent.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Downloading file {dst.name} from address '{url}'.")
+        logger.info(f"Downloading file {root.name} from address '{url}'.")
 
         file_size = int(urlopen(url).info().get("Content-Length", -1))
-        first_byte = os.path.getsize(dst) if dst.exists() else 0
+        first_byte = os.path.getsize(root) if root.exists() else 0
 
         if first_byte < file_size:
-            header = {"User-agent": "Mozilla/5.0"}
+            header = {"User-agent": USER_AGENT}
             # Attempt to resume the download - doesn't work for all websites.
             if resume:
                 header["Range"] = "bytes=%s-%s" % (first_byte, file_size)
@@ -378,20 +389,20 @@ def download_from_url(
                 unit_scale=True,
                 desc=url.split("/")[-1],
             )
-            with (open(dst, "ab")) as f:
+            with (open(root, "ab")) as f:
                 for chunk in req.iter_content(chunk_size=chunk_size):
                     if chunk:
                         f.write(chunk)
                         pbar.update(chunk_size)
             pbar.close()
         else:
-            logger.info(f"File '{dst.name}' already downloaded.")
+            logger.info(f"File '{root.name}' already downloaded.")
 
-    if dst.suffix in (".tar", ".zip"):
-        if dst.with_suffix("").exists():
-            logger.info(f"File '{dst.name}' already extracted.")
+    if root.suffix in (".tar", ".zip"):
+        if root.with_suffix("").exists():
+            logger.info(f"File '{root.name}' already extracted.")
         else:
-            if dst.suffix == ".tar":
+            if root.suffix == ".tar":
                 import tarfile
 
                 ctx = tarfile.TarFile
@@ -401,7 +412,7 @@ def download_from_url(
                 ctx = zipfile.ZipFile
 
             logger.info(
-                f"Extracting '{dst.resolve()}' to {dst.parent.resolve()}; this could take a while."
+                f"Extracting '{root.resolve()}' to {root.parent.resolve()}; this could take a while."
             )
-            with ctx(dst, "r") as fhandle:
-                fhandle.extractall(dst.parent)
+            with ctx(root, "r") as fhandle:
+                fhandle.extractall(root.parent)
