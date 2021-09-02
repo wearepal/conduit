@@ -2,7 +2,7 @@
 https://github.com/chingyaoc/fair-mixup
 """
 from __future__ import annotations
-from typing import Dict, Mapping, NamedTuple, Optional
+from typing import Dict, NamedTuple, Optional
 
 import ethicml as em
 from kit import implements, parsable
@@ -10,7 +10,7 @@ from kit.misc import str_to_enum
 from kit.torch import CrossEntropyLoss, ReductionType, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
 from torch import Tensor, nn
 from torch.distributions import Beta
@@ -19,7 +19,8 @@ import torchmetrics
 from bolts.data import TernarySample
 from bolts.fair.misc import FairnessType
 from bolts.models.base import PBModel
-from bolts.types import Loss, MetricDict, Stage
+from bolts.models.utils import aggregate_over_epoch
+from bolts.types import Loss, Stage
 
 __all__ = ["FairMixup"]
 
@@ -116,57 +117,45 @@ class FairMixup(PBModel):
 
     @implements(PBModel)
     def inference_step(self, batch: TernarySample, stage: Stage) -> STEP_OUTPUT:
+        assert isinstance(batch.x, Tensor)
         logits = self.net(batch.x)
 
-        loss = self._get_loss(logits, batch)
-        tm_acc = self.val_acc if stage is Stage.validate else self.test_acc
-        target = batch.y.view(-1).long()
-        _acc = tm_acc(logits.argmax(-1), target)
-        self.log_dict(
-            {
-                f"{stage}/loss": loss.item(),
-                f"{stage}/acc": _acc,
-            }
-        )
-
         return {
-            "y": batch.y.view(-1),
-            "s": batch.s.view(-1),
+            "targets": batch.y.view(-1),
+            "subgroup_inf": batch.s.view(-1),
             "preds": logits.softmax(-1)[:, 1],
         }
 
     @implements(PBModel)
-    def inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
-        all_y = torch.cat([step_output["y"] for step_output in outputs], 0)
-        all_s = torch.cat([step_output["s"] for step_output in outputs], 0)
-        all_preds = torch.cat([step_output["preds"] for step_output in outputs], 0)
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
+        targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
+        subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
+        preds_all = aggregate_over_epoch(outputs=outputs, metric="preds")
 
-        mean_preds = all_preds.mean(-1)
-        mean_preds_s0 = all_preds[all_s == 0].mean(-1)
-        mean_preds_s1 = all_preds[all_s == 1].mean(-1)
+        mean_preds = preds_all.mean(-1)
+        mean_preds_s0 = preds_all[subgroup_inf_all == 0].mean(-1)
+        mean_preds_s1 = preds_all[subgroup_inf_all == 1].mean(-1)
 
         dt = em.DataTuple(
             x=pd.DataFrame(
-                torch.rand_like(all_s, dtype=torch.float).detach().cpu().numpy(), columns=["x0"]
+                torch.rand_like(subgroup_inf_all, dtype=torch.float).detach().cpu().numpy(),
+                columns=["x0"],
             ),
-            s=pd.DataFrame(all_s.detach().cpu().numpy(), columns=["s"]),
-            y=pd.DataFrame(all_y.detach().cpu().numpy(), columns=["y"]),
+            s=pd.DataFrame(subgroup_inf_all.detach().cpu().numpy(), columns=["s"]),
+            y=pd.DataFrame(targets_all.detach().cpu().numpy(), columns=["y"]),
         )
 
-        results = em.run_metrics(
-            predictions=em.Prediction(hard=pd.Series((all_preds > 0).detach().cpu().numpy())),
+        results_dict = em.run_metrics(
+            predictions=em.Prediction(hard=pd.Series((preds_all > 0).detach().cpu().numpy())),
             actual=dt,
             metrics=[em.Accuracy(), em.RenyiCorrelation(), em.Yanovich()],
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
 
-        tm_acc = self.val_acc if stage is Stage.validate else self.test_acc
-        results_dict = {f"{stage}/acc": tm_acc.compute().item()}
-        results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
         results_dict.update(
             {
-                f"{stage}/DP_Gap": abs(mean_preds_s0 - mean_preds_s1),
-                f"{stage}/mean_pred": mean_preds,
+                "DP_Gap": float((mean_preds_s0 - mean_preds_s1).abs().item()),
+                "mean_pred": float(mean_preds.item()),
             }
         )
         return results_dict
@@ -185,6 +174,7 @@ class FairMixup(PBModel):
         fairness: FairnessType | str,
     ) -> Mixed:
         '''Returns mixed inputs, pairs of targets, and lambda'''
+        assert isinstance(batch.x, Tensor)
         if isinstance(fairness, str):
             fairness = str_to_enum(str_=fairness, enum=FairnessType)
         lam = (

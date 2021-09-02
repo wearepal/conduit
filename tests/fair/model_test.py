@@ -13,7 +13,7 @@ from bolts.data.datasets.utils import PBDataLoader
 from bolts.data.datasets.wrappers import InstanceWeightedDataset
 from bolts.fair.data.datasets import DummyDataset
 from bolts.fair.misc import FairnessType
-from bolts.fair.models import GPD, KC, LAFTR, Dann, ERMClassifierF, FairMixup
+from bolts.fair.models import DANN, GPD, KC, LAFTR, ERMClassifierF, FairMixup
 
 
 class Mp64x64Net(nn.Module):
@@ -321,7 +321,7 @@ def test_dann(dm: pl.LightningDataModule) -> None:
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     adv = EmbeddingClf(encoding_dim=128, out_dim=2)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
-    model = Dann(
+    model = DANN(
         enc=enc,
         adv=adv,
         clf=clf,
@@ -340,7 +340,7 @@ def test_dann_gpu(dm: pl.LightningDataModule) -> None:
     enc = Encoder(input_shape=(3, 64, 64), initial_hidden_channels=64, levels=3, encoding_dim=128)
     adv = EmbeddingClf(encoding_dim=128, out_dim=2)
     clf = EmbeddingClf(encoding_dim=128, out_dim=2)
-    model = Dann(
+    model = DANN(
         enc=enc,
         adv=adv,
         clf=clf,

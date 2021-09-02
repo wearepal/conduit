@@ -63,13 +63,15 @@ class ERMClassifierF(ERMClassifier):
     def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
         logits_all = aggregate_over_epoch(outputs=outputs, metric="logits")
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
-        subgroups_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
+        subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
 
         preds_all = prediction(logits_all)
 
         dt = em.DataTuple(
-            x=pd.DataFrame(torch.rand_like(subgroups_all).detach().cpu().numpy(), columns=["x0"]),
-            s=pd.DataFrame(subgroups_all.detach().cpu().numpy(), columns=["s"]),
+            x=pd.DataFrame(
+                torch.rand_like(subgroup_inf_all).detach().cpu().numpy(), columns=["x0"]
+            ),
+            s=pd.DataFrame(subgroup_inf_all.detach().cpu().numpy(), columns=["s"]),
             y=pd.DataFrame(targets_all.detach().cpu().numpy(), columns=["y"]),
         )
 

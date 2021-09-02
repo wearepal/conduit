@@ -98,7 +98,6 @@ class LAFTR(PBModel):
             "targets": batch.y.view(-1),
             "subgroup_inf": batch.s.view(-1),
             "logits_y": model_out.y,
-            "logits_s": model_out.s,
         }
 
     @implements(PBModel)
@@ -106,10 +105,8 @@ class LAFTR(PBModel):
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
         subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
         logits_y_all = aggregate_over_epoch(outputs=outputs, metric="logits_y")
-        logits_s_all = aggregate_over_epoch(outputs=outputs, metric="logits_s")
 
         preds_y_all = prediction(logits_y_all)
-        preds_s_all = prediction(logits_s_all)
 
         dt = em.DataTuple(
             x=pd.DataFrame(
@@ -124,9 +121,6 @@ class LAFTR(PBModel):
             actual=dt,
             metrics=[em.Accuracy(), em.RenyiCorrelation(), em.Yanovich()],
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
-        )
-        results_dict["pred_s_acc"] = float(
-            accuracy(logits=preds_s_all, targets=subgroup_inf_all).item()
         )
 
         return results_dict

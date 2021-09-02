@@ -1,6 +1,6 @@
 """Zhang Gradient Projection Debiasing Baseline Model."""
 from __future__ import annotations
-from typing import NamedTuple
+from typing import NamedTuple, cast
 
 import ethicml as em
 from kit import implements
@@ -10,23 +10,24 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 import torch
 from torch import Tensor, nn
+from torch.optim.optimizer import Optimizer
 
 from bolts.data.structures import TernarySample
 from bolts.models.base import PBModel
-from bolts.models.utils import accuracy, aggregate_over_epoch, prediction, prefix_keys
-from bolts.types import Stage
+from bolts.models.utils import aggregate_over_epoch, prediction, prefix_keys
+from bolts.types import LRScheduler, Stage
 
 __all__ = ["GPD"]
 
 
 def compute_proj_grads(*, model: nn.Module, loss_p: Tensor, loss_a: Tensor, alpha: float) -> None:
-    """Computes the adversarial gradient projection term.
+    """Computes the adversarial-gradient projection term.
 
     Args:
-        model (nn.Module): Model whose parameters the gradients are to be computed w.r.t.
-        loss_p (Tensor): Prediction loss.
-        loss_a (Tensor): Adversarial loss.
-        alpha (float): Pre-factor for adversarial loss.
+        model: Model whose parameters the gradients are to be computed w.r.t.
+        loss_p: Prediction loss.
+        loss_a: Adversarial loss.
+        alpha: Pre-factor for adversarial loss.
     """
     grad_p = torch.autograd.grad(loss_p, tuple(model.parameters()), retain_graph=True)
     grad_a = torch.autograd.grad(loss_a, tuple(model.parameters()), retain_graph=True)
@@ -110,7 +111,6 @@ class GPD(PBModel):
             "targets": batch.y.view(-1),
             "subgroup_inf": batch.s.view(-1),
             "logits_y": model_out.y,
-            "logits_s": model_out.s,
         }
 
     @implements(PBModel)
@@ -118,10 +118,8 @@ class GPD(PBModel):
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
         subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
         logits_y_all = aggregate_over_epoch(outputs=outputs, metric="logits_y")
-        logits_s_all = aggregate_over_epoch(outputs=outputs, metric="logits_s")
 
         preds_y_all = prediction(logits_y_all)
-        preds_s_all = prediction(logits_s_all)
 
         dt = em.DataTuple(
             x=pd.DataFrame(
@@ -132,17 +130,12 @@ class GPD(PBModel):
             y=pd.DataFrame(targets_all.detach().cpu().numpy(), columns=["y"]),
         )
 
-        results_dict = em.run_metrics(
+        return em.run_metrics(
             predictions=em.Prediction(hard=pd.Series(preds_y_all.detach().cpu().numpy())),
             actual=dt,
             metrics=[em.Accuracy(), em.RenyiCorrelation(), em.Yanovich()],
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
-
-        results_dict["pred_s_acc"] = float(
-            accuracy(logits=preds_s_all, targets=subgroup_inf_all).item()
-        )
-        return results_dict
 
     def _get_losses(
         self, model_out: ModelOut, *, batch: TernarySample
@@ -153,7 +146,9 @@ class GPD(PBModel):
 
     @implements(pl.LightningModule)
     def training_step(self, batch: TernarySample, batch_idx: int) -> None:
-        opt = self.optimizers()
+        assert isinstance(batch.x, Tensor)
+        opt = cast(Optimizer, self.optimizers())
+
         opt.zero_grad()
 
         model_out: ModelOut = self.forward(batch.x)
@@ -176,10 +171,10 @@ class GPD(PBModel):
         if (self.lr_sched_interval is TrainingMode.step) and (
             self.global_step % self.lr_sched_freq == 0
         ):
-            sch = self.lr_schedulers()
+            sch = cast(LRScheduler, self.lr_schedulers())
             sch.step()
         if (self.lr_sched_interval is TrainingMode.epoch) and self.trainer.is_last_batch:
-            sch = self.lr_schedulers()
+            sch = cast(LRScheduler, self.lr_schedulers())
             sch.step()
 
     @implements(nn.Module)
