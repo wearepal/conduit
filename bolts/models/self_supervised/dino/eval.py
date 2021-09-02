@@ -37,7 +37,7 @@ class DINOLinearClassifier(FineTuner):
         self.epochs = epochs
         self.num_eval_blocks = num_eval_blocks
         if isinstance(encoder, VisionTransformer):
-            embed_dim = embed_dim * num_eval_blocks
+            embed_dim *= num_eval_blocks
             encoder = PartialModule(VisionTransformer.encode, num_eval_blocks=num_eval_blocks)
         classifier = nn.Linear(embed_dim, target_dim)
         super().__init__(
