@@ -96,7 +96,7 @@ class PBModel(pl.LightningModule):
         self._datamodule = datamodule
         self._trainer = trainer
         self._build()
-        # Retrieve all child models (attributes inheriting from ModelBase)
+        # Retrieve all child models (attributes inheriting from PBModel)
         children = cast(
             List[Tuple[str, PBModel]],
             inspect.getmembers(self, lambda m: isinstance(m, PBModel)),
@@ -110,7 +110,7 @@ class PBModel(pl.LightningModule):
 
     @property
     def num_training_steps(self) -> int:
-        """Total training steps inferred from datamodule and devices."""
+        """Total training steps inferred from the datamodule and trainer."""
         if self.trainer.max_steps:
             return self.trainer.max_steps
 
