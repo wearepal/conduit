@@ -73,11 +73,9 @@ class ERMClassifierF(ERMClassifier):
             y=pd.DataFrame(targets_all.detach().cpu().numpy(), columns=["y"]),
         )
 
-        results_dict = em.run_metrics(
+        return em.run_metrics(
             predictions=em.Prediction(hard=pd.Series(preds_all.detach().cpu().numpy())),
             actual=dt,
             metrics=[em.Accuracy(), em.RenyiCorrelation(), em.Yanovich()],
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
-
-        return results_dict
