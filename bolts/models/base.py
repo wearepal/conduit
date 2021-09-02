@@ -11,7 +11,6 @@ from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
 from torch import optim
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-from typing_extensions import final
 
 from bolts.data import NamedSample
 from bolts.data.datamodules.base import PBDataModule
@@ -74,6 +73,8 @@ class PBModel(pl.LightningModule):
     @datamodule.setter
     def datamodule(self, datamodule: PBDataModule) -> None:
         self._datamodule = datamodule
+        self._datamodule.prepare_data()
+        self._datamodule.setup()
 
     @property
     def trainer(self) -> pl.Trainer:
@@ -126,7 +127,7 @@ class PBModel(pl.LightningModule):
         if self.trainer.tpu_cores:
             num_devices = max(num_devices, self.trainer.tpu_cores)
 
-        effective_accum = self.trainer.accumulate_grad_batches * num_devices
+        effective_accum = self.trainer.accumulate_grad_batches * num_devices  # type: ignore
         return (batches // effective_accum) * self.trainer.max_epochs
 
     @abstractmethod
@@ -160,3 +161,22 @@ class PBModel(pl.LightningModule):
         results_dict = self.inference_epoch_end(outputs=outputs, stage=Stage.test)
         results_dict = prefix_keys(dict_=results_dict, prefix=str(Stage.test), sep="/")
         self.log_dict(results_dict)
+
+    def fit(self) -> None:
+        self.trainer.fit(model=self, datamodule=self.datamodule)
+
+    def test(self, verbose: bool = True) -> None:
+        self.trainer.test(model=self, datamodule=self.datamodule, verbose=verbose)
+
+    def run(
+        self,
+        *,
+        datamodule: PBDataModule,
+        trainer: pl.Trainer,
+        seed: int | None,
+    ) -> None:
+        """Seed, build, fit, and test the model."""
+        pl.seed_everything(seed)
+        self.build(datamodule=datamodule, trainer=trainer)
+        self.fit()
+        self.test()
