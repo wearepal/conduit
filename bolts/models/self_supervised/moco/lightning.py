@@ -168,13 +168,12 @@ class MoCoV2(MomentumTeacherModel):
 
     @implements(pl.LightningModule)
     def configure_optimizers(self) -> optim.Optimizer:
-        optimizer = optim.SGD(
+        return optim.SGD(
             self.student.parameters(),
             self.lr,
             momentum=self.momentum_sgd,
             weight_decay=self.weight_decay,
         )
-        return optimizer
 
     @torch.no_grad()
     def _dequeue_and_enqueue(self, keys: Tensor) -> None:
