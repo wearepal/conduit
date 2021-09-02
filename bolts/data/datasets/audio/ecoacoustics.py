@@ -18,10 +18,11 @@ from torch import Tensor
 import torchaudio
 import torchaudio.functional as F
 import torchaudio.transforms as T
+from torchvision.datasets.utils import download_and_extract_archive
 from typing_extensions import Literal
 
 from bolts.data.datasets.audio.base import PBAudioDataset
-from bolts.data.datasets.utils import AudioTform, FileInfo, download_from_url
+from bolts.data.datasets.utils import AudioTform, FileInfo
 
 __all__ = ["Ecoacoustics"]
 SoundscapeAttr = Literal["habitat", "site"]
@@ -127,18 +128,14 @@ class Ecoacoustics(PBAudioDataset):
         self.root.mkdir(parents=True, exist_ok=True)
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
-        urls_with_fnames = [
-            (
-                "https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip?download=1",
-                f"{self.INDICES_DIR}.zip",
-            ),
-            ("https://zenodo.org/record/1255218/files/EC_BIRD.zip?download=1", "EC_BIRD.zip"),
-            ("https://zenodo.org/record/1255218/files/UK_BIRD.zip?download=1", "UK_BIRD.zip"),
+        urls = [
+            "https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip",
+            "https://zenodo.org/record/1255218/files/EC_BIRD.zip",
+            "https://zenodo.org/record/1255218/files/UK_BIRD.zip",
         ]
 
-        for url, fname in urls_with_fnames:
-            path = self.base_dir / fname
-            download_from_url(url=url, dst=path)
+        for url in urls:
+            download_and_extract_archive(url, str(self.base_dir))
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
