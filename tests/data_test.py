@@ -1,6 +1,8 @@
 from __future__ import annotations
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
 import pytest
 import torch
 from torchvision import transforms as T
@@ -13,8 +15,7 @@ from bolts.data import (
     TernarySample,
     TernarySampleIW,
 )
-from bolts.data.datasets import ISIC, ColoredMNIST
-from bolts.data.datasets.audio.base import PBAudioDataset
+from bolts.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 
 
 @pytest.mark.slow
@@ -29,16 +30,52 @@ def test_datasets(ds_cls: type[VisionDataset]) -> None:
         assert _ds[0] is not None
 
 
+@pytest.mark.slow
 def test_audio_dataset() -> None:
-    """Tests basic functionality of an audio dataset base class."""
-    x = torch.rand(1, 10)
-    audio_dir = Path(r"Sample path")
-    dataset = PBAudioDataset(x=x, audio_dir=audio_dir)
+    root_dir = Path("~/Data").expanduser()
+    base_dir = root_dir / "Ecoacoustics"
+    target_attribute = "habitat"
+    waveform_length = 60  # Length in seconds.
+    specgram_segment_len = 30  # Length in seconds.
 
-    assert dataset is not None
-    assert len(dataset) == len(x)
-    assert str(dataset).splitlines()[0] == "Dataset PBAudioDataset"
-    assert str(dataset).splitlines()[1].strip() == "Number of datapoints: 1"
+    ds = Ecoacoustics(
+        root=root_dir,
+        download=True,
+        target_attr=target_attribute,
+        specgram_segment_len=specgram_segment_len,
+    )
+
+    metadata = pd.read_csv(base_dir / "metadata.csv")
+
+    # Test __str__
+    assert str(ds).splitlines()[0] == "Dataset Ecoacoustics"
+
+    # Test __len__
+    num_processed_files = len(list(base_dir.glob("**/*.pt")))
+    assert len(ds) == num_processed_files
+
+    # Test metadata aligns with labels file.
+    audio_samples_to_check = [
+        "FS-08_0_20150802_0625_0.pt",
+        "PL-10_0_20150604_0445_0.pt",
+        "KNEPP-02_0_20150510_0730_0.pt",
+    ]
+    habitat_target_attributes = ["EC2", "UK1", np.nan]
+    for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
+        matched_row = metadata.loc[metadata['fileName'] == sample]
+        if type(label) == str:
+            assert matched_row.iloc[0][target_attribute] == label
+        else:
+            assert np.isnan(matched_row.iloc[0][target_attribute])
+
+    # Test processed folder
+    processed_audio_dir = root_dir / "Ecoacoustics" / "processed_audio"
+    assert processed_audio_dir.exists()
+
+    # Test correct number of spectrogram segments are produced.
+    segments_per_waveform = int(waveform_length / specgram_segment_len)
+    expected_num_processed_files = len(list(root_dir.glob("**/*.wav"))) * segments_per_waveform
+    assert num_processed_files == expected_num_processed_files
 
 
 def test_add_field() -> None:
