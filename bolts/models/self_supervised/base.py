@@ -17,18 +17,14 @@ from typing_extensions import Protocol
 from bolts.data.datamodules.base import PBDataModule
 from bolts.data.datamodules.vision.base import PBVisionDataModule
 from bolts.data.datasets.utils import ImageTform
-from bolts.data.structures import BinarySample, NamedSample
+from bolts.data.structures import BinarySample, MultiCropOutput, NamedSample
 from bolts.models.base import PBModel
 from bolts.models.erm import ERMClassifier
 from bolts.models.self_supervised.callbacks import (
     MeanTeacherWeightUpdate,
     PostHocProgressBar,
 )
-from bolts.models.self_supervised.multicrop import (
-    MultiCropOutput,
-    MultiCropTransform,
-    MultiCropWrapper,
-)
+from bolts.models.self_supervised.multicrop import MultiCropTransform, MultiCropWrapper
 from bolts.types import MetricDict, Stage
 
 __all__ = [

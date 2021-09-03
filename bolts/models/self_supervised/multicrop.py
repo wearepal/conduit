@@ -14,26 +14,12 @@ from bolts.data.datasets.utils import (
     apply_image_transform,
     img_to_tensor,
 )
-from bolts.data.structures import MeanStd
+from bolts.data.structures import MeanStd, MultiCropOutput
 
 __all__ = [
-    "MultiCropOutput",
     "MultiCropTransform",
     "MultiCropWrapper",
 ]
-
-
-@dataclass(frozen=True)
-class MultiCropOutput:
-    global_crops: list[Tensor]
-    local_crops: list[Tensor] = field(default_factory=list)
-
-    @property
-    def all_crops(self) -> list[Tensor]:
-        return self.global_crops + self.local_crops
-
-    def __len__(self) -> int:
-        return len(self.global_crops) + len(self.local_crops)
 
 
 class MultiCropTransform:

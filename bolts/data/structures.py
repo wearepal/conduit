@@ -1,6 +1,6 @@
 """Data structures."""
 from __future__ import annotations
-from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import dataclass, field, fields, is_dataclass
 from typing import Any, NamedTuple, Union, overload
 
 from PIL import Image
@@ -12,8 +12,9 @@ from torch.utils.data import Dataset
 __all__ = [
     "BinarySample",
     "BinarySampleIW",
-    "InputData",
     "ImageSize",
+    "InputData",
+    "MultiCropOutput",
     "NamedSample",
     "SampleBase",
     "SubgroupSample",
@@ -29,9 +30,36 @@ __all__ = [
 
 
 @dataclass(frozen=True)
+class MultiCropOutput:
+    global_crops: list[Tensor]
+    local_crops: list[Tensor] = field(default_factory=list)
+
+    @property
+    def all_crops(self) -> list[Tensor]:
+        return self.global_crops + self.local_crops
+
+    @property
+    def global_crop_sizes(self):
+        return [crop.shape[1:] for crop in self.global_crops]
+
+    @property
+    def local_crop_sizes(self):
+        return [crop.shape[1:] for crop in self.local_crops]
+
+    @property
+    def shape(self):
+        """Shape of the global crops - for compatibility with DMs."""
+        return self.global_crops[0].shape[1:]
+
+    def __len__(self) -> int:
+        """Total number of crops."""
+        return len(self.global_crops) + len(self.local_crops)
+
+
+@dataclass(frozen=True)
 class SampleBase:
     # Instantiate as NamedSample
-    x: Tensor | np.ndarray | Image.Image
+    x: Tensor | np.ndarray | Image.Image | MultiCropOutput
 
     def __len__(self) -> int:
         return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
