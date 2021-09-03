@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any, Callable, Optional, Tuple, Union, cast
 
 from kit import gcopy, implements, parsable
+from kit.misc import str_to_enum
 from kit.torch.data import TrainingMode
 import numpy as np
 import pytorch_lightning as pl
@@ -41,14 +42,14 @@ __all__ = ["DINO"]
 
 
 class DINO(MomentumTeacherModel):
-    ft_clf: DINOLinearClassifier
+    _ft_clf: DINOLinearClassifier
 
     @parsable
     def __init__(
         self,
         *,
         backbone: Union[
-            nn.Module, vit.VitArch, vit.VisionTransformer, ResNetArch
+            nn.Module, vit.VitArch, vit.VisionTransformer, ResNetArch, str
         ] = vit.VitArch.small,
         out_dim: int = 65_536,
         lr: float = 5.0e-4,
@@ -76,11 +77,6 @@ class DINO(MomentumTeacherModel):
         eval_epochs: int = 100,
         eval_batch_size: Optional[int] = None,
     ) -> None:
-        """
-        Args:
-            num_eval_blocks: Concatenate [CLS] tokens for the `n` last blocks.
-            We use `n=4` when evaluating ViT-Small and `n=1` with ViT-Base.
-        """
         super().__init__(
             lr=lr,
             weight_decay=weight_decay,
@@ -88,12 +84,14 @@ class DINO(MomentumTeacherModel):
             eval_batch_size=eval_batch_size,
             batch_transforms=batch_transforms,
         )
+        if isinstance(backbone, str):
+            backbone = str_to_enum(str_=backbone, enum=vit.VitArch)
+        self.backbone = backbone
         self.num_eval_blocks = num_eval_blocks
         self.warmup_iters = warmup_iters
         self.min_weight_decay = weight_decay_final
         self.min_lr = min_lr
         self.freeze_last_layer = freeze_last_layer
-        self.backbone = backbone
 
         self.out_dim = out_dim
         self.norm_last_layer = norm_last_layer

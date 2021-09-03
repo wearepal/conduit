@@ -50,7 +50,7 @@ class SelfSupervisedModel(PBModel):
         self.eval_batch_size = eval_batch_size
         self.eval_epochs = eval_epochs
         self._finetuner: pl.Trainer | None = None
-        self._eval_clf: ERMClassifier | None = None
+        self._ft_clf: ERMClassifier | None = None
 
     @abstractmethod
     def features(self, x: Tensor, **kwargs: Any) -> nn.Module:
@@ -58,14 +58,14 @@ class SelfSupervisedModel(PBModel):
 
     @property
     def ft_clf(self) -> ERMClassifier:
-        if self._eval_clf is None:
-            self._eval_clf = self._init_ft_clf()
-            self._eval_clf.build(datamodule=self.datamodule, trainer=self.finetuner, copy=False)
-        return self._eval_clf
+        if self._ft_clf is None:
+            self._ft_clf = self._init_ft_clf()
+            self._ft_clf.build(datamodule=self.datamodule, trainer=self.finetuner, copy=False)
+        return self._ft_clf
 
     @ft_clf.setter
     def ft_clf(self, clf: ERMClassifier) -> None:
-        self._eval_clf = clf
+        self._ft_clf = clf
 
     @property
     def finetuner(self) -> pl.Trainer:
@@ -116,7 +116,7 @@ class SelfSupervisedModel(PBModel):
     def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
         results_dict = self.ft_clf.inference_epoch_end(outputs=outputs, stage=stage)
         # Free up memory
-        self._eval_clf = None
+        self._ft_clf = None
         return results_dict
 
     def on_inference_start(self) -> None:

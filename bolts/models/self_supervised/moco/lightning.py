@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any, Optional, Tuple, Union
 
 from kit import implements, parsable
-from kit.misc import gcopy
+from kit.misc import gcopy, str_to_enum
 from kit.torch.loss import CrossEntropyLoss, ReductionType
 import pytorch_lightning as pl
 import torch
@@ -34,14 +34,14 @@ __all__ = ["MoCoV2"]
 
 
 class MoCoV2(MomentumTeacherModel):
-    ft_clf: FineTuner
+    _ft_clf: FineTuner
     use_ddp: bool
 
     @parsable
     def __init__(
         self,
         *,
-        backbone: Union[nn.Module, ResNetArch] = ResNetArch.resnet18,
+        backbone: Union[nn.Module, ResNetArch, str] = ResNetArch.resnet18,
         out_dim: int = 128,
         num_negatives: int = 65_536,
         momentum_teacher: float = 0.999,
@@ -87,6 +87,8 @@ class MoCoV2(MomentumTeacherModel):
             instance_transforms=instance_transforms,
             batch_transforms=batch_transforms,
         )
+        if isinstance(backbone, str):
+            backbone = str_to_enum(str_=backbone, enum=ResNetArch)
         self.backbone = backbone
         self.out_dim = out_dim
         self.temp = temp
@@ -150,7 +152,7 @@ class MoCoV2(MomentumTeacherModel):
             self.embed_dim = embed_dim_t.numel()
             head = nn.Linear(self.embed_dim, self.out_dim)
         if self.use_mlp:
-            head = nn.Sequential(nn.Linear(embed_dim, embed_dim), nn.ReLU(), head)  # type: ignore
+            head = nn.Sequential(nn.Linear(self.embed_dim, self.embed_dim), nn.ReLU(), head)  # type: ignore
 
         student = MultiCropWrapper(backbone=student_backbone, head=head)
         teacher = gcopy(student, deep=True)
@@ -258,7 +260,7 @@ class MoCoV2(MomentumTeacherModel):
         student_logits = self.student([global_crop_s] + views.local_crops)  # queries: NxC
         student_logits = F.normalize(student_logits, dim=1)
 
-        # compute key features
+        # compute teacher's logits
         with torch.no_grad():  # no gradient to keys
             # shuffle for making use of BN
             idx_unshuffle = None
@@ -273,7 +275,7 @@ class MoCoV2(MomentumTeacherModel):
                 assert idx_unshuffle is not None
                 teacher_logits = self._batch_unshuffle_ddp(teacher_logits, idx_unshuffle)
 
-        # compute logits
+        # compute student's logits
         # positive logits: NxLx1
         student_logits_crop_view = student_logits.view(
             -1, global_crop_s.size(0), student_logits.size(-1)
