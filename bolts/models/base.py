@@ -173,8 +173,8 @@ class PBModel(pl.LightningModule):
         *,
         datamodule: PBDataModule,
         trainer: pl.Trainer,
+        seed: int | None = None,
         copy: bool = True,
-        seed: int | None,
     ) -> None:
         """Seed, build, fit, and test the model."""
         pl.seed_everything(seed)
