@@ -1,8 +1,8 @@
 import pytorch_lightning as pl
 from torch import nn
 
-from bolts.callbacks import PostHocEval
-from bolts.fair.models import ERMClassifierF
+from conduit.callbacks import PostHocEval
+from conduit.fair.models import ERMClassifierF
 from tests.fair.model_test import DummyDataModule, Encoder
 
 

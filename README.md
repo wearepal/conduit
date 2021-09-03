@@ -1,3 +1,3 @@
-# palbolts
+# conduit
 
-General PyTorch Lightning Bolts and other goodies used by the folks at PAL.
+General PyTorch Lightning conduit and other goodies used by the folks at PAL.

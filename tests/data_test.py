@@ -8,14 +8,14 @@ import torch
 from torchvision import transforms as T
 from torchvision.datasets import VisionDataset
 
-from bolts.data import (
+from conduit.data import (
     BinarySample,
     BinarySampleIW,
     NamedSample,
     TernarySample,
     TernarySampleIW,
 )
-from bolts.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
+from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 
 
 @pytest.mark.slow

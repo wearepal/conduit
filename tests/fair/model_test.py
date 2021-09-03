@@ -9,11 +9,11 @@ import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
-from bolts.data.datasets.utils import PBDataLoader
-from bolts.data.datasets.wrappers import InstanceWeightedDataset
-from bolts.fair.data.datasets import DummyDataset
-from bolts.fair.misc import FairnessType
-from bolts.fair.models import DANN, GPD, KC, LAFTR, ERMClassifierF, FairMixup
+from conduit.data.datasets.utils import CdtDataLoader
+from conduit.data.datasets.wrappers import InstanceWeightedDataset
+from conduit.fair.data.datasets import DummyDataset
+from conduit.fair.misc import FairnessType
+from conduit.fair.models import DANN, GPD, KC, LAFTR, ERMClassifierF, FairMixup
 
 
 class Mp64x64Net(nn.Module):
@@ -234,7 +234,7 @@ class DummyDataModule(DummyBase):
         train_ds = InstanceWeightedDataset(
             DummyDataset((3, 64, 64), (1,), (1,), (1,), num_samples=50)
         )
-        return PBDataLoader(train_ds, batch_size=25, shuffle=False)
+        return CdtDataLoader(train_ds, batch_size=25, shuffle=False)
 
 
 class DummyDataModuleDim2(DummyBase):
@@ -242,7 +242,7 @@ class DummyDataModuleDim2(DummyBase):
         train_ds = InstanceWeightedDataset(
             DummyDataset((3, 64, 64), (1, 1), (1, 1), (1, 1), num_samples=50)
         )
-        return PBDataLoader(train_ds, batch_size=25, shuffle=False)
+        return CdtDataLoader(train_ds, batch_size=25, shuffle=False)
 
 
 @pytest.mark.parametrize("dm", [DummyDataModule(), DummyDataModuleDim2()])
