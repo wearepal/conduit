@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "conduit"
 version = "0.0.1.dev0"
-description = "Light framework for channeling the power of PyTorch Lightning"
+description = "Lightweight framework for channeling the power of PyTorch Lightning"
 authors = ["PAL <info@predictive-analytics-lab.com>"]
 license = "Apache License 2.0"
 packages = [
