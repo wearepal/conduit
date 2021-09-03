@@ -126,11 +126,8 @@ class ColoredMNISTDataModule(PBVisionDataModule):
         if self.use_predefined_splits:
             val_data, train_data_new = prop_random_split(dataset=train_data, props=self.val_prop)
             # Compute the channel-wise first and second moments
-            channel_means, channel_stds = torch.std_mean(
-                train_data.x[train_data_new.indices], dim=[0, 2, 3]
-            )
-            channel_means = np.mean(train_data.x[train_data_new.indices], axis=(0, 2, 3)) / 255.0
-            channel_stds = np.std(train_data.x[train_data_new.indices], axis=(0, 2, 3)) / 255.0
+            channel_means = np.mean(train_data.x[train_data_new.indices], axis=(0, 1, 2)) / 255.0
+            channel_stds = np.std(train_data.x[train_data_new.indices], axis=(0, 1, 2)) / 255.0
         else:
             # Split the data randomly according to val- and test-prop
             all_data = ConcatDataset([train_data, test_data])
@@ -138,8 +135,8 @@ class ColoredMNISTDataModule(PBVisionDataModule):
             val_data, test_data, train_data_new = prop_random_split(
                 dataset=all_data, props=(self.val_prop, self.test_prop)
             )
-            channel_means = np.mean(all_x[train_data_new.indices], axis=(0, 2, 3)) / 255.0
-            channel_stds = np.std(all_x[train_data_new.indices], axis=(0, 2, 3)) / 255.0
+            channel_means = np.mean(all_x[train_data_new.indices], axis=(0, 1, 2)) / 255.0
+            channel_stds = np.std(all_x[train_data_new.indices], axis=(0, 1, 2)) / 255.0
 
         self.norm_values = MeanStd(mean=channel_means.tolist(), std=channel_stds.tolist())
 

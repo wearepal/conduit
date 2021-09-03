@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Union, overload
 from PIL import Image
 from ethicml.vision import LdColorizer
 from kit.decorators import implements, parsable
+import numpy as np
 import numpy.typing as npt
 import torch
 from torch.functional import Tensor
@@ -91,10 +92,10 @@ class ColoredMNIST(PBVisionDataset):
         self.correlation = correlation
 
         # Convert the greyscale iamges of shape ( H, W ) into 'colour' images of shape ( C, H, W )
-        x = base_dataset.data.unsqueeze(1).expand(-1, 3, -1, -1)
+        x_tiled = base_dataset.data
         y = base_dataset.targets
         if self.label_map is not None:
-            _filter_data_by_labels(data=x, targets=y, label_map=self.label_map, inplace=True)
+            _filter_data_by_labels(data=x_tiled, targets=y, label_map=self.label_map, inplace=True)
         s = y % self.num_colors
 
         if self.correlation < 1:
@@ -116,9 +117,12 @@ class ColoredMNIST(PBVisionDataset):
             greyscale=self.greyscale,
             color_indices=self.colors,
         )
-        x = colorizer(data=x, labels=s).numpy()
 
-        super().__init__(x=x, y=y, s=s, transform=transform, image_dir=root)
+        x_tiled = x_tiled.unsqueeze(1).expand(-1, 3, -1, -1)
+        x_colorized = colorizer(data=x_tiled, labels=s)
+        x_colorized = x_colorized.movedim(1, -1).numpy().astype(np.uint8)
+
+        super().__init__(x=x_colorized, y=y, s=s, transform=transform, image_dir=root)
 
     @implements(PBVisionDataset)
     def _load_image(self, index: int) -> RawImage:
