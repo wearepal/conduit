@@ -84,10 +84,10 @@ class Ecoacoustics(PBAudioDataset):
         download: bool = True,
         target_attr: SoundscapeAttr = "habitat",
         transform: Optional[AudioTform] = None,
-        resample_rate: Optional[int] = 22050,
-        specgram_segment_len: Optional[float] = 15,
-        num_freq_bins: Optional[int] = 120,
-        hop_length: Optional[int] = 60,
+        resample_rate: int = 22050,
+        specgram_segment_len: float = 15,
+        num_freq_bins: int = 120,
+        hop_length: int = 60,
         preprocess_transform: Callable[[Tensor], Tensor] = T.Spectrogram,
     ) -> None:
 
