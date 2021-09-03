@@ -194,7 +194,7 @@ class Ecoacoustics(PBAudioDataset):
         download_url(url, str(self.base_dir), filename, md5)
 
         archive = self.base_dir / filename
-        print(f"Extracting {archive}")
+        self.log(f"Extracting {archive}")
 
         suffix, archive_type, compression = _detect_file_type(str(archive))
         if not archive_type:
