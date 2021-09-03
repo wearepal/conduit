@@ -12,7 +12,6 @@ from typing_extensions import final
 
 from bolts.constants import IMAGENET_STATS
 from bolts.data.datamodules import PBDataModule
-from bolts.data.datasets.base import PBDataset
 from bolts.data.datasets.utils import AlbumentationsTform, ImageTform
 from bolts.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
 from bolts.data.structures import ImageSize, MeanStd

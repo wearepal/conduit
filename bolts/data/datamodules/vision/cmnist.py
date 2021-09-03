@@ -1,5 +1,6 @@
 """ColoredMNIST data-module."""
 from __future__ import annotations
+from functools import partial
 from typing import Any, Dict, List, Optional, Union
 
 import albumentations as A
@@ -8,13 +9,11 @@ from kit import implements, parsable
 from kit.torch import TrainingMode, prop_random_split
 import numpy as np
 from pytorch_lightning import LightningDataModule
-import torch
-from torch.utils.data.dataset import ConcatDataset
 from torchvision.datasets import MNIST
 
 from bolts.data.datamodules import PBDataModule
 from bolts.data.datasets.utils import ImageTform
-from bolts.data.datasets.vision.cmnist import ColoredMNIST
+from bolts.data.datasets.vision.cmnist import ColoredMNIST, ColoredMNISTSplit
 from bolts.data.structures import MeanStd, TrainValTestSplit
 
 from .base import PBVisionDataModule
@@ -99,20 +98,9 @@ class ColoredMNISTDataModule(PBVisionDataModule):
     @implements(PBDataModule)
     def _get_splits(self) -> TrainValTestSplit:
         # TODO: Add more sophisticated (e.g. biased) splits
-        train_data = ColoredMNIST(
+        fact_func = partial(
+            ColoredMNIST,
             root=self.root,
-            train=True,
-            background=self.background,
-            black=self.black,
-            greyscale=self.greyscale,
-            correlation=self.correlation,
-            colors=self.colors,
-            num_colors=self.num_colors,
-            label_map=self.label_map,
-        )
-        test_data = ColoredMNIST(
-            root=self.root,
-            train=False,
             background=self.background,
             black=self.black,
             greyscale=self.greyscale,
@@ -124,19 +112,18 @@ class ColoredMNISTDataModule(PBVisionDataModule):
         # Use the predefined train and test splits, sampling the val split
         # randomly from the train split
         if self.use_predefined_splits:
+            train_data = fact_func(split=ColoredMNISTSplit.train)
+            test_data = fact_func(split=ColoredMNISTSplit.test)
             val_data, train_data_new = prop_random_split(dataset=train_data, props=self.val_prop)
-            # Compute the channel-wise first and second moments
-            channel_means = np.mean(train_data.x[train_data_new.indices], axis=(0, 1, 2)) / 255.0
-            channel_stds = np.std(train_data.x[train_data_new.indices], axis=(0, 1, 2)) / 255.0
         else:
             # Split the data randomly according to val- and test-prop
-            all_data = ConcatDataset([train_data, test_data])
-            all_x = np.concatenate([train_data.x, test_data.x], axis=0)
+            train_data = fact_func(split=None)
             val_data, test_data, train_data_new = prop_random_split(
-                dataset=all_data, props=(self.val_prop, self.test_prop)
+                dataset=train_data, props=(self.val_prop, self.test_prop)
             )
-            channel_means = np.mean(all_x[train_data_new.indices], axis=(0, 1, 2)) / 255.0
-            channel_stds = np.std(all_x[train_data_new.indices], axis=(0, 1, 2)) / 255.0
+        # Compute the channel-wise first and second moments
+        channel_means = np.mean(train_data.x[train_data_new.indices], axis=(0, 1, 2)) / 255.0
+        channel_stds = np.std(train_data.x[train_data_new.indices], axis=(0, 1, 2)) / 255.0
 
         self.norm_values = MeanStd(mean=channel_means.tolist(), std=channel_stds.tolist())
 

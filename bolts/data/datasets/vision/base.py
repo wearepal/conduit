@@ -23,8 +23,6 @@ __all__ = ["PBVisionDataset"]
 
 
 class PBVisionDataset(PBDataset):
-    x: npt.NDArray[np.string_]
-
     def __init__(
         self,
         *,
