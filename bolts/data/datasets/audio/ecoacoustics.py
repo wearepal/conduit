@@ -12,9 +12,11 @@ from typing import Callable, ClassVar, Optional, Union
 import zipfile
 
 from kit import parsable
+import numpy as np
 import pandas as pd
 import torch
 from torch import Tensor
+from torch.utils.data import Subset
 import torchaudio
 import torchaudio.functional as F
 import torchaudio.transforms as T
@@ -23,6 +25,7 @@ from typing_extensions import Literal
 
 from bolts.data.datasets.audio.base import PBAudioDataset
 from bolts.data.datasets.utils import AudioTform, FileInfo
+from bolts.data.structures import TrainTestSplit
 
 __all__ = ["Ecoacoustics"]
 SoundscapeAttr = Literal["habitat", "site"]
@@ -209,3 +212,86 @@ class Ecoacoustics(PBAudioDataset):
         seg_sz = int(specgram.shape[-1] / (self._AUDIO_LEN / segment_len))
         segment_boundaries = [(i - seg_sz, i) for i in range(seg_sz, specgram.shape[-1], seg_sz)]
         return [specgram[:, :, start:end] for start, end in segment_boundaries]
+
+    def train_test_split(
+        self,
+        default_train_prop: float,
+        *,
+        train_props: dict[str | int, dict[str | int, float]] | None = None,
+        seed: int | None = None,
+    ) -> TrainTestSplit:
+        """Split the data into train/test sets with the option to condition on concept/context."""
+        # Initialise the random-number generator
+        rng = np.random.default_rng(seed)
+        # List to store the indices of the samples apportioned to the train set
+        # - those for the test set will be computed by complement
+        train_inds: list[int] = []
+        # Track which indices have been sampled for either split
+        unvisited = np.ones(len(self), dtype=np.bool_)
+
+        def _sample_train_inds(
+            _mask: np.ndarray,
+            *,
+            _context: str | int | None = None,
+            _concept: str | None = None,
+            _train_prop: float = default_train_prop,
+        ) -> list[int]:
+            if _context is not None and _concept is None:
+                raise ValueError("Concept must be specified if context is.")
+            if _context is not None:
+                # Allow the context to be speicifed either by its name or its label-encoding
+                _context = (
+                    self.context_label_decoder(_context) if isinstance(_context, int) else _context
+                )
+                if _context not in self.class_tree[_concept]:
+                    raise ValueError(
+                        f"'{_context}' is not a valid context for concept '{_concept}'."
+                    )
+                # Condition the mask on the context
+                _mask = _mask & (self.metadata["context"] == _context).to_numpy()
+            # Compute the overall size of the concept/context subset
+            _subset_size = np.count_nonzero(_mask)
+            # Compute the size of the train split
+            _train_subset_size = round(_train_prop * _subset_size)
+            # Sample the train indices (without replacement)
+            _train_inds = rng.choice(
+                np.nonzero(_mask)[0], size=_train_subset_size, replace=False
+            ).tolist()
+            # Mark the sampled indices as 'visited'
+            unvisited[_mask] = False
+
+            return _train_inds
+
+        if train_props is not None:
+            for concept, value in train_props.items():
+                # Allow the concept to be speicifed either by its name or its label-encoding
+                concept = (
+                    self.concept_label_decoder[concept] if isinstance(concept, int) else concept
+                )
+                if concept not in self.class_tree.keys():
+                    raise ValueError(f"'{concept}' is not a valid concept.")
+                concept_mask = (self.metadata["concept"] == concept).to_numpy()
+                # Specifying proportions at the context/concept level, rather than concept-wide
+                if isinstance(value, dict):
+                    for context, train_prop in value.items():
+                        train_inds.extend(
+                            _sample_train_inds(
+                                _mask=concept_mask,
+                                _concept=concept,
+                                _context=context,
+                                _train_prop=train_prop,
+                            )
+                        )
+                # Split at the class level (without conditioning on contexts)
+                else:
+                    train_inds.extend(
+                        _sample_train_inds(_mask=concept_mask, _context=None, _train_prop=value)
+                    )
+        # Apportion any remaining samples to the training set using default_train_prop
+        train_inds.extend(_sample_train_inds(_mask=unvisited, _train_prop=default_train_prop))
+        # Compute the test indices by complement of the train indices
+        train_data = Subset(self, indices=train_inds)
+        test_inds = list(set(range(len(self))) - set(train_inds))
+        test_data = Subset(self, indices=test_inds)
+
+        return TrainTestSplit(train=train_data, test=test_data)
