@@ -6,7 +6,6 @@
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
 from __future__ import annotations
-import os
 from os import mkdir
 from pathlib import Path
 import subprocess
@@ -124,12 +123,11 @@ class Ecoacoustics(PBAudioDataset):
 
         super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self.base_dir)
 
-    def _check_integrity(self, filename: str, md5: str) -> bool:
-        root = self.root
-        fpath = os.path.join(root, self.base_dir, filename)
-        if not check_integrity(fpath, md5):
+    def _check_integrity(self, filename: str, *, md5: str) -> bool:
+        fpath = self.base_dir / filename
+        if not check_integrity(str(fpath), md5):
             return False
-        print(f"{filename} already downloaded.")
+        self.log(f"{filename} already downloaded.")
         return True
 
     def _check_files(self) -> bool:
@@ -173,40 +171,39 @@ class Ecoacoustics(PBAudioDataset):
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
         for finfo in self._INDICES_URL_MD5_LIST:
-            if not self._check_integrity(finfo.filename, finfo.md5):
+            if not self._check_integrity(finfo.filename, md5=finfo.md5):
                 download_and_extract_archive(
                     url=finfo.url, download_root=str(self.base_dir), md5=finfo.md5
                 )
 
         for finfo in self._URL_MD5_LIST:
-            if not self._check_integrity(finfo.filename, finfo.md5):
-                self.download_and_extract_archive_jar(url=finfo.url, md5=finfo.md5)
+            if not self._check_integrity(finfo.filename, md5=finfo.md5):
+                self.download_and_extract_archive_jar(finfo)
 
     def download_and_extract_archive_jar(
-        self,
-        url: str,
-        md5: str,
-        filename: str | None = None,
-        remove_finished: bool = False,
+        self, finfo: ZenodoInfo, *, remove_finished: bool = False
     ) -> None:
-        if not filename:
-            filename = os.path.basename(url)
+        download_url(finfo.url, str(self.base_dir), finfo.filename, finfo.md5)
 
-        download_url(url, str(self.base_dir), filename, md5)
-
-        archive = self.base_dir / filename
+        archive = self.base_dir / finfo.filename
         self.log(f"Extracting {archive}")
 
         suffix, archive_type, _ = _detect_file_type(str(archive))
         if not archive_type:
             _ = _decompress(
                 str(archive),
-                os.path.join(self.base_dir, filename.replace(suffix, "")),
+                str((self.base_dir / finfo.filename).with_suffix("")),
                 remove_finished=remove_finished,
             )
             return None
 
-        subprocess.run(f"jar -xvf {archive}", shell=True, check=True, cwd=self.base_dir)
+        try:
+            subprocess.run(f"jar -xvf {archive}", shell=True, check=True, cwd=self.base_dir)
+        except:
+            self.log(
+                "Tried to extract malformed .zip file using Java."
+                "However, there was a porblem. Is Java on your system path?"
+            )
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
