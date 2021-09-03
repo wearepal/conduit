@@ -10,7 +10,7 @@ import os
 from os import mkdir
 from pathlib import Path
 import subprocess
-from typing import Callable, ClassVar, Optional, Union
+from typing import Callable, ClassVar, NamedTuple, Optional, Union
 import zipfile
 
 from kit import parsable
@@ -37,6 +37,12 @@ SoundscapeAttr = Literal["habitat", "site"]
 Extension = Literal[".pt", ".wav"]
 
 
+class ZenodoInfo(NamedTuple):
+    filename: str
+    url: str
+    md5: str
+
+
 class Ecoacoustics(PBAudioDataset):
     """Dataset for audio data collected in various geographic locations."""
 
@@ -50,24 +56,24 @@ class Ecoacoustics(PBAudioDataset):
     _PROCESSED_DIR: ClassVar[str] = "processed_audio"
     _AUDIO_LEN: ClassVar[float] = 60.0  # Audio samples' durations in seconds.
 
-    _INDICES_URL_MD5_LIST: list[tuple[str, str]] = [
-        (
-            "AvianID_AcousticIndices.zip",
-            "https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip",
-            "b23208eb7db3766a1d61364b75cb4def",
+    _INDICES_URL_MD5_LIST: list[ZenodoInfo] = [
+        ZenodoInfo(
+            filename="AvianID_AcousticIndices.zip",
+            url="https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip",
+            md5="b23208eb7db3766a1d61364b75cb4def",
         )
     ]
 
-    _URL_MD5_LIST: list[tuple[str, str]] = [
-        (
-            "EC_BIRD.zip",
-            "https://zenodo.org/record/1255218/files/EC_BIRD.zip",
-            "d427e904af1565dbbfe76b05f24c258a",
+    _URL_MD5_LIST: list[ZenodoInfo] = [
+        ZenodoInfo(
+            filename="EC_BIRD.zip",
+            url="https://zenodo.org/record/1255218/files/EC_BIRD.zip",
+            md5="d427e904af1565dbbfe76b05f24c258a",
         ),
-        (
-            "UK_BIRD.zip",
-            "https://zenodo.org/record/1255218/files/UK_BIRD.zip",
-            "e1e58b224bb8fb448d1858b9c9ee0d8c",
+        ZenodoInfo(
+            filename="UK_BIRD.zip",
+            url="https://zenodo.org/record/1255218/files/UK_BIRD.zip",
+            md5="e1e58b224bb8fb448d1858b9c9ee0d8c",
         ),
     ]
 
@@ -165,14 +171,16 @@ class Ecoacoustics(PBAudioDataset):
         self.root.mkdir(parents=True, exist_ok=True)
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
-        for fname, url, md5 in self._INDICES_URL_MD5_LIST:
-            if not self._check_integrity(fname, md5):
-                download_and_extract_archive(url=url, download_root=str(self.base_dir), md5=md5)
+        for finfo in self._INDICES_URL_MD5_LIST:
+            if not self._check_integrity(finfo.filename, finfo.md5):
+                download_and_extract_archive(
+                    url=finfo.url, download_root=str(self.base_dir), md5=finfo.md5
+                )
 
-        for fname, url, md5 in self._URL_MD5_LIST:
-            if not self._check_integrity(fname, md5):
+        for finfo in self._URL_MD5_LIST:
+            if not self._check_integrity(finfo.filename, finfo.md5):
                 self.download_and_extract_archive_jar(
-                    url=url, download_root=str(self.base_dir), md5=md5
+                    url=finfo.url, download_root=str(self.base_dir), md5=finfo.md5
                 )
 
     def download_and_extract_archive_jar(
