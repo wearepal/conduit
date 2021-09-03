@@ -1,32 +1,33 @@
 """Zhang Gradient Projection Debiasing Baseline Model."""
 from __future__ import annotations
-from typing import Mapping, NamedTuple
+from typing import NamedTuple, cast
 
 import ethicml as em
 from kit import implements
 from kit.torch import CrossEntropyLoss, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 import torch
 from torch import Tensor, nn
-import torchmetrics
-from torchmetrics import MetricCollection
+from torch.optim.optimizer import Optimizer
 
 from bolts.data.structures import TernarySample
-from bolts.models.base import ModelBase
-from bolts.structures import Stage
+from bolts.models.base import PBModel
+from bolts.models.utils import aggregate_over_epoch, prediction, prefix_keys
+from bolts.types import LRScheduler, Stage
 
-__all__ = ["Gpd"]
+__all__ = ["GPD"]
 
 
 def compute_proj_grads(*, model: nn.Module, loss_p: Tensor, loss_a: Tensor, alpha: float) -> None:
-    """Computes the adversarial gradient projection term.
+    """Computes the adversarial-gradient projection term.
 
     Args:
-        model (nn.Module): Model whose parameters the gradients are to be computed w.r.t.
-        loss_p (Tensor): Prediction loss.
-        loss_a (Tensor): Adversarial loss.
-        alpha (float): Pre-factor for adversarial loss.
+        model: Model whose parameters the gradients are to be computed w.r.t.
+        loss_p: Prediction loss.
+        loss_a: Adversarial loss.
+        alpha: Pre-factor for adversarial loss.
     """
     grad_p = torch.autograd.grad(loss_p, tuple(model.parameters()), retain_graph=True)
     grad_a = torch.autograd.grad(loss_a, tuple(model.parameters()), retain_graph=True)
@@ -53,12 +54,12 @@ def compute_grad(*, model: nn.Module, loss: Tensor) -> None:
         param.grad = grad
 
 
-class GpdOut(NamedTuple):
+class ModelOut(NamedTuple):
     s: Tensor
     y: Tensor
 
 
-class Gpd(ModelBase):
+class GPD(PBModel):
     """Zhang Mitigating Unwanted Biases."""
 
     def __init__(
@@ -90,123 +91,95 @@ class Gpd(ModelBase):
         self._loss_adv_fn = CrossEntropyLoss()
         self._loss_clf_fn = CrossEntropyLoss()
 
-        self.accs = MetricCollection(
-            {
-                f"{stage.name}_{label}": torchmetrics.Accuracy()
-                for stage in Stage
-                for label in ("s", "y")
-            }
-        )
-
         self.automatic_optimization = False  # Mark for manual optimization
 
-    @implements(ModelBase)
-    def _inference_epoch_end(
-        self, outputs: list[Mapping[str, Tensor]], stage: Stage
-    ) -> dict[str, Tensor]:
-        all_y = torch.cat([step_output["y"] for step_output in outputs], 0)
-        all_s = torch.cat([step_output["s"] for step_output in outputs], 0)
-        all_preds = torch.cat([step_output["preds"] for step_output in outputs], 0)
+    @implements(PBModel)
+    @torch.no_grad()
+    def inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
+        assert isinstance(batch.x, Tensor)
+        model_out = self.forward(batch.x)
+        loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
+        logging_dict = {
+            f"loss": loss.item(),
+            f"loss_adv": loss_adv.item(),
+            f"loss_clf": loss_clf.item(),
+        }
+        logging_dict = prefix_keys(dict_=logging_dict, prefix=str(stage), sep="/")
+        self.log_dict(logging_dict)
+
+        return {
+            "targets": batch.y.view(-1),
+            "subgroup_inf": batch.s.view(-1),
+            "logits_y": model_out.y,
+        }
+
+    @implements(PBModel)
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
+        targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
+        subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
+        logits_y_all = aggregate_over_epoch(outputs=outputs, metric="logits_y")
+
+        preds_y_all = prediction(logits_y_all)
 
         dt = em.DataTuple(
             x=pd.DataFrame(
-                torch.rand_like(all_s, dtype=float).detach().cpu().numpy(), columns=["x0"]
+                torch.rand_like(subgroup_inf_all).detach().cpu().numpy(),
+                columns=["x0"],
             ),
-            s=pd.DataFrame(all_s.detach().cpu().numpy(), columns=["s"]),
-            y=pd.DataFrame(all_y.detach().cpu().numpy(), columns=["y"]),
+            s=pd.DataFrame(subgroup_inf_all.detach().cpu().numpy(), columns=["s"]),
+            y=pd.DataFrame(targets_all.detach().cpu().numpy(), columns=["y"]),
         )
 
-        results = em.run_metrics(
-            predictions=em.Prediction(hard=pd.Series(all_preds.argmax(-1).detach().cpu().numpy())),
+        return em.run_metrics(
+            predictions=em.Prediction(hard=pd.Series(preds_y_all.detach().cpu().numpy())),
             actual=dt,
             metrics=[em.Accuracy(), em.RenyiCorrelation(), em.Yanovich()],
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
 
-        results_dict = {
-            f"{stage}/acc_{label}": self.accs[f"{stage.name}_{label}"].compute()
-            for label in ("s", "y")
-        }
-        results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
-        return results_dict
-
     def _get_losses(
-        self, model_out: GpdOut, *, batch: TernarySample
+        self, model_out: ModelOut, *, batch: TernarySample
     ) -> tuple[Tensor, Tensor, Tensor]:
-        target_s = batch.s.view(-1, 1).float()
-        loss_adv = self._loss_adv_fn(model_out.s, target=target_s)
-        target_y = batch.y.view(-1, 1).float()
-        loss_clf = self._loss_clf_fn(model_out.y, target=target_y)
+        loss_adv = self._loss_adv_fn(model_out.s, target=batch.s)
+        loss_clf = self._loss_clf_fn(model_out.y, target=batch.y)
         return loss_adv, loss_clf, loss_adv + loss_clf
 
     @implements(pl.LightningModule)
     def training_step(self, batch: TernarySample, batch_idx: int) -> None:
-        opt = self.optimizers()
+        assert isinstance(batch.x, Tensor)
+        opt = cast(Optimizer, self.optimizers())
+
         opt.zero_grad()
 
-        model_out: GpdOut = self.forward(batch.x)
+        model_out: ModelOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
 
-        logs = {
-            f"{Stage.fit}/adv_loss": loss_adv.item(),
-            f"{Stage.fit}/clf_loss": loss_clf.item(),
-            f"{Stage.fit}/loss": loss.item(),
+        logging_dict = {
+            f"adv_loss": loss_adv.item(),
+            f"clf_loss": loss_clf.item(),
+            f"loss": loss.item(),
         }
+        logging_dict = prefix_keys(dict_=logging_dict, prefix="train", sep="/")
+        self.log_dict(logging_dict)
+
         compute_proj_grads(model=self.enc, loss_p=loss_clf, loss_a=loss_adv, alpha=1.0)
         compute_grad(model=self.adv, loss=loss_adv)
         compute_grad(model=self.clf, loss=loss_clf)
 
-        for _label in ("s", "y"):
-            tm_acc = self.accs[f"{Stage.fit.name}_{_label}"]
-            _target = getattr(batch, _label).view(-1).long()
-            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"train/acc_{_label}": _acc})
-        self.log_dict(logs)
         opt.step()
 
         if (self.lr_sched_interval is TrainingMode.step) and (
             self.global_step % self.lr_sched_freq == 0
         ):
-            sch = self.lr_schedulers()
+            sch = cast(LRScheduler, self.lr_schedulers())
             sch.step()
         if (self.lr_sched_interval is TrainingMode.epoch) and self.trainer.is_last_batch:
-            sch = self.lr_schedulers()
+            sch = cast(LRScheduler, self.lr_schedulers())
             sch.step()
 
-    @implements(ModelBase)
-    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
-        model_out: GpdOut = self.forward(batch.x)
-        loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
-        logs = {
-            f"{stage}/loss": loss.item(),
-            f"{stage}/loss_adv": loss_adv.item(),
-            f"{stage}/loss_clf": loss_clf.item(),
-        }
-
-        for _label in ("s", "y"):
-            tm_acc = self.accs[f"{stage.name}_{_label}"]
-            _target = getattr(batch, _label).view(-1).long()
-            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"{stage}/acc_{_label}": _acc})
-        self.log_dict(logs)
-        return {
-            "y": batch.y.view(-1),
-            "s": batch.s.view(-1),
-            "preds": model_out.y.sigmoid().round().squeeze(-1),
-        }
-
-    def reset_parameters(self) -> None:
-        """Reset the models."""
-        self.apply(self._maybe_reset_parameters)
-
-    @staticmethod
-    def _maybe_reset_parameters(module: nn.Module) -> None:
-        if hasattr(module, 'reset_parameters'):
-            module.reset_parameters()
-
     @implements(nn.Module)
-    def forward(self, x: Tensor) -> GpdOut:
-        z = self.enc(x)
-        y = self.clf(z)
-        s = self.adv(z)
-        return GpdOut(s=s, y=y)
+    def forward(self, x: Tensor) -> ModelOut:
+        embedding = self.enc(x)
+        y_pred = self.clf(embedding)
+        s_pred = self.adv(embedding)
+        return ModelOut(y=y_pred, s=s_pred)

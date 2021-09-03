@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
+from typing import Sequence
 
 from kit import implements
 import numpy as np
@@ -22,8 +23,6 @@ __all__ = ["PBVisionDataset"]
 
 
 class PBVisionDataset(PBDataset):
-    x: npt.NDArray[np.string_]
-
     def __init__(
         self,
         *,
@@ -39,8 +38,13 @@ class PBVisionDataset(PBDataset):
         self.image_dir = image_dir
         self.transform = transform
         # infer the appropriate image-loading backend based on the type of 'transform'
-        self._il_backend: ImageLoadingBackend = infer_il_backend(self.transform)
-        self.log(f"Using {self._il_backend} as backend for image-loading.")
+        self._il_backend: ImageLoadingBackend = infer_il_backend(transform)
+
+    def update_il_backend(self, transform: ImageTform | None) -> None:
+        new_backend = infer_il_backend(transform)
+        if new_backend != self._il_backend:
+            self._il_backend = new_backend
+            self.log(f"Using {self._il_backend} as backend for image-loading.")
 
     def __repr__(self) -> str:
         head = "Dataset " + self.__class__.__name__
@@ -58,9 +62,14 @@ class PBVisionDataset(PBDataset):
         return load_image(self.image_dir / self.x[index], backend=self._il_backend)
 
     @implements(PBDataset)
-    def _sample_x(self, index: int, *, coerce_to_tensor: bool = False) -> RawImage | Tensor:
+    def _sample_x(
+        self, index: int, *, coerce_to_tensor: bool = False
+    ) -> RawImage | Tensor | Sequence[RawImage] | Sequence[Tensor]:
         image = self._load_image(index)
         image = apply_image_transform(image=image, transform=self.transform)
         if coerce_to_tensor and (not isinstance(image, Tensor)):
-            image = img_to_tensor(image)
+            if isinstance(image, Sequence):
+                image = [img_to_tensor(subimage) for subimage in image]
+            else:
+                image = img_to_tensor(image)
         return image

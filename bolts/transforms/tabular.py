@@ -6,6 +6,7 @@ from typing import ClassVar
 from kit import implements
 import torch
 from torch import Tensor
+from typing_extensions import final
 
 __all__ = [
     "TabularTransform",
@@ -31,6 +32,8 @@ class TabularNormalize(TabularTransform):
         self.col_indices = indices
         self._is_fitted = False
 
+    @property
+    @final
     def is_fitted(self):
         return self._is_fitted
 
@@ -43,11 +46,13 @@ class TabularNormalize(TabularTransform):
     def _fit(self, data: Tensor) -> None:
         """inplace operation."""
 
+    @final
     def fit(self, data: Tensor) -> TabularNormalize:
         self._fit(data[:, self.col_indices])
         self._is_fitted = True
         return self
 
+    @final
     def fit_transform(self, data: Tensor) -> Tensor:
         self.fit(data)
         return self.transform(data)
@@ -56,6 +61,7 @@ class TabularNormalize(TabularTransform):
     def _inverse_transform(self, data: Tensor) -> Tensor:
         """Can be in-place."""
 
+    @final
     def inverse_transform(self, data: Tensor) -> Tensor:
         if not self.is_fitted:
             raise RuntimeError(
@@ -70,6 +76,7 @@ class TabularNormalize(TabularTransform):
     def _transform(self, data: Tensor) -> Tensor:
         """Can be in-place."""
 
+    @final
     def transform(self, data: Tensor) -> Tensor:
         if not self.is_fitted:
             raise RuntimeError(
@@ -80,6 +87,7 @@ class TabularNormalize(TabularTransform):
         data[:, self.col_indices] = self._transform(data[:, self.col_indices])
         return data
 
+    @final
     def __call__(self, data: Tensor) -> Tensor:
         return self.transform(data)
 
