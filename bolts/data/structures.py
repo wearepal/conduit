@@ -40,16 +40,16 @@ class MultiCropOutput:
 
     @property
     def global_crop_sizes(self):
-        return [crop.shape[1:] for crop in self.global_crops]
+        return [crop.shape[-3:] for crop in self.global_crops]
 
     @property
     def local_crop_sizes(self):
-        return [crop.shape[1:] for crop in self.local_crops]
+        return [crop.shape[-3:] for crop in self.local_crops]
 
     @property
     def shape(self):
         """Shape of the global crops - for compatibility with DMs."""
-        return self.global_crops[0].shape[1:]
+        return self.global_crops[0].shape
 
     def __len__(self) -> int:
         """Total number of crops."""

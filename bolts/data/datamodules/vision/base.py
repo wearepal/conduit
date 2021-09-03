@@ -67,7 +67,7 @@ class PBVisionDataModule(PBDataModule):
         if self._input_size is not None:
             return self._input_size
         if self._train_data is not None:
-            self._input_size = ImageSize(*self._train_data[0].x.shape)  # type: ignore
+            self._input_size = ImageSize(*self._train_data[0].x.shape[-3:])  # type: ignore
             return self._input_size
         cls_name = self.__class__.__name__
         raise AttributeError(
