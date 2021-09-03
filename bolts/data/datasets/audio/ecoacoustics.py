@@ -179,36 +179,32 @@ class Ecoacoustics(PBAudioDataset):
 
         for finfo in self._URL_MD5_LIST:
             if not self._check_integrity(finfo.filename, finfo.md5):
-                self.download_and_extract_archive_jar(
-                    url=finfo.url, download_root=self.base_dir, md5=finfo.md5
-                )
+                self.download_and_extract_archive_jar(url=finfo.url, md5=finfo.md5)
 
     def download_and_extract_archive_jar(
         self,
         url: str,
-        download_root: Path,
         md5: str,
         filename: str | None = None,
         remove_finished: bool = False,
     ) -> str | None:
-        download_root = download_root.expanduser()
         if not filename:
             filename = os.path.basename(url)
 
-        download_url(url, str(download_root), filename, md5)
+        download_url(url, str(self.base_dir), filename, md5)
 
-        archive = download_root / filename
+        archive = self.base_dir / filename
         print(f"Extracting {archive}")
 
         suffix, archive_type, compression = _detect_file_type(str(archive))
         if not archive_type:
             return _decompress(
                 str(archive),
-                os.path.join(download_root, filename.replace(suffix, "")),
+                os.path.join(self.base_dir, filename.replace(suffix, "")),
                 remove_finished=remove_finished,
             )
 
-        subprocess.run(f"jar -xvf {archive}", shell=True, check=True, cwd=download_root)
+        subprocess.run(f"jar -xvf {archive}", shell=True, check=True, cwd=self.base_dir)
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
