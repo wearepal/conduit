@@ -6,8 +6,10 @@
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
 from __future__ import annotations
+import os
 from os import mkdir
 from pathlib import Path
+import subprocess
 from typing import Callable, ClassVar, Optional, Union
 import zipfile
 
@@ -18,7 +20,13 @@ from torch import Tensor
 import torchaudio
 import torchaudio.functional as F
 import torchaudio.transforms as T
-from torchvision.datasets.utils import download_and_extract_archive
+from torchvision.datasets.utils import (
+    _decompress,
+    _detect_file_type,
+    check_integrity,
+    download_and_extract_archive,
+    download_url,
+)
 from typing_extensions import Literal
 
 from bolts.data.datasets.audio.base import PBAudioDataset
@@ -41,6 +49,27 @@ class Ecoacoustics(PBAudioDataset):
     _UK_LABELS_FILENAME: ClassVar[str] = "UK_AI.csv"
     _PROCESSED_DIR: ClassVar[str] = "processed_audio"
     _AUDIO_LEN: ClassVar[float] = 60.0  # Audio samples' durations in seconds.
+
+    _INDICES_URL_MD5_LIST: list[tuple[str, str]] = [
+        (
+            "AvianID_AcousticIndices.zip",
+            "https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip",
+            "b23208eb7db3766a1d61364b75cb4def",
+        )
+    ]
+
+    _URL_MD5_LIST: list[tuple[str, str]] = [
+        (
+            "EC_BIRD.zip",
+            "https://zenodo.org/record/1255218/files/EC_BIRD.zip",
+            "d427e904af1565dbbfe76b05f24c258a",
+        ),
+        (
+            "UK_BIRD.zip",
+            "https://zenodo.org/record/1255218/files/UK_BIRD.zip",
+            "e1e58b224bb8fb448d1858b9c9ee0d8c",
+        ),
+    ]
 
     @parsable
     def __init__(
@@ -89,6 +118,14 @@ class Ecoacoustics(PBAudioDataset):
 
         super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self.base_dir)
 
+    def _check_integrity(self, filename: str, md5: str) -> bool:
+        root = self.root
+        fpath = os.path.join(root, self.base_dir, filename)
+        if not check_integrity(fpath, md5):
+            return False
+        print(f"{filename} already downloaded.")
+        return True
+
     def _check_files(self) -> bool:
         """Check necessary files are present and unzipped."""
 
@@ -128,14 +165,42 @@ class Ecoacoustics(PBAudioDataset):
         self.root.mkdir(parents=True, exist_ok=True)
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
-        urls = [
-            "https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip",
-            "https://zenodo.org/record/1255218/files/EC_BIRD.zip",
-            "https://zenodo.org/record/1255218/files/UK_BIRD.zip",
-        ]
+        for fname, url, md5 in self._INDICES_URL_MD5_LIST:
+            if not self._check_integrity(fname, md5):
+                download_and_extract_archive(url=url, download_root=str(self.base_dir), md5=md5)
 
-        for url in urls:
-            download_and_extract_archive(url, str(self.base_dir))
+        for fname, url, md5 in self._URL_MD5_LIST:
+            if not self._check_integrity(fname, md5):
+                self.download_and_extract_archive_jar(
+                    url=url, download_root=str(self.base_dir), md5=md5
+                )
+
+    def download_and_extract_archive_jar(
+        self,
+        url: str,
+        download_root: str,
+        md5: str,
+        filename: str | None = None,
+        remove_finished: bool = False,
+    ) -> str | None:
+        download_root = os.path.expanduser(download_root)
+        if not filename:
+            filename = os.path.basename(url)
+
+        download_url(url, download_root, filename, md5)
+
+        archive = os.path.join(download_root, filename)
+        print(f"Extracting {archive}")
+
+        suffix, archive_type, compression = _detect_file_type(archive)
+        if not archive_type:
+            return _decompress(
+                archive,
+                os.path.join(download_root, os.path.basename(archive).replace(suffix, "")),
+                remove_finished=remove_finished,
+            )
+
+        subprocess.run(f"jar -xvf {archive}", shell=True, check=True, cwd=download_root)
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
