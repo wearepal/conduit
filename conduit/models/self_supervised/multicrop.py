@@ -68,7 +68,9 @@ class MultiCropTransform:
         crop_size: int | Sequence[int] = 224,
         norm_values: MeanStd | None = IMAGENET_STATS,
     ) -> MultiCropTransform:
-        from conduit.models.self_supervised.moco.transforms import mocov2_train_transform
+        from conduit.models.self_supervised.moco.transforms import (
+            mocov2_train_transform,
+        )
 
         return cls(
             global_transform_1=mocov2_train_transform(crop_size=crop_size, norm_values=norm_values)

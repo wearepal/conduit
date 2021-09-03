@@ -24,7 +24,10 @@ from conduit.models.self_supervised.callbacks import (
     MeanTeacherWeightUpdate,
     PostHocProgressBar,
 )
-from conduit.models.self_supervised.multicrop import MultiCropTransform, MultiCropWrapper
+from conduit.models.self_supervised.multicrop import (
+    MultiCropTransform,
+    MultiCropWrapper,
+)
 from conduit.types import MetricDict, Stage
 
 __all__ = [
