@@ -1,3 +1,3 @@
 # conduit
 
-General PyTorch Lightning conduit and other goodies used by the folks at PAL.
+Lightweight framework for channeling the power of PyTorch Lightning.
