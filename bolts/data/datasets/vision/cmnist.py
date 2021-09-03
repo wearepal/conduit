@@ -104,7 +104,7 @@ class ColoredMNIST(PBVisionDataset):
         self.correlation = correlation
 
         if split is None:
-            x_ls, y_ls = []
+            x_ls, y_ls = [], []
             for _split in ColoredMNISTSplit:
                 base_dataset = MNIST(
                     root=str(root), download=download, train=_split is ColoredMNISTSplit.train
