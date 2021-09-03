@@ -1,81 +1,24 @@
-from typing import List, NamedTuple, Optional, Sequence
+from typing import List, Optional, Sequence
 
 from kit import gcopy
-from kit.torch import CrossEntropyLoss
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
-import torch
-from torch import Tensor, nn
-from torch.optim import AdamW
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.utils.data import DataLoader
-import torchmetrics
 from typing_extensions import Type
 
+from bolts.models.erm import FineTuner
+
 __all__ = ["PostHocEval"]
-
-
-class EvalTuple(NamedTuple):
-    x: Tensor
-    y: Tensor
-
-
-class EvalModule(pl.LightningModule):
-    def __init__(self, enc: nn.Module, clf: nn.Module) -> None:
-        super().__init__()
-        self.enc = enc
-        self.clf = clf
-        self._loss = CrossEntropyLoss()
-
-        self._train_acc = torchmetrics.Accuracy()
-        self._test_acc = torchmetrics.Accuracy()
-
-    def training_step(self, batch: EvalTuple, batch_idx: int) -> STEP_OUTPUT:
-        y = self(batch.x)
-        _tgt = batch.y.flatten().long()
-        self._train_acc(y.argmax(-1), _tgt)
-        loss = self._loss(input=y, target=_tgt)
-        self.log_dict({"eval/train_acc": self._train_acc, "eval/train_loss": loss})
-        return loss
-
-    def forward(self, x: Tensor) -> Tensor:
-        with torch.no_grad():
-            self.enc.eval()
-            z = self.enc(x)
-        return self.clf(z)
-
-    def test_step(self, batch: EvalTuple, batch_idx: int) -> Optional[STEP_OUTPUT]:
-        logits = self(batch.x)
-        self._test_acc(logits.argmax(-1), batch.y.flatten().long())
-        return {
-            "y": batch.y.flatten(),
-            "preds": logits.argmax(-1).squeeze(-1),
-        }
-
-    def test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        torch.cat([_r["y"] for _r in outputs], 0)
-        torch.cat([_r["preds"] for _r in outputs], 0)
-        self.log("eval/test_acc", self._test_acc)
-
-    @staticmethod
-    def _maybe_reset_parameters(module: nn.Module) -> None:
-        if hasattr(module, 'reset_parameters'):
-            module.reset_parameters()  # type: ignore
-
-    def reset_parameters(self) -> None:
-        self.clf.apply(self._maybe_reset_parameters)
-
-    def configure_optimizers(self) -> torch.optim.Optimizer:
-        return AdamW(self.clf.parameters())
 
 
 class PostHocEval(pl.Callback):
     """
     Trains and evaluates an auxillary classifier model.
     Your model should have:
-        - ``self.eval_classifier``
+        - ``self.eval_predictor``
         - ``self.encoder``
         - ``self.datamodule``
-        - ``self.clf_epochs``
+        - ``self.eval_epochs``
         - ``self.trainer''
     """
 
@@ -95,7 +38,7 @@ class PostHocEval(pl.Callback):
             ],
         )
         trainer.fit_loop.max_epochs = pl_module.clf_epochs
-        self.eval_clf = EvalModule(enc=pl_module.encoder, clf=pl_module.eval_classifier)
+        self.eval_clf = FineTuner(encoder=pl_module.encoder, classifier=pl_module.eval_classifier)
 
     def _eval_loop(
         self,

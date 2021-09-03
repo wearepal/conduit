@@ -1,4 +1,5 @@
 """Nico data-module."""
+from __future__ import annotations
 from typing import Any, Optional, Union
 
 import albumentations as A
@@ -8,6 +9,7 @@ from kit.torch.data import TrainingMode
 from pytorch_lightning import LightningDataModule
 
 from bolts.data.datamodules import PBDataModule
+from bolts.data.datasets.utils import ImageTform
 from bolts.data.datasets.vision.nico import NICO, NicoSuperclass
 from bolts.data.structures import TrainValTestSplit
 
@@ -38,6 +40,8 @@ class NICODataModule(PBVisionDataModule):
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
         training_mode: Union[TrainingMode, str] = "epoch",
+        train_transforms: Optional[ImageTform] = None,
+        test_transforms: Optional[ImageTform] = None,
     ) -> None:
         super().__init__(
             root=root,
@@ -52,6 +56,8 @@ class NICODataModule(PBVisionDataModule):
             stratified_sampling=stratified_sampling,
             instance_weighting=instance_weighting,
             training_mode=training_mode,
+            train_transforms=train_transforms,
+            test_transforms=test_transforms,
         )
         self.image_size = image_size
         self.superclass = superclass
@@ -59,18 +65,15 @@ class NICODataModule(PBVisionDataModule):
 
     @property  # type: ignore[misc]
     @implements(PBVisionDataModule)
-    def _base_augmentations(self) -> A.Compose:
-        return A.Compose(
+    def _default_train_transforms(self) -> A.Compose:
+        base_transforms = A.Compose(
             [
                 A.Resize(self.image_size, self.image_size),
                 A.CenterCrop(self.image_size, self.image_size),
             ]
         )
-
-    @property  # type: ignore[misc]
-    @implements(PBVisionDataModule)
-    def _train_augmentations(self) -> A.Compose:
-        return A.Compose([])
+        normalization = super()._default_train_transforms()
+        return A.Compose([base_transforms, normalization])
 
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:

@@ -12,11 +12,12 @@ from bolts.data.datasets.utils import (
     ImageTform,
     apply_image_transform,
     compute_instance_weights,
+    extract_base_dataset,
 )
+from bolts.data.datasets.vision.base import PBVisionDataset
 from bolts.data.structures import (
     BinarySample,
     BinarySampleIW,
-    NamedSample,
     SampleBase,
     SubgroupSample,
     SubgroupSampleIW,
@@ -44,6 +45,7 @@ class ImageTransformer(Dataset):
 
     def __init__(self, dataset: Dataset, *, transform: ImageTform | None) -> None:
         self.dataset = dataset
+        self._transform: ImageTform | None = None
         self.transform = transform
 
     def __len__(self) -> int | None:
@@ -51,12 +53,23 @@ class ImageTransformer(Dataset):
             return len(self.dataset)  # type: ignore
         return None
 
+    @property
+    def transform(self) -> ImageTform | None:
+        return self._transform
+
+    @transform.setter
+    def transform(self, transform: ImageTform | None) -> None:
+        base_dataset = extract_base_dataset(self.dataset, return_subset_indices=False)
+        if isinstance(base_dataset, PBVisionDataset):
+            base_dataset.update_il_backend(transform)
+        self._transform = transform
+
     def __getitem__(self, index: int) -> Any:
         sample = self.dataset[index]
         if self.transform is not None:
             if isinstance(sample, (Image.Image, np.ndarray)):
                 sample = apply_image_transform(image=sample, transform=self.transform)
-            elif isinstance(sample, NamedSample):
+            elif isinstance(sample, SampleBase):
                 image = sample.x
                 assert not isinstance(image, Tensor)
                 image = apply_image_transform(image=image, transform=self.transform)

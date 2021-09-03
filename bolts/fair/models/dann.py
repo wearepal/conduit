@@ -1,26 +1,25 @@
 """DANN (Domain Adversarial Neural Network) model."""
 from __future__ import annotations
-from typing import Mapping, NamedTuple
+from typing import NamedTuple
 
 import ethicml as em
 from kit import implements
 from kit.torch import CrossEntropyLoss, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
 from torch import Tensor, autograd, nn
-import torchmetrics
-from torchmetrics import MetricCollection
 
 from bolts.data.structures import TernarySample
-from bolts.models.base import ModelBase
-from bolts.structures import MetricDict, Stage
+from bolts.models.base import PBModel
+from bolts.models.utils import aggregate_over_epoch, prefix_keys
+from bolts.types import Stage
 
-__all__ = ["Dann"]
+__all__ = ["DANN"]
 
 
-class DannOut(NamedTuple):
+class ModelOut(NamedTuple):
     s: Tensor
     y: Tensor
 
@@ -47,7 +46,7 @@ def grad_reverse(features: Tensor, *, lambda_: float = 1.0) -> Tensor:
     return GradReverse.apply(features, lambda_)
 
 
-class Dann(ModelBase):
+class DANN(PBModel):
     """Ganin's Domain Adversarial NN."""
 
     def __init__(
@@ -88,16 +87,8 @@ class Dann(ModelBase):
         self._loss_adv_fn = CrossEntropyLoss()
         self._loss_clf_fn = CrossEntropyLoss()
 
-        self.accs = MetricCollection(
-            {
-                f"{stage.name}_{label}": torchmetrics.Accuracy()
-                for stage in Stage
-                for label in ("s", "y")
-            }
-        )
-
     def _get_losses(
-        self, model_out: DannOut, *, batch: TernarySample
+        self, model_out: ModelOut, *, batch: TernarySample
     ) -> tuple[Tensor, Tensor, Tensor]:
         target_s = batch.s.view(-1, 1).float()
         loss_adv = self._loss_adv_fn(model_out.s, target=target_s)
@@ -107,84 +98,74 @@ class Dann(ModelBase):
 
     @implements(pl.LightningModule)
     def training_step(self, batch: TernarySample, batch_idx: int) -> Tensor:
-        model_out: DannOut = self.forward(batch.x)
+        assert isinstance(batch.x, Tensor)
+        model_out: ModelOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
 
-        logs = {
+        logging_dict = {
             f"{Stage.fit}/adv_loss": loss_adv.item(),
             f"{Stage.fit}": loss_clf.item(),
             f"{Stage.fit}/loss": loss.item(),
         }
-        for _label in ("s", "y"):
-            tm_acc = self.accs[f"{Stage.fit.name}_{_label}"]
-            _target = getattr(batch, _label).view(-1).long()
-            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"{Stage.fit}/acc_{_label}": _acc})
-        self.log_dict(logs)
+        logging_dict = prefix_keys(dict_=logging_dict, prefix="train", sep="/")
+        self.log_dict(logging_dict)
+
         return loss
 
-    @implements(ModelBase)
-    def _inference_epoch_end(self, outputs: list[Mapping[str, Tensor]], stage: Stage) -> MetricDict:
-        all_y = torch.cat([output_step["y"] for output_step in outputs], 0)
-        all_s = torch.cat([output_step["s"] for output_step in outputs], 0)
-        all_preds = torch.cat([output_step["preds"] for output_step in outputs], 0)
+    @implements(PBModel)
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
+        logits_all = aggregate_over_epoch(outputs=outputs, metric="logits")
+        targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
+        subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
 
         dt = em.DataTuple(
             x=pd.DataFrame(
-                torch.rand_like(all_s, dtype=torch.float).detach().cpu().numpy(), columns=["x0"]
+                torch.rand_like(subgroup_inf_all, dtype=torch.float).detach().cpu().numpy(),
+                columns=["x0"],
             ),
-            s=pd.DataFrame(all_s.detach().cpu().numpy(), columns=["s"]),
-            y=pd.DataFrame(all_y.detach().cpu().numpy(), columns=["y"]),
+            s=pd.DataFrame(subgroup_inf_all.detach().cpu().numpy(), columns=["s"]),
+            y=pd.DataFrame(targets_all.detach().cpu().numpy(), columns=["y"]),
         )
 
-        results = em.run_metrics(
-            predictions=em.Prediction(hard=pd.Series(all_preds.argmax(-1).detach().cpu().numpy())),
+        return em.run_metrics(
+            predictions=em.Prediction(hard=pd.Series(logits_all.argmax(-1).detach().cpu().numpy())),
             actual=dt,
             metrics=[em.Accuracy(), em.RenyiCorrelation(), em.Yanovich()],
             per_sens_metrics=[em.Accuracy(), em.ProbPos(), em.TPR()],
         )
 
-        results_dict = {
-            f"{stage}/acc_{label}": self.accs[f"{stage.name}_{label}"].compute()
-            for label in ("s", "y")
-        }
-        results_dict.update({f"{stage}/{k}": v for k, v in results.items()})
-        return results_dict
-
-    @implements(ModelBase)
-    def _inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
-        model_out: DannOut = self.forward(batch.x)
+    @implements(PBModel)
+    def inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
+        assert isinstance(batch.x, Tensor)
+        model_out: ModelOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
-        logs = {
-            f"{stage}/loss": loss.item(),
-            f"{stage}/loss_adv": loss_adv.item(),
-            f"{stage}/loss_clf": loss_clf.item(),
+        logging_dict = {
+            f"loss": loss.item(),
+            f"loss_adv": loss_adv.item(),
+            f"loss_clf": loss_clf.item(),
         }
+        logging_dict = prefix_keys(dict_=logging_dict, prefix=str(stage), sep="/")
+        self.log_dict(logging_dict)
 
-        for _label in ("s", "y"):
-            tm_acc = self.accs[f"{stage.name}_{_label}"]
-            _target = getattr(batch, _label).view(-1).long()
-            _acc = tm_acc(getattr(model_out, _label).argmax(-1), _target)
-            logs.update({f"{stage}/acc_{_label}": _acc})
-        self.log_dict(logs)
         return {
-            "y": batch.y.view(-1),
-            "s": batch.s.view(-1),
-            "preds": model_out.y.sigmoid().round().squeeze(-1),
+            "targets": batch.y.view(-1),
+            "subgroup_inf": batch.s.view(-1),
+            "logits": model_out.y,
         }
 
-    @staticmethod
-    def _maybe_reset_parameters(module: nn.Module) -> None:
-        if hasattr(module, 'reset_parameters'):
-            module.reset_parameters()
+    @torch.no_grad()
+    def _maybe_reset_parameters(self, module: nn.Module) -> None:
+        if (module != self) and hasattr(module, 'reset_parameters'):
+            module.reset_parameters()  # type: ignore
 
+    @torch.no_grad()
     def reset_parameters(self) -> None:
         """Reset the models."""
         self.apply(self._maybe_reset_parameters)
 
     @implements(nn.Module)
-    def forward(self, x: Tensor) -> DannOut:
+    def forward(self, x: Tensor) -> ModelOut:
         z = self.enc(x)
         y = self.clf(z)
         s = self.adv(grad_reverse(z, lambda_=self.grl_lambda))
-        return DannOut(s=s, y=y)
+        return ModelOut(s=s, y=y)

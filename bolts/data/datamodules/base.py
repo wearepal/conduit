@@ -1,25 +1,24 @@
 """Base class from which all data-modules in palbolts inherit."""
 from __future__ import annotations
+from abc import abstractmethod
 import logging
 from typing import Optional, Sequence, Union
 
 from kit import implements
 from kit.misc import str_to_enum
 from kit.torch import SequentialBatchSampler, StratifiedBatchSampler, TrainingMode
+from kit.torch.data import num_batches_per_epoch
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader, Sampler
 from torch.utils.data.dataset import Dataset
+from typing_extensions import final
 
 from bolts.data.datasets.base import PBDataset
-from bolts.data.datasets.utils import (
-    extract_base_dataset,
-    get_group_ids,
-    pb_default_collate,
-)
+from bolts.data.datasets.utils import PBDataLoader, extract_base_dataset, get_group_ids
 from bolts.data.datasets.wrappers import InstanceWeightedDataset
 from bolts.data.structures import TrainValTestSplit
-from bolts.structures import Stage
+from bolts.types import Stage
 
 __all__ = ["PBDataModule"]
 
@@ -27,9 +26,6 @@ __all__ = ["PBDataModule"]
 class PBDataModule(pl.LightningDataModule):
     """Base DataModule for both Tabular and Vision data-modules."""
 
-    _train_data: Dataset
-    _val_data: Dataset
-    _test_data: Dataset
     _logger: logging.Logger | None = None
 
     def __init__(
@@ -61,10 +57,17 @@ class PBDataModule(pl.LightningDataModule):
         if isinstance(training_mode, str):
             training_mode = str_to_enum(str_=training_mode, enum=TrainingMode)
         self.training_mode = training_mode
+
+        self._train_data_base: Dataset | None = None
+        self._val_data_base: Dataset | None = None
+        self._test_data_base: Dataset | None = None
+
+        self._train_data: Dataset | None = None
+        self._val_data: Dataset | None = None
+        self._test_data: Dataset | None = None
         # Information (cardinality/dimensionality) about the data
         self._card_s: int | None = None
         self._card_y: int | None = None
-        self._dim_x: torch.Size | None = None
         self._dim_s: torch.Size | None = None
         self._dim_y: torch.Size | None = None
 
@@ -91,7 +94,7 @@ class PBDataModule(pl.LightningDataModule):
         batch_sampler: Sampler[Sequence[int]] | None = None,
     ) -> DataLoader:
         """Make DataLoader."""
-        return DataLoader(
+        return PBDataLoader(
             ds,
             batch_size=batch_size if batch_sampler is None else 1,
             shuffle=shuffle,
@@ -100,8 +103,51 @@ class PBDataModule(pl.LightningDataModule):
             drop_last=drop_last,
             persistent_workers=self.persist_workers,
             batch_sampler=batch_sampler,
-            collate_fn=pb_default_collate,
         )
+
+    @property
+    @final
+    def train_data_base(self) -> Dataset:
+        if self._train_data_base is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.train_data_base' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called.'"
+            )
+        return self._train_data_base
+
+    @property
+    @final
+    def train_data(self) -> Dataset:
+        if self._train_data is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.train_data' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called.'"
+            )
+        return self._train_data
+
+    @property
+    @final
+    def val_data(self) -> Dataset:
+        if self._val_data is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.val_data' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called.'"
+            )
+        return self._val_data
+
+    @property
+    @final
+    def test_data(self) -> Dataset:
+        if self._test_data is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.test_data' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called.'"
+            )
+        return self._test_data
 
     def train_dataloader(
         self, *, shuffle: bool = False, drop_last: bool = False, batch_size: int | None = None
@@ -109,7 +155,7 @@ class PBDataModule(pl.LightningDataModule):
         batch_size = self.train_batch_size if batch_size is None else batch_size
 
         if self.stratified_sampling:
-            group_ids = get_group_ids(self._train_data)
+            group_ids = get_group_ids(self.train_data)
             num_groups = len(group_ids.unique())
             num_samples_per_group = batch_size // num_groups
             if batch_size % num_groups:
@@ -135,17 +181,18 @@ class PBDataModule(pl.LightningDataModule):
                 drop_last=drop_last,
             )
         return self.make_dataloader(
-            batch_size=self.train_batch_size, ds=self._train_data, batch_sampler=batch_sampler
+            batch_size=self.train_batch_size, ds=self.train_data, batch_sampler=batch_sampler
         )
 
     @implements(pl.LightningDataModule)
     def val_dataloader(self) -> DataLoader:
-        return self.make_dataloader(batch_size=self.eval_batch_size, ds=self._val_data)
+        return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.val_data)
 
     @implements(pl.LightningDataModule)
     def test_dataloader(self) -> DataLoader:
-        return self.make_dataloader(batch_size=self.eval_batch_size, ds=self._test_data)
+        return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.test_data)
 
+    @final
     def _num_samples(self, dataset: Dataset) -> int:
         if hasattr(dataset, "__len__"):
             return len(dataset)  # type: ignore
@@ -155,33 +202,110 @@ class PBDataModule(pl.LightningDataModule):
         )
 
     @property
+    @final
     def num_train_samples(self) -> int:
-        return self._num_samples(self._train_data)
+        return self._num_samples(self.train_data)
 
     @property
+    @final
     def num_val_samples(self) -> int:
-        return self._num_samples(self._val_data)
+        return self._num_samples(self.val_data)
 
     @property
+    @final
     def num_test_samples(self) -> int:
-        return self._num_samples(self._test_data)
+        return self._num_samples(self.test_data)
 
+    @final
+    def num_train_batches(self, drop_last: bool = False) -> int:
+        if self.training_mode is TrainingMode.step:
+            raise AttributeError(
+                "'num_train_batches' can only be computed when 'training_mode' is set to 'epoch'."
+            )
+        return num_batches_per_epoch(
+            num_samples=self.num_train_samples,
+            batch_size=self.train_batch_size,
+            drop_last=drop_last,
+        )
+
+    @property
+    @final
+    def dim_y(self) -> tuple[int, ...]:
+        if self._train_data_base is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.dim_y' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called.'"
+            )
+        elif not isinstance(self._train_data_base, PBDataset):
+            raise AttributeError(f"'dim_y' can only determined for 'PBDataset' instances.")
+        return self._train_data_base.dim_y
+
+    @property
+    @final
+    def dim_s(self) -> tuple[int, ...]:
+        if self._train_data_base is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.dim_s' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called.'"
+            )
+        elif not isinstance(self._train_data_base, PBDataset):
+            raise AttributeError(f"'dim_s' can only determined for 'PBDataset' instances.")
+        return self._train_data_base.dim_s
+
+    @property
+    @final
+    def card_y(self) -> int:
+        if self._train_data_base is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.card_y' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called.'"
+            )
+        elif not isinstance(self._train_data_base, PBDataset):
+            raise AttributeError(f"'card_y' can only determined for 'PBDataset' instances.")
+        return self._train_data_base.card_y
+
+    @property
+    @final
+    def card_s(self) -> int:
+        if self._train_data_base is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.card_s' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called.'"
+            )
+        elif not isinstance(self._train_data_base, PBDataset):
+            raise AttributeError(f"'card_s' can only determined for 'PBDataset' instances.")
+        return self._train_data_base.card_s
+
+    @abstractmethod
     def _get_splits(self) -> TrainValTestSplit:
         ...
 
     @implements(pl.LightningDataModule)
-    def setup(self, stage: Stage | None = None) -> None:
-        train, self._val_data, self._test_data = self._get_splits()
-        # Make information (cardinality/dimensionality) about the dataset directly accessible through the data-module
-        # -- this can only done for datasets inheriting from PbDataset
-        base_dataset = extract_base_dataset(dataset=train, return_subset_indices=False)
-        if isinstance(base_dataset, PBDataset):
-            self.dim_x = base_dataset.dim_x
-            self.dim_y = base_dataset.dim_y
-            self.dim_s = base_dataset.dim_s
-            self.card_y = base_dataset.card_y
-            self.card_s = base_dataset.card_s
+    @final
+    def setup(self, stage: Stage | None = None, force_reset: bool = False) -> None:
+        # Only perform the setup if it hasn't already been done
+        if force_reset or (self._train_data is None):
+            self._setup(stage=stage)
+            self._post_setup()
 
+    def _setup(self, stage: Stage | None = None) -> None:
+        train_data, self._val_data, self._test_data = self._get_splits()
         if self.instance_weighting:
-            train = InstanceWeightedDataset(train)
-        self._train_data = train
+            train_data = InstanceWeightedDataset(train_data)
+        self._train_data = train_data
+
+    def _post_setup(self) -> None:
+        # Make information (cardinality/dimensionality) about the dataset directly accessible through the data-module
+        self._train_data_base = extract_base_dataset(
+            dataset=self.train_data, return_subset_indices=False
+        )
+        self._val_data_base = extract_base_dataset(
+            dataset=self.val_data, return_subset_indices=False
+        )
+        self._test_data_base = extract_base_dataset(
+            dataset=self.test_data, return_subset_indices=False
+        )

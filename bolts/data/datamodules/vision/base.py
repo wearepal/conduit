@@ -1,29 +1,26 @@
 """Base class for vision datasets."""
 from __future__ import annotations
-from abc import abstractmethod
 from pathlib import Path
-from typing import ClassVar, Optional, Union
+from typing import Optional, Union
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from kit import implements
 from kit.torch import TrainingMode
+import pytorch_lightning as pl
+from typing_extensions import final
 
+from bolts.constants import IMAGENET_STATS
 from bolts.data.datamodules import PBDataModule
-from bolts.data.datasets.utils import AlbumentationsTform
+from bolts.data.datasets.utils import AlbumentationsTform, ImageTform
 from bolts.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
-from bolts.data.structures import ImageSize, NormalizationValues
-from bolts.structures import Stage
+from bolts.data.structures import ImageSize, MeanStd
+from bolts.types import Stage
 
 __all__ = ["PBVisionDataModule"]
 
 
 class PBVisionDataModule(PBDataModule):
-    _input_size: ImageSize
-    norm_values: ClassVar[NormalizationValues] = NormalizationValues(
-        mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
-    )
-
     def __init__(
         self,
         root: Union[str, Path],
@@ -39,6 +36,8 @@ class PBVisionDataModule(PBDataModule):
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
         training_mode: Union[TrainingMode, str] = "epoch",
+        train_transforms: ImageTform | None = None,
+        test_transforms: ImageTform | None = None,
     ) -> None:
         super().__init__(
             train_batch_size=train_batch_size,
@@ -53,54 +52,87 @@ class PBVisionDataModule(PBDataModule):
             instance_weighting=instance_weighting,
             training_mode=training_mode,
         )
+
+        pl.LightningDataModule.__init__(
+            self, train_transforms=train_transforms, test_transforms=test_transforms
+        )
         self.root = root
+        self.norm_values: MeanStd | None = IMAGENET_STATS
+        self._input_size: ImageSize | None = None
 
     @property
+    @final
     def size(self) -> ImageSize:
-        if hasattr(self, "_input_size"):
+        if self._input_size is not None:
             return self._input_size
-        if hasattr(self, "_train_data"):
-            self._input_size = ImageSize(*self._train_data[0].x.shape)  # type: ignore
+        if self._train_data is not None:
+            self._input_size = ImageSize(*self._train_data[0].x.shape[-3:])  # type: ignore
             return self._input_size
-        raise AttributeError("Input size unavailable because setup has not yet been called.")
-
-    @property
-    @abstractmethod
-    def _base_augmentations(self) -> A.Compose:
-        ...
-
-    @property
-    @abstractmethod
-    def _train_augmentations(self) -> A.Compose:
-        ...
-
-    @property
-    def _normalization(self) -> A.Compose:
-        return A.Compose(
-            [
-                A.ToFloat(),
-                A.Normalize(mean=self.norm_values.mean, std=self.norm_values.std),
-                ToTensorV2(),
-            ]
+        cls_name = self.__class__.__name__
+        raise AttributeError(
+            f"'{cls_name}.size' cannot be determined because 'setup' has not yet been called."
         )
 
+    @property
+    @final
+    def train_transforms(self) -> ImageTform:
+        return (
+            self._default_train_transforms
+            if self._train_transforms is None
+            else self._train_transforms
+        )
+
+    @train_transforms.setter
+    def train_transforms(self, transform: ImageTform | None) -> None:  # type: ignore
+        self._train_transforms = transform
+        if isinstance(self._train_data, ImageTransformer):
+            self._train_data.transform = transform
+
+    @property
+    @final
+    def test_transforms(self) -> ImageTform:
+        return (
+            self._default_test_transforms
+            if self._test_transforms is None
+            else self._test_transforms
+        )
+
+    @test_transforms.setter
+    @final
+    def test_transforms(self, transform: ImageTform | None) -> None:  # type: ignore
+        self._test_transforms = transform
+        if isinstance(self._val_data, ImageTransformer):
+            self._val_data.transform = transform
+        if isinstance(self._test_data, ImageTransformer):
+            self._test_data.transform = transform
+
+    @property
+    def _default_train_transforms(self) -> A.Compose:
+        transform_ls: list[AlbumentationsTform] = [
+            A.ToFloat(),
+        ]
+        if self.norm_values is not None:
+            transform_ls.append(A.Normalize(mean=self.norm_values.mean, std=self.norm_values.std))
+        transform_ls.append(ToTensorV2())
+        return A.Compose(transform_ls)
+
+    @property
+    def _default_test_transforms(self) -> A.Compose:
+        transform_ls: list[AlbumentationsTform] = [
+            A.ToFloat(),
+        ]
+        if self.norm_values is not None:
+            transform_ls.append(A.Normalize(mean=self.norm_values.mean, std=self.norm_values.std))
+        transform_ls.append(ToTensorV2())
+        return A.Compose(transform_ls)
+
     @implements(PBDataModule)
-    def setup(self, stage: Stage | None = None) -> None:
+    @final
+    def _setup(self, stage: Stage | None = None) -> None:
         train, val, test = self._get_splits()
-        train = ImageTransformer(train, transform=self._augmentations(train=True))
+        train = ImageTransformer(train, transform=self.train_transforms)
         if self.instance_weighting:
             train = InstanceWeightedDataset(train)
         self._train_data = train
-        self._val_data = ImageTransformer(val, transform=self._augmentations(train=False))
-        self._test_data = ImageTransformer(test, transform=self._augmentations(train=False))
-
-    def _augmentations(self, train: bool) -> A.Compose:
-        # Base augmentations (augmentations that are applied to all splits of the data)
-        augs: list[AlbumentationsTform] = [self._base_augmentations]
-        # Add training augmentations on top of base augmentations
-        if train:
-            augs.append(self._train_augmentations)
-        # Normalization is common to all splits but needs to be applied at the end of the
-        # transformation pipeline.
-        augs.append(self._normalization)
-        return A.Compose(augs)
+        self._val_data = ImageTransformer(val, transform=self.test_transforms)
+        self._test_data = ImageTransformer(test, transform=self.test_transforms)

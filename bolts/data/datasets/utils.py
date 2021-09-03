@@ -3,9 +3,10 @@ from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 from functools import lru_cache
 import logging
+from multiprocessing.context import BaseContext
 from pathlib import Path
 import platform
-from typing import Any, Callable, NamedTuple, Union, overload
+from typing import Any, Callable, NamedTuple, Sequence, Union, overload
 
 from PIL import Image
 import albumentations as A
@@ -20,9 +21,12 @@ from torch.utils.data._utils.collate import (
     np_str_obj_array_pattern,
     string_classes,
 )
-import torchaudio.transforms as T
+from torch.utils.data.dataloader import DataLoader, _worker_init_fn_t
+from torch.utils.data.sampler import Sampler
 from torchvision.transforms import functional as TF
 from typing_extensions import Literal, get_args
+
+from bolts.data.structures import BinarySample, NamedSample, SampleBase, TernarySample
 
 __all__ = [
     "AlbumentationsTform",
@@ -40,9 +44,10 @@ __all__ = [
     "img_to_tensor",
     "infer_il_backend",
     "load_image",
-    "pb_default_collate",
+    "pb_collate",
     "AudioTform",
     "infer_al_backend",
+    "PBDataLoader",
 ]
 
 
@@ -75,7 +80,7 @@ def load_image(filepath: Path | str, *, backend: ImageLoadingBackend = "opencv")
 
 
 AlbumentationsTform = Union[A.Compose, A.BasicTransform]
-PillowTform = Callable[[Image.Image], Union[Tensor, Image.Image]]
+PillowTform = Callable[[Image.Image], Any]
 ImageTform = Union[AlbumentationsTform, PillowTform]
 
 
@@ -114,12 +119,13 @@ def img_to_tensor(img: Image.Image | np.ndarray) -> Tensor:
 
 AudioLoadingBackend = Literal["sox_io", "soundfile"]
 
-AudioTform = Callable[[Tensor], Tensor]
-
 
 def infer_al_backend() -> AudioLoadingBackend:
     """Infer which audio-loading backend to use based on the operating system."""
     return 'soundfile' if platform.system() == 'Windows' else 'sox_io'
+
+
+AudioTform = Callable[[Tensor], Tensor]
 
 
 def apply_waveform_transform(waveform: Tensor, *, transform: AudioTform | None) -> Tensor:
@@ -229,54 +235,122 @@ def compute_instance_weights(dataset: Dataset, upweight: bool = False) -> Tensor
     return group_weights[group_ids]
 
 
-def pb_default_collate(batch: list[Any]) -> Any:
-    elem = batch[0]
-    elem_type = type(elem)
-    if isinstance(elem, Tensor):
-        out = None
-        if torch.utils.data.get_worker_info() is not None:
-            # If we're in a background process, concatenate directly into a
-            # shared memory tensor to avoid an extra copy
-            numel = sum(x.numel() for x in batch)
-            storage = elem.storage()._new_shared(numel)
-            out = elem.new(storage)
-        ndims = elem.dim()
-        if (ndims > 0) and ((ndims % 2) == 0):
-            return torch.cat(batch, dim=0, out=out)
-        else:
-            return torch.stack(batch, dim=0, out=out)
-    elif (
-        elem_type.__module__ == "numpy"
-        and elem_type.__name__ != "str_"
-        and elem_type.__name__ != "string_"
-    ):
+class pb_collate:
+    def __init__(self, cast_to_sample: bool = True) -> None:
+        self.cast_to_sample = cast_to_sample
+
+    def _collate(self, batch: Sequence[Any]) -> Any:
         elem = batch[0]
-        if elem_type.__name__ == "ndarray":
-            # array of string classes and object
-            if np_str_obj_array_pattern.search(elem.dtype.str) is not None:
-                raise TypeError(default_collate_err_msg_format.format(elem.dtype))
-            return pb_default_collate([torch.as_tensor(b) for b in batch])
-    elif isinstance(elem, float):
-        return torch.tensor(batch, dtype=torch.float64)
-    elif isinstance(elem, int):
-        return torch.tensor(batch)
-    elif isinstance(elem, string_classes):
-        return batch
-    elif isinstance(elem, Mapping):
-        return {key: pb_default_collate([d[key] for d in batch]) for key in elem}
-    elif isinstance(elem, tuple) and hasattr(elem, "_fields"):  # namedtuple
-        return elem_type(**(pb_default_collate(samples) for samples in zip(*batch)))
-    elif is_dataclass(elem):  # dataclass
-        return elem_type(
-            **{
-                field.name: pb_default_collate([getattr(d, field.name) for d in batch])
-                for field in fields(elem)
-            }
+        elem_type = type(elem)
+        if isinstance(elem, Tensor):
+            out = None
+            if torch.utils.data.get_worker_info() is not None:
+                # If we're in a background process, concatenate directly into a
+                # shared memory tensor to avoid an extra copy
+                numel = sum(x.numel() for x in batch)
+                storage = elem.storage()._new_shared(numel)
+                out = elem.new(storage)
+            ndims = elem.dim()
+            if (ndims > 0) and ((ndims % 2) == 0):
+                return torch.cat(batch, dim=0, out=out)
+            else:
+                return torch.stack(batch, dim=0, out=out)
+        elif (
+            elem_type.__module__ == "numpy"
+            and elem_type.__name__ != "str_"
+            and elem_type.__name__ != "string_"
+        ):
+            elem = batch[0]
+            if elem_type.__name__ == "ndarray":
+                # array of string classes and object
+                if np_str_obj_array_pattern.search(elem.dtype.str) is not None:
+                    raise TypeError(default_collate_err_msg_format.format(elem.dtype))
+                return self._collate([torch.as_tensor(b) for b in batch])
+        elif isinstance(elem, float):
+            return torch.tensor(batch, dtype=torch.float64)
+        elif isinstance(elem, int):
+            return torch.tensor(batch)
+        elif isinstance(elem, string_classes):
+            return batch
+        elif isinstance(elem, Mapping):
+            return {key: self._collate([d[key] for d in batch]) for key in elem}
+        elif isinstance(elem, tuple) and hasattr(elem, "_fields"):  # namedtuple
+            return elem_type(**(self._collate(samples) for samples in zip(*batch)))
+        elif is_dataclass(elem):  # dataclass
+            return elem_type(
+                **{
+                    field.name: self._collate([getattr(d, field.name) for d in batch])
+                    for field in fields(elem)
+                }
+            )
+        elif isinstance(elem, (tuple, list)):
+            transposed = zip(*batch)
+            return [self._collate(samples) for samples in transposed]
+        raise TypeError(default_collate_err_msg_format.format(elem_type))
+
+    def __call__(self, batch: Sequence[Any]) -> Any:
+        collated_batch = self._collate(batch=batch)
+        if self.cast_to_sample and (not isinstance(collated_batch, SampleBase)):
+            if isinstance(collated_batch, Tensor):
+                collated_batch = NamedSample(x=collated_batch)
+            elif isinstance(collated_batch, (tuple, list, dict)):
+                if len(collated_batch) == 1:
+                    sample_cls = NamedSample
+                elif len(collated_batch) == 2:
+                    sample_cls = BinarySample
+                elif len(collated_batch) == 3:
+                    sample_cls = TernarySample
+                else:
+                    raise ValueError
+                if isinstance(collated_batch, dict):
+                    collated_batch = sample_cls(**collated_batch)
+                else:
+                    collated_batch = sample_cls(*collated_batch)
+            else:
+                raise ValueError(
+                    f"batch of type '{type(collated_batch)}' could not be automatically converted into a "
+                    "'Sample' instance. Batch must be of type 'dict', 'tuple', or 'list'."
+                )
+        return collated_batch
+
+
+class PBDataLoader(DataLoader):
+    def __init__(
+        self,
+        dataset: Dataset,
+        *,
+        batch_size: int | None,
+        shuffle: bool = False,
+        sampler: Sampler[int] | None = None,
+        batch_sampler: Sampler[Sequence[int]] | None = None,
+        num_workers: int = 0,
+        pin_memory: bool = False,
+        drop_last: bool = False,
+        timeout: float = 0,
+        worker_init_fn: _worker_init_fn_t | None = None,
+        multiprocessing_context: BaseContext | str | None = None,
+        generator: torch.Generator | None = None,
+        prefetch_factor: int = 2,
+        persistent_workers: bool = False,
+        cast_to_sample: bool = True,
+    ) -> None:
+        super().__init__(
+            dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            sampler=sampler,
+            batch_sampler=batch_sampler,
+            num_workers=num_workers,
+            collate_fn=pb_collate(cast_to_sample=cast_to_sample),
+            pin_memory=pin_memory,
+            drop_last=drop_last,
+            timeout=timeout,
+            worker_init_fn=worker_init_fn,
+            multiprocessing_context=multiprocessing_context,
+            generator=generator,
+            prefetch_factor=prefetch_factor,
+            persistent_workers=persistent_workers,
         )
-    elif isinstance(elem, (tuple, list)):
-        transposed = zip(*batch)
-        return [pb_default_collate(samples) for samples in transposed]
-    raise TypeError(default_collate_err_msg_format.format(elem_type))
 
 
 def check_integrity(*, filepath: Path, md5: str | None) -> None:
