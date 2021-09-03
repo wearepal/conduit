@@ -92,7 +92,7 @@ class Ecoacoustics(PBAudioDataset):
         preprocess_transform: Callable[[Tensor], Tensor] = T.Spectrogram,
     ) -> None:
 
-        self.root = Path(root)
+        self.root = Path(root).expanduser()
         self.download = download
         self.base_dir = self.root / self._BASE_FOLDER
         self.labels_dir = self.base_dir / self.INDICES_DIR
@@ -140,7 +140,7 @@ class Ecoacoustics(PBAudioDataset):
                 f"Indices file not found at location {self.base_dir.resolve()}."
                 "Have you downloaded it?"
             )
-        elif zipfile.is_zipfile(self.labels_dir):
+        if zipfile.is_zipfile(self.labels_dir):
             raise RuntimeError("Indices file not unzipped.")
 
         for dir_ in ["UK_BIRD", "EC_BIRD"]:
@@ -150,12 +150,13 @@ class Ecoacoustics(PBAudioDataset):
                     f"Data not found at location {self.base_dir.resolve()}."
                     "Have you downloaded it?"
                 )
-            elif zipfile.is_zipfile(dir_):
+            if zipfile.is_zipfile(dir_):
                 raise RuntimeError(f"{dir_} file not unzipped.")
 
         return True
 
-    def _label_encode_metadata(self, metadata: pd.DataFrame) -> pd.DataFrame:
+    @staticmethod
+    def _label_encode_metadata(metadata: pd.DataFrame) -> pd.DataFrame:
         """Label encode the extracted concept/context/superclass information."""
         for col in metadata.columns:
             # Skip over filepath and filename columns
@@ -187,7 +188,7 @@ class Ecoacoustics(PBAudioDataset):
         md5: str,
         filename: str | None = None,
         remove_finished: bool = False,
-    ) -> str | None:
+    ) -> None:
         if not filename:
             filename = os.path.basename(url)
 
@@ -196,13 +197,14 @@ class Ecoacoustics(PBAudioDataset):
         archive = self.base_dir / filename
         self.log(f"Extracting {archive}")
 
-        suffix, archive_type, compression = _detect_file_type(str(archive))
+        suffix, archive_type, _ = _detect_file_type(str(archive))
         if not archive_type:
-            return _decompress(
+            _ = _decompress(
                 str(archive),
                 os.path.join(self.base_dir, filename.replace(suffix, "")),
                 remove_finished=remove_finished,
             )
+            return None
 
         subprocess.run(f"jar -xvf {archive}", shell=True, check=True, cwd=self.base_dir)
 
@@ -262,7 +264,7 @@ class Ecoacoustics(PBAudioDataset):
 
         tform = transform(n_fft=n_freq_bins, hop_length=hop_len)
         for path in waveform_paths:
-            waveform_filename = str(path).split("\\")[-1].split(".")[0]
+            waveform_filename = path.stem
             waveform, sr = torchaudio.load(path)
             waveform = F.resample(waveform, sr, new_sr)
             specgram = tform(waveform)
