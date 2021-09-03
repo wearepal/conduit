@@ -1,4 +1,4 @@
-"""Base class from which all data-modules in palconduit inherit."""
+"""Base class from which all data-modules in conduit inherit."""
 from __future__ import annotations
 from abc import abstractmethod
 import logging
