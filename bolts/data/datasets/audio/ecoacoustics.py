@@ -202,7 +202,7 @@ class Ecoacoustics(PBAudioDataset):
         except subprocess.CalledProcessError:
             self.log(
                 "Tried to extract malformed .zip file using Java."
-                "However, there was a porblem. Is Java on your system path?"
+                "However, there was a problem. Is Java in your system path?"
             )
 
     def _extract_metadata(self) -> None:
