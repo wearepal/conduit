@@ -271,7 +271,7 @@ class Ecoacoustics(CdtAudioDataset):
         waveform_paths = list(self.base_dir.glob("**/*.wav"))
 
         to_specgram = T.Spectrogram(n_fft=self.num_freq_bins, hop_length=self.hop_length)
-        for path in tqdm(total=waveform_paths, desc="Preprocessing"):
+        for path in tqdm(waveform_paths, desc="Preprocessing"):
             waveform_filename = path.stem
             waveform, sr = torchaudio.load(path)
             waveform = F.resample(waveform, sr, self.resample_rate)
