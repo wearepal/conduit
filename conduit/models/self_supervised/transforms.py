@@ -1,6 +1,6 @@
-from PIL import Image, ImageFilter
-
 import random
+
+from PIL import Image, ImageFilter
 
 __all__ = ["GaussianBlur"]
 

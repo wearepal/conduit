@@ -7,7 +7,7 @@ from kit.torch.data import TrainingMode
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from torch import Tensor, optim, nn
+from torch import Tensor, nn, optim
 from torch.utils.data import DataLoader
 from torchvision.models.resnet import ResNet
 

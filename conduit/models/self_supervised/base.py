@@ -10,8 +10,8 @@ import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
-from torch.functional import Tensor
 from torch import nn
+from torch.functional import Tensor
 from typing_extensions import Protocol
 
 from conduit.data.datamodules.base import CdtDataModule

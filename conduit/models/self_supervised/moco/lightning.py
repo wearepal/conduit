@@ -6,7 +6,7 @@ from kit.misc import gcopy, str_to_enum
 from kit.torch.loss import CrossEntropyLoss, ReductionType
 import pytorch_lightning as pl
 import torch
-from torch import Tensor, optim, nn
+from torch import Tensor, nn, optim
 import torch.nn.functional as F
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
