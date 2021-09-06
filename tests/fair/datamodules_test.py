@@ -7,13 +7,13 @@ import pytest
 import torch
 from typing_extensions import Final
 
-from bolts.data.datamodules.vision.celeba import CelebADataModule
-from bolts.fair.data import CrimeDataModule, HealthDataModule
-from bolts.fair.data.datamodules import AdultDataModule, CompasDataModule
-from bolts.fair.data.datamodules.tabular.admissions import AdmissionsDataModule
-from bolts.fair.data.datamodules.tabular.base import EthicMlDataModule
-from bolts.fair.data.datamodules.tabular.credit import CreditDataModule
-from bolts.fair.data.datamodules.tabular.law import LawDataModule
+from conduit.data.datamodules.vision.celeba import CelebADataModule
+from conduit.fair.data import CrimeDataModule, HealthDataModule
+from conduit.fair.data.datamodules import AdultDataModule, CompasDataModule
+from conduit.fair.data.datamodules.tabular.admissions import AdmissionsDataModule
+from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
+from conduit.fair.data.datamodules.tabular.credit import CreditDataModule
+from conduit.fair.data.datamodules.tabular.law import LawDataModule
 
 BATCHSIZE: Final[int] = 4
 
@@ -67,7 +67,6 @@ def test_data_modules_props(dm_cls: type[EthicMlDataModule]) -> None:
     """Test the datamodules."""
     dm = _create_dm(dm_cls)
 
-    assert dm.dim_x == dm.size()
     assert dm.dim_s == (1,)
     assert dm.dim_y == (1,)
     assert dm.card_s == 2

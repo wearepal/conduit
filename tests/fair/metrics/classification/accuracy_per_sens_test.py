@@ -5,7 +5,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from bolts.fair.metrics.accuracy_per_sens import AccuracyPerSens
+from conduit.fair.metrics.accuracy_per_sens import AccuracyPerSens
 
 NUM_PROCESSES = 2
 NUM_BATCHES = 10
