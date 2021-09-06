@@ -49,9 +49,7 @@ class MultiCropTransform:
         local_crops_scale: tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
     ) -> MultiCropTransform:
-        from conduit.models.self_supervised.dino.transforms import (  # TODO: Cyclic Import
-            dino_train_transform,
-        )
+        from conduit.models.self_supervised.dino.transforms import dino_train_transform
 
         return dino_train_transform(
             global_crop_size=global_crop_size,
