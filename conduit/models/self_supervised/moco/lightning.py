@@ -10,9 +10,6 @@ from torch import Tensor, optim
 import torch.nn as nn
 import torch.nn.functional as F
 
-from conduit.data.datamodules.vision.base import CdtVisionDataModule
-from conduit.data.datasets.utils import ImageTform
-from conduit.data.structures import NamedSample
 from conduit.models.base import CdtModel
 from conduit.models.erm import FineTuner
 from conduit.models.self_supervised.base import (
@@ -29,6 +26,9 @@ from conduit.models.self_supervised.multicrop import (
     MultiCropWrapper,
 )
 from conduit.models.utils import precision_at_k, prefix_keys
+from conduit.data.datamodules.vision.base import CdtVisionDataModule
+from conduit.data.datasets.utils import ImageTform
+from conduit.data.structures import NamedSample
 from conduit.types import MetricDict
 
 from .utils import MemoryBank, ResNetArch, concat_all_gather
