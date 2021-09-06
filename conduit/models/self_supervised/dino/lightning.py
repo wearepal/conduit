@@ -11,6 +11,7 @@ from torch import Tensor, nn, optim
 from torch.utils.data import DataLoader
 from torchvision.models.resnet import ResNet
 
+from conduit.architectures import vit
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.utils import ImageTform
 from conduit.data.structures import NamedSample
@@ -31,7 +32,6 @@ from conduit.models.self_supervised.moco.utils import ResNetArch
 from conduit.models.self_supervised.multicrop import MultiCropWrapper
 from conduit.types import Stage
 
-from . import vit
 from .eval import DatasetEncoder, DINOLinearClassifier
 from .head import DINOHead
 from .utils import cosine_scheduler, get_params_groups
