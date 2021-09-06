@@ -12,6 +12,11 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision.models.resnet import ResNet
 
+from conduit.architectures import vit
+from conduit.data import NamedSample
+from conduit.data.datamodules.vision.base import CdtVisionDataModule
+from conduit.data.datasets.utils import ImageTform
+from conduit.data.structures import NamedSample
 from conduit.models.base import CdtModel
 from conduit.models.self_supervised.base import (
     BatchTransform,
@@ -27,11 +32,6 @@ from conduit.models.self_supervised.moco.transforms import (
 )
 from conduit.models.self_supervised.moco.utils import ResNetArch
 from conduit.models.self_supervised.multicrop import MultiCropWrapper
-from conduit.architectures import vit
-from conduit.data import NamedSample
-from conduit.data.datamodules.vision.base import CdtVisionDataModule
-from conduit.data.datasets.utils import ImageTform
-from conduit.data.structures import NamedSample
 from conduit.types import Stage
 
 from .eval import DatasetEncoder, DINOLinearClassifier
