@@ -8,6 +8,7 @@
 from __future__ import annotations
 from os import mkdir
 from pathlib import Path
+import shutil
 import subprocess
 from typing import Callable, ClassVar, NamedTuple, Optional, Union
 import zipfile
@@ -205,6 +206,8 @@ class Ecoacoustics(PBAudioDataset):
                 "Tried to extract malformed .zip file using Java."
                 "However, there was a problem. Is Java in your system path?"
             )
+        if (self.base_dir / "__MACOSX").exists():
+            shutil.rmtree(self.base_dir / "__MACOSX")
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
@@ -258,9 +261,7 @@ class Ecoacoustics(PBAudioDataset):
         if not self._processed_audio_dir.exists():
             mkdir(self._processed_audio_dir)
 
-        waveform_paths = [
-            path for path in self.base_dir.glob("**/*.wav") if "MACOSX" not in str(path)
-        ]
+        waveform_paths = list(self.base_dir.glob("**/*.wav"))
 
         tform = transform(n_fft=n_freq_bins, hop_length=hop_len)
         for path in tqdm(waveform_paths, desc="Preprocessing"):
