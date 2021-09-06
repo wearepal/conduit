@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from kit.decorators import implements
-from torch import Tensor
-import torch.nn as nn
+from torch import Tensor, nn
 import torch.nn.functional as F
 from torch.nn.init import trunc_normal_
 
@@ -45,7 +44,8 @@ class DINOHead(nn.Module):
         if norm_last_layer:
             self.last_layer.weight_g.requires_grad = False
 
-    def _init_weights(self, m: nn.Module) -> None:
+    @staticmethod
+    def _init_weights(m: nn.Module) -> None:
         if isinstance(m, nn.Linear):
             trunc_normal_(m.weight, std=0.02)
             if m.bias is not None:

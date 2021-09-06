@@ -1,8 +1,6 @@
 from __future__ import annotations
-import random
 from typing import Sequence
 
-from PIL import Image, ImageFilter
 from torchvision import transforms as T
 from torchvision.transforms.functional import InterpolationMode
 
@@ -11,31 +9,12 @@ from conduit.data.datasets.utils import PillowTform
 from conduit.data.structures import MeanStd
 
 __all__ = [
-    "GaussianBlur",
     "moco_ft_transform",
     "moco_test_transform",
     "mocov2_train_transform",
 ]
 
-
-class GaussianBlur:
-    """
-    Apply Gaussian Blur to the PIL image with some probability.
-    """
-
-    def __init__(self, p: float = 0.5, *, radius_min: float = 0.1, radius_max: float = 2.0) -> None:
-        self.prob = p
-        self.radius_min = radius_min
-        self.radius_max = radius_max
-
-    def __call__(self, img: Image.Image) -> Image.Image:
-        do_it = random.random() <= self.prob
-        if not do_it:
-            return img
-
-        return img.filter(
-            ImageFilter.GaussianBlur(radius=random.uniform(self.radius_min, self.radius_max))
-        )
+from conduit.models.self_supervised.transforms import GaussianBlur
 
 
 def mocov2_train_transform(

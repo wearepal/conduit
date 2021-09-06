@@ -31,7 +31,7 @@ class GradReverse(autograd.Function):
     def forward(ctx: autograd.Function, x: Tensor, lambda_: float) -> Tensor:
         """Do GRL."""
         if lambda_ < 0:
-            raise ValueError(f"Argument 'lambda_' to GradReverse.forward must be non-negative.")
+            raise ValueError("Argument 'lambda_' to GradReverse.forward must be non-negative.")
         ctx.lambda_ = lambda_
         return x
 
@@ -140,9 +140,9 @@ class DANN(CdtModel):
         model_out: ModelOut = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
         logging_dict = {
-            f"loss": loss.item(),
-            f"loss_adv": loss_adv.item(),
-            f"loss_clf": loss_clf.item(),
+            "loss": loss.item(),
+            "loss_adv": loss_adv.item(),
+            "loss_clf": loss_clf.item(),
         }
         logging_dict = prefix_keys(dict_=logging_dict, prefix=str(stage), sep="/")
         self.log_dict(logging_dict)

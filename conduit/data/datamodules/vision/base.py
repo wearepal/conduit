@@ -11,7 +11,7 @@ import pytorch_lightning as pl
 from typing_extensions import final
 
 from conduit.constants import IMAGENET_STATS
-from conduit.data.datamodules import CdtDataModule
+from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.utils import AlbumentationsTform, ImageTform
 from conduit.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
 from conduit.data.structures import ImageSize, MeanStd

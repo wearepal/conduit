@@ -18,7 +18,7 @@ from tqdm import tqdm
 from typing_extensions import Literal
 
 from conduit.data.datasets.utils import ImageTform
-from conduit.data.datasets.vision.base import CdtVisionDataset
+from .base import CdtVisionDataset
 
 __all__ = ["ISIC"]
 

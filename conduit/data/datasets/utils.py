@@ -253,8 +253,7 @@ class pb_collate:
             ndims = elem.dim()
             if (ndims > 0) and ((ndims % 2) == 0):
                 return torch.cat(batch, dim=0, out=out)
-            else:
-                return torch.stack(batch, dim=0, out=out)
+            return torch.stack(batch, dim=0, out=out)
         elif (
             elem_type.__module__ == "numpy"
             and elem_type.__name__ != "str_"

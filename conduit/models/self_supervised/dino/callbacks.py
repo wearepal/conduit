@@ -3,7 +3,7 @@ from __future__ import annotations
 from kit.decorators import implements
 import pytorch_lightning as pl
 
-from conduit.models.self_supervised.dino.utils import cosine_scheduler
+from .utils import cosine_scheduler
 
 __all__ = ["DINOScheduler"]
 

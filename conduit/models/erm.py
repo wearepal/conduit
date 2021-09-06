@@ -9,7 +9,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 import torch
 from torch import Tensor, nn
-import torch.nn as nn
 
 from conduit.data import BinarySample
 from conduit.types import Loss, MetricDict, Stage

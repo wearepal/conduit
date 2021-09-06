@@ -22,6 +22,8 @@ class PostHocEval(pl.Callback):
         - ``self.trainer''
     """
 
+    eval_clf: FineTuner
+
     def __init__(self, callbacks_to_ignore: Optional[List[Type[pl.Callback]]] = None) -> None:
         super().__init__()
         self.ignored_callbacks = (
@@ -40,8 +42,8 @@ class PostHocEval(pl.Callback):
         trainer.fit_loop.max_epochs = pl_module.clf_epochs
         self.eval_clf = FineTuner(encoder=pl_module.encoder, classifier=pl_module.eval_classifier)
 
+    @staticmethod
     def _eval_loop(
-        self,
         trainer: pl.Trainer,
         model: pl.LightningModule,
         train_dl: DataLoader,

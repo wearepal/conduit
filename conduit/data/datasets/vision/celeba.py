@@ -10,7 +10,7 @@ import pandas as pd
 import torch
 
 from conduit.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
-from conduit.data.datasets.vision.base import CdtVisionDataset
+from .base import CdtVisionDataset
 
 __all__ = ["CelebA", "CelebAttr", "CelebASplit"]
 

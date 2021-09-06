@@ -5,8 +5,7 @@ from typing import Any, Callable, TypeVar
 from kit.misc import gcopy
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 import torch
-from torch import Tensor
-import torch.nn as nn
+from torch import Tensor, nn
 
 __all__ = [
     "PartialModule",

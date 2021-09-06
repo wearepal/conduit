@@ -15,7 +15,6 @@ def test_post_hoc_eval() -> None:
     model = ERMClassifierF(encoder=enc, clf=clf, weight_decay=1e-8, lr=1e-3)
     model.build(datamodule=dm, trainer=trainer)
     model.eval_classifier = nn.Sequential(nn.Flatten(), nn.Linear(128, 2))
-    model.encoder = model.encoder
     model.clf_epochs = 1
     model.batch_size_eval = 10
     trainer.callbacks += [PostHocEval()]

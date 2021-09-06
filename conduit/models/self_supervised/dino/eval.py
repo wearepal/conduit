@@ -5,8 +5,7 @@ from dataclasses import replace
 from kit import implements
 import pytorch_lightning as pl
 import torch
-from torch import Tensor, optim
-import torch.nn as nn
+from torch import Tensor, optim, nn
 
 from conduit.data.structures import NamedSample, shallow_asdict
 from conduit.models.erm import FineTuner

@@ -23,8 +23,7 @@ from typing import Any
 
 from kit.decorators import implements
 import torch
-from torch import Tensor
-import torch.nn as nn
+from torch import Tensor, nn
 import torch.nn.functional as F
 from torch.nn.init import trunc_normal_
 
@@ -130,7 +129,7 @@ class Block(nn.Module):
         qk_scale: float | None = None,
         drop: float = 0.0,
         attn_drop: float = 0.0,
-        drop_path: float = 0.0,
+        drop_path: float = 0.0,  # TODO: rename this as copies function name in outer scope
         act_layer: type[nn.Module] = nn.GELU,
         norm_layer: type[nn.LayerNorm] | type[nn.BatchNorm1d] = nn.LayerNorm,
     ) -> None:
@@ -186,7 +185,7 @@ class VisionTransformer(nn.Module):
 
     def __init__(
         self,
-        img_size: list[int] = [224],
+        img_size: int | list[int] = 224,
         patch_size: int = 16,
         in_chans: int = 3,
         num_classes: int = 0,
@@ -202,6 +201,8 @@ class VisionTransformer(nn.Module):
         norm_layer: type[nn.LayerNorm] | type[nn.BatchNorm1d] = nn.LayerNorm,
     ) -> None:
         super().__init__()
+        if isinstance(img_size, int):
+            img_size = [img_size]
         self.num_features = self.embed_dim = embed_dim
 
         self.patch_embed = PatchEmbed(
@@ -241,7 +242,8 @@ class VisionTransformer(nn.Module):
         trunc_normal_(self.cls_token, std=0.02)
         self.apply(self._init_weights)
 
-    def _init_weights(self, m: nn.Module) -> None:
+    @staticmethod
+    def _init_weights(m: nn.Module) -> None:
         if isinstance(m, nn.Linear):
             trunc_normal_(m.weight, std=0.02)
             if isinstance(m, nn.Linear) and m.bias is not None:

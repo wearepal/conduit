@@ -32,7 +32,7 @@ from torchvision.datasets.utils import (
 from tqdm import tqdm
 from typing_extensions import Literal
 
-from conduit.data.datasets.audio.base import CdtAudioDataset
+from .base import CdtAudioDataset
 from conduit.data.datasets.utils import AudioTform, FileInfo
 
 __all__ = ["Ecoacoustics"]

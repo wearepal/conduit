@@ -6,8 +6,7 @@ from kit.misc import gcopy, str_to_enum
 from kit.torch.loss import CrossEntropyLoss, ReductionType
 import pytorch_lightning as pl
 import torch
-from torch import Tensor, optim
-import torch.nn as nn
+from torch import Tensor, optim, nn
 import torch.nn.functional as F
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
@@ -114,7 +113,6 @@ class MoCoV2(MomentumTeacherModel):
     def _build(self) -> None:
         self.use_ddp = "ddp" in str(self.trainer.distributed_backend)
         if isinstance(self.datamodule, CdtVisionDataModule):
-            # self._datamodule.train_transforms = mocov2_transform()
             if (self.instance_transforms is None) and (self.batch_transforms is None):
                 if self.multicrop:
                     self.instance_transforms = MultiCropTransform.with_dino_transform(
@@ -187,8 +185,9 @@ class MoCoV2(MomentumTeacherModel):
             keys = concat_all_gather(keys)
         self.mb.push(keys)
 
+    @staticmethod
     @torch.no_grad()
-    def _batch_shuffle_ddp(self, x: Tensor) -> tuple[Tensor, Tensor]:  # pragma: no-cover
+    def _batch_shuffle_ddp(x: Tensor) -> tuple[Tensor, Tensor]:  # pragma: no-cover
         """
         Batch shuffle, for making use of BatchNorm.
         *** Only supports DistributedDataParallel (DDP).***
@@ -215,8 +214,9 @@ class MoCoV2(MomentumTeacherModel):
 
         return x_gather[idx_this], idx_unshuffle
 
+    @staticmethod
     @torch.no_grad()
-    def _batch_unshuffle_ddp(self, x: Tensor, idx_unshuffle: Tensor) -> Tensor:  # pragma: no-cover
+    def _batch_unshuffle_ddp(x: Tensor, idx_unshuffle: Tensor) -> Tensor:  # pragma: no-cover
         """
         Undo batch shuffle.
         *** Only supports DistributedDataParallel (DDP).***

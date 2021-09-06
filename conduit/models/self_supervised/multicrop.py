@@ -1,11 +1,9 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
 from typing import Sequence
 
 from kit.decorators import implements
 import torch
-from torch import Tensor
-import torch.nn as nn
+from torch import Tensor, nn
 
 from conduit.constants import IMAGENET_STATS
 from conduit.data.datasets.utils import (
@@ -51,7 +49,9 @@ class MultiCropTransform:
         local_crops_scale: tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
     ) -> MultiCropTransform:
-        from conduit.models.self_supervised.dino.transforms import dino_train_transform
+        from conduit.models.self_supervised.dino.transforms import (
+            dino_train_transform,
+        )  # TODO: Cyclic Import
 
         return dino_train_transform(
             global_crop_size=global_crop_size,
@@ -76,7 +76,8 @@ class MultiCropTransform:
             global_transform_1=mocov2_train_transform(crop_size=crop_size, norm_values=norm_values)
         )
 
-    def _apply_transform(self, image: RawImage, transform: ImageTform):
+    @staticmethod
+    def _apply_transform(image: RawImage, transform: ImageTform):
         view = apply_image_transform(image, transform=transform)
         if not isinstance(view, Tensor):
             view = img_to_tensor(view)

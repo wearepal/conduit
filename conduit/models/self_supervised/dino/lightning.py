@@ -7,12 +7,10 @@ from kit.torch.data import TrainingMode
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from torch import Tensor, optim
-import torch.nn as nn
+from torch import Tensor, optim, nn
 from torch.utils.data import DataLoader
 from torchvision.models.resnet import ResNet
 
-from conduit.data import NamedSample
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.utils import ImageTform
 from conduit.data.structures import NamedSample

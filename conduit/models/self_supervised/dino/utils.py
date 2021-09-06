@@ -1,11 +1,7 @@
 from __future__ import annotations
-import math
-import warnings
 
 import numpy as np
-import torch
-from torch import Tensor
-import torch.nn as nn
+from torch import Tensor, nn
 
 __all__ = [
     "cosine_scheduler",

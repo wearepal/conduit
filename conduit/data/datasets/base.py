@@ -49,7 +49,8 @@ class CdtDataset(Dataset):
         lines = [head] + [" " * self._repr_indent + line for line in body]
         return '\n'.join(lines)
 
-    def extra_repr(self) -> str:
+    @staticmethod
+    def extra_repr() -> str:
         return ""
 
     @property
@@ -155,10 +156,9 @@ class CdtDataset(Dataset):
             if s is None:
                 return NamedSample(x=x)
             return SubgroupSample(x=x, s=s)
-        else:
-            if s is None:
-                return BinarySample(x=x, y=y)
-            return TernarySample(x=x, y=y, s=s)
+        if s is None:
+            return BinarySample(x=x, y=y)
+        return TernarySample(x=x, y=y, s=s)
 
     def __len__(self) -> int:
         return len(self.x)
