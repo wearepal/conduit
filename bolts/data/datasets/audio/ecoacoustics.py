@@ -26,6 +26,7 @@ from torchvision.datasets.utils import (
     download_and_extract_archive,
     download_url,
 )
+from tqdm import tqdm
 from typing_extensions import Literal
 
 from bolts.data.datasets.audio.base import PBAudioDataset
@@ -257,10 +258,12 @@ class Ecoacoustics(PBAudioDataset):
         if not self._processed_audio_dir.exists():
             mkdir(self._processed_audio_dir)
 
-        waveform_paths = list(self.base_dir.glob("**/*.wav"))
+        waveform_paths = [
+            path for path in self.base_dir.glob("**/*.wav") if "MACOSX" not in str(path)
+        ]
 
         tform = transform(n_fft=n_freq_bins, hop_length=hop_len)
-        for path in waveform_paths:
+        for path in tqdm(waveform_paths, desc="Preprocessing"):
             waveform_filename = path.stem
             waveform, sr = torchaudio.load(path)
             waveform = F.resample(waveform, sr, new_sr)
@@ -268,7 +271,7 @@ class Ecoacoustics(PBAudioDataset):
 
             spectrogram_segments = self._segment_spectrogram(specgram, specgram_segment_len)
             for i, segment in enumerate(spectrogram_segments):
-                torch.save(segment, f"{str(self._processed_audio_dir)}\\{waveform_filename}_{i}.pt")
+                torch.save(segment, self._processed_audio_dir / f"{waveform_filename}_{i}.pt")
 
     def _segment_spectrogram(self, specgram: Tensor, segment_len: float) -> list[Tensor]:
         """
