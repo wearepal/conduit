@@ -263,7 +263,7 @@ class Ecoacoustics(PBAudioDataset):
         ]
 
         tform = transform(n_fft=n_freq_bins, hop_length=hop_len)
-        for path in tqdm(waveform_paths, desc="Preprocessing"):
+        for path in tqdm(total=waveform_paths, desc="Preprocessing"):
             waveform_filename = path.stem
             waveform, sr = torchaudio.load(path)
             waveform = F.resample(waveform, sr, new_sr)
