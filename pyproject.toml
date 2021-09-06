@@ -1,13 +1,13 @@
 [tool.poetry]
-name = "palbolts"
+name = "conduit"
 version = "0.0.1.dev0"
-description = "Useful PyTorch Lightning modules."
+description = "Lightweight framework for channeling the power of PyTorch Lightning"
 authors = ["PAL <info@predictive-analytics-lab.com>"]
 license = "Apache License 2.0"
 packages = [
-  { include = "bolts" },
+  { include = "conduit" },
 ]
-include=["bolts/py.typed"]
+include=["conduit/py.typed"]
 classifiers=[
   "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
@@ -17,7 +17,7 @@ classifiers=[
   "Typing :: Typed",
 ]
 keywords=["typing", "python", "pytorch", "pytorch-lightning", "lightning-bolts"]
-repository="https://github.com/predictive-analytics-lab/pal-bolts"
+repository="https://github.com/predictive-analytics-lab/pal-conduit"
 readme="README.md"
 
 [tool.poetry.dependencies]
@@ -80,7 +80,7 @@ force_sort_within_sections = "True"
 classes = ["MISSING"]
 
 [tool.pyright]
-include = ["bolts"]
+include = ["conduit"]
 exclude = ["**/node_modules", "**/__pycache__"]
 typeCheckingMode = "basic"
 pythonVersion = "3.7"
