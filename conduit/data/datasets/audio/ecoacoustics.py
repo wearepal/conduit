@@ -6,27 +6,50 @@
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
 from __future__ import annotations
+from enum import Enum, auto
 from os import mkdir
 from pathlib import Path
-from typing import Callable, ClassVar, Optional, Union
+import shutil
+import subprocess
+from typing import ClassVar, NamedTuple, Optional, Union
 import zipfile
 
 from kit import parsable
+from kit.misc import str_to_enum
 import pandas as pd
 import torch
 from torch import Tensor
 import torchaudio
 import torchaudio.functional as F
 import torchaudio.transforms as T
-from torchvision.datasets.utils import download_and_extract_archive
+from torchvision.datasets.utils import (
+    _decompress,
+    _detect_file_type,
+    check_integrity,
+    download_and_extract_archive,
+    download_url,
+)
+from tqdm import tqdm
 from typing_extensions import Literal
 
 from conduit.data.datasets.audio.base import CdtAudioDataset
 from conduit.data.datasets.utils import AudioTform, FileInfo
 
 __all__ = ["Ecoacoustics"]
-SoundscapeAttr = Literal["habitat", "site"]
+
+
+class SoundscapeAttr(Enum):
+    habitat = auto()
+    site = auto()
+
+
 Extension = Literal[".pt", ".wav"]
+
+
+class ZenodoInfo(NamedTuple):
+    filename: str
+    url: str
+    md5: str
 
 
 class Ecoacoustics(CdtAudioDataset):
@@ -42,22 +65,42 @@ class Ecoacoustics(CdtAudioDataset):
     _PROCESSED_DIR: ClassVar[str] = "processed_audio"
     _AUDIO_LEN: ClassVar[float] = 60.0  # Audio samples' durations in seconds.
 
+    _INDICES_URL_MD5_LIST: list[ZenodoInfo] = [
+        ZenodoInfo(
+            filename="AvianID_AcousticIndices.zip",
+            url="https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip",
+            md5="b23208eb7db3766a1d61364b75cb4def",
+        )
+    ]
+
+    _URL_MD5_LIST: list[ZenodoInfo] = [
+        ZenodoInfo(
+            filename="EC_BIRD.zip",
+            url="https://zenodo.org/record/1255218/files/EC_BIRD.zip",
+            md5="d427e904af1565dbbfe76b05f24c258a",
+        ),
+        ZenodoInfo(
+            filename="UK_BIRD.zip",
+            url="https://zenodo.org/record/1255218/files/UK_BIRD.zip",
+            md5="e1e58b224bb8fb448d1858b9c9ee0d8c",
+        ),
+    ]
+
     @parsable
     def __init__(
         self,
         root: Union[str, Path],
         *,
         download: bool = True,
-        target_attr: SoundscapeAttr = "habitat",
+        target_attr: Union[SoundscapeAttr, str] = SoundscapeAttr.habitat,
         transform: Optional[AudioTform] = None,
-        resample_rate: Optional[int] = 22050,
-        specgram_segment_len: Optional[float] = 15,
-        num_freq_bins: Optional[int] = 120,
-        hop_length: Optional[int] = 60,
-        preprocess_transform: Callable[[Tensor], Tensor] = T.Spectrogram,
+        resample_rate: int = 22050,
+        specgram_segment_len: float = 15,
+        num_freq_bins: int = 120,
+        hop_length: int = 60,
     ) -> None:
 
-        self.root = Path(root)
+        self.root = Path(root).expanduser()
         self.download = download
         self.base_dir = self.root / self._BASE_FOLDER
         self.labels_dir = self.base_dir / self.INDICES_DIR
@@ -66,16 +109,22 @@ class Ecoacoustics(CdtAudioDataset):
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
 
+        if isinstance(target_attr, str):
+            target_attr = str_to_enum(str_=target_attr, enum=SoundscapeAttr)
+        self.target_attr = target_attr
+        self.specgram_segment_len = specgram_segment_len
+        self.resample_rate = resample_rate
         self._n_sgram_segments = int(self._AUDIO_LEN / specgram_segment_len)
+        self.hop_length = hop_length
+        self.num_freq_bins = num_freq_bins
+        self.preprocess_transform = T.Spectrogram(n_fft=num_freq_bins, hop_length=hop_length)
 
         if self.download:
             self._download_files()
         self._check_files()
 
         if not self._processed_audio_dir.exists():
-            self._preprocess_audio(
-                specgram_segment_len, resample_rate, num_freq_bins, hop_length, preprocess_transform
-            )
+            self._preprocess_audio()
 
         # Extract labels from indices files.
         if not self._metadata_path.exists():
@@ -84,10 +133,17 @@ class Ecoacoustics(CdtAudioDataset):
         self.metadata = pd.read_csv(self.base_dir / self.METADATA_FILENAME)
 
         x = self.metadata["filePath"].to_numpy()
-        y = torch.as_tensor(self.metadata[f'{target_attr}_le'])
+        y = torch.as_tensor(self.metadata[f'{str(self.target_attr)}_le'])
         s = None
 
         super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self.base_dir)
+
+    def _check_integrity(self, filename: str, *, md5: str) -> bool:
+        fpath = self.base_dir / filename
+        if not check_integrity(str(fpath), md5):
+            return False
+        self.log(f"{filename} already downloaded.")
+        return True
 
     def _check_files(self) -> bool:
         """Check necessary files are present and unzipped."""
@@ -97,7 +153,7 @@ class Ecoacoustics(CdtAudioDataset):
                 f"Indices file not found at location {self.base_dir.resolve()}."
                 "Have you downloaded it?"
             )
-        elif zipfile.is_zipfile(self.labels_dir):
+        if zipfile.is_zipfile(self.labels_dir):
             raise RuntimeError("Indices file not unzipped.")
 
         for dir_ in ["UK_BIRD", "EC_BIRD"]:
@@ -107,12 +163,13 @@ class Ecoacoustics(CdtAudioDataset):
                     f"Data not found at location {self.base_dir.resolve()}."
                     "Have you downloaded it?"
                 )
-            elif zipfile.is_zipfile(dir_):
+            if zipfile.is_zipfile(dir_):
                 raise RuntimeError(f"{dir_} file not unzipped.")
 
         return True
 
-    def _label_encode_metadata(self, metadata: pd.DataFrame) -> pd.DataFrame:
+    @staticmethod
+    def _label_encode_metadata(metadata: pd.DataFrame) -> pd.DataFrame:
         """Label encode the extracted concept/context/superclass information."""
         for col in metadata.columns:
             # Skip over filepath and filename columns
@@ -128,14 +185,42 @@ class Ecoacoustics(CdtAudioDataset):
         self.root.mkdir(parents=True, exist_ok=True)
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
-        urls = [
-            "https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip",
-            "https://zenodo.org/record/1255218/files/EC_BIRD.zip",
-            "https://zenodo.org/record/1255218/files/UK_BIRD.zip",
-        ]
+        for finfo in self._INDICES_URL_MD5_LIST:
+            if not self._check_integrity(finfo.filename, md5=finfo.md5):
+                download_and_extract_archive(
+                    url=finfo.url, download_root=str(self.base_dir), md5=finfo.md5
+                )
 
-        for url in urls:
-            download_and_extract_archive(url, str(self.base_dir))
+        for finfo in self._URL_MD5_LIST:
+            if not self._check_integrity(finfo.filename, md5=finfo.md5):
+                self.download_and_extract_archive_jar(finfo)
+
+    def download_and_extract_archive_jar(
+        self, finfo: ZenodoInfo, *, remove_finished: bool = False
+    ) -> None:
+        download_url(finfo.url, str(self.base_dir), finfo.filename, finfo.md5)
+
+        archive = self.base_dir / finfo.filename
+        self.log(f"Extracting {archive}")
+
+        _, archive_type, _ = _detect_file_type(str(archive))
+        if not archive_type:
+            _ = _decompress(
+                str(archive),
+                str((self.base_dir / finfo.filename).with_suffix("")),
+                remove_finished=remove_finished,
+            )
+            return
+
+        try:
+            subprocess.run(["jar", "-xvf", str(archive)], check=True, cwd=self.base_dir)
+        except subprocess.CalledProcessError:
+            self.log(
+                "Tried to extract malformed .zip file using Java."
+                "However, there was a problem. Is Java in your system path?"
+            )
+        if (self.base_dir / "__MACOSX").exists():
+            shutil.rmtree(self.base_dir / "__MACOSX")
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
@@ -173,14 +258,7 @@ class Ecoacoustics(CdtAudioDataset):
         metadata = self._label_encode_metadata(metadata)
         metadata.to_csv(self._metadata_path)
 
-    def _preprocess_audio(
-        self,
-        specgram_segment_len: float,
-        new_sr: int,
-        n_freq_bins: int,
-        hop_len: int,
-        transform: Callable[[Tensor], Tensor],
-    ) -> None:
+    def _preprocess_audio(self) -> None:
         """
         Applies transformation to audio samples then segments transformed samples and stores
         them as processed files.
@@ -191,16 +269,16 @@ class Ecoacoustics(CdtAudioDataset):
 
         waveform_paths = list(self.base_dir.glob("**/*.wav"))
 
-        tform = transform(n_fft=n_freq_bins, hop_length=hop_len)
-        for path in waveform_paths:
-            waveform_filename = str(path).split("\\")[-1].split(".")[0]
+        to_specgram = T.Spectrogram(n_fft=self.num_freq_bins, hop_length=self.hop_length)
+        for path in tqdm(total=waveform_paths, desc="Preprocessing"):
+            waveform_filename = path.stem
             waveform, sr = torchaudio.load(path)
-            waveform = F.resample(waveform, sr, new_sr)
-            specgram = tform(waveform)
+            waveform = F.resample(waveform, sr, self.resample_rate)
+            specgram = to_specgram(waveform)
 
-            spectrogram_segments = self._segment_spectrogram(specgram, specgram_segment_len)
+            spectrogram_segments = self._segment_spectrogram(specgram, self.specgram_segment_len)
             for i, segment in enumerate(spectrogram_segments):
-                torch.save(segment, f"{str(self._processed_audio_dir)}\\{waveform_filename}_{i}.pt")
+                torch.save(segment, self._processed_audio_dir / f"{waveform_filename}_{i}.pt")
 
     def _segment_spectrogram(self, specgram: Tensor, segment_len: float) -> list[Tensor]:
         """
