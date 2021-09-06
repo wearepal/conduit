@@ -198,7 +198,7 @@ class Ecoacoustics(PBAudioDataset):
             return
 
         try:
-            subprocess.run(f"jar -xvf {archive}", check=True, cwd=self.base_dir)
+            subprocess.run(["jar", "-xvf", str(archive)], check=True, cwd=self.base_dir)
         except subprocess.CalledProcessError:
             self.log(
                 "Tried to extract malformed .zip file using Java."
