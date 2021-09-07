@@ -233,7 +233,7 @@ class Ecoacoustics(CdtAudioDataset):
             return pd.DataFrame.from_dict(
                 [
                     {
-                        "filePath": path.parent,
+                        "filePath": str(path.relative_to(self.base_dir)),
                         "fileName": path.name,
                     }
                     for path in paths
