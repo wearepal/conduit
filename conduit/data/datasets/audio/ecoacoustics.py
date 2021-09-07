@@ -132,8 +132,8 @@ class Ecoacoustics(CdtAudioDataset):
 
         self.metadata = pd.read_csv(self.base_dir / self.METADATA_FILENAME)
 
-        x = self.metadata["filePath"].to_numpy()
-        y = torch.as_tensor(self.metadata[f'{str(self.target_attr)}_le'])
+        x = self.metadata["filePath_pt"].to_numpy()
+        y = torch.as_tensor(self.metadata[f'{self.target_attr.name}_le'])
         s = None
 
         super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self.base_dir)
@@ -171,7 +171,8 @@ class Ecoacoustics(CdtAudioDataset):
     @staticmethod
     def _label_encode_metadata(metadata: pd.DataFrame) -> pd.DataFrame:
         """Label encode the extracted concept/context/superclass information."""
-        for col in metadata.columns:
+        col_list = [str(col) for col in metadata.columns]
+        for col in col_list:
             # Skip over filepath and filename columns
             if "file" not in col and "File" not in col:
                 # Add a new column containing the label-encoded data
@@ -243,20 +244,14 @@ class Ecoacoustics(CdtAudioDataset):
         uk_labels = pd.read_csv(self.uk_labels_path, encoding="ISO-8859-1")
 
         sgram_seg_metadata = gen_files_df(".pt")
-        sgram_seg_metadata.sort_values(by=["fileName"], axis=0, inplace=True, ignore_index=True)
 
         # Merge labels and metadata files.
         metadata = gen_files_df(".wav")
-        metadata = metadata.merge(pd.concat([uk_labels, ec_labels]), how="left")
-        metadata = metadata.loc[metadata.index.repeat(self._n_sgram_segments)]
-        metadata.sort_values(by=["fileName"], axis=0, inplace=True, ignore_index=True)
+        metadata = metadata.merge(pd.concat([uk_labels, ec_labels], ignore_index=True), how="left")
 
-        # Replace metadata filename and filepath column values with those in sgram_seg_info.
-        metadata["filePath"] = sgram_seg_metadata["filePath"].values
-        metadata["fileName"] = sgram_seg_metadata["fileName"].values
-
-        metadata.reset_index(inplace=True, drop=True)
-        metadata = self._label_encode_metadata(metadata)
+        metadata = sgram_seg_metadata.merge(
+            metadata, how='left', on='baseFile', suffixes=['_pt', '_wav']
+        )
         metadata.to_csv(self._metadata_path)
 
     def _preprocess_audio(self) -> None:
