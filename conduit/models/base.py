@@ -14,9 +14,8 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
 from conduit.data import NamedSample
 from conduit.data.datamodules.base import CdtDataModule
+from conduit.models.utils import prefix_keys
 from conduit.types import LRScheduler, MetricDict, Stage
-
-from .utils import prefix_keys
 
 __all__ = ["CdtModel"]
 

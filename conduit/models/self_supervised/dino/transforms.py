@@ -9,8 +9,8 @@ from torchvision.transforms.functional import InterpolationMode
 from conduit.constants import IMAGENET_STATS
 from conduit.data.datasets.utils import PillowTform
 from conduit.data.structures import MeanStd
+from conduit.models.self_supervised.moco.transforms import GaussianBlur
 from conduit.models.self_supervised.multicrop import MultiCropTransform
-from conduit.models.self_supervised.transforms import GaussianBlur
 
 __all__ = ["Solarization", "dino_train_transform"]
 

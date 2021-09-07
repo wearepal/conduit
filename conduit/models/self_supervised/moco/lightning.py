@@ -23,14 +23,17 @@ from conduit.models.self_supervised.moco.transforms import (
     moco_ft_transform,
     moco_test_transform,
 )
+from conduit.models.self_supervised.moco.utils import (
+    MemoryBank,
+    ResNetArch,
+    concat_all_gather,
+)
 from conduit.models.self_supervised.multicrop import (
     MultiCropTransform,
     MultiCropWrapper,
 )
 from conduit.models.utils import precision_at_k, prefix_keys
 from conduit.types import MetricDict
-
-from .utils import MemoryBank, ResNetArch, concat_all_gather
 
 __all__ = ["MoCoV2"]
 

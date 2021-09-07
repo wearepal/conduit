@@ -19,10 +19,9 @@ from typing_extensions import Literal
 
 from conduit.data.datasets.utils import ImageTform
 
-from .base import CdtVisionDataset
-
 __all__ = ["ISIC"]
 
+from conduit.data.datasets.vision.base import CdtVisionDataset
 
 IsicAttr = Literal["histo", "malignant", "patch"]
 T = TypeVar("T")

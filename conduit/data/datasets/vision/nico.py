@@ -12,9 +12,8 @@ import torch
 from torch.utils.data import Subset
 
 from conduit.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
+from conduit.data.datasets.vision.base import CdtVisionDataset
 from conduit.data.structures import TrainTestSplit
-
-from .base import CdtVisionDataset
 
 __all__ = ["NICO", "NicoSuperclass"]
 

@@ -22,8 +22,14 @@ from conduit.models.self_supervised.base import (
     SelfSupervisedModel,
 )
 from conduit.models.self_supervised.dino.callbacks import DINOScheduler
+from conduit.models.self_supervised.dino.eval import DINOLinearClassifier
+from conduit.models.self_supervised.dino.head import DINOHead
 from conduit.models.self_supervised.dino.loss import DINOLoss
 from conduit.models.self_supervised.dino.transforms import MultiCropTransform
+from conduit.models.self_supervised.dino.utils import (
+    cosine_scheduler,
+    get_params_groups,
+)
 from conduit.models.self_supervised.moco.transforms import (
     moco_ft_transform,
     moco_test_transform,
@@ -31,10 +37,6 @@ from conduit.models.self_supervised.moco.transforms import (
 from conduit.models.self_supervised.moco.utils import ResNetArch
 from conduit.models.self_supervised.multicrop import MultiCropWrapper
 from conduit.types import Stage
-
-from .eval import DatasetEncoder, DINOLinearClassifier
-from .head import DINOHead
-from .utils import cosine_scheduler, get_params_groups
 
 __all__ = ["DINO"]
 

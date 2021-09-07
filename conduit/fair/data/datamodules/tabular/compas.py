@@ -7,9 +7,9 @@ from ethicml.preprocessing.scaling import ScalerType
 from kit import parsable
 from kit.torch import TrainingMode
 
-from .base import EthicMlDataModule
-
 __all__ = ["CompasDataModule"]
+
+from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 
 
 class CompasSens(Enum):

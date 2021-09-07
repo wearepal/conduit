@@ -9,11 +9,10 @@ from kit.torch.data import TrainingMode
 from pytorch_lightning import LightningDataModule
 
 from conduit.data.datamodules.base import CdtDataModule
+from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.utils import ImageTform
 from conduit.data.datasets.vision.nico import NICO, NicoSuperclass
 from conduit.data.structures import TrainValTestSplit
-
-from .base import CdtVisionDataModule
 
 __all__ = ["NICODataModule"]
 
