@@ -231,10 +231,13 @@ class Ecoacoustics(CdtAudioDataset):
             paths: list[Path] = []
             paths.extend(self.base_dir.glob(f"**/*{ext}"))
             return pd.DataFrame.from_dict(
-                {
-                    "filePath": [path.parent for path in paths],
-                    "fileName": [path.name for path in paths],
-                }
+                [
+                    {
+                        "filePath": path.parent,
+                        "fileName": path.name,
+                    }
+                    for path in paths
+                ]
             )
 
         ec_labels = pd.read_csv(self.ec_labels_path, encoding="ISO-8859-1")
