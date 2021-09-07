@@ -230,13 +230,12 @@ class Ecoacoustics(CdtAudioDataset):
         def gen_files_df(ext: Extension) -> pd.DataFrame:
             paths: list[Path] = []
             paths.extend(self.base_dir.glob(f"**/*{ext}"))
-            str_paths = pd.Series([str(path.relative_to(self.base_dir)) for path in paths])
-
-            df = str_paths.str.rpartition(
-                "\\",
+            return pd.DataFrame.from_dict(
+                {
+                    "filePath": [path.parent for path in paths],
+                    "fileName": [path.name for path in paths],
+                }
             )
-            df[0] = df[0] + df[1]
-            return df.drop(columns=[1]).rename(columns={0: "filePath", 2: "fileName"})
 
         ec_labels = pd.read_csv(self.ec_labels_path, encoding="ISO-8859-1")
         uk_labels = pd.read_csv(self.uk_labels_path, encoding="ISO-8859-1")
