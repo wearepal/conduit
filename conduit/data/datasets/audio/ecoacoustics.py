@@ -264,12 +264,12 @@ class Ecoacoustics(CdtAudioDataset):
             mkdir(self._processed_audio_dir)
 
         waveform_paths = list(self.base_dir.glob("**/*.wav"))
-
         to_specgram = T.Spectrogram(n_fft=self.num_freq_bins, hop_length=self.hop_length)
+
         for path in tqdm(waveform_paths, desc="Preprocessing"):
             waveform_filename = path.stem
             waveform, sr = torchaudio.load(path)
-            waveform = F.resample(waveform, sr, self.resample_rate)
+            waveform = F.resample(waveform, orig_freq=sr, new_freq=self.resample_rate)
             specgram = to_specgram(waveform)
             audio_len = waveform.size(-1) / self.resample_rate
             frac_remainder, _ = math.modf(audio_len / self.specgram_segment_len)
@@ -284,7 +284,7 @@ class Ecoacoustics(CdtAudioDataset):
                 )
                 specgram = torch.cat((specgram, padding), dim=-1)
             spectrogram_segments = specgram.chunk(
-                int(audio_len / self.specgram_segment_len), dim=-1
+                chunks=int(audio_len / self.specgram_segment_len), dim=-1
             )
             if 0 < frac_remainder < 0.5:
                 self.log(
@@ -295,4 +295,4 @@ class Ecoacoustics(CdtAudioDataset):
                 spectrogram_segments = spectrogram_segments[:-1]
 
             for i, segment in enumerate(spectrogram_segments):
-                torch.save(segment, self._processed_audio_dir / f"{waveform_filename}={i}.pt")
+                torch.save(segment, f=self._processed_audio_dir / f"{waveform_filename}={i}.pt")
