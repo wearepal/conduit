@@ -12,7 +12,7 @@ from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.utils import AlbumentationsTform
 from conduit.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
 from conduit.data.structures import ImageSize
-from conduit.structures import Stage
+from conduit.types import Stage
 
 __all__ = ["CdtAudioDataModule"]
 
