@@ -275,7 +275,7 @@ class Ecoacoustics(CdtAudioDataset):
             frac_remainder, _ = math.modf(audio_len / self.specgram_segment_len)
             if frac_remainder >= 0.5:
                 self.log(
-                    f"Length of audio-file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len}: "
+                    f"Length of audio file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len}: "
                     "terminally zero-padding the file along the time-axis to compensate."
                 )
                 padding = torch.zeros(
@@ -288,7 +288,7 @@ class Ecoacoustics(CdtAudioDataset):
             )
             if 0 < frac_remainder < 0.5:
                 self.log(
-                    f"Length of audio-file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len} "
+                    f"Length of audio file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len} "
                     "and not of sufficient length to be padded (fractional remainder must be greater than 0.5): "
                     "discarding terminal segment."
                 )
