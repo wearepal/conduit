@@ -133,7 +133,7 @@ class Ecoacoustics(CdtAudioDataset):
         self.metadata = pd.read_csv(self.base_dir / self.METADATA_FILENAME)
 
         x = self.metadata["filePath"].to_numpy()
-        y = torch.as_tensor(self.metadata[f'{str(self.target_attr)}_le'])
+        y = torch.as_tensor(self.metadata[f'{self.target_attr.name}_le'])
         s = None
 
         super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self.base_dir)
