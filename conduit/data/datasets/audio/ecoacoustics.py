@@ -289,7 +289,7 @@ class Ecoacoustics(CdtAudioDataset):
             if 0 < frac_remainder < 0.5:
                 self.log(
                     f"Length of audio-file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len} "
-                    f"and not of sufficient length to pad (fractional remainder must be greater than 0.5): discarding terminal segment."
+                    "and not of sufficient length to pad (fractional remainder must be greater than 0.5): discarding terminal segment."
                 )
                 spectrogram_segments = spectrogram_segments[:-1]
 
