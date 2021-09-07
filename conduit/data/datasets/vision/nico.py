@@ -6,6 +6,7 @@ from typing import ClassVar, Optional, Union, cast
 
 from PIL import Image, UnidentifiedImageError
 from kit import parsable, str_to_enum
+from kit.decorators import enum_name_str
 import numpy as np
 import pandas as pd
 import torch
@@ -18,6 +19,7 @@ from conduit.data.structures import TrainTestSplit
 __all__ = ["NICO", "NicoSuperclass"]
 
 
+@enum_name_str
 class NicoSuperclass(Enum):
     animals = auto()
     vehicles = auto()
@@ -79,7 +81,7 @@ class NICO(CdtVisionDataset):
         )
 
         if superclass is not None:
-            self.metadata = self.metadata[self.metadata["superclass"] == superclass.name]
+            self.metadata = self.metadata[self.metadata["superclass"] == str(superclass)]
         # # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # # substantially slower than indexing with numpy/torch
         x = self.metadata["filepath"].to_numpy()

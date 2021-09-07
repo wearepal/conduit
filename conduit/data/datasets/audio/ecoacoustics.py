@@ -16,6 +16,7 @@ from typing import ClassVar, NamedTuple, Optional, Union
 import zipfile
 
 from kit import parsable
+from kit.decorators import enum_name_str
 from kit.misc import str_to_enum
 import pandas as pd
 import torch
@@ -38,6 +39,7 @@ from conduit.data.datasets.utils import AudioTform, FileInfo
 __all__ = ["Ecoacoustics"]
 
 
+@enum_name_str
 class SoundscapeAttr(Enum):
     habitat = auto()
     site = auto()
@@ -133,7 +135,7 @@ class Ecoacoustics(CdtAudioDataset):
         self.metadata = pd.read_csv(self.base_dir / self.METADATA_FILENAME)
 
         x = self.metadata["filePath_pt"].to_numpy()
-        y = torch.as_tensor(self.metadata[f'{self.target_attr.name}_le'])
+        y = torch.as_tensor(self.metadata[f'{self.target_attr}_le'])
         s = None
 
         super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self.base_dir)
