@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from kit.decorators import implements
 import torch
-from torch import Tensor
-import torch.nn as nn
+from torch import Tensor, nn
 import torch.nn.functional as F
 
 __all__ = ["DINOLoss", "EMACenter"]
@@ -107,11 +106,11 @@ class DINOLoss(nn.Module):
         total_loss = student_logits_seq[-1].new_zeros(())
         n_loss_terms = student_logits_seq[-1].new_zeros(())
         for iq, q in enumerate(teacher_probs_seq):
-            for v in range(len(student_logits_seq)):
+            for v, sl in enumerate(student_logits_seq):
                 if v == iq:
                     # we skip cases where student and teacher operate on the same view
                     continue
-                loss = torch.sum(-q * F.log_softmax(student_logits_seq[v], dim=-1), dim=-1)
+                loss = torch.sum(-q * F.log_softmax(sl, dim=-1), dim=-1)
                 total_loss += loss.mean()
                 n_loss_terms += 1
         total_loss /= n_loss_terms

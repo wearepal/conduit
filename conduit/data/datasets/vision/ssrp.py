@@ -9,8 +9,7 @@ import pandas as pd
 import torch
 
 from conduit.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
-
-from .base import CdtVisionDataset
+from conduit.data.datasets.vision.base import CdtVisionDataset
 
 __all__ = ["SSRP", "SSRPSplit"]
 

@@ -51,7 +51,9 @@ class MeanTeacherWeightUpdate(pl.Callback):
         batch_idx: int,
         dataloader_idx: int,
     ) -> None:
-        self.update_weights(train_step=pl_module.global_step, student=pl_module.student, teacher=pl_module.teacher)  # type: ignore
+        self.update_weights(
+            train_step=pl_module.global_step, student=pl_module.student, teacher=pl_module.teacher  # type: ignore
+        )
 
     def update_weights(self, *, train_step: int, student: nn.Module, teacher: nn.Module) -> None:
         # apply MA weight update
@@ -67,6 +69,8 @@ class MeanTeacherWeightUpdate(pl.Callback):
 
 class PostHocProgressBar(ProgressBar):
     """Progress bar with descriptions tailored for post-hoc evaluation."""
+
+    _train_batch_idx: int
 
     @implements(ProgressBar)
     def init_train_tqdm(self) -> tqdm:

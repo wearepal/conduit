@@ -10,12 +10,7 @@ from conduit.constants import IMAGENET_STATS
 from conduit.data.datasets.utils import PillowTform
 from conduit.data.structures import MeanStd
 
-__all__ = [
-    "GaussianBlur",
-    "moco_ft_transform",
-    "moco_test_transform",
-    "mocov2_train_transform",
-]
+__all__ = ["moco_ft_transform", "moco_test_transform", "mocov2_train_transform", "GaussianBlur"]
 
 
 class GaussianBlur:

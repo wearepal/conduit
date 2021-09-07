@@ -96,8 +96,8 @@ class FairMixup(CdtModel):
         self.train_acc(logits.argmax(-1), target)
         self.log_dict(
             {
-                f"train/loss": loss_sup.item(),
-                f"train/acc": self.train_acc,
+                "train/loss": loss_sup.item(),
+                "train/acc": self.train_acc,
             }
         )
 

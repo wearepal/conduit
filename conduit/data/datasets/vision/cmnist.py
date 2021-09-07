@@ -16,8 +16,7 @@ from torchvision.datasets import MNIST
 from typing_extensions import Literal
 
 from conduit.data.datasets.utils import ImageTform, RawImage
-
-from .base import CdtVisionDataset
+from conduit.data.datasets.vision.base import CdtVisionDataset
 
 __all__ = [
     "ColoredMNIST",

@@ -165,8 +165,8 @@ class CdtDataModule(pl.LightningDataModule):
             if batch_size % num_groups:
                 self.log(
                     f"For stratified sampling, the batch size must be a multiple of the number of groups."
-                    "Since the batch size is not integer divisible by the number of groups ({num_groups}),"
-                    "the batch size is being reduced to {num_samples_per_group * num_groups}."
+                    f"Since the batch size is not integer divisible by the number of groups ({num_groups}),"
+                    f"the batch size is being reduced to {num_samples_per_group * num_groups}."
                 )
             batch_sampler = StratifiedBatchSampler(
                 group_ids=group_ids.squeeze().tolist(),
@@ -241,7 +241,7 @@ class CdtDataModule(pl.LightningDataModule):
                 f"'{cls_name}.dim_y' cannot be accessed as '{cls_name}.setup' has "
                 "not yet been called.'"
             )
-        elif not isinstance(self._train_data_base, CdtDataset):
+        if not isinstance(self._train_data_base, CdtDataset):
             raise AttributeError(
                 f"'dim_y' can only determined for {CdtDataset.__name__} instances."
             )
@@ -256,7 +256,7 @@ class CdtDataModule(pl.LightningDataModule):
                 f"'{cls_name}.dim_s' cannot be accessed as '{cls_name}.setup' has "
                 "not yet been called.'"
             )
-        elif not isinstance(self._train_data_base, CdtDataset):
+        if not isinstance(self._train_data_base, CdtDataset):
             raise AttributeError(
                 f"'dim_s' can only determined for {CdtDataset.__name__} instances."
             )
@@ -271,7 +271,7 @@ class CdtDataModule(pl.LightningDataModule):
                 f"'{cls_name}.card_y' cannot be accessed as '{cls_name}.setup' has "
                 "not yet been called.'"
             )
-        elif not isinstance(self._train_data_base, CdtDataset):
+        if not isinstance(self._train_data_base, CdtDataset):
             raise AttributeError(
                 f"'card_y' can only determined for {CdtDataset.__name__} instances."
             )
@@ -286,7 +286,7 @@ class CdtDataModule(pl.LightningDataModule):
                 f"'{cls_name}.card_s' cannot be accessed as '{cls_name}.setup' has "
                 "not yet been called.'"
             )
-        elif not isinstance(self._train_data_base, CdtDataset):
+        if not isinstance(self._train_data_base, CdtDataset):
             raise AttributeError(
                 f"'card_s' can only determined for {CdtDataset.__name__} instances."
             )
