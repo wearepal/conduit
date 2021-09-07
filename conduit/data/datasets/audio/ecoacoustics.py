@@ -274,6 +274,8 @@ class Ecoacoustics(CdtAudioDataset):
             waveform = F.resample(waveform, orig_freq=sr, new_freq=self.resample_rate)
             audio_len = waveform.size(-1) / self.resample_rate
             frac_remainder, num_segments = math.modf(audio_len / self.specgram_segment_len)
+            num_segments = int(num_segments)
+
             if frac_remainder >= 0.5:
                 self.log(
                     f"Length of audio file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len}: "
