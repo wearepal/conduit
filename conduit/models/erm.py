@@ -9,19 +9,17 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 import torch
 from torch import Tensor, nn
-import torch.nn as nn
 
 from conduit.data import BinarySample
-from conduit.types import Loss, MetricDict, Stage
-
-from .base import CdtModel
-from .utils import (
+from conduit.models.base import CdtModel
+from conduit.models.utils import (
     accuracy,
     aggregate_over_epoch,
     make_no_grad,
     precision_at_k,
     prefix_keys,
 )
+from conduit.types import Loss, MetricDict, Stage
 
 __all__ = ["ERMClassifier", "FineTuner"]
 

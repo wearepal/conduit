@@ -9,7 +9,7 @@ from torchvision.transforms.functional import InterpolationMode
 from conduit.constants import IMAGENET_STATS
 from conduit.data.datasets.utils import PillowTform
 from conduit.data.structures import MeanStd
-from conduit.models.self_supervised.moco import GaussianBlur
+from conduit.models.self_supervised.moco.transforms import GaussianBlur
 from conduit.models.self_supervised.multicrop import MultiCropTransform
 
 __all__ = ["Solarization", "dino_train_transform"]
@@ -26,8 +26,7 @@ class Solarization:
     def __call__(self, img: Image.Image) -> Image.Image:
         if random.random() < self.p:
             return ImageOps.solarize(img)
-        else:
-            return img
+        return img
 
 
 def dino_train_transform(

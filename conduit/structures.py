@@ -1,5 +1,4 @@
 from __future__ import annotations
-from enum import Enum
 from typing import Dict, Union
 
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
@@ -8,17 +7,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR,
 __all__ = [
     "LRScheduler",
     "MetricDict",
-    "Stage",
 ]
-
-
-class Stage(Enum):
-    fit = "fit"
-    validate = "validate"
-    test = "test"
-
-    def __str__(self) -> str:
-        return str(self.value)
 
 
 LRScheduler = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]

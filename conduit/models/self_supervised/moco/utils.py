@@ -3,8 +3,7 @@ from enum import Enum
 from functools import partial
 
 import torch
-from torch import Tensor
-import torch.nn as nn
+from torch import Tensor, nn
 import torch.nn.functional as F
 from torchvision.models import resnet
 

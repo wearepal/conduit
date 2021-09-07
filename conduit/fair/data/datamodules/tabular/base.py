@@ -4,6 +4,7 @@ from abc import abstractmethod
 from typing import Optional, Union
 
 import ethicml as em
+from ethicml import DataTuple
 from ethicml.preprocessing.scaling import ScalerType
 from kit import implements
 from kit.torch import TrainingMode
@@ -19,6 +20,9 @@ __all__ = ["EthicMlDataModule"]
 
 class EthicMlDataModule(CdtDataModule):
     """Base data-module for tabular datasets."""
+
+    dims: tuple[int, ...]
+    datatuple: DataTuple
 
     def __init__(
         self,
@@ -182,7 +186,8 @@ class EthicMlDataModule(CdtDataModule):
             discrete=self.grouped_features_indexes(self.em_dataset.disc_feature_groups)
         )
 
-    def grouped_features_indexes(self, group_iter: dict[str, list[str]]) -> list[slice]:
+    @staticmethod
+    def grouped_features_indexes(group_iter: dict[str, list[str]]) -> list[slice]:
         """Group discrete features names according to the first segment of their name.
 
         Then return a list of their corresponding slices (assumes order is maintained).

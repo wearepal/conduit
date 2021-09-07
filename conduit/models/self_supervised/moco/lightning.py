@@ -6,8 +6,7 @@ from kit.misc import gcopy, str_to_enum
 from kit.torch.loss import CrossEntropyLoss, ReductionType
 import pytorch_lightning as pl
 import torch
-from torch import Tensor, optim
-import torch.nn as nn
+from torch import Tensor, nn, optim
 import torch.nn.functional as F
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
@@ -24,14 +23,17 @@ from conduit.models.self_supervised.moco.transforms import (
     moco_ft_transform,
     moco_test_transform,
 )
+from conduit.models.self_supervised.moco.utils import (
+    MemoryBank,
+    ResNetArch,
+    concat_all_gather,
+)
 from conduit.models.self_supervised.multicrop import (
     MultiCropTransform,
     MultiCropWrapper,
 )
 from conduit.models.utils import precision_at_k, prefix_keys
 from conduit.types import MetricDict
-
-from .utils import MemoryBank, ResNetArch, concat_all_gather
 
 __all__ = ["MoCoV2"]
 
@@ -114,7 +116,6 @@ class MoCoV2(MomentumTeacherModel):
     def _build(self) -> None:
         self.use_ddp = "ddp" in str(self.trainer.distributed_backend)
         if isinstance(self.datamodule, CdtVisionDataModule):
-            # self._datamodule.train_transforms = mocov2_transform()
             if (self.instance_transforms is None) and (self.batch_transforms is None):
                 if self.multicrop:
                     self.instance_transforms = MultiCropTransform.with_dino_transform(
@@ -187,8 +188,9 @@ class MoCoV2(MomentumTeacherModel):
             keys = concat_all_gather(keys)
         self.mb.push(keys)
 
+    @staticmethod
     @torch.no_grad()
-    def _batch_shuffle_ddp(self, x: Tensor) -> tuple[Tensor, Tensor]:  # pragma: no-cover
+    def _batch_shuffle_ddp(x: Tensor) -> tuple[Tensor, Tensor]:  # pragma: no-cover
         """
         Batch shuffle, for making use of BatchNorm.
         *** Only supports DistributedDataParallel (DDP).***
@@ -215,8 +217,9 @@ class MoCoV2(MomentumTeacherModel):
 
         return x_gather[idx_this], idx_unshuffle
 
+    @staticmethod
     @torch.no_grad()
-    def _batch_unshuffle_ddp(self, x: Tensor, idx_unshuffle: Tensor) -> Tensor:  # pragma: no-cover
+    def _batch_unshuffle_ddp(x: Tensor, idx_unshuffle: Tensor) -> Tensor:  # pragma: no-cover
         """
         Undo batch shuffle.
         *** Only supports DistributedDataParallel (DDP).***

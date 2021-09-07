@@ -100,9 +100,9 @@ class GPD(CdtModel):
         model_out = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
         logging_dict = {
-            f"loss": loss.item(),
-            f"loss_adv": loss_adv.item(),
-            f"loss_clf": loss_clf.item(),
+            "loss": loss.item(),
+            "loss_adv": loss_adv.item(),
+            "loss_clf": loss_clf.item(),
         }
         logging_dict = prefix_keys(dict_=logging_dict, prefix=str(stage), sep="/")
         self.log_dict(logging_dict)
@@ -155,9 +155,9 @@ class GPD(CdtModel):
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
 
         logging_dict = {
-            f"adv_loss": loss_adv.item(),
-            f"clf_loss": loss_clf.item(),
-            f"loss": loss.item(),
+            "adv_loss": loss_adv.item(),
+            "clf_loss": loss_clf.item(),
+            "loss": loss.item(),
         }
         logging_dict = prefix_keys(dict_=logging_dict, prefix="train", sep="/")
         self.log_dict(logging_dict)

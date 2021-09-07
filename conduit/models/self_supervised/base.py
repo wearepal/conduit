@@ -10,8 +10,8 @@ import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
+from torch import nn
 from torch.functional import Tensor
-import torch.nn as nn
 from typing_extensions import Protocol
 
 from conduit.data.datamodules.base import CdtDataModule
@@ -135,7 +135,7 @@ class SelfSupervisedModel(CdtModel):
 
 
 class BatchTransform(Protocol):
-    def __call__(self, Tensor) -> Any:
+    def __call__(self, x: Tensor) -> Any:
         ...
 
 
@@ -167,14 +167,13 @@ class InstanceDiscriminator(SelfSupervisedModel):
                 2, dim=0
             )
             return MultiCropOutput(global_crops=[view1, view2])
-        elif isinstance(batch.x, MultiCropOutput):
+        if isinstance(batch.x, MultiCropOutput):
             if self.batch_transforms is None:
                 return batch.x
             global_crops = [self.batch_transforms(crop) for crop in batch.x.global_crops]
             local_crops = [self.batch_transforms(crop) for crop in batch.x.local_crops]
             return replace(batch.x, global_crops=global_crops, local_crops=local_crops)
-        else:
-            raise TypeError("'x' must be  a Tensor or a 'MultiCropTransform' instance.")
+        raise TypeError("'x' must be  a Tensor or a 'MultiCropTransform' instance.")
 
     @implements(CdtModel)
     def build(self, datamodule: CdtDataModule, *, trainer: pl.Trainer, copy: bool = True) -> None:
