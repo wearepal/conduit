@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 from enum import Enum, auto
+import math
 from os import mkdir
 from pathlib import Path
 import shutil
@@ -276,20 +277,26 @@ class Ecoacoustics(CdtAudioDataset):
             waveform = F.resample(waveform, sr, self.resample_rate)
             specgram = to_specgram(waveform)
             audio_len = waveform.size(-1) / self.resample_rate
-            remainder = audio_len % self.specgram_segment_len
-            if remainder:
+            frac_remainder, _ = math.modf(audio_len / self.specgram_segment_len)
+            if frac_remainder >= 0.5:
                 self.log(
                     f"Length of audio-file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len}: "
                     "terminally zero-padding the file along the time-axis to compensate."
                 )
                 padding = torch.zeros(
                     *specgram.shape[:2],
-                    int((self.specgram_segment_len - remainder) * self.resample_rate),
+                    int((self.specgram_segment_len - frac_remainder) * self.resample_rate),
                 )
                 specgram = torch.cat((specgram, padding), dim=-1)
             spectrogram_segments = specgram.chunk(
                 int(audio_len / self.specgram_segment_len), dim=-1
             )
+            if 0 < frac_remainder < 0.5:
+                self.log(
+                    f"Length of audio-file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len}: "
+                    "and not of sufficient length to pad {remainder} < 0.5: discarding terminal segment."
+                )
+                spectrogram_segments = spectrogram_segments[:-1]
 
             for i, segment in enumerate(spectrogram_segments):
                 torch.save(segment, self._processed_audio_dir / f"{waveform_filename}_{i}.pt")
