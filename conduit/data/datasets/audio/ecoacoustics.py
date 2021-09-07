@@ -293,7 +293,7 @@ class Ecoacoustics(CdtAudioDataset):
                     "discarding terminal segment."
                 )
                 waveform = waveform[
-                    :, num_segments * self.specgram_segment_len * self.resample_rate
+                    :, : num_segments * self.specgram_segment_len * self.resample_rate
                 ]
 
             specgram = to_specgram(waveform)
