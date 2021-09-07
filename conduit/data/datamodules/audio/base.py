@@ -8,7 +8,7 @@ import albumentations as A
 from kit import implements
 from kit.torch import TrainingMode
 
-from conduit.data.datamodules import CdtDataModule
+from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.utils import AlbumentationsTform
 from conduit.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
 from conduit.data.structures import ImageSize
