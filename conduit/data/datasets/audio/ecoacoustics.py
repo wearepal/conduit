@@ -275,15 +275,17 @@ class Ecoacoustics(CdtAudioDataset):
             waveform, sr = torchaudio.load(path)
             waveform = F.resample(waveform, sr, self.resample_rate)
             specgram = to_specgram(waveform)
+            audio_len = waveform.size(-1) / self.resample_rate
+            remainder = audio_len % self.specgram_segment_len
+            if remainder:
+                padding = torch.zeros(
+                    *specgram.shape[:2],
+                    int((self.specgram_segment_len - remainder) * self.resample_rate),
+                )
+                specgram = torch.cat((specgram, padding), dim=-1)
+            spectrogram_segments = specgram.chunk(
+                int(audio_len / self.specgram_segment_len), dim=-1
+            )
 
-            spectrogram_segments = self._segment_spectrogram(specgram, self.specgram_segment_len)
             for i, segment in enumerate(spectrogram_segments):
                 torch.save(segment, self._processed_audio_dir / f"{waveform_filename}_{i}.pt")
-
-    def _segment_spectrogram(self, specgram: Tensor, segment_len: float) -> list[Tensor]:
-        """
-        Takes a spectrogram and segments it into as many segments of segment_len width as possible.
-        """
-        seg_sz = int(specgram.shape[-1] / (self._AUDIO_LEN / segment_len))
-        segment_boundaries = [(i - seg_sz, i) for i in range(seg_sz, specgram.shape[-1], seg_sz)]
-        return [specgram[:, :, start:end] for start, end in segment_boundaries]
