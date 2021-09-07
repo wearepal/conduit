@@ -228,15 +228,13 @@ class Ecoacoustics(CdtAudioDataset):
         self.log("Extracting metadata.")
 
         def gen_files_df(ext: Extension) -> pd.DataFrame:
-            paths: list[Path] = []
-            paths.extend(self.base_dir.glob(f"**/*{ext}"))
-            return pd.DataFrame.from_dict(
+            return pd.DataFrame(
                 [
                     {
                         "filePath": str(path.relative_to(self.base_dir)),
                         "fileName": path.name,
                     }
-                    for path in paths
+                    for path in self.base_dir.glob(f"**/*{ext}")
                 ]
             )
 
