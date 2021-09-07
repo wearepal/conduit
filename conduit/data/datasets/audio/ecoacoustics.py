@@ -278,6 +278,10 @@ class Ecoacoustics(CdtAudioDataset):
             audio_len = waveform.size(-1) / self.resample_rate
             remainder = audio_len % self.specgram_segment_len
             if remainder:
+                self.log(
+                    f"Length of audio-file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len}: "
+                    "terminally zero-padding the file along the time-axis to compensate."
+                )
                 padding = torch.zeros(
                     *specgram.shape[:2],
                     int((self.specgram_segment_len - remainder) * self.resample_rate),
