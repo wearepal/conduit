@@ -252,7 +252,7 @@ class Ecoacoustics(CdtAudioDataset):
         metadata = metadata.merge(pd.concat([uk_labels, ec_labels], ignore_index=True), how="left")
 
         metadata = sgram_seg_metadata.merge(
-            metadata, how='left', on='baseFile', suffixes=['_pt', '_wav']
+            metadata, how='left', on='baseFile', suffixes=('_pt', '_wav')
         )
         metadata.to_csv(self._metadata_path)
 
@@ -270,7 +270,7 @@ class Ecoacoustics(CdtAudioDataset):
 
         for path in tqdm(waveform_paths, desc="Preprocessing"):
             waveform_filename = path.stem
-            waveform, sr = torchaudio.load(path)
+            waveform, sr = torchaudio.load(path)  # type: ignore
             waveform = F.resample(waveform, orig_freq=sr, new_freq=self.resample_rate)
             specgram = to_specgram(waveform)
             audio_len = waveform.size(-1) / self.resample_rate
