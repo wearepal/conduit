@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import ClassVar, Optional, Union
 
 from kit import parsable, str_to_enum
+from kit.decorators import enum_name_str
 import numpy as np
 import pandas as pd
 import torch
@@ -15,6 +16,7 @@ from conduit.data.datasets.vision.base import CdtVisionDataset
 __all__ = ["CelebA", "CelebAttr", "CelebASplit"]
 
 
+@enum_name_str
 class CelebAttr(Enum):
     Five_o_Clock_Shadow = auto()
     Arched_Eyebrows = auto()
