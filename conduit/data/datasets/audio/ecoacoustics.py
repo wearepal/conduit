@@ -18,7 +18,6 @@ from kit import parsable
 from kit.misc import str_to_enum
 import pandas as pd
 import torch
-from torch import Tensor
 import torchaudio
 import torchaudio.functional as F
 import torchaudio.transforms as T
@@ -233,6 +232,7 @@ class Ecoacoustics(CdtAudioDataset):
                     {
                         "filePath": str(path.relative_to(self.base_dir)),
                         "fileName": path.name,
+                        "baseFile": str(path.stem).split('=')[0],
                     }
                     for path in self.base_dir.glob(f"**/*{ext}")
                 ]
@@ -242,13 +242,13 @@ class Ecoacoustics(CdtAudioDataset):
         uk_labels = pd.read_csv(self.uk_labels_path, encoding="ISO-8859-1")
 
         sgram_seg_metadata = gen_files_df(".pt")
-        sgram_seg_metadata.sort_values(by=["fileName"], axis=0, inplace=True)
+        sgram_seg_metadata.sort_values(by=["fileName"], axis=0, inplace=True, ignore_index=True)
 
         # Merge labels and metadata files.
         metadata = gen_files_df(".wav")
         metadata = metadata.merge(pd.concat([uk_labels, ec_labels]), how="left")
         metadata = metadata.loc[metadata.index.repeat(self._n_sgram_segments)]
-        metadata.sort_values(by=["fileName"], axis=0, inplace=True)
+        metadata.sort_values(by=["fileName"], axis=0, inplace=True, ignore_index=True)
 
         # Replace metadata filename and filepath column values with those in sgram_seg_info.
         metadata["filePath"] = sgram_seg_metadata["filePath"].values
@@ -276,14 +276,9 @@ class Ecoacoustics(CdtAudioDataset):
             waveform = F.resample(waveform, sr, self.resample_rate)
             specgram = to_specgram(waveform)
 
-            spectrogram_segments = self._segment_spectrogram(specgram, self.specgram_segment_len)
+            audio_len = waveform.size(-1) / self.resample_rate
+            spectrogram_segments = specgram.chunk(
+                int(audio_len / self.specgram_segment_len), dim=-1
+            )
             for i, segment in enumerate(spectrogram_segments):
-                torch.save(segment, self._processed_audio_dir / f"{waveform_filename}_{i}.pt")
-
-    def _segment_spectrogram(self, specgram: Tensor, segment_len: float) -> list[Tensor]:
-        """
-        Takes a spectrogram and segments it into as many segments of segment_len width as possible.
-        """
-        seg_sz = int(specgram.shape[-1] / (self._AUDIO_LEN / segment_len))
-        segment_boundaries = [(i - seg_sz, i) for i in range(seg_sz, specgram.shape[-1], seg_sz)]
-        return [specgram[:, :, start:end] for start, end in segment_boundaries]
+                torch.save(segment, self._processed_audio_dir / f"{waveform_filename}={i}.pt")
