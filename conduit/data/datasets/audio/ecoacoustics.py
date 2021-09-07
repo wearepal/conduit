@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 from enum import Enum, auto
+import math
 from os import mkdir
 from pathlib import Path
 import shutil
@@ -275,15 +276,27 @@ class Ecoacoustics(CdtAudioDataset):
             waveform, sr = torchaudio.load(path)
             waveform = F.resample(waveform, sr, self.resample_rate)
             specgram = to_specgram(waveform)
+            audio_len = waveform.size(-1) / self.resample_rate
+            frac_remainder, _ = math.modf(audio_len / self.specgram_segment_len)
+            if frac_remainder >= 0.5:
+                self.log(
+                    f"Length of audio-file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len}: "
+                    "terminally zero-padding the file along the time-axis to compensate."
+                )
+                padding = torch.zeros(
+                    *specgram.shape[:2],
+                    int((self.specgram_segment_len - frac_remainder) * self.resample_rate),
+                )
+                specgram = torch.cat((specgram, padding), dim=-1)
+            spectrogram_segments = specgram.chunk(
+                int(audio_len / self.specgram_segment_len), dim=-1
+            )
+            if 0 < frac_remainder < 0.5:
+                self.log(
+                    f"Length of audio-file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len}: "
+                    "and not of sufficient length to pad {remainder} < 0.5: discarding terminal segment."
+                )
+                spectrogram_segments = spectrogram_segments[:-1]
 
-            spectrogram_segments = self._segment_spectrogram(specgram, self.specgram_segment_len)
             for i, segment in enumerate(spectrogram_segments):
                 torch.save(segment, self._processed_audio_dir / f"{waveform_filename}_{i}.pt")
-
-    def _segment_spectrogram(self, specgram: Tensor, segment_len: float) -> list[Tensor]:
-        """
-        Takes a spectrogram and segments it into as many segments of segment_len width as possible.
-        """
-        seg_sz = int(specgram.shape[-1] / (self._AUDIO_LEN / segment_len))
-        segment_boundaries = [(i - seg_sz, i) for i in range(seg_sz, specgram.shape[-1], seg_sz)]
-        return [specgram[:, :, start:end] for start, end in segment_boundaries]
