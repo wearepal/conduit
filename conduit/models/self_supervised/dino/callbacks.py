@@ -3,9 +3,9 @@ from __future__ import annotations
 from kit.decorators import implements
 import pytorch_lightning as pl
 
-__all__ = ["DINOScheduler"]
-
 from conduit.models.self_supervised.dino.utils import cosine_scheduler
+
+__all__ = ["DINOScheduler"]
 
 
 class DINOScheduler(pl.Callback):

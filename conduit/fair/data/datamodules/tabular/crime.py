@@ -7,9 +7,9 @@ from ethicml.preprocessing.scaling import ScalerType
 from kit import parsable
 from kit.torch import TrainingMode
 
-__all__ = ["CrimeDataModule"]
-
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
+
+__all__ = ["CrimeDataModule"]
 
 
 class CrimeSens(Enum):

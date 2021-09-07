@@ -16,13 +16,12 @@ from torchvision.datasets import MNIST
 from typing_extensions import Literal
 
 from conduit.data.datasets.utils import ImageTform, RawImage
+from conduit.data.datasets.vision.base import CdtVisionDataset
 
 __all__ = [
     "ColoredMNIST",
     "ColoredMNISTSplit",
 ]
-
-from conduit.data.datasets.vision.base import CdtVisionDataset
 
 
 @overload
