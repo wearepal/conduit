@@ -284,9 +284,10 @@ class Ecoacoustics(CdtAudioDataset):
                 )
                 padding = torch.zeros(
                     waveform.size(0),
-                    int((self.specgram_segment_len - frac_remainder) * self.resample_rate),
+                    int((self.specgram_segment_len - (frac_remainder * self.specgram_segment_len)) * self.resample_rate),
                 )
                 waveform = torch.cat((waveform, padding), dim=-1)
+                num_segments += 1
             if 0 < frac_remainder < 0.5:
                 self.log(
                     f"Length of audio file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len} "
