@@ -304,10 +304,11 @@ class Ecoacoustics(CdtAudioDataset):
                     :, : num_segments * self.specgram_segment_len * self.resample_rate
                 ]
 
-            # because of `center=True`, the spectrogram adds an additional frame
-            # we have to discard this so that chunking still works
-            specgram = to_specgram(waveform)[..., :-1]
-            spectrogram_segments = specgram.chunk(chunks=num_segments, dim=-1)
+            specgram = to_specgram(waveform)
+            segment_frame_len = self.specgram_segment_len * self.resample_rate // self.hop_length
+            spectrogram_segments = specgram.split(segment_frame_len, dim=-1)
+            # because of padding, there might be a left-over split, which we don't want
+            spectrogram_segments = spectrogram_segments[:num_segments]
 
             for i, segment in enumerate(spectrogram_segments):
                 torch.save(segment, f=self._processed_audio_dir / f"{waveform_filename}={i}.pt")
