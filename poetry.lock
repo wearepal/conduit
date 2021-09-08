@@ -641,7 +641,7 @@ pyparsing = ">=2.0.2"
 
 [[package]]
 name = "palkit"
-version = "0.3.12"
+version = "0.3.13"
 description = "Useful functions."
 category = "main"
 optional = false
@@ -1917,8 +1917,8 @@ packaging = [
     {file = "packaging-21.0.tar.gz", hash = "sha256:7dc96269f53a4ccec5c0670940a4281106dd0bb343f47b7471f779df49c2fbe7"},
 ]
 palkit = [
-    {file = "palkit-0.3.12-py3-none-any.whl", hash = "sha256:207593f62d74bc1036ec9344e356bb2a0b84a78bbd239ec4ef2426f959b1d454"},
-    {file = "palkit-0.3.12.tar.gz", hash = "sha256:53261b9189de35eb5935114f33ad069c1f963d09555b70e484132bbebfdc0a15"},
+    {file = "palkit-0.3.13-py3-none-any.whl", hash = "sha256:8a90880872120ed544395eaa18ab279879f2042f8483b19e495f023358a4ae84"},
+    {file = "palkit-0.3.13.tar.gz", hash = "sha256:dc1cccfd2134aa73d85e3dd455b05bb08266e6af178e19710163d28bb5abbe4d"},
 ]
 pandas = [
     {file = "pandas-1.3.2-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:ba7ceb8abc6dbdb1e34612d1173d61e4941f1a1eb7e6f703b2633134ae6a6c89"},

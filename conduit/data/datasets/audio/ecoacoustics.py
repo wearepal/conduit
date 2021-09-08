@@ -16,10 +16,10 @@ from typing import ClassVar, NamedTuple, Optional, Union
 import zipfile
 
 from kit import parsable
+from kit.decorators import enum_name_str
 from kit.misc import str_to_enum
 import pandas as pd
 import torch
-from torch import Tensor
 import torchaudio
 import torchaudio.functional as F
 import torchaudio.transforms as T
@@ -39,6 +39,7 @@ from conduit.data.datasets.utils import AudioTform, FileInfo
 __all__ = ["Ecoacoustics"]
 
 
+@enum_name_str
 class SoundscapeAttr(Enum):
     habitat = auto()
     site = auto()
@@ -133,8 +134,8 @@ class Ecoacoustics(CdtAudioDataset):
 
         self.metadata = pd.read_csv(self.base_dir / self.METADATA_FILENAME)
 
-        x = self.metadata["filePath"].to_numpy()
-        y = torch.as_tensor(self.metadata[f'{str(self.target_attr)}_le'])
+        x = self.metadata["filePath_pt"].to_numpy()
+        y = torch.as_tensor(self.metadata[f'{self.target_attr}_le'])
         s = None
 
         super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self.base_dir)
@@ -172,7 +173,8 @@ class Ecoacoustics(CdtAudioDataset):
     @staticmethod
     def _label_encode_metadata(metadata: pd.DataFrame) -> pd.DataFrame:
         """Label encode the extracted concept/context/superclass information."""
-        for col in metadata.columns:
+        col_list = [str(col) for col in metadata.columns]
+        for col in col_list:
             # Skip over filepath and filename columns
             if "file" not in col and "File" not in col:
                 # Add a new column containing the label-encoded data
@@ -229,34 +231,29 @@ class Ecoacoustics(CdtAudioDataset):
         self.log("Extracting metadata.")
 
         def gen_files_df(ext: Extension) -> pd.DataFrame:
-            paths: list[Path] = []
-            paths.extend(self.base_dir.glob(f"**/*{ext}"))
-            str_paths = pd.Series([str(path.relative_to(self.base_dir)) for path in paths])
-
-            df = str_paths.str.rpartition(
-                "\\",
+            return pd.DataFrame(
+                [
+                    {
+                        "filePath": str(path.relative_to(self.base_dir)),
+                        "fileName": path.name,
+                        "baseFile": str(path.stem).split('=')[0],
+                    }
+                    for path in self.base_dir.glob(f"**/*{ext}")
+                ]
             )
-            df[0] = df[0] + df[1]
-            return df.drop(columns=[1]).rename(columns={0: "filePath", 2: "fileName"})
 
         ec_labels = pd.read_csv(self.ec_labels_path, encoding="ISO-8859-1")
         uk_labels = pd.read_csv(self.uk_labels_path, encoding="ISO-8859-1")
 
         sgram_seg_metadata = gen_files_df(".pt")
-        sgram_seg_metadata.sort_values(by=["fileName"], axis=0, inplace=True)
 
         # Merge labels and metadata files.
         metadata = gen_files_df(".wav")
-        metadata = metadata.merge(pd.concat([uk_labels, ec_labels]), how="left")
-        metadata = metadata.loc[metadata.index.repeat(self._n_sgram_segments)]
-        metadata.sort_values(by=["fileName"], axis=0, inplace=True)
+        metadata = metadata.merge(pd.concat([uk_labels, ec_labels], ignore_index=True), how="left")
 
-        # Replace metadata filename and filepath column values with those in sgram_seg_info.
-        metadata["filePath"] = sgram_seg_metadata["filePath"].values
-        metadata["fileName"] = sgram_seg_metadata["fileName"].values
-
-        metadata.reset_index(inplace=True, drop=True)
-        metadata = self._label_encode_metadata(metadata)
+        metadata = sgram_seg_metadata.merge(
+            metadata, how='left', on='baseFile', suffixes=('_pt', '_wav')
+        )
         metadata.to_csv(self._metadata_path)
 
     def _preprocess_audio(self) -> None:
@@ -269,34 +266,38 @@ class Ecoacoustics(CdtAudioDataset):
             mkdir(self._processed_audio_dir)
 
         waveform_paths = list(self.base_dir.glob("**/*.wav"))
-
         to_specgram = T.Spectrogram(n_fft=self.num_freq_bins, hop_length=self.hop_length)
+
         for path in tqdm(waveform_paths, desc="Preprocessing"):
             waveform_filename = path.stem
-            waveform, sr = torchaudio.load(path)
-            waveform = F.resample(waveform, sr, self.resample_rate)
-            specgram = to_specgram(waveform)
+            waveform, sr = torchaudio.load(path)  # type: ignore
+            waveform = F.resample(waveform, orig_freq=sr, new_freq=self.resample_rate)
             audio_len = waveform.size(-1) / self.resample_rate
-            frac_remainder, _ = math.modf(audio_len / self.specgram_segment_len)
+            frac_remainder, num_segments = math.modf(audio_len / self.specgram_segment_len)
+            num_segments = int(num_segments)
+
             if frac_remainder >= 0.5:
                 self.log(
-                    f"Length of audio-file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len}: "
+                    f"Length of audio file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len}: "
                     "terminally zero-padding the file along the time-axis to compensate."
                 )
                 padding = torch.zeros(
-                    *specgram.shape[:2],
+                    waveform.size(0),
                     int((self.specgram_segment_len - frac_remainder) * self.resample_rate),
                 )
-                specgram = torch.cat((specgram, padding), dim=-1)
-            spectrogram_segments = specgram.chunk(
-                int(audio_len / self.specgram_segment_len), dim=-1
-            )
+                waveform = torch.cat((waveform, padding), dim=-1)
             if 0 < frac_remainder < 0.5:
                 self.log(
-                    f"Length of audio-file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len}: "
-                    "and not of sufficient length to pad {remainder} < 0.5: discarding terminal segment."
+                    f"Length of audio file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len} "
+                    "and not of sufficient length to be padded (fractional remainder must be greater than 0.5): "
+                    "discarding terminal segment."
                 )
-                spectrogram_segments = spectrogram_segments[:-1]
+                waveform = waveform[
+                    :, : num_segments * self.specgram_segment_len * self.resample_rate
+                ]
+
+            specgram = to_specgram(waveform)
+            spectrogram_segments = specgram.chunk(chunks=num_segments, dim=-1)
 
             for i, segment in enumerate(spectrogram_segments):
-                torch.save(segment, self._processed_audio_dir / f"{waveform_filename}_{i}.pt")
+                torch.save(segment, f=self._processed_audio_dir / f"{waveform_filename}={i}.pt")
