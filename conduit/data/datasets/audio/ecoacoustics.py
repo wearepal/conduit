@@ -267,7 +267,9 @@ class Ecoacoustics(CdtAudioDataset):
             mkdir(self._processed_audio_dir)
 
         waveform_paths = list(self.base_dir.glob("**/*.wav"))
-        to_specgram = T.Spectrogram(n_fft=self.num_freq_bins, hop_length=self.hop_length)
+        to_specgram = T.Spectrogram(
+            n_fft=self.num_freq_bins, hop_length=self.hop_length, center=True
+        )
 
         for path in tqdm(waveform_paths, desc="Preprocessing"):
             waveform_filename = path.stem
@@ -302,7 +304,10 @@ class Ecoacoustics(CdtAudioDataset):
                     :, : num_segments * self.specgram_segment_len * self.resample_rate
                 ]
 
-            waveform_segments = waveform.chunk(chunks=num_segments, dim=-1)
-            for i, segment in enumerate(waveform_segments):
-                specgram = to_specgram(segment)
-                torch.save(specgram, f=self._processed_audio_dir / f"{waveform_filename}={i}.pt")
+            # because of `center=True`, the spectrogram adds an additional frame
+            # we have to discard this so that chunking still works
+            specgram = to_specgram(waveform)[..., :-1]
+            spectrogram_segments = specgram.chunk(chunks=num_segments, dim=-1)
+
+            for i, segment in enumerate(spectrogram_segments):
+                torch.save(segment, f=self._processed_audio_dir / f"{waveform_filename}={i}.pt")
