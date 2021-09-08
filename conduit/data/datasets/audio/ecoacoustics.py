@@ -236,7 +236,7 @@ class Ecoacoustics(CdtAudioDataset):
                     {
                         "filePath": str(path.relative_to(self.base_dir)),
                         "fileName": path.name,
-                        "baseFile": str(path.stem).split('=')[0],
+                        "baseFile": str(path.stem).split('=', maxsplit=1)[0],
                     }
                     for path in self.base_dir.glob(f"**/*{ext}")
                 ]
@@ -279,20 +279,24 @@ class Ecoacoustics(CdtAudioDataset):
 
             if frac_remainder >= 0.5:
                 self.log(
-                    f"Length of audio file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len}: "
-                    "terminally zero-padding the file along the time-axis to compensate."
+                    f"Length of audio file '{path.resolve()}' is not integer-divisible by "
+                    f"{self.specgram_segment_len}: terminally zero-padding the file along the "
+                    f"time-axis to compensate."
                 )
                 padding = torch.zeros(
                     waveform.size(0),
-                    int((self.specgram_segment_len - (frac_remainder * self.specgram_segment_len)) * self.resample_rate),
+                    int(
+                        (self.specgram_segment_len - (frac_remainder * self.specgram_segment_len))
+                        * self.resample_rate
+                    ),
                 )
                 waveform = torch.cat((waveform, padding), dim=-1)
                 num_segments += 1
             if 0 < frac_remainder < 0.5:
                 self.log(
-                    f"Length of audio file '{path.resolve()}' is not integer-divisible by {self.specgram_segment_len} "
-                    "and not of sufficient length to be padded (fractional remainder must be greater than 0.5): "
-                    "discarding terminal segment."
+                    f"Length of audio file '{path.resolve()}' is not integer-divisible by "
+                    f"{self.specgram_segment_len} and not of sufficient length to be padded "
+                    f"(fractional remainder must be greater than 0.5): discarding terminal segment."
                 )
                 waveform = waveform[
                     :, : num_segments * self.specgram_segment_len * self.resample_rate
