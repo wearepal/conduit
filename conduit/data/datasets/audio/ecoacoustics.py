@@ -302,8 +302,7 @@ class Ecoacoustics(CdtAudioDataset):
                     :, : num_segments * self.specgram_segment_len * self.resample_rate
                 ]
 
-            specgram = to_specgram(waveform)
-            spectrogram_segments = specgram.chunk(chunks=num_segments, dim=-1)
-
-            for i, segment in enumerate(spectrogram_segments):
-                torch.save(segment, f=self._processed_audio_dir / f"{waveform_filename}={i}.pt")
+            waveform_segments = waveform.chunk(chunks=num_segments, dim=-1)
+            for i, segment in enumerate(waveform_segments):
+                specgram = to_specgram(segment)
+                torch.save(specgram, f=self._processed_audio_dir / f"{waveform_filename}={i}.pt")
