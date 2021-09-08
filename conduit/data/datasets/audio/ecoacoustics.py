@@ -254,6 +254,7 @@ class Ecoacoustics(CdtAudioDataset):
         metadata = sgram_seg_metadata.merge(
             metadata, how='left', on='baseFile', suffixes=('_pt', '_wav')
         )
+        metadata = self._label_encode_metadata(metadata)
         metadata.to_csv(self._metadata_path)
 
     def _preprocess_audio(self) -> None:
