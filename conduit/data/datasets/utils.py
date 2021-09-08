@@ -263,17 +263,18 @@ def make_subset(
         base_dataset = dataset
     subset = gcopy(base_dataset, deep=deep)
 
-    def _subset_from_indices_(_indices: list[int] | slice) -> None:
-        subset.x = subset.x[_indices]
-        if subset.y is not None:
-            subset.y = subset.y[_indices]
-        if subset.s is not None:
-            subset.s = subset.s[_indices]
+    def _subset_from_indices(_dataset: CdtDataset, _indices: list[int] | slice) -> CdtDataset:
+        _dataset.x = _dataset.x[_indices]
+        if _dataset.y is not None:
+            _dataset.y = _dataset.y[_indices]
+        if _dataset.s is not None:
+            _dataset.s = _dataset.s[_indices]
+        return _dataset
 
     if current_indices is not None:
-        _subset_from_indices_(current_indices)
+        subset = _subset_from_indices(_dataset=subset, _indices=current_indices)
     if indices is not None:
-        _subset_from_indices_(indices)
+        subset = _subset_from_indices(_dataset=subset, _indices=indices)
 
     return subset
 
