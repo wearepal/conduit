@@ -242,23 +242,23 @@ def make_subset(
     dataset: CdtDataset | Subset,
     *,
     indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
-    deep: bool = True,
+    deep: bool = False,
 ) -> CdtDataset:
     if isinstance(indices, (np.ndarray, Tensor)):
         if not indices.ndim > 1:
             raise ValueError("If 'indices' is an array it must be a 0- or 1-dimensional.")
         indices = cast(List[int], indices.tolist())
 
-    old_indices = None
+    current_indices = None
     if isinstance(dataset, Subset):
-        base_dataset, old_indices = extract_base_dataset(dataset, return_subset_indices=True)
+        base_dataset, current_indices = extract_base_dataset(dataset, return_subset_indices=True)
         if not isinstance(base_dataset, CdtDataset):
             raise TypeError(
                 f"Subsets can only be created with cdt_subset from {CdtDataset.__name__} instances "
                 f"or PyTorch Subsets of them."
             )
-        if isinstance(old_indices, Tensor):
-            old_indices = old_indices.tolist()
+        if isinstance(current_indices, Tensor):
+            current_indices = current_indices.tolist()
     else:
         base_dataset = dataset
     subset = gcopy(base_dataset, deep=deep)
@@ -270,8 +270,8 @@ def make_subset(
         if subset.s is not None:
             subset.s = subset.s[_indices]
 
-    if old_indices is not None:
-        _subset_from_indices_(old_indices)
+    if current_indices is not None:
+        _subset_from_indices_(current_indices)
     if indices is not None:
         _subset_from_indices_(indices)
 
