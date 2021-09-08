@@ -25,7 +25,7 @@ def test_datasets(ds_cls: type[VisionDataset]) -> None:
     Confirms that the datasets can be instantiated and have a functional __getitem__ method.
     """
     transform = T.ToTensor()
-    ds = ds_cls(root=Path("~/Data").expanduser(), transform=transform)
+    ds = ds_cls(root="~/Data", transform=transform)
     for _ds in ds:
         assert _ds[0] is not None
 
@@ -56,13 +56,13 @@ def test_audio_dataset() -> None:
 
     # Test metadata aligns with labels file.
     audio_samples_to_check = [
-        "FS-08_0_20150802_0625_0.pt",
-        "PL-10_0_20150604_0445_0.pt",
-        "KNEPP-02_0_20150510_0730_0.pt",
+        "FS-08_0_20150802_0625=0.pt",
+        "PL-10_0_20150604_0445=0.pt",
+        "KNEPP-02_0_20150510_0730=0.pt",
     ]
     habitat_target_attributes = ["EC2", "UK1", np.nan]
     for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
-        matched_row = metadata.loc[metadata['fileName'] == sample]
+        matched_row = metadata.loc[metadata['fileName_pt'] == sample]
         if type(label) == str:
             assert matched_row.iloc[0][target_attribute] == label
         else:
