@@ -167,7 +167,7 @@ class CdtDataset(Dataset):
 
     def make_subset(
         self,
-        indices: list[int] | npt.NDArray[np.uint64] | slice,
+        indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice,
         deep: bool = True,
     ) -> CdtDataset:
         # lazily import make_subset to prevent it being a circular import

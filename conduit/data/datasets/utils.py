@@ -241,12 +241,12 @@ def compute_instance_weights(dataset: Dataset, upweight: bool = False) -> Tensor
 def make_subset(
     dataset: CdtDataset | Subset,
     *,
-    indices: list[int] | npt.NDArray[np.uint64] | slice | None,
+    indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
     deep: bool = True,
 ) -> CdtDataset:
-    if isinstance(indices, np.ndarray):
+    if isinstance(indices, (np.ndarray, Tensor)):
         if not indices.ndim > 1:
-            raise ValueError("If 'indices' is a numpy array, it must be a 0- or 1-dimensional.")
+            raise ValueError("If 'indices' is an array it must be a 0- or 1-dimensional.")
         indices = cast(List[int], indices.tolist())
 
     old_indices = None
