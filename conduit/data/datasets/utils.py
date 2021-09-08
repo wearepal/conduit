@@ -6,11 +6,12 @@ import logging
 from multiprocessing.context import BaseContext
 from pathlib import Path
 import platform
-from typing import Any, Callable, NamedTuple, Sequence, Union, overload
+from typing import Any, Callable, List, NamedTuple, Sequence, Union, cast, overload
 
 from PIL import Image
 import albumentations as A
 import cv2
+from kit.misc import gcopy
 import numpy as np
 import numpy.typing as npt
 import torch
@@ -26,10 +27,13 @@ from torch.utils.data.sampler import Sampler
 from torchvision.transforms import functional as TF
 from typing_extensions import Literal, get_args
 
+from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import BinarySample, NamedSample, SampleBase, TernarySample
 
 __all__ = [
     "AlbumentationsTform",
+    "AudioTform",
+    "CdtDataLoader",
     "FileInfo",
     "ImageLoadingBackend",
     "ImageTform",
@@ -42,12 +46,11 @@ __all__ = [
     "extract_labels_from_dataset",
     "get_group_ids",
     "img_to_tensor",
+    "infer_al_backend",
     "infer_il_backend",
     "load_image",
+    "make_subset",
     "pb_collate",
-    "AudioTform",
-    "infer_al_backend",
-    "CdtDataLoader",
 ]
 
 
@@ -233,6 +236,46 @@ def compute_instance_weights(dataset: Dataset, upweight: bool = False) -> Tensor
     else:
         group_weights = 1 - (counts / len(group_ids))
     return group_weights[group_ids]
+
+
+def make_subset(
+    dataset: CdtDataset | Subset,
+    *,
+    indices: list[int] | npt.NDArray[np.uint64] | slice | None,
+    deep: bool = True,
+) -> CdtDataset:
+    if isinstance(indices, np.ndarray):
+        if not indices.ndim > 1:
+            raise ValueError("If 'indices' is a numpy array, it must be a 0- or 1-dimensional.")
+        indices = cast(List[int], indices.tolist())
+
+    old_indices = None
+    if isinstance(dataset, Subset):
+        base_dataset, old_indices = extract_base_dataset(dataset, return_subset_indices=True)
+        if not isinstance(base_dataset, CdtDataset):
+            raise TypeError(
+                f"Subsets can only be created with cdt_subset from {CdtDataset.__name__} instances "
+                f"or PyTorch Subsets of them."
+            )
+        if isinstance(old_indices, Tensor):
+            old_indices = old_indices.tolist()
+    else:
+        base_dataset = dataset
+    subset = gcopy(base_dataset, deep=deep)
+
+    def _subset_from_indices_(_indices: list[int] | slice) -> None:
+        subset.x = subset.x[_indices]
+        if subset.y is not None:
+            subset.y = subset.y[_indices]
+        if subset.s is not None:
+            subset.s = subset.s[_indices]
+
+    if old_indices is not None:
+        _subset_from_indices_(old_indices)
+    if indices is not None:
+        _subset_from_indices_(indices)
+
+    return subset
 
 
 class pb_collate:
