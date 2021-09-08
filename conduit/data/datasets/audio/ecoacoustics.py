@@ -98,8 +98,6 @@ class Ecoacoustics(CdtAudioDataset):
         transform: Optional[AudioTform] = None,
         resample_rate: int = 22050,
         specgram_segment_len: float = 15,
-        num_freq_bins: int = 120,
-        hop_length: int = 60,
     ) -> None:
 
         self.root = Path(root).expanduser()
@@ -117,9 +115,9 @@ class Ecoacoustics(CdtAudioDataset):
         self.specgram_segment_len = specgram_segment_len
         self.resample_rate = resample_rate
         self._n_sgram_segments = int(self._AUDIO_LEN / specgram_segment_len)
-        self.hop_length = hop_length
-        self.num_freq_bins = num_freq_bins
-        self.preprocess_transform = T.Spectrogram(n_fft=num_freq_bins, hop_length=hop_length)
+        if transform is None:
+            transform = T.Spectrogram(n_fft=120, hop_length=60)
+        self.transform = transform
 
         if self.download:
             self._download_files()
@@ -162,8 +160,7 @@ class Ecoacoustics(CdtAudioDataset):
             path = self.base_dir / dir_
             if not path.exists():
                 raise RuntimeError(
-                    f"Data not found at location {self.base_dir.resolve()}."
-                    "Have you downloaded it?"
+                    f"Data not found at location {self.base_dir.resolve()}. Have you downloaded it?"
                 )
             if zipfile.is_zipfile(dir_):
                 raise RuntimeError(f"{dir_} file not unzipped.")
@@ -267,7 +264,6 @@ class Ecoacoustics(CdtAudioDataset):
             mkdir(self._processed_audio_dir)
 
         waveform_paths = list(self.base_dir.glob("**/*.wav"))
-        to_specgram = T.Spectrogram(n_fft=self.num_freq_bins, hop_length=self.hop_length)
 
         for path in tqdm(waveform_paths, desc="Preprocessing"):
             waveform_filename = path.stem
@@ -299,10 +295,11 @@ class Ecoacoustics(CdtAudioDataset):
                     f"(fractional remainder must be greater than 0.5): discarding terminal segment."
                 )
                 waveform = waveform[
-                    :, : num_segments * self.specgram_segment_len * self.resample_rate
+                    :, : int(num_segments * self.specgram_segment_len * self.resample_rate)
                 ]
 
             waveform_segments = waveform.chunk(chunks=num_segments, dim=-1)
+            assert self.transform is not None
             for i, segment in enumerate(waveform_segments):
-                specgram = to_specgram(segment)
+                specgram = self.transform(segment)
                 torch.save(specgram, f=self._processed_audio_dir / f"{waveform_filename}={i}.pt")
