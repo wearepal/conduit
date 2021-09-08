@@ -38,6 +38,8 @@ class EcoacousticsDataModule(CdtAudioDataModule):
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
         training_mode: Union[TrainingMode, str] = "epoch",
+        specgram_segment_len: float = 15,
+        num_freq_bins: int = 120,
     ) -> None:
         super().__init__(
             root=root,
@@ -55,6 +57,8 @@ class EcoacousticsDataModule(CdtAudioDataModule):
         )
         self.image_size = image_size
         self.class_train_props = class_train_props
+        self.specgram_segment_len = specgram_segment_len
+        self.num_freq_bins = num_freq_bins
 
     @property  # type: ignore[misc]
     @implements(CdtAudioDataModule)
@@ -72,7 +76,12 @@ class EcoacousticsDataModule(CdtAudioDataModule):
 
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
-        Ecoacoustics(root=self.root, download=True)
+        Ecoacoustics(
+            root=self.root,
+            download=True,
+            specgram_segment_len=self.specgram_segment_len,
+            num_freq_bins=self.num_freq_bins,
+        )
 
     @implements(CdtDataModule)
     def _get_splits(self) -> TrainValTestSplit:
