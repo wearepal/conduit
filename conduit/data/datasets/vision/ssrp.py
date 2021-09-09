@@ -8,7 +8,7 @@ from kit import parsable, str_to_enum
 import pandas as pd
 import torch
 
-from conduit.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
+from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
 from conduit.data.datasets.vision.base import CdtVisionDataset
 
 __all__ = ["SSRP", "SSRPSplit"]
@@ -20,7 +20,7 @@ class SSRPSplit(Enum):
 
 
 class SSRP(CdtVisionDataset):
-    _FILE_INFO: ClassVar[FileInfo] = FileInfo(
+    _FILE_INFO: ClassVar[GdriveFileInfo] = GdriveFileInfo(
         name="ghaziabad.zip", id="1RE4srtC63VnyU0e1qx16QNdjyyQXg2hj"
     )
 
@@ -45,7 +45,7 @@ class SSRP(CdtVisionDataset):
         if self.download:
             download_from_gdrive(file_info=self._FILE_INFO, root=self._base_dir, logger=self.logger)
         if not self._check_unzipped():
-            raise RuntimeError(
+            raise FileNotFoundError(
                 f"Data not found at location {self._base_dir.resolve()}. Have you downloaded it?"
             )
         if not self._metadata_path.exists():

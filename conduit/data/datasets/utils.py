@@ -24,6 +24,11 @@ from torch.utils.data._utils.collate import (
 )
 from torch.utils.data.dataloader import DataLoader, _worker_init_fn_t
 from torch.utils.data.sampler import Sampler
+from torchvision.datasets.utils import (
+    download_and_extract_archive,
+    download_url,
+    extract_archive,
+)
 from torchvision.transforms import functional as TF
 from typing_extensions import Literal, get_args
 
@@ -34,14 +39,16 @@ __all__ = [
     "AlbumentationsTform",
     "AudioTform",
     "CdtDataLoader",
-    "FileInfo",
+    "GdriveFileInfo",
     "ImageLoadingBackend",
     "ImageTform",
     "PillowTform",
     "RawImage",
+    "UrlFileInfo",
     "apply_image_transform",
     "check_integrity",
     "download_from_gdrive",
+    "download_from_url",
     "extract_base_dataset",
     "extract_labels_from_dataset",
     "get_group_ids",
@@ -404,7 +411,52 @@ def check_integrity(*, filepath: Path, md5: str | None) -> None:
         raise RuntimeError('Dataset corrupted; try deleting it and redownloading it.')
 
 
-class FileInfo(NamedTuple):
+class UrlFileInfo(NamedTuple):
+    name: str
+    url: str
+    md5: str | None = None
+
+
+def download_from_url(
+    *,
+    file_info: UrlFileInfo | list[UrlFileInfo],
+    root: Path | str,
+    logger: logging.Logger | None = None,
+    remove_finished: bool = True,
+) -> None:
+
+    logger = logging.getLogger(__name__) if logger is None else logger
+    file_info_ls = file_info if isinstance(file_info, list) else [file_info]
+    if not isinstance(root, Path):
+        root = Path(root).expanduser()
+    # Create the specified root directory if it doesn't already exist
+    root.mkdir(parents=True, exist_ok=True)
+
+    for info in file_info_ls:
+        filepath = root / info.name
+
+        extracted_filepath = filepath
+        for _ in extracted_filepath.suffixes:
+            extracted_filepath = extracted_filepath.with_suffix("")
+
+        if extracted_filepath.exists():
+            logger.info(f"File '{info.name}' already downloaded and extracted.")
+        else:
+            if filepath.exists():
+                logger.info(f"File '{info.name}' already downloaded.")
+            else:
+                logger.info(f"Downloading file '{info.name}' from address '{info.url}'.")
+                download_url(url=info.url, filename=info.name, root=str(root), md5=info.md5)
+
+            print(f"Extracting '{filepath.resolve()}' to '{root.resolve()}'")
+            extract_archive(
+                from_path=str(filepath),
+                to_path=str(extracted_filepath),
+                remove_finished=remove_finished,
+            )
+
+
+class GdriveFileInfo(NamedTuple):
     name: str
     id: str
     md5: str | None = None
@@ -412,7 +464,7 @@ class FileInfo(NamedTuple):
 
 def download_from_gdrive(
     *,
-    file_info: FileInfo | list[FileInfo],
+    file_info: GdriveFileInfo | list[GdriveFileInfo],
     root: Path | str,
     logger: logging.Logger | None = None,
 ) -> None:
@@ -422,13 +474,15 @@ def download_from_gdrive(
 
     file_info_ls = file_info if isinstance(file_info, list) else [file_info]
     if not isinstance(root, Path):
-        root = Path(root)
+        root = Path(root).expanduser()
     # Create the specified root directory if it doesn't already exist
     root.mkdir(parents=True, exist_ok=True)
 
     for info in file_info_ls:
         filepath = root / info.name
-        if not filepath.exists():
+        if filepath.exists():
+            logger.info(f"File '{info.name}' already downloaded.")
+        else:
             import gdown
 
             logger.info(f"Downloading file '{info.name}' from Google Drive.")
@@ -438,8 +492,6 @@ def download_from_gdrive(
                 quiet=False,
                 md5=info.md5,
             )
-        else:
-            logger.info(f"File '{info.name}' already downloaded.")
         if filepath.suffix == ".zip":
             if filepath.with_suffix("").exists():
                 logger.info(f"File '{info.name}' already unzipped.")

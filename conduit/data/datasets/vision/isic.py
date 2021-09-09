@@ -61,7 +61,7 @@ class ISIC(CdtVisionDataset):
             self._download_data()
             self._preprocess_data()
         elif not self._check_downloaded():
-            raise RuntimeError(
+            raise FileNotFoundError(
                 f"Data not found at location {self._processed_dir.resolve()}. "
                 "Have you downloaded it?"
             )
