@@ -4,7 +4,8 @@ from pathlib import Path
 from kit import implements
 import numpy as np
 import numpy.typing as npt
-from torch import Tensor, load
+import torch
+from torch import Tensor
 import torchaudio
 
 from conduit.data.datasets.base import CdtDataset
@@ -61,7 +62,7 @@ class CdtAudioDataset(CdtDataset):
 
     def load_sample(self, index: int) -> Tensor:
         path = self.audio_dir / self.x[index]
-        return torchaudio.load(path) if str(self.x[index]).endswith('.wav') else load(path)
+        return torchaudio.load(path) if str(self.x[index]).endswith('.wav') else torch.load(path)
 
     @implements(CdtDataset)
     def _sample_x(self, index: int, *, coerce_to_tensor: bool = False) -> Tensor:
