@@ -74,6 +74,11 @@ class NICODataModule(CdtVisionDataModule):
         normalization = super()._default_train_transforms()
         return A.Compose([base_transforms, normalization])
 
+    @property  # type: ignore[misc]
+    @implements(CdtVisionDataModule)
+    def _default_test_transforms(self) -> A.Compose:
+        return self._default_train_transforms
+
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
         NICO(root=self.root, download=True)
