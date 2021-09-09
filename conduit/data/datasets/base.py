@@ -20,10 +20,10 @@ from conduit.data.structures import (
     TernarySample,
 )
 
-__all__ = ["CdtDataset", "T"]
+__all__ = ["CdtDataset", "D"]
 
 
-T = TypeVar("T", bound="CdtDataset")
+D = TypeVar("D", bound="CdtDataset")
 
 
 class CdtDataset(Dataset):
@@ -169,19 +169,19 @@ class CdtDataset(Dataset):
         return len(self.x)
 
     def make_subset(
-        self: T,
+        self: D,
         indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice,
         deep: bool = False,
-    ) -> T:
+    ) -> D:
         # lazily import make_subset to prevent it being a circular import
         from conduit.data.datasets.utils import make_subset
 
         return make_subset(dataset=self, indices=indices, deep=deep)
 
-    def random_split(self: T, props: Sequence[float] | float, deep: bool = False) -> list[T]:
+    def random_split(self: D, props: Sequence[float] | float, deep: bool = False) -> list[D]:
         # lazily import make_subset to prevent it being a circular import
         from conduit.data.datasets.utils import make_subset
 
         splits = prop_random_split(dataset=self, props=props)
-        splits = cast(List[T], [make_subset(split, indices=None, deep=deep) for split in splits])
+        splits = cast(List[D], [make_subset(split, indices=None, deep=deep) for split in splits])
         return splits

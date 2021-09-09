@@ -6,17 +6,7 @@ import logging
 from multiprocessing.context import BaseContext
 from pathlib import Path
 import platform
-from typing import (
-    Any,
-    Callable,
-    List,
-    NamedTuple,
-    Sequence,
-    TypeVar,
-    Union,
-    cast,
-    overload,
-)
+from typing import Any, Callable, List, NamedTuple, Sequence, Union, cast, overload
 
 from PIL import Image
 import albumentations as A
@@ -38,7 +28,7 @@ from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import functional as TF
 from typing_extensions import Literal, get_args
 
-from conduit.data.datasets.base import CdtDataset, T
+from conduit.data.datasets.base import CdtDataset, D
 from conduit.data.structures import BinarySample, NamedSample, SampleBase, TernarySample
 
 __all__ = [
@@ -263,20 +253,20 @@ def make_subset(
 
 @overload
 def make_subset(
-    dataset: T,
+    dataset: D,
     *,
     indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
     deep: bool = ...,
-) -> T:
+) -> D:
     ...
 
 
 def make_subset(
-    dataset: T | Subset,
+    dataset: D | Subset,
     *,
     indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
     deep: bool = False,
-) -> T | CdtDataset:
+) -> D | CdtDataset:
     if isinstance(indices, (np.ndarray, Tensor)):
         if not indices.ndim > 1:
             raise ValueError("If 'indices' is an array it must be a 0- or 1-dimensional.")
