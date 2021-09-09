@@ -12,7 +12,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Subset
 
-from conduit.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
+from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
 from conduit.data.datasets.vision.base import CdtVisionDataset
 from conduit.data.structures import TrainTestSplit
 
@@ -30,7 +30,7 @@ class NICO(CdtVisionDataset):
     'Towards Non-I.I.D. Image Classification: A Dataset and Baselines'
     """
 
-    _FILE_INFO: ClassVar[FileInfo] = FileInfo(
+    _FILE_INFO: ClassVar[GdriveFileInfo] = GdriveFileInfo(
         name="NICO.zip",
         id="1L6cHNhuwwvrolukBklFyhFu7Y8WUUIQ7",
         md5="78c686f84e31ad6b6c052f97ed5f532b",
@@ -53,13 +53,12 @@ class NICO(CdtVisionDataset):
         self.download = download
         self._base_dir = self.root / self._BASE_FOLDER
         self._metadata_path = self._base_dir / "metadata.csv"
-        assert isinstance(superclass, NicoSuperclass) or superclass is None
         self.superclass = superclass
 
         if self.download:
             download_from_gdrive(file_info=self._FILE_INFO, root=self.root, logger=self.logger)
         elif not self._check_unzipped():
-            raise RuntimeError(
+            raise FileNotFoundError(
                 f"Data not found at location {self._base_dir.resolve()}. " "Have you downloaded it?"
             )
         if not self._metadata_path.exists():
