@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 from kit import implements, parsable
-from kit.torch import TrainingMode, prop_random_split
+from kit.torch import TrainingMode
 import numpy as np
 from pytorch_lightning import LightningDataModule
 from torchvision.datasets import MNIST
@@ -118,17 +118,17 @@ class ColoredMNISTDataModule(CdtVisionDataModule):
         if self.use_predefined_splits:
             train_data = fact_func(split=ColoredMNISTSplit.train)
             test_data = fact_func(split=ColoredMNISTSplit.test)
-            val_data, train_data_new = prop_random_split(dataset=train_data, props=self.val_prop)
+            val_data, train_data = train_data.random_split(props=self.val_prop)
         else:
             # Split the data randomly according to val- and test-prop
             train_data = fact_func(split=None)
-            val_data, test_data, train_data_new = prop_random_split(
-                dataset=train_data, props=(self.val_prop, self.test_prop)
+            val_data, test_data, train_data = train_data.random_split(
+                props=(self.val_prop, self.test_prop)
             )
         # Compute the channel-wise first and second moments
-        channel_means = np.mean(train_data.x[train_data_new.indices], axis=(0, 1, 2)) / 255.0
-        channel_stds = np.std(train_data.x[train_data_new.indices], axis=(0, 1, 2)) / 255.0
+        channel_means = np.mean(train_data.x, axis=(0, 1, 2)) / 255.0
+        channel_stds = np.std(train_data.x, axis=(0, 1, 2)) / 255.0
 
         self.norm_values = MeanStd(mean=channel_means.tolist(), std=channel_stds.tolist())
 
-        return TrainValTestSplit(train=train_data_new, val=val_data, test=test_data)
+        return TrainValTestSplit(train=train_data, val=val_data, test=test_data)

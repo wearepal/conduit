@@ -6,7 +6,17 @@ import logging
 from multiprocessing.context import BaseContext
 from pathlib import Path
 import platform
-from typing import Any, Callable, List, NamedTuple, Sequence, Union, cast, overload
+from typing import (
+    Any,
+    Callable,
+    List,
+    NamedTuple,
+    Sequence,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
 from PIL import Image
 import albumentations as A
@@ -24,15 +34,11 @@ from torch.utils.data._utils.collate import (
 )
 from torch.utils.data.dataloader import DataLoader, _worker_init_fn_t
 from torch.utils.data.sampler import Sampler
-from torchvision.datasets.utils import (
-    download_and_extract_archive,
-    download_url,
-    extract_archive,
-)
+from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import functional as TF
 from typing_extensions import Literal, get_args
 
-from conduit.data.datasets.base import CdtDataset
+from conduit.data.datasets.base import CdtDataset, T
 from conduit.data.structures import BinarySample, NamedSample, SampleBase, TernarySample
 
 __all__ = [
@@ -245,12 +251,32 @@ def compute_instance_weights(dataset: Dataset, upweight: bool = False) -> Tensor
     return group_weights[group_ids]
 
 
+@overload
 def make_subset(
-    dataset: CdtDataset | Subset,
+    dataset: Subset,
+    *,
+    indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
+    deep: bool = ...,
+) -> CdtDataset:
+    ...
+
+
+@overload
+def make_subset(
+    dataset: T,
+    *,
+    indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
+    deep: bool = ...,
+) -> T:
+    ...
+
+
+def make_subset(
+    dataset: T | Subset,
     *,
     indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
     deep: bool = False,
-) -> CdtDataset:
+) -> T | CdtDataset:
     if isinstance(indices, (np.ndarray, Tensor)):
         if not indices.ndim > 1:
             raise ValueError("If 'indices' is an array it must be a 0- or 1-dimensional.")
@@ -295,7 +321,7 @@ class pb_collate:
         elem_type = type(elem)
         if isinstance(elem, Tensor):
             out = None
-            if torch.utils.data.get_worker_info() is not None:
+            if torch.utils.data.get_worker_info() is not None:  # type: ignore
                 # If we're in a background process, concatenate directly into a
                 # shared memory tensor to avoid an extra copy
                 numel = sum(x.numel() for x in batch)
@@ -303,8 +329,8 @@ class pb_collate:
                 out = elem.new(storage)
             ndims = elem.dim()
             if (ndims > 0) and ((ndims % 2) == 0):
-                return torch.cat(batch, dim=0, out=out)
-            return torch.stack(batch, dim=0, out=out)
+                return torch.cat(batch, dim=0, out=out)  # type: ignore
+            return torch.stack(batch, dim=0, out=out)  # type: ignore
         elif (
             elem_type.__module__ == "numpy"
             and elem_type.__name__ != "str_"

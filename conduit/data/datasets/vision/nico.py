@@ -2,7 +2,7 @@
 from __future__ import annotations
 from enum import Enum, auto
 from pathlib import Path
-from typing import ClassVar, Optional, Union, cast
+from typing import ClassVar, NamedTuple, Optional, Union, cast
 
 from PIL import Image, UnidentifiedImageError
 from kit import parsable, str_to_enum
@@ -10,13 +10,16 @@ from kit.decorators import enum_name_str
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import Subset
 
 from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
 from conduit.data.datasets.vision.base import CdtVisionDataset
-from conduit.data.structures import TrainTestSplit
 
-__all__ = ["NICO", "NicoSuperclass"]
+__all__ = ["NICO", "NicoSuperclass", "NICOTrainTestSplit"]
+
+
+class NICOTrainTestSplit(NamedTuple):
+    train: NICO
+    test: NICO
 
 
 @enum_name_str
@@ -128,7 +131,7 @@ class NICO(CdtVisionDataset):
         *,
         train_props: dict[str | int, dict[str | int, float]] | None = None,
         seed: int | None = None,
-    ) -> TrainTestSplit:
+    ) -> NICOTrainTestSplit:
         """Split the data into train/test sets with the option to condition on concept/context."""
         # Initialise the random-number generator
         rng = np.random.default_rng(seed)
@@ -203,7 +206,7 @@ class NICO(CdtVisionDataset):
         test_inds = list(set(range(len(self))) - set(train_inds))
         test_data = self.make_subset(indices=test_inds)
 
-        return TrainTestSplit(train=train_data, test=test_data)
+        return NICOTrainTestSplit(train=train_data, test=test_data)
 
 
 def _gif_to_jpeg(image: Image.Image) -> Image.Image:
