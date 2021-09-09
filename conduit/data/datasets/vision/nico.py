@@ -53,7 +53,6 @@ class NICO(CdtVisionDataset):
         self.download = download
         self._base_dir = self.root / self._BASE_FOLDER
         self._metadata_path = self._base_dir / "metadata.csv"
-        assert isinstance(superclass, NicoSuperclass) or superclass is None
         self.superclass = superclass
 
         if self.download:

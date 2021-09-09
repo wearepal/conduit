@@ -39,7 +39,6 @@ class SSRP(CdtVisionDataset):
         self._base_dir = self.root / "ssrp"
         self._metadata_path = self._base_dir / "metadata.csv"
         self.download = download
-        assert isinstance(split, SSRPSplit)
         self.split = split
 
         if self.download:
