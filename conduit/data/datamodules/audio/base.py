@@ -7,6 +7,7 @@ from typing import Optional, Union
 import albumentations as A
 from kit import implements
 from kit.torch import TrainingMode
+from torch import nn
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.utils import AlbumentationsTform
@@ -61,12 +62,12 @@ class CdtAudioDataModule(CdtDataModule):
 
     @property
     @abstractmethod
-    def _base_augmentations(self) -> A.Compose:
+    def _base_augmentations(self) -> nn.Sequential:
         ...
 
     @property
     @abstractmethod
-    def _train_augmentations(self) -> A.Compose:
+    def _train_augmentations(self) -> nn.Sequential:
         ...
 
     @implements(CdtDataModule)
