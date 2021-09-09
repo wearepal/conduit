@@ -81,13 +81,7 @@ class WaterbirdsDataModule(CdtVisionDataModule):
     @property  # type: ignore[misc]
     @implements(CdtVisionDataModule)
     def _default_test_transforms(self) -> A.Compose:
-        base_transforms = A.Compose(
-            [
-                A.Resize(self.image_size, self.image_size),
-            ]
-        )
-        normalization = super()._default_train_transforms
-        return A.Compose([base_transforms, normalization])
+        return self._default_train_transforms
 
     @implements(CdtDataModule)
     def _get_splits(self) -> TrainValTestSplit:
