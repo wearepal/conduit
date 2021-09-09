@@ -23,7 +23,7 @@ class CreditDataModule(EthicMlDataModule):
     @parsable
     def __init__(
         self,
-        sens_feat: CrimeSens = CrimeSens.sex,
+        sens_feat: CreditSens = CreditSens.sex,
         disc_feats_only: bool = False,
         # Below are super vars. Not doing *args **kwargs due to this being parsable
         train_batch_size: int = 100,
