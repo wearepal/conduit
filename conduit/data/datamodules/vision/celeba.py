@@ -4,6 +4,7 @@ from typing import Any, Optional, Union
 
 import albumentations as A
 from kit import implements, parsable
+from kit.torch.data import TrainingMode
 from pytorch_lightning import LightningDataModule
 
 from conduit.data.datamodules.base import CdtDataModule
