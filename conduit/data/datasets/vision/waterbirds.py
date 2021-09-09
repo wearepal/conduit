@@ -70,7 +70,7 @@ class Waterbirds(CdtVisionDataset):
         # Read in metadata
         # Note: metadata is one-indexed.
         self.metadata = pd.read_csv(self._base_dir / 'metadata.csv')
-        # Use an official split of the data, if specified, else just keep all
+        # Use an official split of the data, if specified, else just use all
         # of the data
         if split is not None:
             split_indices = self.metadata["split"] == split.value
