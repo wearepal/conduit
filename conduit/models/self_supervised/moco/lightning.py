@@ -55,34 +55,57 @@ class MoCoV2(MomentumTeacherModel):
         momentum_sgd: float = 0.9,
         weight_decay: float = 1.0e-4,
         use_mlp: bool = False,
-        eval_epochs: int = 100,
-        eval_batch_size: Optional[int] = None,
         instance_transforms: Optional[MultiCropTransform] = None,
         batch_transforms: Optional[BatchTransform] = None,
         multicrop: bool = False,
         global_crops_scale: Tuple[float, float] = (0.4, 1.0),
         local_crops_scale: Tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
+        eval_epochs: int = 100,
+        eval_batch_size: Optional[int] = None,
     ) -> None:
         """
         PyTorch Lightning implementation of `MoCo <https://arxiv.org/abs/2003.04297>`_
         Paper authors: Xinlei Chen, Haoqi Fan, Ross Girshick, Kaiming He.
-        Code adapted from `facebookresearch/moco <https://github.com/facebookresearch/moco>`
 
-        Args:
-            backbone: Backbone of the encoder. Can be any nn.Module with a unary forward method
-            (accepting a single input Tensor and returning a single output Tensor), in which case embed_dim
-            will be inferred by passing a dummy input through the backone, or a 'ResNetArch' instance
-            whose value is a resnet builder function which will be called with num_classes=out_dim.
-            emb_dim: Feature dimension of the ResNet model: 128); only applicable if backbone is
-            an 'ResNetArch' instance.
-            num_negatives: queue size; number of negative keys (default: 65536)
-            encoder_momentum: moco momentum of updating key encoder (default: 0.999)
-            temp: softmax temperature (default: 0.07)
-            lr: the learning rate
-            sgd_momentum: optimizer momentum
-            weight_decay: optimizer weight decay
-            use_mlp: add an mlp to the encoders
+        :param backbone: Backbone of the encoder. Can be any nn.Module with a unary forward method
+        (accepting a single input Tensor and returning a single output Tensor), in which case embed_dim
+        will be inferred by passing a dummy input through the backone, or a 'ResNetArch' instance
+        whose value is a resnet builder function which will be called with num_classes=out_dim.
+        emb_dim: Feature dimension of the ResNet model: 128); only applicable if backbone is
+        an 'ResNetArch' instance.
+
+        :param out_dim: Output size of the encoder; only applicable when backbone is a 'ResNetArch' enum.
+
+        :param num_negatives: queue size; number of negative keys.
+        :param momentum_teacher: Momentum (what fraction of the previous iterates parameters to interpolate with)
+        for the teacher update.
+
+        :param temp: Softmax temperature.
+        :param lr: Learning rate for the student model.
+        :param sgd_momentum: Optimizer momentum.
+        :param weight_decay: Optimizer weight decay.
+        :param use_mlp: Whether to add an MLP head to the decoders (instead of a single linear layer).
+
+        :param instance_transforms: Instance-wise image-transforms to use to generate the positive pairs
+        for instance-discrimination.
+
+        :param batch_transforms: Batch-wise image-transforms to use to generate the positive pairs for
+        instance-discrimination.
+
+        :param multicrop: Whether to use a multi-crop augmentation policy wherein the same image is
+        randomly cropped to get a pair of high resolution (global) images and along with multiple
+        lower resolution (generally covering less than 50% of the image) images of number 'local_crops_number'.
+
+        :param global_crops_scale: Scale range of the cropped image before resizing, relative to the origin image.
+        Used for large global view cropping. Only applies when 'multicrop=True'.
+
+        :param local_crops_number: Number of small local views to generate.
+        :param global_crops_scale: Scale range of the cropped image before resizing, relative to the origin image.
+        Used for small, local cropping. Only applies when 'multicrop=True'.
+
+        :param eval_epochs: Number of epochs to train the post-hoc classifier for during validation/testing.
+        :param eval_batch_size: Batch size to use when training the post-hoc classifier during validation/testing.
         """
         super().__init__(
             lr=lr,

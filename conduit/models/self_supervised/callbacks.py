@@ -22,17 +22,9 @@ __all__ = [
 class MeanTeacherWeightUpdate(pl.Callback):
     """
     Weight update rule from Mean Teacher.
-    Your model should have:
-        - ``self.student_network``
-        - ``self.teacher_network``
+
     Updates the teacher_network params using an exponential moving average update rule weighted by tau.
     BYOL claims this keeps the online_network from collapsing.
-    Example::
-        # model must have 2 attributes
-        model = Model()
-        model.student_network = ...
-        model.teacher_network = ...
-        trainer = Trainer(callbacks=[MeanTeacherWeightUpdate])
     """
 
     def __init__(
@@ -63,8 +55,8 @@ class MeanTeacherWeightUpdate(pl.Callback):
             em = self.momentum_schedule(train_step)
         else:
             em = self.momentum_schedule
-        for param_q, param_k in zip(student.parameters(), teacher.parameters()):
-            param_k.data = param_k.data * em + param_q.data * (1.0 - em)
+        for param_s, param_t in zip(student.parameters(), teacher.parameters()):
+            param_t.data = param_t.data * em + param_s.data * (1.0 - em)
 
 
 class PostHocProgressBar(ProgressBar):

@@ -74,6 +74,14 @@ def load_image(filepath: Path | str, *, backend: Literal["pillow"] = ...) -> Ima
 
 
 def load_image(filepath: Path | str, *, backend: ImageLoadingBackend = "opencv") -> RawImage:
+    """Load an image from disk using the requested backend.
+
+    :param: The path of the image-file to be loaded.
+    :param backend: Backed to use for loading the image: either 'opencv' or 'pillow'.
+
+    :returns: The loaded image file as a numpy array if 'opencv' was the selected backend
+    and a PIL image otherwise.
+    """
     if backend == "opencv":
         if isinstance(filepath, Path):
             # cv2 can only read string filepaths
@@ -91,7 +99,15 @@ ImageTform = Union[AlbumentationsTform, PillowTform]
 
 
 def infer_il_backend(transform: ImageTform | None) -> ImageLoadingBackend:
-    """Infer which image-loading backend to use based on the type of the image-transform."""
+    """Infer which image-loading backend to use based on the type of the image-transform.
+
+    :param transform: The image transform from which to infer the image-loading backend.
+    If the transform is derived from Albumentations, then 'opencv' will be selected as the
+    backend, else 'pillow' will be selected.
+
+    :returns: The backend to load images with based on the supplied image-transform: either
+    'opencv' or 'pillow'.
+    """
     # Default to openccv is transform is None as numpy arrays are generally
     # more tractable
     if transform is None or isinstance(transform, get_args(AlbumentationsTform)):
@@ -155,6 +171,22 @@ def extract_base_dataset(
 def extract_base_dataset(
     dataset: Dataset, *, return_subset_indices: bool = True
 ) -> Dataset | tuple[Dataset, Tensor | slice]:
+    """Extract the innermost dataset of a nesting of datasets.
+
+    Nested datasets are inferred based on the existence of a 'dataset'
+    attribute and the base dataset is extracted by recursive application
+    of this rule.
+
+    :param dataset: The dataset from which to extract the base dataset.
+
+    :param return_subset_indices: Whether to return the indices from which
+    the overall subset of the dataset was created (works for multiple levels of
+    subsetting).
+
+    :returns: The base dataset, which may be the original dataset if one does not
+    exist or cannot be determined.
+    """
+
     def _closure(
         dataset: Dataset, rel_indices_ls: list[list[int]] | None = None
     ) -> Dataset | tuple[Dataset, Tensor | slice]:
@@ -267,6 +299,18 @@ def make_subset(
     indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
     deep: bool = False,
 ) -> D | CdtDataset:
+    """Create a subset of the dataset from the given indices.
+
+    :param indices: The sample-indices from which to create the subset.
+    In the case of being a numpy array or tensor, said array or tensor
+    must be 0- or 1-dimensional.
+
+    :param deep: Whether to create a copy of the underlying dataset as
+    a basis for the subset. If False then the data of the subset will be
+    a view of original dataset's data.
+
+    :returns: A subset of the dataset from the given indices.
+    """
     if isinstance(indices, (np.ndarray, Tensor)):
         if not indices.ndim > 1:
             raise ValueError("If 'indices' is an array it must be a 0- or 1-dimensional.")

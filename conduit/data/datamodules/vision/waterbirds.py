@@ -17,7 +17,7 @@ __all__ = ["WaterbirdsDataModule"]
 
 
 class WaterbirdsDataModule(CdtVisionDataModule):
-    """Data-module for the CelebA dataset."""
+    """Data-module for the Waterbirds dataset."""
 
     @parsable
     def __init__(
@@ -66,10 +66,11 @@ class WaterbirdsDataModule(CdtVisionDataModule):
     @property  # type: ignore[misc]
     @implements(CdtVisionDataModule)
     def _default_train_transforms(self) -> A.Compose:
-        # This transform conforsm with that described in https://arxiv.org/abs/2008.06775,
-        # differing from the that described in the original paper by Sagawa et al. in the
-        # respect that the images are not centre-cropped before resizing (which purportedly
-        # makes the task easier).
+        # We use the transoform pipeline described in https://arxiv.org/abs/2008.06775
+        # rather than that described in the paper in which the dataset was first introduced
+        # (Sagawa et al); these differ in in the respect that the latter center-crops the images
+        # before resizing - not doing so makes the task more difficult due to the background
+        # (serving as a spurious attribute) being more prominent.
         base_transforms = A.Compose(
             [
                 A.Resize(self.image_size, self.image_size),

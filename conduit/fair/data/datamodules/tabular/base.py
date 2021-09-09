@@ -40,18 +40,19 @@ class EthicMlDataModule(CdtDataModule):
         scaler: ScalerType | None = None,
         training_mode: Union[TrainingMode, str] = "epoch",
     ) -> None:
-        """Base data-module for tabular data.
+        """Base data-module for ethicml-derived datasets.
 
-        Args:
-            val_prop: Proprtion (float)  of samples to use for the validation split
-            test_prop: Proportion (float) of samples to use for the test split
-            num_workers: How many workers to use for loading data
-            batch_size: How many samples per batch to load
-            seed: RNG Seed
-            scaler: SKLearn style data scaler. Fit to train, applied to val and test.
-            persist_workers: Use persistent workers in dataloader?
-            pin_memory: Should the memory be pinned?
-            stratified_sampling: Use startified sampling?
+        :param val_prop: Proprtion (float)  of samples to use for the validation split
+        :param test_prop: Proportion (float) of samples to use for the test split
+        :param num_workers: How many workers to use for loading data
+        :param batch_size: How many samples per batch to load
+        :param seed: RNG Seed
+        :param persist_workers: Use persistent workers in dataloader?
+        :param pin_memory: Should the memory be pinned?
+        :param stratified_sampling: Use startified sampling?
+        :param stratified_sampling: Use instance-weighting?
+        :param scaler: SKLearn style data scaler. Fit to train, applied to val and test.
+        :param training mode: Which training mode to use ('epoch' vs. 'step').
         """
         super().__init__(
             train_batch_size=train_batch_size,

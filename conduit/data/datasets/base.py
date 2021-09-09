@@ -173,12 +173,36 @@ class CdtDataset(Dataset):
         indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice,
         deep: bool = False,
     ) -> D:
+        """Create a subset of the dataset from the given indices.
+
+        :param indices: The sample-indices from which to create the subset.
+        In the case of being a numpy array or tensor, said array or tensor
+        must be 0- or 1-dimensional.
+
+        :param deep: Whether to create a copy of the underlying dataset as
+        a basis for the subset. If False then the data of the subset will be
+        a view of original dataset's data.
+
+        :returns: A subset of the dataset from the given indices.
+        """
         # lazily import make_subset to prevent it being a circular import
         from conduit.data.datasets.utils import make_subset
 
         return make_subset(dataset=self, indices=indices, deep=deep)
 
     def random_split(self: D, props: Sequence[float] | float, deep: bool = False) -> list[D]:
+        """Randomly split the dataset into subsets according to the given proportions.
+
+        :param props: The fractional size of each subset into which to randomly split the data.
+        Elements must be non-negative and sum to 1 or less; if less then the size of the final
+        split will be computed by complement.
+
+        :param deep: Whether to create a copy of the underlying dataset as
+        a basis for the random subsets. If False then the data of the subsets will be
+        views of original dataset's data.
+
+        :returns: Random subsets of the data of the requested proportions.
+        """
         # lazily import make_subset to prevent it being a circular import
         from conduit.data.datasets.utils import make_subset
 
