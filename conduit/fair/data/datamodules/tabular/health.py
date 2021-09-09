@@ -8,7 +8,7 @@ from kit.torch import TrainingMode
 
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 
-__all__ = ["HealthDataModule"]
+__all__ = ["HealthDataModule", "HealthSens"]
 
 
 class HealthSens(Enum):
