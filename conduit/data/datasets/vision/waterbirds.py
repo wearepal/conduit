@@ -68,7 +68,9 @@ class WaterbirdsDataset(CdtVisionDataset):
 
         # Extract filenames
         x = self.metadata['img_filename'].to_numpy()
+        # Extract class (land vs. water bird) labels
         y = torch.as_tensor(self.metadata["y"].to_numpy(), dtype=torch.long)
+        # Extract place (land vs. water) labels
         s = torch.as_tensor(self.metadata["place"].to_numpy(), dtype=torch.long)
 
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._base_dir)
