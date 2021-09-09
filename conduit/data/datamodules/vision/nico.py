@@ -4,7 +4,6 @@ from typing import Any, Optional, Union
 
 import albumentations as A
 from kit import implements, parsable
-from kit.torch import prop_random_split
 from kit.torch.data import TrainingMode
 from pytorch_lightning import LightningDataModule
 
@@ -74,6 +73,11 @@ class NICODataModule(CdtVisionDataModule):
         normalization = super()._default_train_transforms()
         return A.Compose([base_transforms, normalization])
 
+    @property  # type: ignore[misc]
+    @implements(CdtVisionDataModule)
+    def _default_test_transforms(self) -> A.Compose:
+        return self._default_train_transforms
+
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
         NICO(root=self.root, download=True)
@@ -81,14 +85,12 @@ class NICODataModule(CdtVisionDataModule):
     @implements(CdtDataModule)
     def _get_splits(self) -> TrainValTestSplit:
         all_data = NICO(root=self.root, superclass=self.superclass, transform=None)
-
         train_val_prop = 1 - self.test_prop
         train_val_data, test_data = all_data.train_test_split(
             default_train_prop=train_val_prop,
             train_props=self.class_train_props,
             seed=self.seed,
         )
-        val_data, train_data = prop_random_split(
-            dataset=train_val_data, props=self.val_prop / train_val_prop
-        )
+        val_data, train_data = train_val_data.random_split(props=self.val_prop / train_val_prop)
+
         return TrainValTestSplit(train=train_data, val=val_data, test=test_data)

@@ -9,7 +9,7 @@ import torch
 from conduit.data.datasets.utils import ImageTform, UrlFileInfo, download_from_url
 from conduit.data.datasets.vision.base import CdtVisionDataset
 
-__all__ = ["WaterbirdsDataset", "WaterbirdsSplit"]
+__all__ = ["Waterbirds", "WaterbirdsSplit"]
 
 
 class WaterbirdsSplit(Enum):
@@ -18,9 +18,19 @@ class WaterbirdsSplit(Enum):
     test = 2
 
 
-class WaterbirdsDataset(CdtVisionDataset):
+class Waterbirds(CdtVisionDataset):
     """The Waterbirds dataset.
-    The dataset was constructed from the CUB-200-2011 dataset and the Places dataset:
+
+    The dataset was constructed by cropping out birds from the Caltech-UCSD Birds-200-2011 (CUB) dataset
+    and transferring them onto backgrounds from the Places dataset.
+
+    The train-test split is the same as the one used for the CUB dataset, with 20% of the training data chosen to
+    serve as a validation set. For the validation and test sets, landbirds and waterbirds are equally
+    distributed across land and water backgrounds (i.e., there are the same number of landbirds on land
+    vs. water backgrounds, and separately, the same number of waterbirds on land vs. water backgrounds).
+    This allows us to more accurately measure the performance of the rare groups, and it is particularly
+    important for the Waterbirds dataset because of its relatively small size; otherwise, the smaller groups
+    (waterbirds on land and landbirds on water) would have too few samples to accurately estimate performance on.
     """
 
     _BASE_FOLDER: ClassVar[str] = "Waterbirds"
@@ -68,7 +78,7 @@ class WaterbirdsDataset(CdtVisionDataset):
 
         # Extract filenames
         x = self.metadata['img_filename'].to_numpy()
-        # Extract class (land vs. water bird) labels
+        # Extract class (land- vs. water-bird) labels
         y = torch.as_tensor(self.metadata["y"].to_numpy(), dtype=torch.long)
         # Extract place (land vs. water) labels
         s = torch.as_tensor(self.metadata["place"].to_numpy(), dtype=torch.long)

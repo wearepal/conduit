@@ -1,6 +1,6 @@
 from __future__ import annotations
 import logging
-from typing import ClassVar, Sequence
+from typing import ClassVar, List, Sequence, TypeVar, cast
 
 from kit import implements
 from kit.torch.data import prop_random_split
@@ -20,7 +20,10 @@ from conduit.data.structures import (
     TernarySample,
 )
 
-__all__ = ["CdtDataset"]
+__all__ = ["CdtDataset", "D"]
+
+
+D = TypeVar("D", bound="CdtDataset")
 
 
 class CdtDataset(Dataset):
@@ -166,18 +169,19 @@ class CdtDataset(Dataset):
         return len(self.x)
 
     def make_subset(
-        self,
+        self: D,
         indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice,
         deep: bool = False,
-    ) -> CdtDataset:
+    ) -> D:
         # lazily import make_subset to prevent it being a circular import
         from conduit.data.datasets.utils import make_subset
 
         return make_subset(dataset=self, indices=indices, deep=deep)
 
-    def random_split(self, props: Sequence[float] | float, deep: bool = False) -> list[CdtDataset]:
+    def random_split(self: D, props: Sequence[float] | float, deep: bool = False) -> list[D]:
         # lazily import make_subset to prevent it being a circular import
         from conduit.data.datasets.utils import make_subset
 
         splits = prop_random_split(dataset=self, props=props)
-        return [make_subset(split, indices=None, deep=deep) for split in splits]
+        splits = cast(List[D], [make_subset(split, indices=None, deep=deep) for split in splits])
+        return splits
