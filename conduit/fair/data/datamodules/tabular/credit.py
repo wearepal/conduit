@@ -9,10 +9,10 @@ from kit.torch import TrainingMode
 
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 
-__all__ = ["CreditDataModule"]
+__all__ = ["CreditDataModule", "CreditSens"]
 
 
-class CrimeSens(Enum):
+class CreditSens(Enum):
     sex = "Sex"
     custom = "Custom"
 
