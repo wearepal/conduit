@@ -12,7 +12,7 @@ from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 __all__ = ["CreditDataModule"]
 
 
-class CrimeSens(Enum):
+class CreditSens(Enum):
     sex = "Sex"
     custom = "Custom"
 
