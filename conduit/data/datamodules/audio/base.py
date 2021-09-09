@@ -10,7 +10,6 @@ from kit.torch import TrainingMode
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.utils import AlbumentationsTform
-from conduit.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
 from conduit.data.structures import ImageSize
 from conduit.types import Stage
 
@@ -73,12 +72,9 @@ class CdtAudioDataModule(CdtDataModule):
     @implements(CdtDataModule)
     def setup(self, stage: Stage | None = None) -> None:
         train, val, test = self._get_splits()
-        train = ImageTransformer(train, transform=self._augmentations(train=True))
-        if self.instance_weighting:
-            train = InstanceWeightedDataset(train)
         self._train_data = train
-        self._val_data = ImageTransformer(val, transform=self._augmentations(train=False))
-        self._test_data = ImageTransformer(test, transform=self._augmentations(train=False))
+        self._val_data = val
+        self._test_data = test
 
     def _augmentations(self, train: bool) -> A.Compose:
         # Base augmentations (augmentations that are applied to all splits of the data)

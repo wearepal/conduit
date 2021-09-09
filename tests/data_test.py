@@ -15,6 +15,7 @@ from conduit.data import (
     TernarySample,
     TernarySampleIW,
 )
+from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 
 
@@ -35,8 +36,8 @@ def test_audio_dataset() -> None:
     root_dir = Path("~/Data").expanduser()
     base_dir = root_dir / "Ecoacoustics"
     target_attribute = "habitat"
-    waveform_length = 60  # Length in seconds.
-    specgram_segment_len = 30  # Length in seconds.
+    waveform_length = 60.0  # Length in seconds.
+    specgram_segment_len = 30.0  # Length in seconds.
 
     ds = Ecoacoustics(
         root=root_dir,
@@ -76,6 +77,24 @@ def test_audio_dataset() -> None:
     segments_per_waveform = int(waveform_length / specgram_segment_len)
     expected_num_processed_files = len(list(root_dir.glob("**/*.wav"))) * segments_per_waveform
     assert num_processed_files == expected_num_processed_files
+
+
+@pytest.mark.slow
+def test_datamodule():
+    root = Path("~/Data").expanduser()
+
+    dm = EcoacousticsDataModule(root=root, specgram_segment_len=30.0)
+    dm.prepare_data()
+    dm.setup()
+
+    # Test loading a sample.
+    train_dl = dm.train_dataloader()
+    test_sample = next(iter(train_dl))
+
+    # Test size().
+    assert test_sample.x.size()[1] == dm.size.C
+    assert test_sample.x.size()[2] == dm.size.H
+    assert test_sample.x.size()[3] == dm.size.W
 
 
 def test_add_field() -> None:

@@ -66,4 +66,4 @@ class CdtAudioDataset(CdtDataset):
     @implements(CdtDataset)
     def _sample_x(self, index: int, *, coerce_to_tensor: bool = False) -> Tensor:
         waveform = self.load_sample(index)
-        return apply_waveform_transform(waveform)
+        return apply_waveform_transform(waveform, transform=None)
