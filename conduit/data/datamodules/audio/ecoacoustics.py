@@ -87,13 +87,7 @@ class EcoacousticsDataModule(CdtAudioDataModule):
     def _get_splits(self) -> TrainValTestSplit:
         all_data = Ecoacoustics(root=self.root, transform=None)
 
-        train_val_prop = 1 - self.test_prop
-        train_val_data, test_data = all_data.train_test_split(
-            default_train_prop=train_val_prop,
-            train_props=self.class_train_props,
-            seed=self.seed,
-        )
-        val_data, train_data = prop_random_split(
-            dataset=train_val_data, props=self.val_prop / train_val_prop
+        val_data, test_data, train_data = prop_random_split(
+            dataset=all_data, props=(self.val_prop, self.test_prop)
         )
         return TrainValTestSplit(train=train_data, val=val_data, test=test_data)
