@@ -4,7 +4,8 @@ from pathlib import Path
 from kit import implements
 import numpy as np
 import numpy.typing as npt
-from torch import Tensor, load
+import torch
+from torch import Tensor
 import torchaudio
 
 from conduit.data.datasets.base import CdtDataset
