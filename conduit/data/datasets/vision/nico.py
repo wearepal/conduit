@@ -200,9 +200,9 @@ class NICO(CdtVisionDataset):
         # Apportion any remaining samples to the training set using default_train_prop
         train_inds.extend(_sample_train_inds(_mask=unvisited, _train_prop=default_train_prop))
         # Compute the test indices by complement of the train indices
-        train_data = Subset(self, indices=train_inds)
+        train_data = self.make_subset(indices=train_inds)
         test_inds = list(set(range(len(self))) - set(train_inds))
-        test_data = Subset(self, indices=test_inds)
+        test_data = self.make_subset(indices=test_inds)
 
         return TrainTestSplit(train=train_data, test=test_data)
 

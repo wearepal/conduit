@@ -1,9 +1,11 @@
 from __future__ import annotations
 import logging
-from typing import ClassVar
+from typing import ClassVar, Sequence
 
 from kit import implements
+from kit.torch.data import prop_random_split
 import numpy as np
+import numpy.typing as npt
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
@@ -162,3 +164,20 @@ class CdtDataset(Dataset):
 
     def __len__(self) -> int:
         return len(self.x)
+
+    def make_subset(
+        self,
+        indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice,
+        deep: bool = False,
+    ) -> CdtDataset:
+        # lazily import make_subset to prevent it being a circular import
+        from conduit.data.datasets.utils import make_subset
+
+        return make_subset(dataset=self, indices=indices, deep=deep)
+
+    def random_split(self, props: Sequence[float] | float, deep: bool = False) -> list[CdtDataset]:
+        # lazily import make_subset to prevent it being a circular import
+        from conduit.data.datasets.utils import make_subset
+
+        splits = prop_random_split(dataset=self, props=props)
+        return [make_subset(split, indices=None, deep=deep) for split in splits]
