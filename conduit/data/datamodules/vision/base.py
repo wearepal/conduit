@@ -21,6 +21,8 @@ __all__ = ["CdtVisionDataModule"]
 
 
 class CdtVisionDataModule(CdtDataModule):
+    _input_size: ImageSize | None
+
     def __init__(
         self,
         root: Union[str, Path],
@@ -58,20 +60,11 @@ class CdtVisionDataModule(CdtDataModule):
         )
         self.root = root
         self.norm_values: MeanStd | None = IMAGENET_STATS
-        self._input_size: ImageSize | None = None
 
     @property
     @final
     def size(self) -> ImageSize:
-        if self._input_size is not None:
-            return self._input_size
-        if self._train_data is not None:
-            self._input_size = ImageSize(*self._train_data[0].x.shape[-3:])  # type: ignore
-            return self._input_size
-        cls_name = self.__class__.__name__
-        raise AttributeError(
-            f"'{cls_name}.size' cannot be determined because 'setup' has not yet been called."
-        )
+        return ImageSize(*super().size)
 
     @property
     @final
