@@ -11,6 +11,7 @@ from pytorch_lightning import LightningDataModule
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics
 from conduit.data.structures import TrainValTestSplit
+from conduit.types import SoundscapeAttr
 
 from .base import CdtAudioDataModule
 
@@ -40,6 +41,7 @@ class EcoacousticsDataModule(CdtAudioDataModule):
         training_mode: Union[TrainingMode, str] = "epoch",
         specgram_segment_len: float = 15,
         num_freq_bins: int = 120,
+        target_attr: Union[SoundscapeAttr, str] = SoundscapeAttr.habitat,
     ) -> None:
         super().__init__(
             root=root,
@@ -59,6 +61,7 @@ class EcoacousticsDataModule(CdtAudioDataModule):
         self.class_train_props = class_train_props
         self.specgram_segment_len = specgram_segment_len
         self.num_freq_bins = num_freq_bins
+        self.target_attr = target_attr
 
     @property  # type: ignore[misc]
     @implements(CdtAudioDataModule)
@@ -81,6 +84,7 @@ class EcoacousticsDataModule(CdtAudioDataModule):
             download=True,
             specgram_segment_len=self.specgram_segment_len,
             num_freq_bins=self.num_freq_bins,
+            target_attr=self.target_attr,
         )
 
     @implements(CdtDataModule)

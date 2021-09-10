@@ -6,7 +6,6 @@
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
 from __future__ import annotations
-from enum import Enum, auto
 import math
 from os import mkdir
 from pathlib import Path
@@ -16,7 +15,6 @@ from typing import ClassVar, Optional, Union
 import zipfile
 
 from kit import parsable
-from kit.decorators import enum_name_str
 from kit.misc import str_to_enum
 import pandas as pd
 import torch
@@ -39,14 +37,9 @@ from conduit.data.datasets.utils import (
     UrlFileInfo,
     download_from_url,
 )
+from conduit.types import SoundscapeAttr
 
 __all__ = ["Ecoacoustics"]
-
-
-@enum_name_str
-class SoundscapeAttr(Enum):
-    habitat = auto()
-    site = auto()
 
 
 Extension = Literal[".pt", ".wav"]
