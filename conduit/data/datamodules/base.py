@@ -31,7 +31,7 @@ class CdtDataModule(pl.LightningDataModule):
     """Base DataModule for both Tabular and Vision data-modules."""
 
     _logger: logging.Logger | None = None
-    _input_size: tuple[int, ...] | ImageSize | None
+    _input_size: tuple[int, ...] | None
 
     def __init__(
         self,
@@ -199,7 +199,7 @@ class CdtDataModule(pl.LightningDataModule):
         return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.test_data)
 
     @property
-    def size(self) -> tuple[int, ...] | ImageSize:
+    def size(self) -> tuple[int, ...]:
         if self._input_size is not None:
             return self._input_size
         if self._train_data is not None:
