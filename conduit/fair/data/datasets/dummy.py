@@ -12,9 +12,8 @@ class DummyDataset(CdtDataset):
 
     def __init__(self, *shapes: tuple[int, ...], num_samples: int = 10000) -> None:
         """
-        Args:
-            *shapes: list of shapes
-            num_samples: how many samples to use in this dataset
+        :param *shapes: list of shapes
+        :param num_samples: how many samples to use in this dataset
         """
         self.shapes = shapes
         self.num_samples = num_samples

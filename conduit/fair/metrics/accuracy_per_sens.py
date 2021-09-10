@@ -21,10 +21,9 @@ class AccuracyPerSens(Accuracy):
     def update(self, preds: torch.Tensor, sens: torch.Tensor, target: torch.Tensor) -> None:
         """Update state with predictions and targets.
 
-        Args:
-            preds: Predictions from model
-            sens: Ground truth sensitive labels
-            target: Ground truth values
+        :param preds: Predictions from model
+        :param sens: Ground truth sensitive labels
+        :param target: Ground truth values
         """
         mask = sens == self.sens
         if mask.sum() > 0:

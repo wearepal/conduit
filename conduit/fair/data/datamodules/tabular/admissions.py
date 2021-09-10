@@ -9,7 +9,7 @@ from kit.torch import TrainingMode
 
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 
-__all__ = ["AdmissionsDataModule"]
+__all__ = ["AdmissionsDataModule", "AdmissionsSens"]
 
 
 class AdmissionsSens(Enum):

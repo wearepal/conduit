@@ -23,11 +23,10 @@ __all__ = ["GPD"]
 def compute_proj_grads(*, model: nn.Module, loss_p: Tensor, loss_a: Tensor, alpha: float) -> None:
     """Computes the adversarial-gradient projection term.
 
-    Args:
-        model: Model whose parameters the gradients are to be computed w.r.t.
-        loss_p: Prediction loss.
-        loss_a: Adversarial loss.
-        alpha: Pre-factor for adversarial loss.
+    :param model: Model whose parameters the gradients are to be computed w.r.t.
+    :param loss_p: Prediction loss.
+    :param loss_a: Adversarial loss.
+    :param alpha: Pre-factor for adversarial loss.
     """
     grad_p = torch.autograd.grad(loss_p, tuple(model.parameters()), retain_graph=True)
     grad_a = torch.autograd.grad(loss_a, tuple(model.parameters()), retain_graph=True)
@@ -44,9 +43,8 @@ def compute_proj_grads(*, model: nn.Module, loss_p: Tensor, loss_a: Tensor, alph
 def compute_grad(*, model: nn.Module, loss: Tensor) -> None:
     """Computes the adversarial gradient projection term.
 
-    Args:
-        model (nn.Module): Model whose parameters the gradients are to be computed w.r.t.
-        loss (Tensor): Adversarial loss.
+    :param model: Model whose parameters the gradients are to be computed w.r.t.
+    :param loss: Adversarial loss.
     """
     grad_list = torch.autograd.grad(loss, tuple(model.parameters()), retain_graph=True)
 
