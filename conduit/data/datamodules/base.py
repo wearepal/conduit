@@ -199,7 +199,6 @@ class CdtDataModule(pl.LightningDataModule):
         return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.test_data)
 
     @property
-    @final
     def size(self) -> tuple[int, ...]:
         if self._input_size is not None:
             return self._input_size
