@@ -14,15 +14,13 @@ from conduit.constants import IMAGENET_STATS
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.utils import AlbumentationsTform, ImageTform
 from conduit.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
-from conduit.data.structures import ImageSize, MeanStd
+from conduit.data.structures import MeanStd
 from conduit.types import Stage
 
 __all__ = ["CdtVisionDataModule"]
 
 
 class CdtVisionDataModule(CdtDataModule):
-    _input_size: ImageSize | None
-
     def __init__(
         self,
         root: Union[str, Path],

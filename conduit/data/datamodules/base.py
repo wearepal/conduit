@@ -31,7 +31,6 @@ class CdtDataModule(pl.LightningDataModule):
     """Base DataModule for both Tabular and Vision data-modules."""
 
     _logger: logging.Logger | None = None
-    _input_size: tuple[int, ...] | None
 
     def __init__(
         self,
@@ -75,7 +74,7 @@ class CdtDataModule(pl.LightningDataModule):
         self._card_y: int | None = None
         self._dim_s: torch.Size | None = None
         self._dim_y: torch.Size | None = None
-        self._input_size = None
+        self._dims: tuple[int, ...] | None = None
 
     @property
     def logger(self) -> logging.Logger:
@@ -200,17 +199,18 @@ class CdtDataModule(pl.LightningDataModule):
 
     @property
     @final
-    def size(self) -> tuple[int, ...]:
-        if self._input_size is not None:
-            return self._input_size
+    @implements(pl.LightningDataModule)
+    def dims(self) -> tuple[int, ...]:
+        if self._dims is not None:
+            return self._dims
         if self._train_data is not None:
             input_size = self._train_data[0].x.shape  # type: ignore
             if len(input_size) == 3:
                 input_size = ImageSize(*input_size)
             else:
                 input_size = tuple(input_size)
-            self._input_size = input_size
-            return self.size
+            self._dims = input_size
+            return self._dims
         cls_name = self.__class__.__name__
         raise AttributeError(
             f"'{cls_name}.size' cannot be determined because 'setup' has not yet been called."
