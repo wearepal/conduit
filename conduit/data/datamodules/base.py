@@ -74,7 +74,6 @@ class CdtDataModule(pl.LightningDataModule):
         self._card_y: int | None = None
         self._dim_s: torch.Size | None = None
         self._dim_y: torch.Size | None = None
-        self._dims: tuple[int, ...] | None = None
 
     @property
     def logger(self) -> logging.Logger:
@@ -201,7 +200,7 @@ class CdtDataModule(pl.LightningDataModule):
     @final
     @implements(pl.LightningDataModule)
     def dims(self) -> tuple[int, ...]:
-        if self._dims is not None:
+        if self._dims:
             return self._dims
         if self._train_data is not None:
             input_size = self._train_data[0].x.shape  # type: ignore
