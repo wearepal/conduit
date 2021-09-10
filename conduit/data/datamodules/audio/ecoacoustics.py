@@ -42,6 +42,7 @@ class EcoacousticsDataModule(CdtAudioDataModule):
         specgram_segment_len: float = 15,
         num_freq_bins: int = 120,
         target_attr: Union[SoundscapeAttr, str] = SoundscapeAttr.habitat,
+        resample_rate: int = 22050,
     ) -> None:
         super().__init__(
             root=root,
@@ -62,6 +63,7 @@ class EcoacousticsDataModule(CdtAudioDataModule):
         self.specgram_segment_len = specgram_segment_len
         self.num_freq_bins = num_freq_bins
         self.target_attr = target_attr
+        self.resample_rate = resample_rate
 
     @property  # type: ignore[misc]
     @implements(CdtAudioDataModule)
@@ -85,6 +87,7 @@ class EcoacousticsDataModule(CdtAudioDataModule):
             specgram_segment_len=self.specgram_segment_len,
             num_freq_bins=self.num_freq_bins,
             target_attr=self.target_attr,
+            resample_rate=self.resample_rate,
         )
 
     @implements(CdtDataModule)
