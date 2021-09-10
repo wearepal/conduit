@@ -62,11 +62,6 @@ class CdtVisionDataModule(CdtDataModule):
         self.norm_values: MeanStd | None = IMAGENET_STATS
 
     @property
-    @implements(CdtDataModule)
-    def size(self) -> ImageSize:
-        return ImageSize(*super().size)
-
-    @property
     @final
     def train_transforms(self) -> ImageTform:
         return (
