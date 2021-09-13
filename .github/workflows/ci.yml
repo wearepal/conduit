@@ -48,8 +48,7 @@ jobs:
         poetry run python -m black --check .
     - name: Format with isort
       run: |
-        source .venv/bin/activate
-        isort --check --diff .
+        poetry run isort --check --diff .
 #    - name: Setup node.js (for pyright)
 #      uses: actions/setup-node@v1
 #      with:
