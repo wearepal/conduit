@@ -71,6 +71,7 @@ def test_data_modules_props(dm_cls: type[EthicMlDataModule]) -> None:
     assert dm.dim_y == (1,)
     assert dm.card_s == 2
     assert dm.card_y == 2
+    assert len(dm.size()) == 1
 
     assert isinstance(dm.train_datatuple, em.DataTuple)
     assert isinstance(dm.val_datatuple, em.DataTuple)

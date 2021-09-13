@@ -43,6 +43,7 @@ def test_audio_dataset() -> None:
         download=True,
         target_attr=target_attribute,
         specgram_segment_len=specgram_segment_len,
+        preprocessing_transform=None,
     )
 
     metadata = pd.read_csv(base_dir / "metadata.csv")
