@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from conduit.data.datasets.utils import FileInfo, ImageTform, download_from_gdrive
+from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
 from conduit.data.datasets.vision.base import CdtVisionDataset
 
 __all__ = ["CelebA", "CelebAttr", "CelebASplit"]
@@ -74,18 +74,18 @@ class CelebA(CdtVisionDataset):
     # The data is downloaded to `download_dir` / `_BASE_FOLDER` / `_IMAGE_DIR`.
     _IMAGE_DIR: ClassVar[str] = "img_align_celeba"
     # Google drive IDs, MD5 hashes and filenames for the CelebA files.
-    _FILE_LIST: ClassVar[list[FileInfo]] = [
-        FileInfo(
+    _FILE_LIST: ClassVar[list[GdriveFileInfo]] = [
+        GdriveFileInfo(
             name="img_align_celeba.zip",
             id="1zmsC4yvw-e089uHXj5EdP0BSZ0AlDQRR",
             md5="00d2c5bc6d35e252742224ab0c1e8fcb",
         ),
-        FileInfo(
+        GdriveFileInfo(
             name="list_attr_celeba.txt",
             id="1gxmFoeEPgF9sT65Wpo85AnHl3zsQ4NvS",
             md5="75e246fa4810816ffd6ee81facbd244c",
         ),
-        FileInfo(
+        GdriveFileInfo(
             name="list_eval_partition.txt",
             id="1ih_VMokoI774ErNWrb26lDeWlanUBpnX",
             md5="d32c9cbf5e040fd4025c592c306e6668",
@@ -110,9 +110,6 @@ class CelebA(CdtVisionDataset):
             subclass = str_to_enum(str_=subclass, enum=CelebAttr)
         if isinstance(split, str):
             split = str_to_enum(str_=split, enum=CelebASplit)
-        assert isinstance(superclass, CelebAttr)
-        assert isinstance(subclass, CelebAttr)
-        assert isinstance(split, CelebASplit) or split is None
 
         self.root = Path(root)
         self._base_dir = self.root / self._BASE_FOLDER
@@ -123,7 +120,7 @@ class CelebA(CdtVisionDataset):
         if download:
             download_from_gdrive(file_info=self._FILE_LIST, root=self._base_dir, logger=self.logger)
         elif not self._check_unzipped():
-            raise RuntimeError(
+            raise FileNotFoundError(
                 f"Data not found at location {self._base_dir.resolve()}. Have you downloaded it?"
             )
 

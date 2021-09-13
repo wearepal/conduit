@@ -10,14 +10,14 @@ from pytorch_lightning import LightningDataModule
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.utils import ImageTform
-from conduit.data.datasets.vision.celeba import CelebA, CelebASplit, CelebAttr
+from conduit.data.datasets.vision.waterbirds import Waterbirds, WaterbirdsSplit
 from conduit.data.structures import TrainValTestSplit
 
-__all__ = ["CelebADataModule"]
+__all__ = ["WaterbirdsDataModule"]
 
 
-class CelebADataModule(CdtVisionDataModule):
-    """Data-module for the CelebA dataset."""
+class WaterbirdsDataModule(CdtVisionDataModule):
+    """Data-module for the Waterbirds dataset."""
 
     @parsable
     def __init__(
@@ -33,8 +33,6 @@ class CelebADataModule(CdtVisionDataModule):
         seed: int = 47,
         persist_workers: bool = False,
         pin_memory: bool = True,
-        superclass: CelebAttr = CelebAttr.Smiling,
-        subclass: CelebAttr = CelebAttr.Male,
         use_predefined_splits: bool = False,
         stratified_sampling: bool = False,
         instance_weighting: bool = False,
@@ -59,21 +57,23 @@ class CelebADataModule(CdtVisionDataModule):
             test_transforms=test_transforms,
         )
         self.image_size = image_size
-        self.superclass = superclass
-        self.subclass = subclass
         self.use_predefined_splits = use_predefined_splits
 
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
-        CelebA(root=self.root, download=True)
+        Waterbirds(root=self.root, download=True)
 
     @property  # type: ignore[misc]
     @implements(CdtVisionDataModule)
     def _default_train_transforms(self) -> A.Compose:
+        # We use the transoform pipeline described in https://arxiv.org/abs/2008.06775
+        # rather than that described in the paper in which the dataset was first introduced
+        # (Sagawa et al); these differ in in the respect that the latter center-crops the images
+        # before resizing - not doing so makes the task more difficult due to the background
+        # (serving as a spurious attribute) being more prominent.
         base_transforms = A.Compose(
             [
                 A.Resize(self.image_size, self.image_size),
-                A.CenterCrop(self.image_size, self.image_size),
             ]
         )
         normalization = super()._default_train_transforms
@@ -89,12 +89,11 @@ class CelebADataModule(CdtVisionDataModule):
         # Split the data according to the pre-defined split indices
         if self.use_predefined_splits:
             train_data, val_data, test_data = (
-                CelebA(root=self.root, superclass=self.superclass, transform=None, split=split)
-                for split in CelebASplit
+                Waterbirds(root=self.root, split=split) for split in WaterbirdsSplit
             )
         # Split the data randomly according to test- and val-prop
         else:
-            all_data = CelebA(root=self.root, superclass=self.superclass, transform=None)
+            all_data = Waterbirds(root=self.root, transform=None)
             val_data, test_data, train_data = all_data.random_split(
                 props=(self.val_prop, self.test_prop)
             )

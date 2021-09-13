@@ -12,7 +12,7 @@ from os import mkdir
 from pathlib import Path
 import shutil
 import subprocess
-from typing import ClassVar, NamedTuple, Optional, Union
+from typing import ClassVar, Optional, Union
 import zipfile
 
 from kit import parsable
@@ -27,14 +27,18 @@ from torchvision.datasets.utils import (
     _decompress,
     _detect_file_type,
     check_integrity,
-    download_and_extract_archive,
     download_url,
 )
 from tqdm import tqdm
 from typing_extensions import Literal
 
 from conduit.data.datasets.audio.base import CdtAudioDataset
-from conduit.data.datasets.utils import AudioTform, FileInfo
+from conduit.data.datasets.utils import (
+    AudioTform,
+    GdriveFileInfo,
+    UrlFileInfo,
+    download_from_url,
+)
 
 __all__ = ["Ecoacoustics"]
 
@@ -48,41 +52,33 @@ class SoundscapeAttr(Enum):
 Extension = Literal[".pt", ".wav"]
 
 
-class ZenodoInfo(NamedTuple):
-    filename: str
-    url: str
-    md5: str
-
-
 class Ecoacoustics(CdtAudioDataset):
     """Dataset for audio data collected in various geographic locations."""
 
     INDICES_DIR: ClassVar[str] = "AvianID_AcousticIndices"
     METADATA_FILENAME: ClassVar[str] = "metadata.csv"
 
-    _FILE_INFO: ClassVar[FileInfo] = FileInfo(name="Ecoacoustics.zip", id="PLACEHOLDER")
+    _FILE_INFO: ClassVar[GdriveFileInfo] = GdriveFileInfo(name="Ecoacoustics.zip", id="PLACEHOLDER")
     _BASE_FOLDER: ClassVar[str] = "Ecoacoustics"
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
     _UK_LABELS_FILENAME: ClassVar[str] = "UK_AI.csv"
     _PROCESSED_DIR: ClassVar[str] = "processed_audio"
     _AUDIO_LEN: ClassVar[float] = 60.0  # Audio samples' durations in seconds.
 
-    _INDICES_URL_MD5_LIST: list[ZenodoInfo] = [
-        ZenodoInfo(
-            filename="AvianID_AcousticIndices.zip",
-            url="https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip",
-            md5="b23208eb7db3766a1d61364b75cb4def",
-        )
-    ]
+    _INDICES_FILE_INFO: UrlFileInfo = UrlFileInfo(
+        name="AvianID_AcousticIndices.zip",
+        url="https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip",
+        md5="b23208eb7db3766a1d61364b75cb4def",
+    )
 
-    _URL_MD5_LIST: list[ZenodoInfo] = [
-        ZenodoInfo(
-            filename="EC_BIRD.zip",
+    _AUDIO_FILE_INFO: list[UrlFileInfo] = [
+        UrlFileInfo(
+            name="EC_BIRD.zip",
             url="https://zenodo.org/record/1255218/files/EC_BIRD.zip",
             md5="d427e904af1565dbbfe76b05f24c258a",
         ),
-        ZenodoInfo(
-            filename="UK_BIRD.zip",
+        UrlFileInfo(
+            name="UK_BIRD.zip",
             url="https://zenodo.org/record/1255218/files/UK_BIRD.zip",
             md5="e1e58b224bb8fb448d1858b9c9ee0d8c",
         ),
@@ -138,18 +134,18 @@ class Ecoacoustics(CdtAudioDataset):
 
         super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self.base_dir)
 
-    def _check_integrity(self, filename: str, *, md5: str) -> bool:
-        fpath = self.base_dir / filename
-        if not check_integrity(str(fpath), md5):
+    def _check_integrity(self, file_info: UrlFileInfo) -> bool:
+        fpath = self.base_dir / file_info.name
+        if not check_integrity(str(fpath), file_info.md5):
             return False
-        self.log(f"{filename} already downloaded.")
+        self.log(f"{file_info.name} already downloaded.")
         return True
 
     def _check_files(self) -> bool:
         """Check necessary files are present and unzipped."""
 
         if not self.labels_dir.exists():
-            raise RuntimeError(
+            raise FileNotFoundError(
                 f"Indices file not found at location {self.base_dir.resolve()}."
                 "Have you downloaded it?"
             )
@@ -185,29 +181,25 @@ class Ecoacoustics(CdtAudioDataset):
         self.root.mkdir(parents=True, exist_ok=True)
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
-        for finfo in self._INDICES_URL_MD5_LIST:
-            if not self._check_integrity(finfo.filename, md5=finfo.md5):
-                download_and_extract_archive(
-                    url=finfo.url, download_root=str(self.base_dir), md5=finfo.md5
-                )
-
-        for finfo in self._URL_MD5_LIST:
-            if not self._check_integrity(finfo.filename, md5=finfo.md5):
+        if not self._check_integrity(self._INDICES_FILE_INFO):
+            download_from_url(file_info=self._INDICES_FILE_INFO, root=self.base_dir)
+        for finfo in self._AUDIO_FILE_INFO:
+            if not self._check_integrity(finfo):
                 self.download_and_extract_archive_jar(finfo)
 
     def download_and_extract_archive_jar(
-        self, finfo: ZenodoInfo, *, remove_finished: bool = False
+        self, finfo: UrlFileInfo, *, remove_finished: bool = False
     ) -> None:
-        download_url(finfo.url, str(self.base_dir), finfo.filename, finfo.md5)
+        download_url(finfo.url, str(self.base_dir), finfo.name, finfo.md5)
 
-        archive = self.base_dir / finfo.filename
+        archive = self.base_dir / finfo.name
         self.log(f"Extracting {archive}")
 
         _, archive_type, _ = _detect_file_type(str(archive))
         if not archive_type:
             _ = _decompress(
                 str(archive),
-                str((self.base_dir / finfo.filename).with_suffix("")),
+                str((self.base_dir / finfo.name).with_suffix("")),
                 remove_finished=remove_finished,
             )
             return

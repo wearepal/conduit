@@ -24,24 +24,27 @@ from torch.utils.data._utils.collate import (
 )
 from torch.utils.data.dataloader import DataLoader, _worker_init_fn_t
 from torch.utils.data.sampler import Sampler
+from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import functional as TF
 from typing_extensions import Literal, get_args
 
-from conduit.data.datasets.base import CdtDataset
+from conduit.data.datasets.base import CdtDataset, D
 from conduit.data.structures import BinarySample, NamedSample, SampleBase, TernarySample
 
 __all__ = [
     "AlbumentationsTform",
     "AudioTform",
     "CdtDataLoader",
-    "FileInfo",
+    "GdriveFileInfo",
     "ImageLoadingBackend",
     "ImageTform",
     "PillowTform",
     "RawImage",
+    "UrlFileInfo",
     "apply_image_transform",
     "check_integrity",
     "download_from_gdrive",
+    "download_from_url",
     "extract_base_dataset",
     "extract_labels_from_dataset",
     "get_group_ids",
@@ -71,6 +74,14 @@ def load_image(filepath: Path | str, *, backend: Literal["pillow"] = ...) -> Ima
 
 
 def load_image(filepath: Path | str, *, backend: ImageLoadingBackend = "opencv") -> RawImage:
+    """Load an image from disk using the requested backend.
+
+    :param: The path of the image-file to be loaded.
+    :param backend: Backed to use for loading the image: either 'opencv' or 'pillow'.
+
+    :returns: The loaded image file as a numpy array if 'opencv' was the selected backend
+    and a PIL image otherwise.
+    """
     if backend == "opencv":
         if isinstance(filepath, Path):
             # cv2 can only read string filepaths
@@ -88,7 +99,15 @@ ImageTform = Union[AlbumentationsTform, PillowTform]
 
 
 def infer_il_backend(transform: ImageTform | None) -> ImageLoadingBackend:
-    """Infer which image-loading backend to use based on the type of the image-transform."""
+    """Infer which image-loading backend to use based on the type of the image-transform.
+
+    :param transform: The image transform from which to infer the image-loading backend.
+    If the transform is derived from Albumentations, then 'opencv' will be selected as the
+    backend, else 'pillow' will be selected.
+
+    :returns: The backend to load images with based on the supplied image-transform: either
+    'opencv' or 'pillow'.
+    """
     # Default to openccv is transform is None as numpy arrays are generally
     # more tractable
     if transform is None or isinstance(transform, get_args(AlbumentationsTform)):
@@ -154,6 +173,22 @@ def extract_base_dataset(
 def extract_base_dataset(
     dataset: Dataset, *, return_subset_indices: bool = True
 ) -> Dataset | tuple[Dataset, Tensor | slice]:
+    """Extract the innermost dataset of a nesting of datasets.
+
+    Nested datasets are inferred based on the existence of a 'dataset'
+    attribute and the base dataset is extracted by recursive application
+    of this rule.
+
+    :param dataset: The dataset from which to extract the base dataset.
+
+    :param return_subset_indices: Whether to return the indices from which
+    the overall subset of the dataset was created (works for multiple levels of
+    subsetting).
+
+    :returns: The base dataset, which may be the original dataset if one does not
+    exist or cannot be determined.
+    """
+
     def _closure(
         dataset: Dataset, rel_indices_ls: list[list[int]] | None = None
     ) -> Dataset | tuple[Dataset, Tensor | slice]:
@@ -240,12 +275,44 @@ def compute_instance_weights(dataset: Dataset, upweight: bool = False) -> Tensor
     return group_weights[group_ids]
 
 
+@overload
 def make_subset(
-    dataset: CdtDataset | Subset,
+    dataset: Subset,
+    *,
+    indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
+    deep: bool = ...,
+) -> CdtDataset:
+    ...
+
+
+@overload
+def make_subset(
+    dataset: D,
+    *,
+    indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
+    deep: bool = ...,
+) -> D:
+    ...
+
+
+def make_subset(
+    dataset: D | Subset,
     *,
     indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
     deep: bool = False,
-) -> CdtDataset:
+) -> D | CdtDataset:
+    """Create a subset of the dataset from the given indices.
+
+    :param indices: The sample-indices from which to create the subset.
+    In the case of being a numpy array or tensor, said array or tensor
+    must be 0- or 1-dimensional.
+
+    :param deep: Whether to create a copy of the underlying dataset as
+    a basis for the subset. If False then the data of the subset will be
+    a view of original dataset's data.
+
+    :returns: A subset of the dataset from the given indices.
+    """
     if isinstance(indices, (np.ndarray, Tensor)):
         if not indices.ndim > 1:
             raise ValueError("If 'indices' is an array it must be a 0- or 1-dimensional.")
@@ -290,7 +357,7 @@ class pb_collate:
         elem_type = type(elem)
         if isinstance(elem, Tensor):
             out = None
-            if torch.utils.data.get_worker_info() is not None:
+            if torch.utils.data.get_worker_info() is not None:  # type: ignore
                 # If we're in a background process, concatenate directly into a
                 # shared memory tensor to avoid an extra copy
                 numel = sum(x.numel() for x in batch)
@@ -298,8 +365,8 @@ class pb_collate:
                 out = elem.new(storage)
             ndims = elem.dim()
             if (ndims > 0) and ((ndims % 2) == 0):
-                return torch.cat(batch, dim=0, out=out)
-            return torch.stack(batch, dim=0, out=out)
+                return torch.cat(batch, dim=0, out=out)  # type: ignore
+            return torch.stack(batch, dim=0, out=out)  # type: ignore
         elif (
             elem_type.__module__ == "numpy"
             and elem_type.__name__ != "str_"
@@ -406,7 +473,52 @@ def check_integrity(*, filepath: Path, md5: str | None) -> None:
         raise RuntimeError('Dataset corrupted; try deleting it and redownloading it.')
 
 
-class FileInfo(NamedTuple):
+class UrlFileInfo(NamedTuple):
+    name: str
+    url: str
+    md5: str | None = None
+
+
+def download_from_url(
+    *,
+    file_info: UrlFileInfo | list[UrlFileInfo],
+    root: Path | str,
+    logger: logging.Logger | None = None,
+    remove_finished: bool = True,
+) -> None:
+
+    logger = logging.getLogger(__name__) if logger is None else logger
+    file_info_ls = file_info if isinstance(file_info, list) else [file_info]
+    if not isinstance(root, Path):
+        root = Path(root).expanduser()
+    # Create the specified root directory if it doesn't already exist
+    root.mkdir(parents=True, exist_ok=True)
+
+    for info in file_info_ls:
+        filepath = root / info.name
+
+        extracted_filepath = filepath
+        for _ in extracted_filepath.suffixes:
+            extracted_filepath = extracted_filepath.with_suffix("")
+
+        if extracted_filepath.exists():
+            logger.info(f"File '{info.name}' already downloaded and extracted.")
+        else:
+            if filepath.exists():
+                logger.info(f"File '{info.name}' already downloaded.")
+            else:
+                logger.info(f"Downloading file '{info.name}' from address '{info.url}'.")
+                download_url(url=info.url, filename=info.name, root=str(root), md5=info.md5)
+
+            print(f"Extracting '{filepath.resolve()}' to '{root.resolve()}'")
+            extract_archive(
+                from_path=str(filepath),
+                to_path=str(extracted_filepath),
+                remove_finished=remove_finished,
+            )
+
+
+class GdriveFileInfo(NamedTuple):
     name: str
     id: str
     md5: str | None = None
@@ -414,7 +526,7 @@ class FileInfo(NamedTuple):
 
 def download_from_gdrive(
     *,
-    file_info: FileInfo | list[FileInfo],
+    file_info: GdriveFileInfo | list[GdriveFileInfo],
     root: Path | str,
     logger: logging.Logger | None = None,
 ) -> None:
@@ -424,13 +536,15 @@ def download_from_gdrive(
 
     file_info_ls = file_info if isinstance(file_info, list) else [file_info]
     if not isinstance(root, Path):
-        root = Path(root)
+        root = Path(root).expanduser()
     # Create the specified root directory if it doesn't already exist
     root.mkdir(parents=True, exist_ok=True)
 
     for info in file_info_ls:
         filepath = root / info.name
-        if not filepath.exists():
+        if filepath.exists():
+            logger.info(f"File '{info.name}' already downloaded.")
+        else:
             import gdown
 
             logger.info(f"Downloading file '{info.name}' from Google Drive.")
@@ -440,8 +554,6 @@ def download_from_gdrive(
                 quiet=False,
                 md5=info.md5,
             )
-        else:
-            logger.info(f"File '{info.name}' already downloaded.")
         if filepath.suffix == ".zip":
             if filepath.with_suffix("").exists():
                 logger.info(f"File '{info.name}' already unzipped.")

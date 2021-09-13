@@ -21,7 +21,7 @@ from conduit.data.datasets.utils import (
     get_group_ids,
 )
 from conduit.data.datasets.wrappers import InstanceWeightedDataset
-from conduit.data.structures import TrainValTestSplit
+from conduit.data.structures import ImageSize, TrainValTestSplit
 from conduit.types import Stage
 
 __all__ = ["CdtDataModule"]
@@ -195,6 +195,25 @@ class CdtDataModule(pl.LightningDataModule):
     @implements(pl.LightningDataModule)
     def test_dataloader(self) -> DataLoader:
         return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.test_data)
+
+    @property
+    @final
+    @implements(pl.LightningDataModule)
+    def dims(self) -> tuple[int, ...]:
+        if self._dims:
+            return self._dims
+        if self._train_data is not None:
+            input_size = self._train_data[0].x.shape  # type: ignore
+            if len(input_size) == 3:
+                input_size = ImageSize(*input_size)
+            else:
+                input_size = tuple(input_size)
+            self._dims = input_size
+            return self._dims
+        cls_name = self.__class__.__name__
+        raise AttributeError(
+            f"'{cls_name}.size' cannot be determined because 'setup' has not yet been called."
+        )
 
     @final
     def _num_samples(self, dataset: Dataset) -> int:
