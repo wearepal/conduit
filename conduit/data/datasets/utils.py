@@ -144,8 +144,8 @@ AudioLoadingBackend = Literal["sox_io", "soundfile"]
 
 def infer_al_backend() -> AudioLoadingBackend:
     """Infer which audio-loading backend to use based on the operating system."""
-    soundfile: Literal["soundfile"] = "soundfile"
-    sox: Literal["sox_io"] = "sox_io"
+    soundfile: Final = "soundfile"
+    sox: Final = "sox_io"
     return soundfile if platform.system() == "Windows" else sox
 
 
