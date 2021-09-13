@@ -45,8 +45,7 @@ jobs:
       run: poetry install --no-interaction --no-root
     - name: Format with black
       run: |
-        source .venv/bin/activate
-        python -m black --check .
+        poetry run python -m black --check .
     - name: Format with isort
       run: |
         source .venv/bin/activate
