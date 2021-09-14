@@ -97,9 +97,6 @@ class EthicMlDataModule(CdtDataModule):
 
     @implements(LightningDataModule)
     def prepare_data(self) -> None:
-        self.dims = (
-            len(self.em_dataset.discrete_features) + len(self.em_dataset.continuous_features),
-        )
         self.make_feature_groups()
 
     @implements(CdtDataModule)
