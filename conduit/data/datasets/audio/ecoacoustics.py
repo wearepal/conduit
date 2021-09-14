@@ -22,7 +22,6 @@ import pandas as pd
 import torch
 import torchaudio
 import torchaudio.functional as F
-import torchaudio.transforms as T
 from torchvision.datasets.utils import (
     _decompress,
     _detect_file_type,
@@ -90,6 +89,7 @@ class Ecoacoustics(CdtAudioDataset):
         root: Union[str, Path],
         *,
         preprocessing_transform: Optional[AudioTform],
+        transform: Optional[AudioTform],
         download: bool = True,
         target_attr: Union[SoundscapeAttr, str] = SoundscapeAttr.habitat,
         resample_rate: int = 22050,
@@ -111,11 +111,7 @@ class Ecoacoustics(CdtAudioDataset):
         self.specgram_segment_len = specgram_segment_len
         self.resample_rate = resample_rate
         self._n_sgram_segments = int(self._AUDIO_LEN / specgram_segment_len)
-        if preprocessing_transform is None:
-            preprocessing_transform = T.Spectrogram(n_fft=120, hop_length=60)
-        self.transform = (
-            preprocessing_transform  # set here as it is needed in self._preprocess_audio
-        )
+        self.preprocessing_transform = preprocessing_transform
 
         if self.download:
             self._download_files()
@@ -134,7 +130,7 @@ class Ecoacoustics(CdtAudioDataset):
         y = torch.as_tensor(self.metadata[f'{self.target_attr}_le'])
         s = None
 
-        super().__init__(x=x, y=y, s=s, transform=preprocessing_transform, audio_dir=self.base_dir)
+        super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self.base_dir)
 
     def _check_integrity(self, file_info: UrlFileInfo) -> bool:
         fpath = self.base_dir / file_info.name
@@ -293,7 +289,10 @@ class Ecoacoustics(CdtAudioDataset):
                 ]
 
             waveform_segments = waveform.chunk(chunks=num_segments, dim=-1)
-            assert self.transform is not None
             for i, segment in enumerate(waveform_segments):
-                specgram = self.transform(segment)
+                specgram = (
+                    self.preprocessing_transform(segment)
+                    if self.preprocessing_transform is not None
+                    else segment
+                )
                 torch.save(specgram, f=self._processed_audio_dir / f"{waveform_filename}={i}.pt")
