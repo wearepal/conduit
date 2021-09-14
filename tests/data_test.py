@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import torch
+import torchaudio.transforms as AT
 from torchvision import transforms as T
 from torchvision.datasets import VisionDataset
 
@@ -43,6 +44,8 @@ def test_audio_dataset() -> None:
         download=True,
         target_attr=target_attribute,
         specgram_segment_len=specgram_segment_len,
+        preprocessing_transform=AT.Spectrogram(n_fft=120, hop_length=60),
+        transform=None,
     )
 
     metadata = pd.read_csv(base_dir / "metadata.csv")

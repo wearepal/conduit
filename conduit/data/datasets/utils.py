@@ -144,7 +144,9 @@ AudioLoadingBackend = Literal["sox_io", "soundfile"]
 
 def infer_al_backend() -> AudioLoadingBackend:
     """Infer which audio-loading backend to use based on the operating system."""
-    return 'soundfile' if platform.system() == 'Windows' else 'sox_io'
+    soundfile: Final = "soundfile"
+    sox: Final = "sox_io"
+    return soundfile if platform.system() == "Windows" else sox
 
 
 AudioTform = Callable[[Tensor], Tensor]
