@@ -18,18 +18,17 @@ class RandomTabularDataset(CdtTabularDataset):
         rng = np.random.default_rng(seed)
         feats_dict = {}
         feature_groups: list[slice] = []
+        prev = 0
         for i in range(num_disc_features):
             num_classes = int(rng.integers(low=2, high=10, size=1)[0])
-            disc_feat = rng.integers(low=0, high=num_classes, size=num_samples)
-            feats_dict[f"disc_{i}"] = pd.DataFrame(
-                self.get_one_hot(disc_feat, num_classes),
-                columns=[[f"disc_{i}_{j}" for j in range(num_classes)]],
-            )
-            prev = len(feature_groups)
-            feature_groups += [slice(prev, prev + num_classes)]
+            disc_feat = pd.Series(rng.integers(low=0, high=num_classes, size=num_samples))
+            ohe_feats = pd.get_dummies(disc_feat)
+            feats_dict[f"disc_{i}"] = ohe_feats
+            feature_groups += [slice(prev, prev + ohe_feats.shape[1])]
+            prev += ohe_feats.shape[1]
 
         feats = pd.concat(feats_dict.values(), axis=1)
-        num_disc_feats = feats.shape[0]
+        num_disc_feats = feats.shape[1]
 
         for i in range(num_cont_features):
             cont_feat = rng.random(num_samples)
@@ -41,10 +40,5 @@ class RandomTabularDataset(CdtTabularDataset):
             s=None,
             feature_groups=feature_groups,
             disc_indexes=list(range(num_disc_feats)),
-            cont_indexes=list(range(num_disc_feats, feats.shape[0])),
+            cont_indexes=list(range(num_disc_feats, feats.shape[1])),
         )
-
-    @staticmethod
-    def get_one_hot(targets, nb_classes):
-        res = np.eye(nb_classes)[np.array(targets).reshape(-1)]
-        return res.reshape(list(targets.shape) + [nb_classes])
