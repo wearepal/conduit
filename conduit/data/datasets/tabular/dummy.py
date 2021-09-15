@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pandas
 import pandas as pd
 import torch
 
@@ -22,7 +21,7 @@ class RandomTabularDataset(CdtTabularDataset):
         for i in range(num_disc_features):
             num_classes = int(rng.integers(low=2, high=10, size=1)[0])
             disc_feat = rng.integers(low=0, high=num_classes, size=num_samples)
-            feats_dict[f"disc_{i}"] = pandas.DataFrame(
+            feats_dict[f"disc_{i}"] = pd.DataFrame(
                 self.get_one_hot(disc_feat, num_classes),
                 columns=[[f"disc_{i}_{j}" for j in range(num_classes)]],
             )
