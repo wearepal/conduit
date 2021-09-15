@@ -38,7 +38,7 @@ class EthicMlDataModule(CdtDataModule):
             cls_name = self.__class__.__name__
             raise AttributeError(
                 f"'{cls_name}.datatuple' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called.'"
+                "not yet been called."
             )
         return self._datatuple
 

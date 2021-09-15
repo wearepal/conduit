@@ -118,7 +118,7 @@ class CdtDataModule(pl.LightningDataModule):
             cls_name = self.__class__.__name__
             raise AttributeError(
                 f"'{cls_name}.train_data_base' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called.'"
+                "not yet been called."
             )
         return self._train_data_base
 
@@ -129,7 +129,7 @@ class CdtDataModule(pl.LightningDataModule):
             cls_name = self.__class__.__name__
             raise AttributeError(
                 f"'{cls_name}.train_data' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called.'"
+                "not yet been called."
             )
         return self._train_data
 
@@ -140,7 +140,7 @@ class CdtDataModule(pl.LightningDataModule):
             cls_name = self.__class__.__name__
             raise AttributeError(
                 f"'{cls_name}.val_data' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called.'"
+                "not yet been called."
             )
         return self._val_data
 
@@ -151,7 +151,7 @@ class CdtDataModule(pl.LightningDataModule):
             cls_name = self.__class__.__name__
             raise AttributeError(
                 f"'{cls_name}.test_data' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called.'"
+                "not yet been called."
             )
         return self._test_data
 
@@ -260,7 +260,7 @@ class CdtDataModule(pl.LightningDataModule):
             cls_name = self.__class__.__name__
             raise AttributeError(
                 f"'{cls_name}.dim_y' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called.'"
+                "not yet been called."
             )
         if not isinstance(self._train_data_base, CdtDataset):
             raise AttributeError(
@@ -275,7 +275,7 @@ class CdtDataModule(pl.LightningDataModule):
             cls_name = self.__class__.__name__
             raise AttributeError(
                 f"'{cls_name}.dim_s' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called.'"
+                "not yet been called."
             )
         if not isinstance(self._train_data_base, CdtDataset):
             raise AttributeError(
@@ -290,7 +290,7 @@ class CdtDataModule(pl.LightningDataModule):
             cls_name = self.__class__.__name__
             raise AttributeError(
                 f"'{cls_name}.card_y' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called.'"
+                "not yet been called."
             )
         if not isinstance(self._train_data_base, CdtDataset):
             raise AttributeError(
@@ -305,7 +305,7 @@ class CdtDataModule(pl.LightningDataModule):
             cls_name = self.__class__.__name__
             raise AttributeError(
                 f"'{cls_name}.card_s' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called.'"
+                "not yet been called."
             )
         if not isinstance(self._train_data_base, CdtDataset):
             raise AttributeError(
