@@ -15,7 +15,7 @@ class RandomTabularDataset(CdtTabularDataset):
         num_cont_features: int = 5,
         num_samples: int = 256,
         seed: int = 0,
-    ):
+    ) -> None:
         rng = np.random.default_rng(seed)
         feats_dict = {}
         feature_groups: list[slice] = []

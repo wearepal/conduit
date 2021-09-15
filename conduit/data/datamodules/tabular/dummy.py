@@ -9,7 +9,7 @@ from conduit.data.datasets.tabular.dummy import RandomTabularDataset
 class DummyTabularDataModule(CdtDataModule):
     def __init__(
         self, num_samples: int, num_disc_features: int, num_cont_features: int, seed: int = 8
-    ):
+    ) -> None:
         super().__init__()
         self.num_samples = num_samples
         self.num_disc_features = num_disc_features
