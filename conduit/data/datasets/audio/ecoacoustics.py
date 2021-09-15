@@ -82,7 +82,7 @@ class Ecoacoustics(CdtAudioDataset):
         root: Union[str, Path],
         *,
         preprocessing_transform: Optional[AudioTform],
-        transform: Optional[AudioTform],
+        transform: Optional[AudioTform] = None,
         download: bool = True,
         target_attr: Union[SoundscapeAttr, str] = SoundscapeAttr.habitat,
         resample_rate: int = 22050,

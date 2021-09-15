@@ -7,9 +7,11 @@ from kit import implements, parsable
 from kit.torch import prop_random_split
 from kit.torch.data import TrainingMode
 from pytorch_lightning import LightningDataModule
+import torchaudio.transforms as T
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics
+from conduit.data.datasets.utils import AudioTform
 from conduit.data.structures import TrainValTestSplit
 from conduit.types import SoundscapeAttr
 
@@ -40,8 +42,9 @@ class EcoacousticsDataModule(CdtAudioDataModule):
         instance_weighting: bool = False,
         training_mode: Union[TrainingMode, str] = "epoch",
         specgram_segment_len: float = 15,
-        num_freq_bins: int = 120,
+        num_freq_bins: int = 160,
         target_attr: Union[SoundscapeAttr, str] = SoundscapeAttr.habitat,
+        preprocessing_transform: Optional[AudioTform] = T.MelSpectrogram,
         resample_rate: int = 22050,
     ) -> None:
         super().__init__(
@@ -64,6 +67,12 @@ class EcoacousticsDataModule(CdtAudioDataModule):
         self.num_freq_bins = num_freq_bins
         self.target_attr = target_attr
         self.resample_rate = resample_rate
+        if preprocessing_transform.__name__ == "MelSpectrogram":
+            self.preprocessing_transform = preprocessing_transform(
+                sample_rate=self.resample_rate, n_fft=self.num_freq_bins
+            )
+        else:
+            self.preprocessing_transform = preprocessing_transform(n_fft=self.num_freq_bins)
 
     @property  # type: ignore[misc]
     @implements(CdtAudioDataModule)
@@ -85,14 +94,16 @@ class EcoacousticsDataModule(CdtAudioDataModule):
             root=self.root,
             download=True,
             specgram_segment_len=self.specgram_segment_len,
-            num_freq_bins=self.num_freq_bins,
+            preprocessing_transform=self.preprocessing_transform,
             target_attr=self.target_attr,
             resample_rate=self.resample_rate,
         )
 
     @implements(CdtDataModule)
     def _get_splits(self) -> TrainValTestSplit:
-        all_data = Ecoacoustics(root=self.root, transform=None)
+        all_data = Ecoacoustics(
+            root=self.root, transform=None, preprocessing_transform=self.preprocessing_transform
+        )
 
         val_data, test_data, train_data = prop_random_split(
             dataset=all_data, props=(self.val_prop, self.test_prop)
