@@ -104,10 +104,8 @@ class CelebA(CdtVisionDataset):
         split: Optional[Union[CelebASplit, str]] = None,
     ) -> None:
 
-        if isinstance(superclass, str):
-            superclass = str_to_enum(str_=superclass, enum=CelebAttr)
-        if isinstance(subclass, str):
-            subclass = str_to_enum(str_=subclass, enum=CelebAttr)
+        superclass = str_to_enum(str_=superclass, enum=CelebAttr)
+        subclass = str_to_enum(str_=subclass, enum=CelebAttr)
         if isinstance(split, str):
             split = str_to_enum(str_=split, enum=CelebASplit)
 

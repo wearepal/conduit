@@ -1,9 +1,11 @@
 """Base class from which all data-modules in conduit inherit."""
 from __future__ import annotations
 from abc import abstractmethod
+from functools import partial
 import logging
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence
 
+import attr
 from kit import implements
 from kit.misc import str_to_enum
 from kit.torch import SequentialBatchSampler, StratifiedBatchSampler, TrainingMode
@@ -27,53 +29,53 @@ from conduit.types import Stage
 __all__ = ["CdtDataModule"]
 
 
+@attr.define(kw_only=True)
 class CdtDataModule(pl.LightningDataModule):
-    """Base DataModule for both Tabular and Vision data-modules."""
+    """Base DataModule for both Tabular and Vision data-modules.
 
-    _logger: logging.Logger | None = None
+    :param val_prop: Proprtion (float)  of samples to use for the validation split
+    :param test_prop: Proportion (float) of samples to use for the test split
+    :param num_workers: How many workers to use for loading data
+    :param batch_size: How many samples per batch to load
+    :param seed: RNG Seed
+    :param persist_workers: Use persistent workers in dataloader?
+    :param pin_memory: Should the memory be pinned?
+    :param stratified_sampling: Use startified sampling?
+    :param stratified_sampling: Use instance-weighting?
+    :param scaler: SKLearn style data scaler. Fit to train, applied to val and test.
+    :param training mode: Which training mode to use ('epoch' vs. 'step').
+    """
 
-    def __init__(
-        self,
-        *,
-        train_batch_size: int = 64,
-        eval_batch_size: Optional[int] = 100,
-        val_prop: float = 0.2,
-        test_prop: float = 0.2,
-        num_workers: int = 0,
-        seed: int = 47,
-        persist_workers: bool = False,
-        pin_memory: bool = True,
-        stratified_sampling: bool = False,
-        instance_weighting: bool = False,
-        training_mode: Union[TrainingMode, str] = "epoch",
-    ) -> None:
+    train_batch_size: int = 64
+    eval_batch_size: Optional[int] = 100
+    val_prop: float = 0.2
+    test_prop: float = 0.2
+    num_workers: int = 0
+    seed: int = 47
+    persist_workers: bool = False
+    pin_memory: bool = True
+    stratified_sampling: bool = False
+    instance_weighting: bool = False
+    training_mode: TrainingMode | str = attr.field(
+        converter=partial(str_to_enum, enum=TrainingMode), default=TrainingMode.epoch
+    )
+
+    _logger: logging.Logger | None = attr.field(default=None, init=False)
+
+    _train_data_base: Dataset | None = attr.field(default=None, init=False)
+    _val_data_base: Dataset | None = attr.field(default=None, init=False)
+    _test_data_base: Dataset | None = attr.field(default=None, init=False)
+
+    _train_data: Dataset | None = attr.field(default=None, init=False)
+    _val_data: Dataset | None = attr.field(default=None, init=False)
+    _test_data: Dataset | None = attr.field(default=None, init=False)
+    _card_s: int | None = attr.field(default=None, init=False)
+    _card_y: int | None = attr.field(default=None, init=False)
+    _dim_s: torch.Size | None = attr.field(default=None, init=False)
+    _dim_y: torch.Size | None = attr.field(default=None, init=False)
+
+    def __attrs_pre_init__(self):
         super().__init__()
-        self.train_batch_size = train_batch_size
-        self.eval_batch_size = train_batch_size if eval_batch_size is None else eval_batch_size
-        self.num_workers = num_workers
-        self.val_prop = val_prop
-        self.test_prop = test_prop
-        self.seed = seed
-        self.persist_workers = persist_workers
-        self.pin_memory = pin_memory
-        self.stratified_sampling = stratified_sampling
-        self.instance_weighting = instance_weighting
-        if isinstance(training_mode, str):
-            training_mode = str_to_enum(str_=training_mode, enum=TrainingMode)
-        self.training_mode = training_mode
-
-        self._train_data_base: Dataset | None = None
-        self._val_data_base: Dataset | None = None
-        self._test_data_base: Dataset | None = None
-
-        self._train_data: Dataset | None = None
-        self._val_data: Dataset | None = None
-        self._test_data: Dataset | None = None
-        # Information (cardinality/dimensionality) about the data
-        self._card_s: int | None = None
-        self._card_y: int | None = None
-        self._dim_s: torch.Size | None = None
-        self._dim_y: torch.Size | None = None
 
     @property
     def logger(self) -> logging.Logger:

@@ -33,13 +33,11 @@ class SSRP(CdtVisionDataset):
         download: bool = True,
         transform: Optional[ImageTform] = None,
     ) -> None:
-        if isinstance(split, str):
-            split = str_to_enum(str_=split, enum=SSRPSplit)
         self.root = Path(root)
         self._base_dir = self.root / "ssrp"
         self._metadata_path = self._base_dir / "metadata.csv"
         self.download = download
-        self.split = split
+        self.split = str_to_enum(str_=split, enum=SSRPSplit)
 
         if self.download:
             download_from_gdrive(file_info=self._FILE_INFO, root=self._base_dir, logger=self.logger)
@@ -51,7 +49,9 @@ class SSRP(CdtVisionDataset):
             self._extract_metadata()
 
         self.metadata = pd.read_csv(self._base_dir / "metadata.csv")
-        self.metadata = cast(pd.DataFrame, self.metadata[self.metadata.split.values == split.value])
+        self.metadata = cast(
+            pd.DataFrame, self.metadata[self.metadata.split.values == self.split.value]
+        )
 
         x = self.metadata["filepath"].to_numpy()
         y = torch.as_tensor(self.metadata["class_le"].to_numpy(), dtype=torch.long)

@@ -1,86 +1,40 @@
 """ColoredMNIST data-module."""
 from __future__ import annotations
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
-from kit import implements, parsable
-from kit.torch import TrainingMode
+import attr
+from kit import implements
 import numpy as np
 from pytorch_lightning import LightningDataModule
 from torchvision.datasets import MNIST
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
-from conduit.data.datasets.utils import ImageTform
 from conduit.data.datasets.vision.cmnist import ColoredMNIST, ColoredMNISTSplit
 from conduit.data.structures import MeanStd, TrainValTestSplit
 
 __all__ = ["ColoredMNISTDataModule"]
 
 
+@attr.define(kw_only=True)
 class ColoredMNISTDataModule(CdtVisionDataModule):
     """Data-module for the ColoredMNIST dataset."""
 
-    @parsable
-    def __init__(
-        self,
-        root: str,
-        *,
-        image_size: int = 32,
-        train_batch_size: int = 64,
-        eval_batch_size: Optional[int] = 100,
-        num_workers: int = 0,
-        val_prop: float = 0.2,
-        test_prop: float = 0.2,
-        seed: int = 47,
-        persist_workers: bool = False,
-        pin_memory: bool = True,
-        stratified_sampling: bool = False,
-        instance_weighting: bool = False,
-        training_mode: Union[TrainingMode, str] = "epoch",
-        use_predefined_splits: bool = False,
-        # ColoredMNIST settings
-        label_map: Optional[Dict[str, int]] = None,
-        colors: Optional[List[int]] = None,
-        num_colors: int = 10,
-        scale: float = 0.2,
-        correlation: float = 1.0,
-        binarize: bool = False,
-        greyscale: bool = False,
-        background: bool = False,
-        black: bool = True,
-        train_transforms: Optional[ImageTform] = None,
-        test_transforms: Optional[ImageTform] = None,
-    ) -> None:
-        super().__init__(
-            root=root,
-            train_batch_size=train_batch_size,
-            eval_batch_size=eval_batch_size,
-            num_workers=num_workers,
-            val_prop=val_prop,
-            test_prop=test_prop,
-            seed=seed,
-            persist_workers=persist_workers,
-            pin_memory=pin_memory,
-            stratified_sampling=stratified_sampling,
-            instance_weighting=instance_weighting,
-            training_mode=training_mode,
-            train_transforms=train_transforms,
-            test_transforms=test_transforms,
-        )
-        self.image_size = image_size
-        self.use_predefined_splits = use_predefined_splits
-        self.label_map = label_map
-        self.colors = colors
-        self.num_colors = num_colors
-        self.scale = scale
-        self.correlation = correlation
-        self.binarize = binarize
-        self.greyscale = greyscale
-        self.background = background
-        self.black = black
+    image_size: int = 32
+    use_predefined_splits: bool = False
+    # Colorization settings
+    label_map: Optional[Dict[str, int]] = None
+    colors: Optional[List[int]] = None
+    num_colors: int = 10
+    scale: float = 0.2
+    correlation: float = 1.0
+    binarize: bool = False
+    greyscale: bool = False
+    background: bool = False
+    black: bool = True
 
     @property  # type: ignore[misc]
     @implements(CdtVisionDataModule)
