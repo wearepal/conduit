@@ -1,6 +1,5 @@
-from __future__ import annotations
 import sys
-from typing import TYPE_CHECKING, Callable, Sequence
+from typing import TYPE_CHECKING, Callable, Sequence, Union
 
 from kit import implements
 import numpy as np
@@ -28,7 +27,7 @@ class MeanTeacherWeightUpdate(pl.Callback):
     """
 
     def __init__(
-        self, momentum_schedule: np.ndarray | Tensor | float | Callable[[int], float] = 0.999
+        self, momentum_schedule: Union[np.ndarray, Tensor, float, Callable[[int], float]] = 0.999
     ) -> None:
         super().__init__()
         self.momentum_schedule = momentum_schedule
@@ -37,7 +36,7 @@ class MeanTeacherWeightUpdate(pl.Callback):
     def on_train_batch_end(
         self,
         trainer: pl.Trainer,
-        pl_module: MomentumTeacherModel,
+        pl_module: "MomentumTeacherModel",
         outputs: STEP_OUTPUT,
         batch: Sequence,
         batch_idx: int,

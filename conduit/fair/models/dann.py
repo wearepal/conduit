@@ -1,6 +1,5 @@
 """DANN (Domain Adversarial Neural Network) model."""
-from __future__ import annotations
-from typing import NamedTuple
+from typing import Dict, NamedTuple, Optional, Tuple
 
 import ethicml as em
 from kit import implements
@@ -36,7 +35,7 @@ class GradReverse(autograd.Function):
         return x
 
     @staticmethod
-    def backward(ctx: autograd.Function, grad_output: Tensor) -> tuple[Tensor, Tensor | None]:
+    def backward(ctx: autograd.Function, grad_output: Tensor) -> Tuple[Tensor, Optional[Tensor]]:
         """Reverse (and optionally scale) the gradient."""
         return -ctx.lambda_ * grad_output, None
 
@@ -89,7 +88,7 @@ class DANN(CdtModel):
 
     def _get_losses(
         self, model_out: ModelOut, *, batch: TernarySample
-    ) -> tuple[Tensor, Tensor, Tensor]:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         target_s = batch.s.view(-1, 1).float()
         loss_adv = self._loss_adv_fn(model_out.s, target=target_s)
         target_y = batch.y.view(-1, 1).float()
@@ -113,7 +112,7 @@ class DANN(CdtModel):
         return loss
 
     @implements(CdtModel)
-    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> Dict[str, float]:
         logits_all = aggregate_over_epoch(outputs=outputs, metric="logits")
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
         subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")

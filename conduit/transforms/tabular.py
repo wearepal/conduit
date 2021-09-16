@@ -1,7 +1,6 @@
-from __future__ import annotations
 from abc import abstractmethod
 import math
-from typing import ClassVar
+from typing import ClassVar, List, Union
 
 from kit import implements
 import torch
@@ -27,14 +26,16 @@ class TabularTransform:
 class TabularNormalize(TabularTransform):
     _EPS: ClassVar[float] = torch.finfo(torch.float32).eps
 
-    def __init__(self, inplace: bool = False, indices: slice | list[int] = slice(None)) -> None:
+    def __init__(
+        self, inplace: bool = False, indices: Union[slice, List[int]] = slice(None)
+    ) -> None:
         self.inplace = inplace
         self.col_indices = indices
         self._is_fitted = False
 
     @property
     @final
-    def is_fitted(self):
+    def is_fitted(self) -> bool:
         return self._is_fitted
 
     def _maybe_clone(self, data: Tensor) -> Tensor:
@@ -47,7 +48,7 @@ class TabularNormalize(TabularTransform):
         """inplace operation."""
 
     @final
-    def fit(self, data: Tensor) -> TabularNormalize:
+    def fit(self, data: Tensor) -> "TabularNormalize":
         self._fit(data[:, self.col_indices])
         self._is_fitted = True
         return self

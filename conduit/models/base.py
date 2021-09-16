@@ -1,7 +1,6 @@
-from __future__ import annotations
 from abc import abstractmethod
 import inspect
-from typing import List, Mapping, Tuple, cast
+from typing import List, Mapping, Optional, Tuple, Union, cast
 
 from kit import implements
 from kit.misc import gcopy
@@ -38,13 +37,13 @@ class CdtModel(pl.LightningModule):
         self.lr_restart_mult = lr_restart_mult
         self.lr_sched_interval = lr_sched_interval
         self.lr_sched_freq = lr_sched_freq
-        self._datamodule: CdtDataModule | None = None
-        self._trainer: pl.Trainer | None = None
+        self._datamodule: Optional[CdtDataModule] = None
+        self._trainer: Optional[pl.Trainer] = None
 
     @implements(pl.LightningModule)
     def configure_optimizers(
         self,
-    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
+    ) -> Tuple[List[optim.Optimizer], List[Mapping[str, Union[LRScheduler, int, TrainingMode]]]]:
         opt = optim.AdamW(
             self.parameters(),
             lr=self.lr,
@@ -172,7 +171,7 @@ class CdtModel(pl.LightningModule):
         *,
         datamodule: CdtDataModule,
         trainer: pl.Trainer,
-        seed: int | None = None,
+        seed: Optional[int] = None,
         copy: bool = True,
     ) -> None:
         """Seed, build, fit, and test the model."""

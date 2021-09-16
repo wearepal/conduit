@@ -1,13 +1,10 @@
 """Base class from which all data-modules in conduit inherit."""
-from __future__ import annotations
 from abc import abstractmethod
-from functools import partial
 import logging
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence, Tuple, cast
 
 import attr
 from kit import implements
-from kit.misc import str_to_enum
 from kit.torch import SequentialBatchSampler, StratifiedBatchSampler, TrainingMode
 from kit.torch.data import num_batches_per_epoch
 import pytorch_lightning as pl
@@ -42,12 +39,11 @@ class CdtDataModule(pl.LightningDataModule):
     :param pin_memory: Should the memory be pinned?
     :param stratified_sampling: Use startified sampling?
     :param stratified_sampling: Use instance-weighting?
-    :param scaler: SKLearn style data scaler. Fit to train, applied to val and test.
     :param training mode: Which training mode to use ('epoch' vs. 'step').
     """
 
     train_batch_size: int = 64
-    eval_batch_size: Optional[int] = 100
+    _eval_batch_size: Optional[int] = None
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -56,26 +52,30 @@ class CdtDataModule(pl.LightningDataModule):
     pin_memory: bool = True
     stratified_sampling: bool = False
     instance_weighting: bool = False
-    training_mode: TrainingMode | str = attr.field(
-        converter=partial(str_to_enum, enum=TrainingMode), default=TrainingMode.epoch
-    )
+    training_mode: TrainingMode = TrainingMode.epoch
 
-    _logger: logging.Logger | None = attr.field(default=None, init=False)
+    _logger: Optional[logging.Logger] = attr.field(default=None, init=False)
 
-    _train_data_base: Dataset | None = attr.field(default=None, init=False)
-    _val_data_base: Dataset | None = attr.field(default=None, init=False)
-    _test_data_base: Dataset | None = attr.field(default=None, init=False)
+    _train_data_base: Optional[Dataset] = attr.field(default=None, init=False)
+    _val_data_base: Optional[Dataset] = attr.field(default=None, init=False)
+    _test_data_base: Optional[Dataset] = attr.field(default=None, init=False)
 
-    _train_data: Dataset | None = attr.field(default=None, init=False)
-    _val_data: Dataset | None = attr.field(default=None, init=False)
-    _test_data: Dataset | None = attr.field(default=None, init=False)
-    _card_s: int | None = attr.field(default=None, init=False)
-    _card_y: int | None = attr.field(default=None, init=False)
-    _dim_s: torch.Size | None = attr.field(default=None, init=False)
-    _dim_y: torch.Size | None = attr.field(default=None, init=False)
+    _train_data: Optional[Dataset] = attr.field(default=None, init=False)
+    _val_data: Optional[Dataset] = attr.field(default=None, init=False)
+    _test_data: Optional[Dataset] = attr.field(default=None, init=False)
+    _card_s: Optional[int] = attr.field(default=None, init=False)
+    _card_y: Optional[int] = attr.field(default=None, init=False)
+    _dim_s: Optional[torch.Size] = attr.field(default=None, init=False)
+    _dim_y: Optional[torch.Size] = attr.field(default=None, init=False)
 
-    def __attrs_pre_init__(self):
+    def __attrs_pre_init__(self) -> None:
         super().__init__()
+
+    @property
+    def eval_batch_size(self) -> int:
+        if self._eval_batch_size is None:
+            return self.train_batch_size
+        return self._eval_batch_size
 
     @property
     def logger(self) -> logging.Logger:
@@ -97,7 +97,7 @@ class CdtDataModule(pl.LightningDataModule):
         batch_size: int,
         shuffle: bool = False,
         drop_last: bool = False,
-        batch_sampler: Sampler[Sequence[int]] | None = None,
+        batch_sampler: Optional[Sampler[Sequence[int]]] = None,
     ) -> DataLoader:
         """Make DataLoader."""
         return CdtDataLoader(
@@ -114,49 +114,29 @@ class CdtDataModule(pl.LightningDataModule):
     @property
     @final
     def train_data_base(self) -> Dataset:
-        if self._train_data_base is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.train_data_base' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        return self._train_data_base
+        self._check_setup_called("train_data_base")
+        return cast(Dataset, self._train_data_base)
 
     @property
     @final
     def train_data(self) -> Dataset:
-        if self._train_data is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.train_data' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        return self._train_data
+        self._check_setup_called("train_data")
+        return cast(Dataset, self._train_data)
 
     @property
     @final
     def val_data(self) -> Dataset:
-        if self._val_data is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.val_data' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        return self._val_data
+        self._check_setup_called("val_data")
+        return cast(Dataset, self._val_data)
 
     @property
     @final
     def test_data(self) -> Dataset:
-        if self._test_data is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.test_data' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        return self._test_data
+        self._check_setup_called("test_data")
+        return cast(Dataset, self._test_data)
 
     def train_dataloader(
-        self, *, shuffle: bool = False, drop_last: bool = False, batch_size: int | None = None
+        self, *, shuffle: bool = False, drop_last: bool = False, batch_size: Optional[int] = None
     ) -> DataLoader:
         batch_size = self.train_batch_size if batch_size is None else batch_size
 
@@ -166,7 +146,7 @@ class CdtDataModule(pl.LightningDataModule):
             num_samples_per_group = batch_size // num_groups
             if batch_size % num_groups:
                 self.log(
-                    f"For stratified sampling, the batch size must be a multiple of the number of groups."
+                    f"For stratified sampling, the batch size must bemultiple of the number of groups."
                     f"Since the batch size is not integer divisible by the number of groups ({num_groups}),"
                     f"the batch size is being reduced to {num_samples_per_group * num_groups}."
                 )
@@ -201,21 +181,17 @@ class CdtDataModule(pl.LightningDataModule):
     @property
     @final
     @implements(pl.LightningDataModule)
-    def dims(self) -> tuple[int, ...]:
+    def dims(self) -> Tuple[int, ...]:
         if self._dims:
             return self._dims
-        if self._train_data is not None:
-            input_size = self._train_data[0].x.shape  # type: ignore
-            if len(input_size) == 3:
-                input_size = ImageSize(*input_size)
-            else:
-                input_size = tuple(input_size)
-            self._dims = input_size
-            return self._dims
-        cls_name = self.__class__.__name__
-        raise AttributeError(
-            f"'{cls_name}.size' cannot be determined because 'setup' has not yet been called."
-        )
+        self._check_setup_called("size")
+        input_size = self._train_data[0].x.shape  # type: ignore
+        if len(input_size) == 3:
+            input_size = ImageSize(*input_size)
+        else:
+            input_size = tuple(input_size)
+        self._dims = input_size
+        return self._dims
 
     @final
     def _num_samples(self, dataset: Dataset) -> int:
@@ -255,63 +231,42 @@ class CdtDataModule(pl.LightningDataModule):
 
     @property
     @final
-    def dim_y(self) -> tuple[int, ...]:
-        if self._train_data_base is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.dim_y' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        if not isinstance(self._train_data_base, CdtDataset):
-            raise AttributeError(
-                f"'dim_y' can only determined for {CdtDataset.__name__} instances."
-            )
-        return self._train_data_base.dim_y
+    def dim_y(self) -> Tuple[int, ...]:
+        self._check_setup_called("dim_y")
+        return self._get_base_dataset_property("dim_y")
 
     @property
     @final
-    def dim_s(self) -> tuple[int, ...]:
-        if self._train_data_base is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.dim_s' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        if not isinstance(self._train_data_base, CdtDataset):
-            raise AttributeError(
-                f"'dim_s' can only determined for {CdtDataset.__name__} instances."
-            )
-        return self._train_data_base.dim_s
+    def dim_s(self) -> Tuple[int, ...]:
+        self._check_setup_called("dim_s")
+        return self._get_base_dataset_property("dim_s")
 
     @property
     @final
     def card_y(self) -> int:
-        if self._train_data_base is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.card_y' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        if not isinstance(self._train_data_base, CdtDataset):
-            raise AttributeError(
-                f"'card_y' can only determined for {CdtDataset.__name__} instances."
-            )
-        return self._train_data_base.card_y
+        self._check_setup_called("card_y")
+        return self._get_base_dataset_property("card_y")
 
     @property
     @final
     def card_s(self) -> int:
-        if self._train_data_base is None:
+        self._check_setup_called("card_s")
+        return self._get_base_dataset_property("card_s")
+
+    def _check_setup_called(self, attr_: str) -> None:
+        if self._train_data is None:
             cls_name = self.__class__.__name__
             raise AttributeError(
-                f"'{cls_name}.card_s' cannot be accessed as '{cls_name}.setup' has "
+                f"'{cls_name}.{attr_}' cannot be accessed as '{cls_name}.setup' has "
                 "not yet been called."
             )
+
+    def _get_base_dataset_property(self, attr_: str) -> Any:
         if not isinstance(self._train_data_base, CdtDataset):
             raise AttributeError(
-                f"'card_s' can only determined for {CdtDataset.__name__} instances."
+                f"'{attr_}' can only be determined for {CdtDataset.__name__} instances."
             )
-        return self._train_data_base.card_s
+        return getattr(self._train_data_base, attr_)
 
     @abstractmethod
     def _get_splits(self) -> TrainValTestSplit:
@@ -319,13 +274,13 @@ class CdtDataModule(pl.LightningDataModule):
 
     @implements(pl.LightningDataModule)
     @final
-    def setup(self, stage: Stage | None = None, force_reset: bool = False) -> None:
+    def setup(self, stage: Optional[Stage] = None, force_reset: bool = False) -> None:
         # Only perform the setup if it hasn't already been done
         if force_reset or (self._train_data is None):
             self._setup(stage=stage)
             self._post_setup()
 
-    def _setup(self, stage: Stage | None = None) -> None:
+    def _setup(self, stage: Optional[Stage] = None) -> None:
         train_data, self._val_data, self._test_data = self._get_splits()
         if self.instance_weighting:
             train_data = InstanceWeightedDataset(train_data)

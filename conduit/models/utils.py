@@ -1,6 +1,5 @@
-from __future__ import annotations
 import inspect
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Dict, List, Tuple, TypeVar, Union
 
 from kit.misc import gcopy
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
@@ -24,7 +23,7 @@ def aggregate_over_epoch(outputs: EPOCH_OUTPUT, *, metric: str) -> Tensor:
     return torch.cat([step_output[metric] for step_output in outputs])  # type: ignore
 
 
-def prefix_keys(dict_: dict[str, Any], *, prefix: str, sep: str = "/") -> dict[str, Any]:
+def prefix_keys(dict_: Dict[str, Any], *, prefix: str, sep: str = "/") -> Dict[str, Any]:
     """Prepend the prefix to all keys of the dict"""
     return {f"{prefix}{sep}{key}": value for key, value in dict_.items()}
 
@@ -49,8 +48,8 @@ def accuracy(logits: Tensor, targets: Tensor) -> Tensor:
 
 @torch.no_grad()
 def precision_at_k(
-    logits: Tensor, targets: Tensor, top_k: int | tuple[int, ...] = (1,)
-) -> list[Tensor]:
+    logits: Tensor, targets: Tensor, top_k: Union[int, Tuple[int, ...]] = (1,)
+) -> List[Tensor]:
     """Computes the accuracy over the k top predictions for the specified values of k"""
     if isinstance(top_k, int):
         top_k = (top_k,)
@@ -60,7 +59,7 @@ def precision_at_k(
     pred = pred.t()
     correct = pred.eq(targets.view(1, -1).expand_as(pred))
 
-    res: list[Tensor] = []
+    res: List[Tensor] = []
     for k in top_k:
         correct_k = correct[:k].contiguous().view(-1).float().sum(0, keepdim=True)
         res.append(correct_k.mul_(100.0 / batch_size))
