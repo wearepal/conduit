@@ -146,7 +146,7 @@ class CdtDataModule(pl.LightningDataModule):
             num_samples_per_group = batch_size // num_groups
             if batch_size % num_groups:
                 self.log(
-                    f"For stratified sampling, the batch size must bemultiple of the number of groups."
+                    f"For stratified sampling, the batch size must be a multiple of the number of groups."
                     f"Since the batch size is not integer divisible by the number of groups ({num_groups}),"
                     f"the batch size is being reduced to {num_samples_per_group * num_groups}."
                 )
