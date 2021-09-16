@@ -1,6 +1,6 @@
 """Tabular data-module."""
-from typing import Dict, Optional, List, Union, cast
 from abc import abstractmethod
+from typing import Dict, List, Optional, Union, cast
 
 import attr
 import ethicml as em
