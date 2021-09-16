@@ -67,10 +67,10 @@ class EthicMlDataModule(CdtDataModule):
     def _get_splits(self) -> TrainValTestSplit:
         self._datatuple = self.em_dataset.load(ordered=True)
 
-        data_len = int(self.datatuple.x.shape[0])
+        data_len = int(self._datatuple.x.shape[0])
         num_train_val, num_test = self._get_split_sizes(data_len, test_prop=self.test_prop)
         train_val, test_data = em.train_test_split(
-            data=self.datatuple,
+            data=self._datatuple,
             train_percentage=(1 - (num_test / data_len)),
             random_seed=self.seed,
         )

@@ -1,7 +1,7 @@
 """Base class from which all data-modules in conduit inherit."""
 from abc import abstractmethod
 import logging
-from typing import Any, Optional, Sequence, Tuple, Union, cast
+from typing import Any, Optional, Sequence, Tuple, cast
 
 import attr
 from kit import implements
@@ -52,10 +52,6 @@ class CdtDataModule(pl.LightningDataModule):
     pin_memory: bool = True
     stratified_sampling: bool = False
     instance_weighting: bool = False
-    training_mode: Union[TrainingMode, str] = attr.field(
-        converter=partial(str_to_enum, enum=TrainingMode), default=TrainingMode.epoch
-    )
-
     training_mode: TrainingMode = TrainingMode.epoch
 
     _logger: Optional[logging.Logger] = attr.field(default=None, init=False)
@@ -237,40 +233,40 @@ class CdtDataModule(pl.LightningDataModule):
     @final
     def dim_y(self) -> Tuple[int, ...]:
         self._check_setup_called("dim_y")
-        return self._get_cdt_dataset_property("dim_y")
+        return self._get_base_dataset_property("dim_y")
 
     @property
     @final
     def dim_s(self) -> Tuple[int, ...]:
         self._check_setup_called("dim_s")
-        return self._get_cdt_dataset_property("dim_s")
+        return self._get_base_dataset_property("dim_s")
 
     @property
     @final
     def card_y(self) -> int:
         self._check_setup_called("card_y")
-        return self._get_cdt_dataset_property("card_y")
+        return self._get_base_dataset_property("card_y")
 
     @property
     @final
     def card_s(self) -> int:
         self._check_setup_called("card_s")
-        return self._get_cdt_dataset_property("card_s")
+        return self._get_base_dataset_property("card_s")
 
-    def _check_setup_called(self, attr: str) -> None:
-        if self._train_data_base is None:
+    def _check_setup_called(self, attr_: str) -> None:
+        if self._train_data is None:
             cls_name = self.__class__.__name__
             raise AttributeError(
-                f"'{cls_name}.{attr}' cannot be accessed as '{cls_name}.setup' has "
+                f"'{cls_name}.{attr_}' cannot be accessed as '{cls_name}.setup' has "
                 "not yet been called."
             )
 
-    def _get_cdt_dataset_property(self, attr: str) -> Any:
+    def _get_base_dataset_property(self, attr_: str) -> Any:
         if not isinstance(self._train_data_base, CdtDataset):
             raise AttributeError(
-                f"'{attr}' can only determined for {CdtDataset.__name__} instances."
+                f"'{attr_}' can only determined for {CdtDataset.__name__} instances."
             )
-        getattr(self, attr)
+        return getattr(self._train_data_base, attr_)
 
     @abstractmethod
     def _get_splits(self) -> TrainValTestSplit:
