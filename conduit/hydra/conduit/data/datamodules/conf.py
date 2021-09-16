@@ -20,7 +20,7 @@ from typing import Optional
 class CelebADataModuleConf:
     _target_: str = "conduit.data.datamodules.CelebADataModule"
     train_batch_size: int = 64
-    eval_batch_size: Any = 100
+    eval_batch_size: Optional[int] = None
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -43,7 +43,7 @@ class CelebADataModuleConf:
 class ColoredMNISTDataModuleConf:
     _target_: str = "conduit.data.datamodules.ColoredMNISTDataModule"
     train_batch_size: int = 64
-    eval_batch_size: Any = 100
+    eval_batch_size: Optional[int] = None
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -73,7 +73,7 @@ class ColoredMNISTDataModuleConf:
 class NICODataModuleConf:
     _target_: str = "conduit.data.datamodules.NICODataModule"
     train_batch_size: int = 64
-    eval_batch_size: Any = 100
+    eval_batch_size: Optional[int] = None
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -95,7 +95,7 @@ class NICODataModuleConf:
 class WaterbirdsDataModuleConf:
     _target_: str = "conduit.data.datamodules.WaterbirdsDataModule"
     train_batch_size: int = 64
-    eval_batch_size: Any = 100
+    eval_batch_size: Optional[int] = None
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
