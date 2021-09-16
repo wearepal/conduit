@@ -1,7 +1,7 @@
 """Base class from which all data-modules in conduit inherit."""
 from abc import abstractmethod
 import logging
-from typing import Any, Optional, Sequence, Tuple, cast
+from typing import Optional, Sequence, Tuple, cast
 
 import attr
 from kit import implements
@@ -120,19 +120,19 @@ class CdtDataModule(pl.LightningDataModule):
     @property
     @final
     def train_data(self) -> Dataset:
-        self._check_setup_called("train_data")
+        self._check_setup_called()
         return cast(Dataset, self._train_data)
 
     @property
     @final
     def val_data(self) -> Dataset:
-        self._check_setup_called("val_data")
+        self._check_setup_called()
         return cast(Dataset, self._val_data)
 
     @property
     @final
     def test_data(self) -> Dataset:
-        self._check_setup_called("test_data")
+        self._check_setup_called()
         return cast(Dataset, self._test_data)
 
     def train_dataloader(
@@ -184,7 +184,7 @@ class CdtDataModule(pl.LightningDataModule):
     def dims(self) -> Tuple[int, ...]:
         if self._dims:
             return self._dims
-        self._check_setup_called("size")
+        self._check_setup_called()
         input_size = self._train_data[0].x.shape  # type: ignore
         if len(input_size) == 3:
             input_size = ImageSize(*input_size)
@@ -232,41 +232,51 @@ class CdtDataModule(pl.LightningDataModule):
     @property
     @final
     def dim_y(self) -> Tuple[int, ...]:
-        self._check_setup_called("dim_y")
-        return self._get_base_dataset_property("dim_y")
+        self._check_setup_called()
+        return self._get_base_dataset().dim_y
 
     @property
     @final
     def dim_s(self) -> Tuple[int, ...]:
-        self._check_setup_called("dim_s")
-        return self._get_base_dataset_property("dim_s")
+        self._check_setup_called()
+        return self._get_base_dataset().dim_s
 
     @property
     @final
     def card_y(self) -> int:
-        self._check_setup_called("card_y")
-        return self._get_base_dataset_property("card_y")
+        self._check_setup_called()
+        return self._get_base_dataset().card_y
 
     @property
     @final
     def card_s(self) -> int:
-        self._check_setup_called("card_s")
-        return self._get_base_dataset_property("card_s")
+        self._check_setup_called()
+        return self._get_base_dataset().card_s
 
-    def _check_setup_called(self, attr_: str) -> None:
+    def _check_setup_called(self, caller: Optional[str] = None) -> None:
         if self._train_data is None:
+            if caller is None:
+                # inspect the call stack to find out who called this function
+                import inspect
+
+                caller = inspect.getouterframes(inspect.currentframe(), 2)[1][3]
+
             cls_name = self.__class__.__name__
             raise AttributeError(
-                f"'{cls_name}.{attr_}' cannot be accessed as '{cls_name}.setup' has "
+                f"'{cls_name}.{caller}' cannot be accessed as '{cls_name}.setup()' has "
                 "not yet been called."
             )
 
-    def _get_base_dataset_property(self, attr_: str) -> Any:
+    def _get_base_dataset(self) -> CdtDataset:
         if not isinstance(self._train_data_base, CdtDataset):
+            # inspect the call stack to find out who called this function
+            import inspect
+
+            caller = inspect.getouterframes(inspect.currentframe(), 2)[1][3]
             raise AttributeError(
-                f"'{attr_}' can only be determined for {CdtDataset.__name__} instances."
+                f"'{caller}' can only be determined for {CdtDataset.__name__} instances."
             )
-        return getattr(self._train_data_base, attr_)
+        return self._train_data_base
 
     @abstractmethod
     def _get_splits(self) -> TrainValTestSplit:
