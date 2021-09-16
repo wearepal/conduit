@@ -1,10 +1,9 @@
 """ISIC Dataset."""
-from collections.abc import Iterable, Iterator
 from itertools import islice
 import os
 from pathlib import Path
 import shutil
-from typing import ClassVar, List, Optional, TypeVar, Union
+from typing import ClassVar, Iterable, Iterator, List, Optional, TypeVar, Union
 import zipfile
 
 from PIL import Image
