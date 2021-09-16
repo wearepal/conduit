@@ -184,7 +184,7 @@ class CdtDataModule(pl.LightningDataModule):
     def dims(self) -> Tuple[int, ...]:
         if self._dims:
             return self._dims
-        self._check_setup_called(caller="size")
+        self._check_setup_called()
         input_size = self._train_data[0].x.shape  # type: ignore
         if len(input_size) == 3:
             input_size = ImageSize(*input_size)
@@ -259,9 +259,7 @@ class CdtDataModule(pl.LightningDataModule):
                 # inspect the call stack to find out who called this function
                 import inspect
 
-                curframe = inspect.currentframe()
-                calframe = inspect.getouterframes(curframe, 2)
-                caller = calframe[1][3]
+                caller = inspect.getouterframes(inspect.currentframe(), 2)[1][3]
 
             cls_name = self.__class__.__name__
             raise AttributeError(
@@ -274,10 +272,7 @@ class CdtDataModule(pl.LightningDataModule):
             # inspect the call stack to find out who called this function
             import inspect
 
-            curframe = inspect.currentframe()
-            calframe = inspect.getouterframes(curframe, 2)
-            caller = calframe[1][3]
-
+            caller = inspect.getouterframes(inspect.currentframe(), 2)[1][3]
             raise AttributeError(
                 f"'{caller}' can only be determined for {CdtDataset.__name__} instances."
             )
