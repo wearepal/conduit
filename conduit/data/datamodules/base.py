@@ -264,7 +264,7 @@ class CdtDataModule(pl.LightningDataModule):
     def _get_base_dataset_property(self, attr_: str) -> Any:
         if not isinstance(self._train_data_base, CdtDataset):
             raise AttributeError(
-                f"'{attr_}' can only determined for {CdtDataset.__name__} instances."
+                f"'{attr_}' can only be determined for {CdtDataset.__name__} instances."
             )
         return getattr(self._train_data_base, attr_)
 
