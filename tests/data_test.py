@@ -17,6 +17,7 @@ from conduit.data import (
     TernarySampleIW,
 )
 from conduit.data.datamodules import EcoacousticsDataModule
+from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
 from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 
 
@@ -124,3 +125,18 @@ def test_add_field() -> None:
     assert isinstance(ts.add_field(iw=iw), TernarySampleIW)
     tsi = TernarySampleIW(x=x, s=s, y=y, iw=iw)
     assert isinstance(tsi.add_field(), TernarySampleIW)
+
+
+def test_tabular_dummy_data():
+    dm = DummyTabularDataModule(num_samples=100, num_disc_features=1, num_cont_features=1)
+    dm.prepare_data()
+    dm.setup()
+    train_sample = next(iter(dm.train_dataloader()))
+    assert train_sample.y.shape == (60,)
+    assert train_sample.x.shape == (60, 8)
+    val_sample = next(iter(dm.val_dataloader()))
+    assert val_sample.y.shape == (20,)
+    assert val_sample.x.shape == (20, 8)
+    test_sample = next(iter(dm.test_dataloader()))
+    assert test_sample.y.shape == (20,)
+    assert test_sample.x.shape == (20, 8)
