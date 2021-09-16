@@ -1,8 +1,7 @@
 """CelebA Dataset."""
-from __future__ import annotations
 from enum import Enum, auto
 from pathlib import Path
-from typing import ClassVar, Optional, Union
+from typing import ClassVar, List, Optional, Union
 
 from kit import parsable, str_to_enum
 from kit.decorators import enum_name_str
@@ -74,7 +73,7 @@ class CelebA(CdtVisionDataset):
     # The data is downloaded to `download_dir` / `_BASE_FOLDER` / `_IMAGE_DIR`.
     _IMAGE_DIR: ClassVar[str] = "img_align_celeba"
     # Google drive IDs, MD5 hashes and filenames for the CelebA files.
-    _FILE_LIST: ClassVar[list[GdriveFileInfo]] = [
+    _FILE_LIST: ClassVar[List[GdriveFileInfo]] = [
         GdriveFileInfo(
             name="img_align_celeba.zip",
             id="1zmsC4yvw-e089uHXj5EdP0BSZ0AlDQRR",

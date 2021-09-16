@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -17,7 +17,7 @@ class RandomTabularDataset(CdtTabularDataset):
     ) -> None:
         rng = np.random.default_rng(seed)
         feats_dict = {}
-        feature_groups: list[slice] = []
+        feature_groups: List[slice] = []
         prev = 0
         for i in range(num_disc_features):
             num_classes = int(rng.integers(low=2, high=10, size=1)[0])

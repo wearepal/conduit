@@ -1,6 +1,5 @@
-from __future__ import annotations
 import random
-from typing import Sequence
+from typing import List, Optional, Sequence, Union
 
 from PIL import Image, ImageFilter
 from torchvision import transforms as T
@@ -34,9 +33,9 @@ class GaussianBlur:
 
 
 def mocov2_train_transform(
-    crop_size: int | Sequence[int] = 224, norm_values: MeanStd | None = IMAGENET_STATS
+    crop_size: Union[int, Sequence[int]] = 224, norm_values: Optional[MeanStd] = IMAGENET_STATS
 ) -> T.Compose:
-    transform_ls: list[PillowTform] = [
+    transform_ls: List[PillowTform] = [
         T.RandomResizedCrop(crop_size, scale=(0.2, 1.0)),
         T.RandomApply([T.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),  # not strengthened
         T.RandomGrayscale(p=0.2),
@@ -50,9 +49,9 @@ def mocov2_train_transform(
 
 
 def moco_ft_transform(
-    crop_size: int | Sequence[int] = 224, norm_values: MeanStd | None = IMAGENET_STATS
+    crop_size: Union[int, Sequence[int]] = 224, norm_values: Optional[MeanStd] = IMAGENET_STATS
 ) -> T.Compose:
-    transform_ls: list[PillowTform] = [
+    transform_ls: List[PillowTform] = [
         T.RandomResizedCrop(crop_size, interpolation=InterpolationMode.BICUBIC),
         T.RandomHorizontalFlip(),
         T.ToTensor(),
@@ -65,9 +64,9 @@ def moco_ft_transform(
 def moco_test_transform(
     crop_size: int = 224,
     amount_to_crop: int = 32,
-    norm_values: MeanStd | None = IMAGENET_STATS,
+    norm_values: Optional[MeanStd] = IMAGENET_STATS,
 ) -> T.Compose:
-    transform_ls: list[PillowTform] = [
+    transform_ls: List[PillowTform] = [
         T.Resize(crop_size + amount_to_crop, interpolation=InterpolationMode.BICUBIC),
         T.CenterCrop(crop_size),
         T.ToTensor(),

@@ -1,7 +1,6 @@
-from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import replace
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Tuple, Union
 
 from kit.decorators import implements
 from kit.misc import gcopy
@@ -46,14 +45,14 @@ class SelfSupervisedModel(CdtModel):
         *,
         lr: float = 3.0e-4,
         weight_decay: float = 0.0,
-        eval_batch_size: int | None = None,
+        eval_batch_size: Optional[int] = None,
         eval_epochs: int = 100,
     ) -> None:
         super().__init__(lr=lr, weight_decay=weight_decay)
         self.eval_batch_size = eval_batch_size
         self.eval_epochs = eval_epochs
-        self._finetuner: pl.Trainer | None = None
-        self._ft_clf: ERMClassifier | None = None
+        self._finetuner: Optional[pl.Trainer] = None
+        self._ft_clf: Optional[ERMClassifier] = None
 
     @abstractmethod
     def features(self, x: Tensor, **kwargs: Any) -> nn.Module:
@@ -145,9 +144,9 @@ class InstanceDiscriminator(SelfSupervisedModel):
         *,
         lr: float,
         weight_decay: float,
-        eval_batch_size: int | None,
+        eval_batch_size: Optional[int],
         eval_epochs: int,
-        instance_transforms: MultiCropTransform | None = None,
+        instance_transforms: Optional[MultiCropTransform] = None,
         batch_transforms: Optional[BatchTransform] = None,
     ) -> None:
         super().__init__(
@@ -187,7 +186,7 @@ class MomentumTeacherModel(InstanceDiscriminator):
     teacher: MultiCropWrapper
 
     @torch.no_grad()
-    def init_encoders(self) -> tuple[MultiCropWrapper, MultiCropWrapper]:
+    def init_encoders(self) -> Tuple[MultiCropWrapper, MultiCropWrapper]:
         student, teacher = self._init_encoders()
         # there is no backpropagation through the key-encoder, so no need for gradients
         for p in teacher.parameters():
@@ -196,12 +195,12 @@ class MomentumTeacherModel(InstanceDiscriminator):
 
     @torch.no_grad()
     @abstractmethod
-    def _init_encoders(self) -> tuple[MultiCropWrapper, MultiCropWrapper]:
+    def _init_encoders(self) -> Tuple[MultiCropWrapper, MultiCropWrapper]:
         ...
 
     @property
     @abstractmethod
-    def momentum_schedule(self) -> float | np.ndarray | Tensor | Callable[[int], float]:
+    def momentum_schedule(self) -> Union[float, np.ndarray, Tensor, Callable[[int], float]]:
         ...
 
     @implements(InstanceDiscriminator)

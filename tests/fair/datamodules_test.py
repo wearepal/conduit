@@ -1,11 +1,10 @@
 """Test DataModules."""
-from __future__ import annotations
 from pathlib import Path
 
 import ethicml as em
 import pytest
 import torch
-from typing_extensions import Final
+from typing_extensions import Final, Type
 
 from conduit.data.datamodules.vision.celeba import CelebADataModule
 from conduit.fair.data import CrimeDataModule, HealthDataModule
@@ -18,7 +17,7 @@ from conduit.fair.data.datamodules.tabular.law import LawDataModule
 BATCHSIZE: Final[int] = 4
 
 
-def _create_dm(dm_cls: type[EthicMlDataModule], stratified: bool = False) -> EthicMlDataModule:
+def _create_dm(dm_cls: Type[EthicMlDataModule], stratified: bool = False) -> EthicMlDataModule:
     dm_kwargs = dict(
         train_batch_size=BATCHSIZE,
         stratified_sampling=stratified,
@@ -41,7 +40,7 @@ def _create_dm(dm_cls: type[EthicMlDataModule], stratified: bool = False) -> Eth
         HealthDataModule,
     ],
 )
-def test_data_modules(dm_cls: type[EthicMlDataModule], stratified: bool) -> None:
+def test_data_modules(dm_cls: Type[EthicMlDataModule], stratified: bool) -> None:
     """Test the datamodules."""
     dm = _create_dm(dm_cls, stratified)
     loader = dm.train_dataloader()
@@ -63,7 +62,7 @@ def test_data_modules(dm_cls: type[EthicMlDataModule], stratified: bool) -> None
         LawDataModule,
     ],
 )
-def test_data_modules_props(dm_cls: type[EthicMlDataModule]) -> None:
+def test_data_modules_props(dm_cls: Type[EthicMlDataModule]) -> None:
     """Test the datamodules."""
     dm = _create_dm(dm_cls)
 

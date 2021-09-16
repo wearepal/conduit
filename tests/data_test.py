@@ -1,4 +1,3 @@
-from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
@@ -8,6 +7,7 @@ import torch
 import torchaudio.transforms as AT
 from torchvision import transforms as T
 from torchvision.datasets import VisionDataset
+from typing_extensions import Type
 
 from conduit.data import (
     BinarySample,
@@ -22,7 +22,7 @@ from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 
 @pytest.mark.slow
 @pytest.mark.parametrize("ds_cls", [ColoredMNIST, ISIC])
-def test_datasets(ds_cls: type[VisionDataset]) -> None:
+def test_datasets(ds_cls: Type[VisionDataset]) -> None:
     """Basic test for datasets.
     Confirms that the datasets can be instantiated and have a functional __getitem__ method.
     """

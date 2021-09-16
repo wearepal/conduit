@@ -1,6 +1,6 @@
-from __future__ import annotations
 from collections import defaultdict
 from dataclasses import replace
+from typing import List, Optional, Tuple
 
 from kit import implements
 import pytorch_lightning as pl
@@ -48,7 +48,7 @@ class DINOLinearClassifier(FineTuner):
     @implements(pl.LightningModule)
     def configure_optimizers(
         self,
-    ) -> tuple[list[optim.Optimizer], list[optim.lr_scheduler.CosineAnnealingLR]]:
+    ) -> Tuple[List[optim.Optimizer], List[optim.lr_scheduler.CosineAnnealingLR]]:
         opt = optim.SGD(self.classifier.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         sched = optim.lr_scheduler.CosineAnnealingLR(optimizer=opt, T_max=self.epochs, eta_min=0)
         return [opt], [sched]
@@ -60,7 +60,7 @@ class DatasetEncoder(pl.LightningModule):
     def __init__(self, model: nn.Module) -> None:
         super().__init__()
         self.model = model
-        self._dataset: NamedSample | None = None
+        self._dataset: Optional[NamedSample] = None
 
     @property
     def dataset(self) -> NamedSample:
@@ -80,7 +80,7 @@ class DatasetEncoder(pl.LightningModule):
         return replace(batch, x=x)
 
     @implements(pl.LightningModule)
-    def test_epoch_end(self, outputs: list[NamedSample]) -> None:
+    def test_epoch_end(self, outputs: List[NamedSample]) -> None:
         cls = type(outputs[0])
         agg_dict = defaultdict(list)
         for step_output in outputs:

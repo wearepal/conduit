@@ -1,8 +1,7 @@
 """NICO Dataset."""
-from __future__ import annotations
 from enum import Enum, auto
 from pathlib import Path
-from typing import ClassVar, NamedTuple, Optional, Union, cast
+from typing import ClassVar, Dict, List, NamedTuple, Optional, Union, cast
 
 from PIL import Image, UnidentifiedImageError
 from kit import parsable, str_to_enum
@@ -18,8 +17,8 @@ __all__ = ["NICO", "NicoSuperclass", "NICOTrainTestSplit"]
 
 
 class NICOTrainTestSplit(NamedTuple):
-    train: NICO
-    test: NICO
+    train: "NICO"
+    test: "NICO"
 
 
 @enum_name_str
@@ -98,7 +97,7 @@ class NICO(CdtVisionDataset):
     def _extract_metadata(self) -> None:
         """Extract concept/context/superclass information from the image filepaths and it save to csv."""
         self.log("Extracting metadata.")
-        image_paths: list[Path] = []
+        image_paths: List[Path] = []
         for ext in ("jpg", "jpeg", "png"):
             image_paths.extend(self._base_dir.glob(f"**/*.{ext}"))
         image_paths_str = [str(image.relative_to(self._base_dir)) for image in image_paths]
@@ -129,25 +128,25 @@ class NICO(CdtVisionDataset):
         self,
         default_train_prop: float,
         *,
-        train_props: dict[str | int, dict[str | int, float]] | None = None,
-        seed: int | None = None,
+        train_props: Optional[Dict[Union[str, int], Dict[Union[str, int], float]]] = None,
+        seed: Optional[int] = None,
     ) -> NICOTrainTestSplit:
         """Split the data into train/test sets with the option to condition on concept/context."""
         # Initialise the random-number generator
         rng = np.random.default_rng(seed)
         # List to store the indices of the samples apportioned to the train set
         # - those for the test set will be computed by complement
-        train_inds: list[int] = []
+        train_inds: List[int] = []
         # Track which indices have been sampled for either split
         unvisited = np.ones(len(self), dtype=np.bool_)
 
         def _sample_train_inds(
             _mask: np.ndarray,
             *,
-            _context: str | int | None = None,
-            _concept: str | None = None,
+            _context: Optional[Union[str, int]] = None,
+            _concept: Optional[str] = None,
             _train_prop: float = default_train_prop,
-        ) -> list[int]:
+        ) -> List[int]:
             if _context is not None and _concept is None:
                 raise ValueError("Concept must be specified if context is.")
             if _context is not None:
@@ -228,7 +227,7 @@ def preprocess_nico(path: Path) -> None:
         superclass_dir = path / superclass
         for class_dir in superclass_dir.glob("*"):
             for context_dir in class_dir.glob("*"):
-                images_paths: list[Path] = []
+                images_paths: List[Path] = []
                 for ext in ("jpg", "jpeg", "png", "gif"):
                     images_paths.extend(context_dir.glob(f"**/*.{ext}"))
                 for counter, image_path in enumerate(images_paths):

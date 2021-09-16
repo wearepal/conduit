@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Optional
 
 from kit.decorators import implements
 import torch
@@ -10,17 +10,17 @@ __all__ = ["DINOLoss", "EMACenter"]
 
 class EMACenter(nn.Module):
     def __init__(
-        self, in_features: int | None = None, *, momentum: float = 0.9, auto_update: bool = True
+        self, in_features: Optional[int] = None, *, momentum: float = 0.9, auto_update: bool = True
     ) -> None:
         super().__init__()
-        self._center: Tensor | None
+        self._center: Optional[Tensor]
         self.register_buffer("_center", None)
         if in_features is not None:
             self._initialize(in_features=in_features)
         self.momentum = momentum
         self.auto_update = auto_update
 
-    def _initialize(self, in_features: int, device: torch.device | None = None) -> None:
+    def _initialize(self, in_features: int, device: Optional[torch.device] = None) -> None:
         self._center = torch.zeros(1, in_features)
         if device is not None:
             self._center.to(device)
@@ -28,7 +28,7 @@ class EMACenter(nn.Module):
     @property
     def center(self) -> Tensor:
         if self._center is None:
-            raise AttributeError(f"{__class__.__name__}.center has not yet been initialized.")
+            raise AttributeError(f"{self.__class__.__name__}.center has not yet been initialized.")
         return self._center
 
     @torch.no_grad()
@@ -64,7 +64,7 @@ class DINOLoss(nn.Module):
         *,
         student_temp: float,
         teacher_temp: float,
-        warmup_teacher_temp: float | None = None,
+        warmup_teacher_temp: Optional[float] = None,
         warmup_teacher_temp_iters: int = 0,
         center_momentum: float = 0.9,
     ) -> None:

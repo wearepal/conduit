@@ -6,7 +6,7 @@ from itertools import islice
 import os
 from pathlib import Path
 import shutil
-from typing import ClassVar, Optional, TypeVar, Union
+from typing import ClassVar, Iterable, Iterator, List, Optional, TypeVar, Union
 import zipfile
 
 from PIL import Image
@@ -94,7 +94,7 @@ class ISIC(CdtVisionDataset):
         ).exists()
 
     @staticmethod
-    def chunk(it: Iterable[T], *, size: int) -> Iterator[list[T]]:
+    def chunk(it: Iterable[T], *, size: int) -> Iterator[List[T]]:
         """Divide any iterable into chunks of the given size."""
         it = iter(it)
         return iter(lambda: list(islice(it, size)), [])  # this is magic from stackoverflow
@@ -218,7 +218,7 @@ class ISIC(CdtVisionDataset):
                 with zipfile.ZipFile(file, "r") as zip_ref:
                     zip_ref.extractall(self._processed_dir)
                     pbar.update()
-        images: list[Path] = []
+        images: List[Path] = []
         for ext in ("jpg", "jpeg", "png", "gif"):
             images.extend(self._processed_dir.glob(f"**/*.{ext}"))
         with tqdm(total=len(images), desc="Processing images", colour=self._PBAR_COL) as pbar:

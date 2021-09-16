@@ -1,6 +1,6 @@
 """Base class for vision datasets."""
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -61,7 +61,7 @@ class CdtVisionDataModule(CdtDataModule):
 
     @property
     def _default_train_transforms(self) -> A.Compose:
-        transform_ls: list[AlbumentationsTform] = [
+        transform_ls: List[AlbumentationsTform] = [
             A.ToFloat(),
         ]
         if self.norm_values is not None:
@@ -71,7 +71,7 @@ class CdtVisionDataModule(CdtDataModule):
 
     @property
     def _default_test_transforms(self) -> A.Compose:
-        transform_ls: list[AlbumentationsTform] = [
+        transform_ls: List[AlbumentationsTform] = [
             A.ToFloat(),
         ]
         if self.norm_values is not None:

@@ -1,4 +1,3 @@
-from __future__ import annotations
 from enum import Enum
 from typing import Any, Dict, Union
 
@@ -22,11 +21,11 @@ class Loss(Protocol):
         ...
 
     @property
-    def reduction(self) -> ReductionType | str:
+    def reduction(self) -> Union[ReductionType, str]:
         ...
 
     @reduction.setter
-    def reduction(self, value: ReductionType | str) -> None:
+    def reduction(self, value: Union[ReductionType, str]) -> None:
         ...
 
 
