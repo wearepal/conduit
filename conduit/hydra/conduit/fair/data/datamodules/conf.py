@@ -20,7 +20,7 @@ from typing import Any
 class AdmissionsDataModuleConf:
     _target_: str = "conduit.fair.data.datamodules.AdmissionsDataModule"
     train_batch_size: int = 64
-    eval_batch_size: int = 64
+    eval_batch_size: Any = 100
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -39,7 +39,7 @@ class AdmissionsDataModuleConf:
 class AdultDataModuleConf:
     _target_: str = "conduit.fair.data.datamodules.AdultDataModule"
     train_batch_size: int = 64
-    eval_batch_size: int = 64
+    eval_batch_size: Any = 100
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -60,7 +60,7 @@ class AdultDataModuleConf:
 class CompasDataModuleConf:
     _target_: str = "conduit.fair.data.datamodules.CompasDataModule"
     train_batch_size: int = 64
-    eval_batch_size: int = 64
+    eval_batch_size: Any = 100
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -79,7 +79,7 @@ class CompasDataModuleConf:
 class CreditDataModuleConf:
     _target_: str = "conduit.fair.data.datamodules.CreditDataModule"
     train_batch_size: int = 64
-    eval_batch_size: int = 64
+    eval_batch_size: Any = 100
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -98,7 +98,7 @@ class CreditDataModuleConf:
 class HealthDataModuleConf:
     _target_: str = "conduit.fair.data.datamodules.HealthDataModule"
     train_batch_size: int = 64
-    eval_batch_size: int = 64
+    eval_batch_size: Any = 100
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -117,7 +117,7 @@ class HealthDataModuleConf:
 class LawDataModuleConf:
     _target_: str = "conduit.fair.data.datamodules.LawDataModule"
     train_batch_size: int = 64
-    eval_batch_size: int = 64
+    eval_batch_size: Any = 100
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0

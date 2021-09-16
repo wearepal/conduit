@@ -33,7 +33,6 @@ configen:
         - CelebADataModule
         - ColoredMNISTDataModule
         - NICODataModule
-        - CdtVisionDataModule
         - WaterbirdsDataModule
     - name: conduit.models
       classes:

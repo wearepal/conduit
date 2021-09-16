@@ -20,7 +20,7 @@ from typing import Optional
 class CelebADataModuleConf:
     _target_: str = "conduit.data.datamodules.CelebADataModule"
     train_batch_size: int = 64
-    eval_batch_size: int = 64
+    eval_batch_size: Any = 100
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -34,8 +34,8 @@ class CelebADataModuleConf:
     train_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     test_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     image_size: int = 224
-    superclass: CelebAttr = smiling
-    subclass: CelebAttr = male
+    superclass: CelebAttr = CelebAttr.Smiling
+    subclass: CelebAttr = CelebAttr.Male
     use_predefined_splits: bool = False
 
 
@@ -43,7 +43,7 @@ class CelebADataModuleConf:
 class ColoredMNISTDataModuleConf:
     _target_: str = "conduit.data.datamodules.ColoredMNISTDataModule"
     train_batch_size: int = 64
-    eval_batch_size: int = 64
+    eval_batch_size: Any = 100
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -73,7 +73,7 @@ class ColoredMNISTDataModuleConf:
 class NICODataModuleConf:
     _target_: str = "conduit.data.datamodules.NICODataModule"
     train_batch_size: int = 64
-    eval_batch_size: int = 64
+    eval_batch_size: Any = 100
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -88,33 +88,14 @@ class NICODataModuleConf:
     test_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     image_size: int = 224
     class_train_props: Optional[dict] = None
-    superclass: NicoSuperclass = animals
-
-
-@dataclass
-class CdtVisionDataModuleConf:
-    _target_: str = "conduit.data.datamodules.CdtVisionDataModule"
-    train_batch_size: int = 64
-    eval_batch_size: int = 64
-    val_prop: float = 0.2
-    test_prop: float = 0.2
-    num_workers: int = 0
-    seed: int = 47
-    persist_workers: bool = False
-    pin_memory: bool = True
-    stratified_sampling: bool = False
-    instance_weighting: bool = False
-    training_mode: TrainingMode = TrainingMode.epoch
-    root: Any = MISSING  # Union[str, Path]
-    train_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    test_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
+    superclass: NicoSuperclass = NicoSuperclass.animals
 
 
 @dataclass
 class WaterbirdsDataModuleConf:
     _target_: str = "conduit.data.datamodules.WaterbirdsDataModule"
     train_batch_size: int = 64
-    eval_batch_size: int = 64
+    eval_batch_size: Any = 100
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0

@@ -26,7 +26,7 @@ from conduit.types import Stage
 __all__ = ["CdtDataModule"]
 
 
-@attr.field(kw_only=True)
+@attr.define(kw_only=True)
 class CdtDataModule(pl.LightningDataModule):
     """Base DataModule for both Tabular and Vision data-modules.
 
@@ -43,7 +43,7 @@ class CdtDataModule(pl.LightningDataModule):
     """
 
     train_batch_size: int = 64
-    eval_batch_size: int = train_batch_size
+    _eval_batch_size: Optional[int] = None
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -73,6 +73,12 @@ class CdtDataModule(pl.LightningDataModule):
         super().__init__()
 
     @property
+    def eval_batch_size(self) -> int:
+        if self._eval_batch_size is None:
+            return self.train_batch_size
+        return self._eval_batch_size
+
+    @property
     def logger(self) -> logging.Logger:
         if self._logger is None:
             self._logger = logging.getLogger(self.__class__.__name__)
@@ -83,7 +89,7 @@ class CdtDataModule(pl.LightningDataModule):
 
     @property
     def train_prop(self) -> float:
-        return 1 - (self.val_prop + self.test_prop)
+        return -(self.val_prop + self.test_prop)
 
     def make_dataloader(
         self,

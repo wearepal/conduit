@@ -21,8 +21,8 @@ class CelebAConf:
     _target_: str = "conduit.data.datasets.CelebA"
     root: Any = MISSING  # Union[str, Path]
     download: bool = True
-    superclass: Any = <enum 'CelebAttr'>.Smiling
-    subclass: Any = <enum 'CelebAttr'>.Male
+    superclass: Any = CelebAttr.Smiling  # Union[CelebAttr, str]
+    subclass: Any = CelebAttr.Male  # Union[CelebAttr, str]
     transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     split: Any = None  # Union[CelebASplit, str, NoneType]
 
@@ -51,8 +51,8 @@ class ISICConf:
     root: Any = MISSING  # Union[str, Path]
     download: bool = True
     max_samples: int = 25000
-    context_attr: IsicAttr = histo
-    target_attr: IsicAttr = malignant
+    context_attr: IsicAttr = IsicAttr.histo
+    target_attr: IsicAttr = IsicAttr.malignant
     transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
 
 
@@ -62,14 +62,14 @@ class NICOConf:
     root: Any = MISSING  # Union[str, Path]
     download: bool = True
     transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    superclass: Any = <enum 'NicoSuperclass'>.animals
+    superclass: Any = NicoSuperclass.animals  # Union[NicoSuperclass, str, NoneType]
 
 
 @dataclass
 class SSRPConf:
     _target_: str = "conduit.data.datasets.SSRP"
     root: Any = MISSING  # Union[str, Path]
-    split: Any = <enum 'SSRPSplit'>.pretrain
+    split: Any = SSRPSplit.pretrain  # Union[SSRPSplit, str]
     download: bool = True
     transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
 
