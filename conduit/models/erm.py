@@ -1,5 +1,4 @@
-from __future__ import annotations
-from typing import Optional
+from typing import Dict, Optional
 
 from kit import implements
 from kit.decorators import parsable
@@ -69,7 +68,7 @@ class ERMClassifier(CdtModel):
 
     @implements(CdtModel)
     @torch.no_grad()
-    def inference_step(self, batch: BinarySample, stage: Stage) -> dict[str, Tensor]:
+    def inference_step(self, batch: BinarySample, stage: Stage) -> Dict[str, Tensor]:
         assert isinstance(batch.x, Tensor)
         logits = self.forward(batch.x)
         return {"logits": logits, "targets": batch.y}

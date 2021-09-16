@@ -1,8 +1,7 @@
 """Implementation of ICLR 21 Fair Mixup.
 https://github.com/chingyaoc/fair-mixup
 """
-from __future__ import annotations
-from typing import Dict, NamedTuple, Optional
+from typing import Dict, NamedTuple, Optional, Union
 
 import ethicml as em
 from kit import implements, parsable
@@ -127,7 +126,7 @@ class FairMixup(CdtModel):
         }
 
     @implements(CdtModel)
-    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> Dict[str, float]:
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
         subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
         preds_all = aggregate_over_epoch(outputs=outputs, metric="preds")
@@ -171,7 +170,7 @@ class FairMixup(CdtModel):
         device: torch.device,
         mix_lambda: Optional[float],
         alpha: float,
-        fairness: FairnessType | str,
+        fairness: Union[FairnessType, str],
     ) -> Mixed:
         '''Returns mixed inputs, pairs of targets, and lambda'''
         assert isinstance(batch.x, Tensor)

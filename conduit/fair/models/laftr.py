@@ -1,7 +1,6 @@
 """LAFTR model."""
-from __future__ import annotations
 import itertools
-from typing import Any, Mapping, NamedTuple
+from typing import Any, Dict, List, Mapping, NamedTuple, Tuple, Union
 
 import ethicml as em
 from kit import implements
@@ -101,7 +100,7 @@ class LAFTR(CdtModel):
         }
 
     @implements(CdtModel)
-    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> Dict[str, float]:
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
         subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
         logits_y_all = aggregate_over_epoch(outputs=outputs, metric="logits_y")
@@ -165,7 +164,7 @@ class LAFTR(CdtModel):
     @implements(CdtModel)
     def configure_optimizers(
         self,
-    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
+    ) -> Tuple[List[optim.Optimizer], List[Mapping[str, Union[LRScheduler, int, TrainingMode]]]]:
         laftr_params = itertools.chain(
             [*self.enc.parameters(), *self.dec.parameters(), *self.clf.parameters()]
         )
@@ -247,7 +246,7 @@ class LAFTR(CdtModel):
         return loss
 
     @staticmethod
-    def set_requires_grad(nets: nn.Module | list[nn.Module], requires_grad: bool) -> None:
+    def set_requires_grad(nets: Union[nn.Module, List[nn.Module]], requires_grad: bool) -> None:
         """Change if gradients are tracked."""
         if not isinstance(nets, list):
             nets = [nets]

@@ -1,8 +1,7 @@
 """ColoredMNIST Dataset."""
-from __future__ import annotations
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Union, overload
+from typing import Dict, List, Optional, Tuple, Union, overload
 
 from PIL import Image
 from ethicml.vision import LdColorizer
@@ -26,7 +25,7 @@ __all__ = [
 
 @overload
 def _filter_data_by_labels(
-    data: Tensor, *, targets: Tensor, label_map: dict[str, int], inplace: Literal[True] = ...
+    data: Tensor, *, targets: Tensor, label_map: Dict[str, int], inplace: Literal[True] = ...
 ) -> None:
     ...
 
@@ -36,15 +35,15 @@ def _filter_data_by_labels(
     data: Tensor,
     *,
     targets: Tensor,
-    label_map: dict[str, int],
+    label_map: Dict[str, int],
     inplace: Literal[False] = ...,
-) -> tuple[Tensor, Tensor]:
+) -> Tuple[Tensor, Tensor]:
     ...
 
 
 def _filter_data_by_labels(
-    data: Tensor, *, targets: Tensor, label_map: dict[str, int], inplace: bool = True
-) -> tuple[Tensor, Tensor] | None:
+    data: Tensor, *, targets: Tensor, label_map: Dict[str, int], inplace: bool = True
+) -> Optional[Tuple[Tensor, Tensor]]:
     if not inplace:
         data, targets = data.clone(), targets.clone()
     final_mask = torch.zeros_like(targets).bool()

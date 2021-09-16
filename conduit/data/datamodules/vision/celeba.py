@@ -1,7 +1,6 @@
 """CelebA data-module."""
-from __future__ import annotations
 from functools import partial
-from typing import Any
+from typing import Any, Union
 
 import albumentations as A
 import attr
@@ -22,10 +21,10 @@ class CelebADataModule(CdtVisionDataModule):
     """Data-module for the CelebA dataset."""
 
     image_size: int = 224
-    superclass: CelebAttr | str = attr.field(
+    superclass: Union[CelebAttr, str] = attr.field(
         converter=partial(str_to_enum, enum=CelebAttr), default=CelebAttr.Smiling
     )
-    subclass: CelebAttr | str = attr.field(
+    subclass: Union[CelebAttr, str] = attr.field(
         converter=partial(str_to_enum, enum=CelebAttr), default=CelebAttr.Male
     )
     use_predefined_splits: bool = False

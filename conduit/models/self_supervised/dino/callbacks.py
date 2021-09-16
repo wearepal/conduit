@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Any
 
 from kit.decorators import implements
 import pytorch_lightning as pl

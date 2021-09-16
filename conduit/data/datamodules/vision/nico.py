@@ -1,7 +1,6 @@
 """Nico data-module."""
-from __future__ import annotations
 from functools import partial
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import albumentations as A
 import attr
@@ -23,7 +22,7 @@ class NICODataModule(CdtVisionDataModule):
 
     image_size: int = 224
     class_train_props: Optional[dict] = None
-    superclass: NicoSuperclass | str = attr.field(
+    superclass: Union[NicoSuperclass, str] = attr.field(
         converter=partial(str_to_enum, enum=NicoSuperclass), default=NicoSuperclass.animals
     )
 

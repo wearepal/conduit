@@ -1,6 +1,6 @@
 """Tests for models."""
-from __future__ import annotations
 from abc import abstractmethod
+from typing import List, Optional, Tuple
 
 from kit import implements
 import pytest
@@ -26,8 +26,8 @@ class Mp64x64Net(nn.Module):
 
     def _conv_block(
         self, in_chans: int, out_dim: int, kernel_size: int, stride: int, padding: int
-    ) -> list[nn.Module]:
-        _block: list[nn.Module] = []
+    ) -> List[nn.Module]:
+        _block: List[nn.Module] = []
         _block += [
             nn.Conv2d(in_chans, out_dim, kernel_size=kernel_size, stride=stride, padding=padding)
         ]
@@ -66,7 +66,7 @@ class Mp64x64Net(nn.Module):
 class View(nn.Module):
     """Reshape Tensor."""
 
-    def __init__(self, shape: tuple[int, ...]):
+    def __init__(self, shape: Tuple[int, ...]):
         super().__init__()
         self.shape = shape
 
@@ -116,7 +116,7 @@ class Encoder(nn.Module):
 
     def __init__(
         self,
-        input_shape: tuple[int, int, int],
+        input_shape: Tuple[int, int, int],
         initial_hidden_channels: int,
         levels: int,
         encoding_dim: int,
@@ -155,12 +155,12 @@ class Decoder(nn.Module):
 
     def __init__(
         self,
-        input_shape: tuple[int, int, int],
+        input_shape: Tuple[int, int, int],
         initial_hidden_channels: int,
         levels: int,
         encoding_dim: int,
         decoding_dim: int,
-        decoder_out_act: nn.Module | None = None,
+        decoder_out_act: Optional[nn.Module] = None,
     ) -> None:
         super().__init__()
         layers = nn.ModuleList()

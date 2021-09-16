@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Dict, Union
 
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION

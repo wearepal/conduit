@@ -1,9 +1,8 @@
 """Base class from which all data-modules in conduit inherit."""
-from __future__ import annotations
 from abc import abstractmethod
 from functools import partial
 import logging
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Tuple, Union
 
 import attr
 from kit import implements
@@ -56,23 +55,23 @@ class CdtDataModule(pl.LightningDataModule):
     pin_memory: bool = True
     stratified_sampling: bool = False
     instance_weighting: bool = False
-    training_mode: TrainingMode | str = attr.field(
+    training_mode: Union[TrainingMode, str] = attr.field(
         converter=partial(str_to_enum, enum=TrainingMode), default=TrainingMode.epoch
     )
 
-    _logger: logging.Logger | None = attr.field(default=None, init=False)
+    _logger: Optional[logging.Logger] = attr.field(default=None, init=False)
 
-    _train_data_base: Dataset | None = attr.field(default=None, init=False)
-    _val_data_base: Dataset | None = attr.field(default=None, init=False)
-    _test_data_base: Dataset | None = attr.field(default=None, init=False)
+    _train_data_base: Optional[Dataset] = attr.field(default=None, init=False)
+    _val_data_base: Optional[Dataset] = attr.field(default=None, init=False)
+    _test_data_base: Optional[Dataset] = attr.field(default=None, init=False)
 
-    _train_data: Dataset | None = attr.field(default=None, init=False)
-    _val_data: Dataset | None = attr.field(default=None, init=False)
-    _test_data: Dataset | None = attr.field(default=None, init=False)
-    _card_s: int | None = attr.field(default=None, init=False)
-    _card_y: int | None = attr.field(default=None, init=False)
-    _dim_s: torch.Size | None = attr.field(default=None, init=False)
-    _dim_y: torch.Size | None = attr.field(default=None, init=False)
+    _train_data: Optional[Dataset] = attr.field(default=None, init=False)
+    _val_data: Optional[Dataset] = attr.field(default=None, init=False)
+    _test_data: Optional[Dataset] = attr.field(default=None, init=False)
+    _card_s: Optional[int] = attr.field(default=None, init=False)
+    _card_y: Optional[int] = attr.field(default=None, init=False)
+    _dim_s: Optional[torch.Size] = attr.field(default=None, init=False)
+    _dim_y: Optional[torch.Size] = attr.field(default=None, init=False)
 
     def __attrs_pre_init__(self):
         super().__init__()
@@ -97,7 +96,7 @@ class CdtDataModule(pl.LightningDataModule):
         batch_size: int,
         shuffle: bool = False,
         drop_last: bool = False,
-        batch_sampler: Sampler[Sequence[int]] | None = None,
+        batch_sampler: Optional[Sampler[Sequence[int]]] = None,
     ) -> DataLoader:
         """Make DataLoader."""
         return CdtDataLoader(
@@ -156,7 +155,7 @@ class CdtDataModule(pl.LightningDataModule):
         return self._test_data
 
     def train_dataloader(
-        self, *, shuffle: bool = False, drop_last: bool = False, batch_size: int | None = None
+        self, *, shuffle: bool = False, drop_last: bool = False, batch_size: Optional[int] = None
     ) -> DataLoader:
         batch_size = self.train_batch_size if batch_size is None else batch_size
 
@@ -201,7 +200,7 @@ class CdtDataModule(pl.LightningDataModule):
     @property
     @final
     @implements(pl.LightningDataModule)
-    def dims(self) -> tuple[int, ...]:
+    def dims(self) -> Tuple[int, ...]:
         if self._dims:
             return self._dims
         if self._train_data is not None:
@@ -255,7 +254,7 @@ class CdtDataModule(pl.LightningDataModule):
 
     @property
     @final
-    def dim_y(self) -> tuple[int, ...]:
+    def dim_y(self) -> Tuple[int, ...]:
         if self._train_data_base is None:
             cls_name = self.__class__.__name__
             raise AttributeError(
@@ -270,7 +269,7 @@ class CdtDataModule(pl.LightningDataModule):
 
     @property
     @final
-    def dim_s(self) -> tuple[int, ...]:
+    def dim_s(self) -> Tuple[int, ...]:
         if self._train_data_base is None:
             cls_name = self.__class__.__name__
             raise AttributeError(
@@ -319,13 +318,13 @@ class CdtDataModule(pl.LightningDataModule):
 
     @implements(pl.LightningDataModule)
     @final
-    def setup(self, stage: Stage | None = None, force_reset: bool = False) -> None:
+    def setup(self, stage: Optional[Stage] = None, force_reset: bool = False) -> None:
         # Only perform the setup if it hasn't already been done
         if force_reset or (self._train_data is None):
             self._setup(stage=stage)
             self._post_setup()
 
-    def _setup(self, stage: Stage | None = None) -> None:
+    def _setup(self, stage: Optional[Stage] = None) -> None:
         train_data, self._val_data, self._test_data = self._get_splits()
         if self.instance_weighting:
             train_data = InstanceWeightedDataset(train_data)

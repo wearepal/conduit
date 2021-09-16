@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from kit.decorators import implements
 from torch import Tensor, nn
 

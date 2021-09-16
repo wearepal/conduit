@@ -1,4 +1,3 @@
-from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 from functools import lru_cache
@@ -6,7 +5,18 @@ import logging
 from multiprocessing.context import BaseContext
 from pathlib import Path
 import platform
-from typing import Any, Callable, List, NamedTuple, Sequence, Union, cast, overload
+from typing import (
+    Any,
+    Callable,
+    List,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+    overload,
+)
 
 from PIL import Image
 import albumentations as A
@@ -26,7 +36,7 @@ from torch.utils.data.dataloader import DataLoader, _worker_init_fn_t
 from torch.utils.data.sampler import Sampler
 from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import functional as TF
-from typing_extensions import Literal, get_args
+from typing_extensions import Final, Literal, get_args
 
 from conduit.data.datasets.base import CdtDataset, D
 from conduit.data.structures import BinarySample, NamedSample, SampleBase, TernarySample
@@ -64,16 +74,16 @@ RawImage = Union[npt.NDArray[np.integer], Image.Image]
 
 
 @overload
-def load_image(filepath: Path | str, *, backend: Literal["opencv"] = ...) -> np.ndarray:
+def load_image(filepath: Union[Path, str], *, backend: Literal["opencv"] = ...) -> np.ndarray:
     ...
 
 
 @overload
-def load_image(filepath: Path | str, *, backend: Literal["pillow"] = ...) -> Image.Image:
+def load_image(filepath: Union[Path, str], *, backend: Literal["pillow"] = ...) -> Image.Image:
     ...
 
 
-def load_image(filepath: Path | str, *, backend: ImageLoadingBackend = "opencv") -> RawImage:
+def load_image(filepath: Union[Path, str], *, backend: ImageLoadingBackend = "opencv") -> RawImage:
     """Load an image from disk using the requested backend.
 
     :param: The path of the image-file to be loaded.
@@ -98,7 +108,7 @@ PillowTform = Callable[[Image.Image], Any]
 ImageTform = Union[AlbumentationsTform, PillowTform]
 
 
-def infer_il_backend(transform: ImageTform | None) -> ImageLoadingBackend:
+def infer_il_backend(transform: Optional[ImageTform]) -> ImageLoadingBackend:
     """Infer which image-loading backend to use based on the type of the image-transform.
 
     :param transform: The image transform from which to infer the image-loading backend.
@@ -116,8 +126,8 @@ def infer_il_backend(transform: ImageTform | None) -> ImageLoadingBackend:
 
 
 def apply_image_transform(
-    image: RawImage, *, transform: ImageTform | None
-) -> RawImage | Image.Image | Tensor:
+    image: RawImage, *, transform: Optional[ImageTform]
+) -> Union[RawImage, Image.Image, Tensor]:
     image_ = image
     if transform is not None:
         if isinstance(transform, (A.Compose, A.BasicTransform)):
@@ -131,7 +141,7 @@ def apply_image_transform(
     return image_
 
 
-def img_to_tensor(img: Image.Image | np.ndarray) -> Tensor:
+def img_to_tensor(img: Union[Image.Image, np.ndarray]) -> Tensor:
     if isinstance(img, Image.Image):
         return TF.pil_to_tensor(img)
     return torch.from_numpy(
@@ -152,14 +162,14 @@ def infer_al_backend() -> AudioLoadingBackend:
 AudioTform = Callable[[Tensor], Tensor]
 
 
-def apply_waveform_transform(waveform: Tensor, *, transform: AudioTform | None) -> Tensor:
+def apply_waveform_transform(waveform: Tensor, *, transform: Optional[AudioTform]) -> Tensor:
     return waveform if transform is None else transform(waveform)
 
 
 @overload
 def extract_base_dataset(
     dataset: Dataset, *, return_subset_indices: Literal[True] = ...
-) -> tuple[Dataset, Tensor | slice]:
+) -> Tuple[Dataset, Union[Tensor, slice]]:
     ...
 
 
@@ -172,7 +182,7 @@ def extract_base_dataset(
 
 def extract_base_dataset(
     dataset: Dataset, *, return_subset_indices: bool = True
-) -> Dataset | tuple[Dataset, Tensor | slice]:
+) -> Union[Dataset, Tuple[Dataset, Union[Tensor, slice]]]:
     """Extract the innermost dataset of a nesting of datasets.
 
     Nested datasets are inferred based on the existence of a 'dataset'
@@ -190,8 +200,8 @@ def extract_base_dataset(
     """
 
     def _closure(
-        dataset: Dataset, rel_indices_ls: list[list[int]] | None = None
-    ) -> Dataset | tuple[Dataset, Tensor | slice]:
+        dataset: Dataset, rel_indices_ls: Optional[List[List[int]]] = None
+    ) -> Union[Dataset, Tuple[Dataset, Union[Tensor, slice]]]:
         if rel_indices_ls is None:
             rel_indices_ls = []
         if hasattr(dataset, "dataset"):
@@ -212,10 +222,10 @@ def extract_base_dataset(
 
 
 @lru_cache(typed=True)
-def extract_labels_from_dataset(dataset: Dataset) -> tuple[Tensor | None, Tensor | None]:
+def extract_labels_from_dataset(dataset: Dataset) -> Tuple[Optional[Tensor], Optional[Tensor]]:
     """Attempt to extract s/y labels from a dataset."""
 
-    def _closure(dataset: Dataset) -> tuple[Tensor | None, Tensor | None]:
+    def _closure(dataset: Dataset) -> Tuple[Optional[Tensor], Optional[Tensor]]:
         dataset, indices = extract_base_dataset(dataset=dataset, return_subset_indices=True)
         _s = None
         _y = None
@@ -230,8 +240,8 @@ def extract_labels_from_dataset(dataset: Dataset) -> tuple[Tensor | None, Tensor
         return _s, _y
 
     if isinstance(dataset, (ConcatDataset)):
-        s_all_ls: list[Tensor] = []
-        y_all_ls: list[Tensor] = []
+        s_all_ls: List[Tensor] = []
+        y_all_ls: List[Tensor] = []
         for _dataset in dataset.datasets:
             s, y = _closure(_dataset)
             if s is not None:
@@ -247,7 +257,7 @@ def extract_labels_from_dataset(dataset: Dataset) -> tuple[Tensor | None, Tensor
 
 def get_group_ids(dataset: Dataset) -> Tensor:
     s_all, y_all = extract_labels_from_dataset(dataset)
-    group_ids: Tensor | None = None
+    group_ids: Optional[Tensor] = None
     if s_all is None:
         if y_all is None:
             raise ValueError(
@@ -279,7 +289,7 @@ def compute_instance_weights(dataset: Dataset, upweight: bool = False) -> Tensor
 def make_subset(
     dataset: Subset,
     *,
-    indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
+    indices: Optional[Union[List[int], npt.NDArray[np.uint64], Tensor, slice]],
     deep: bool = ...,
 ) -> CdtDataset:
     ...
@@ -289,18 +299,18 @@ def make_subset(
 def make_subset(
     dataset: D,
     *,
-    indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
+    indices: Optional[Union[List[int], npt.NDArray[np.uint64], Tensor, slice]],
     deep: bool = ...,
 ) -> D:
     ...
 
 
 def make_subset(
-    dataset: D | Subset,
+    dataset: Union[D, Subset],
     *,
-    indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
+    indices: Optional[Union[List[int], npt.NDArray[np.uint64], Tensor, slice]],
     deep: bool = False,
-) -> D | CdtDataset:
+) -> Union[D, CdtDataset]:
     """Create a subset of the dataset from the given indices.
 
     :param indices: The sample-indices from which to create the subset.
@@ -332,7 +342,7 @@ def make_subset(
         base_dataset = dataset
     subset = gcopy(base_dataset, deep=deep)
 
-    def _subset_from_indices(_dataset: CdtDataset, _indices: list[int] | slice) -> CdtDataset:
+    def _subset_from_indices(_dataset: CdtDataset, _indices: Union[List[int], slice]) -> CdtDataset:
         _dataset.x = _dataset.x[_indices]
         if _dataset.y is not None:
             _dataset.y = _dataset.y[_indices]
@@ -431,17 +441,17 @@ class CdtDataLoader(DataLoader):
         self,
         dataset: Dataset,
         *,
-        batch_size: int | None,
+        batch_size: Optional[int],
         shuffle: bool = False,
-        sampler: Sampler[int] | None = None,
-        batch_sampler: Sampler[Sequence[int]] | None = None,
+        sampler: Optional[Sampler[int]] = None,
+        batch_sampler: Optional[Sampler[Sequence[int]]] = None,
         num_workers: int = 0,
         pin_memory: bool = False,
         drop_last: bool = False,
         timeout: float = 0,
-        worker_init_fn: _worker_init_fn_t | None = None,
-        multiprocessing_context: BaseContext | str | None = None,
-        generator: torch.Generator | None = None,
+        worker_init_fn: Optional[_worker_init_fn_t] = None,
+        multiprocessing_context: Optional[Union[BaseContext, str]] = None,
+        generator: Optional[torch.Generator] = None,
         prefetch_factor: int = 2,
         persistent_workers: bool = False,
         cast_to_sample: bool = True,
@@ -465,7 +475,7 @@ class CdtDataLoader(DataLoader):
         )
 
 
-def check_integrity(*, filepath: Path, md5: str | None) -> None:
+def check_integrity(*, filepath: Path, md5: Optional[str]) -> None:
     from torchvision.datasets.utils import check_integrity  # type: ignore
 
     ext = filepath.suffix
@@ -476,14 +486,14 @@ def check_integrity(*, filepath: Path, md5: str | None) -> None:
 class UrlFileInfo(NamedTuple):
     name: str
     url: str
-    md5: str | None = None
+    md5: Optional[str] = None
 
 
 def download_from_url(
     *,
-    file_info: UrlFileInfo | list[UrlFileInfo],
-    root: Path | str,
-    logger: logging.Logger | None = None,
+    file_info: Union[UrlFileInfo, List[UrlFileInfo]],
+    root: Union[Path, str],
+    logger: Optional[logging.Logger] = None,
     remove_finished: bool = True,
 ) -> None:
 
@@ -521,14 +531,14 @@ def download_from_url(
 class GdriveFileInfo(NamedTuple):
     name: str
     id: str
-    md5: str | None = None
+    md5: Optional[str] = None
 
 
 def download_from_gdrive(
     *,
-    file_info: GdriveFileInfo | list[GdriveFileInfo],
-    root: Path | str,
-    logger: logging.Logger | None = None,
+    file_info: Union[GdriveFileInfo, List[GdriveFileInfo]],
+    root: Union[Path, str],
+    logger: Optional[logging.Logger] = None,
 ) -> None:
     """Attempt to download data if files cannot be found in the root directory."""
 

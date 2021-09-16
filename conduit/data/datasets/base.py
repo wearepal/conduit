@@ -1,6 +1,5 @@
-from __future__ import annotations
 import logging
-from typing import ClassVar, List, Sequence, TypeVar, cast
+from typing import ClassVar, List, Optional, Sequence, Tuple, TypeVar, Union, cast
 
 from kit import implements
 from kit.torch.data import prop_random_split
@@ -28,10 +27,10 @@ D = TypeVar("D", bound="CdtDataset")
 
 class CdtDataset(Dataset):
     _repr_indent: ClassVar[int] = 4
-    _logger: logging.Logger | None = None
+    _logger: Optional[logging.Logger] = None
 
     def __init__(
-        self, *, x: InputData, y: TargetData | None = None, s: TargetData | None = None
+        self, *, x: InputData, y: Optional[TargetData] = None, s: Optional[TargetData] = None
     ) -> None:
         self.x = x
         if isinstance(y, np.ndarray):
@@ -41,11 +40,11 @@ class CdtDataset(Dataset):
         self.y = y if y is None else y.squeeze()
         self.s = s if s is None else s.squeeze()
 
-        self._dim_x: torch.Size | None = None
-        self._dim_s: torch.Size | None = None
-        self._dim_y: torch.Size | None = None
-        self._card_y: int | None = None
-        self._card_s: int | None = None
+        self._dim_x: Optional[torch.Size] = None
+        self._dim_s: Optional[torch.Size] = None
+        self._dim_y: Optional[torch.Size] = None
+        self._card_y: Optional[int] = None
+        self._card_s: Optional[int] = None
 
     def __repr__(self) -> str:
         head = "Dataset " + self.__class__.__name__
@@ -73,12 +72,12 @@ class CdtDataset(Dataset):
             x = torch.as_tensor(x)
         return x
 
-    def _sample_s(self, index: int) -> Tensor | None:
+    def _sample_s(self, index: int) -> Optional[Tensor]:
         if self.s is None:
             return None
         return self.s[index]
 
-    def _sample_y(self, index: int) -> Tensor | None:
+    def _sample_y(self, index: int) -> Optional[Tensor]:
         if self.y is None:
             return None
         return self.y[index]
@@ -87,7 +86,7 @@ class CdtDataset(Dataset):
     @final
     def dim_x(
         self,
-    ) -> tuple[int, ...]:
+    ) -> Tuple[int, ...]:
         if self._dim_x is None:
             self._dim_x = self._sample_x(0, coerce_to_tensor=True).shape
         return self._dim_x
@@ -96,7 +95,7 @@ class CdtDataset(Dataset):
     @final
     def dim_s(
         self,
-    ) -> tuple[int, ...]:
+    ) -> Tuple[int, ...]:
         if self.s is None:
             cls_name = self.__class__.__name__
             raise AttributeError(
@@ -110,7 +109,7 @@ class CdtDataset(Dataset):
     @final
     def dim_y(
         self,
-    ) -> tuple[int, ...]:
+    ) -> Tuple[int, ...]:
         if self.y is None:
             cls_name = self.__class__.__name__
             raise AttributeError(
@@ -152,7 +151,7 @@ class CdtDataset(Dataset):
     @final
     def __getitem__(
         self, index: int
-    ) -> NamedSample | BinarySample | SubgroupSample | TernarySample:
+    ) -> Union[NamedSample, BinarySample, SubgroupSample, TernarySample]:
         x = self._sample_x(index)
         y = self._sample_y(index)
         s = self._sample_s(index)
@@ -170,7 +169,7 @@ class CdtDataset(Dataset):
 
     def make_subset(
         self: D,
-        indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice,
+        indices: Union[List[int], npt.NDArray[np.uint64], Tensor, slice],
         deep: bool = False,
     ) -> D:
         """Create a subset of the dataset from the given indices.
@@ -190,7 +189,7 @@ class CdtDataset(Dataset):
 
         return make_subset(dataset=self, indices=indices, deep=deep)
 
-    def random_split(self: D, props: Sequence[float] | float, deep: bool = False) -> list[D]:
+    def random_split(self: D, props: Union[Sequence[float], float], deep: bool = False) -> List[D]:
         """Randomly split the dataset into subsets according to the given proportions.
 
         :param props: The fractional size of each subset into which to randomly split the data.

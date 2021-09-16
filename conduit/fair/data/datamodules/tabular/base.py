@@ -1,6 +1,6 @@
 """Tabular data-module."""
-from __future__ import annotations
 from abc import abstractmethod
+from typing import Dict, List, Optional, Union
 
 import attr
 import ethicml as em
@@ -24,12 +24,12 @@ class EthicMlDataModule(CdtDataModule):
 
     scaler: ScalerType = attr.field(default=StandardScaler())
     _datatuple: DataTuple = attr.field(default=None, init=False)
-    _train_datatuple: em.DataTuple | None = attr.field(default=None, init=False)
-    _val_datatuple: em.DataTuple | None = attr.field(default=None, init=False)
-    _test_datatuple: em.DataTuple | None = attr.field(default=None, init=False)
-    _cont_features: list[str] | None = attr.field(default=None, init=False)
-    _disc_features: list[str] | None = attr.field(default=None, init=False)
-    _feature_groups: dict[str, list[slice]] | None = attr.field(default=None, init=False)
+    _train_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
+    _val_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
+    _test_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
+    _cont_features: Optional[List[str]] = attr.field(default=None, init=False)
+    _disc_features: Optional[List[str]] = attr.field(default=None, init=False)
+    _feature_groups: Optional[Dict[str, List[slice]]] = attr.field(default=None, init=False)
 
     @property
     @final
@@ -48,7 +48,7 @@ class EthicMlDataModule(CdtDataModule):
         ...
 
     @staticmethod
-    def _get_split_sizes(train_len: int, *, test_prop: int | float) -> list[int]:
+    def _get_split_sizes(train_len: int, *, test_prop: Union[int, float]) -> List[int]:
         """Computes split sizes for train and validation sets."""
         if isinstance(test_prop, int):
             train_len -= test_prop
@@ -129,17 +129,17 @@ class EthicMlDataModule(CdtDataModule):
         return self._test_datatuple
 
     @property
-    def feature_groups(self) -> dict[str, list[slice]]:
+    def feature_groups(self) -> Dict[str, List[slice]]:
         assert self._feature_groups is not None
         return self._feature_groups
 
     @property
-    def disc_features(self) -> list[str]:
+    def disc_features(self) -> List[str]:
         assert self._disc_features is not None
         return self._disc_features
 
     @property
-    def cont_features(self) -> list[str]:
+    def cont_features(self) -> List[str]:
         assert self._cont_features is not None
         return self._cont_features
 
@@ -152,7 +152,7 @@ class EthicMlDataModule(CdtDataModule):
         )
 
     @staticmethod
-    def grouped_features_indexes(group_iter: dict[str, list[str]]) -> list[slice]:
+    def grouped_features_indexes(group_iter: Dict[str, List[str]]) -> List[slice]:
         """Group discrete features names according to the first segment of their name.
 
         Then return a list of their corresponding slices (assumes order is maintained).

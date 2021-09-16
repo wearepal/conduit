@@ -1,5 +1,4 @@
-from __future__ import annotations
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 from kit import implements, parsable
 from kit.misc import gcopy, str_to_enum
@@ -162,7 +161,7 @@ class MoCoV2(MomentumTeacherModel):
 
     @torch.no_grad()
     @implements(MomentumTeacherModel)
-    def _init_encoders(self) -> tuple[MultiCropWrapper, MultiCropWrapper]:
+    def _init_encoders(self) -> Tuple[MultiCropWrapper, MultiCropWrapper]:
         # create the encoders
         if isinstance(self.backbone, ResNetArch):
             student_backbone = self.backbone.value(num_classes=self.out_dim)
@@ -213,7 +212,7 @@ class MoCoV2(MomentumTeacherModel):
 
     @staticmethod
     @torch.no_grad()
-    def _batch_shuffle_ddp(x: Tensor) -> tuple[Tensor, Tensor]:  # pragma: no-cover
+    def _batch_shuffle_ddp(x: Tensor) -> Tuple[Tensor, Tensor]:  # pragma: no-cover
         """
         Batch shuffle, for making use of BatchNorm.
         *** Only supports DistributedDataParallel (DDP).***
@@ -265,12 +264,12 @@ class MoCoV2(MomentumTeacherModel):
         *,
         l_pos: Tensor,
         l_neg: Tensor,
-    ) -> tuple[Tensor, dict[str, Tensor]]:
+    ) -> Tuple[Tensor, Dict[str, Tensor]]:
         loss, log_dict = self._inst_disc_loss(l_pos=l_pos, l_neg=l_neg)
         log_dict = prefix_keys(dict_=log_dict, prefix="inst_disc", sep="/")
         return loss, log_dict
 
-    def _inst_disc_loss(self, l_pos: Tensor, l_neg: Tensor) -> tuple[Tensor, dict[str, Tensor]]:
+    def _inst_disc_loss(self, l_pos: Tensor, l_neg: Tensor) -> Tuple[Tensor, Dict[str, Tensor]]:
         # logits: Nx(1+K)
         logits = torch.cat([l_pos, l_neg], dim=1)
         # apply temperature
