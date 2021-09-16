@@ -21,8 +21,8 @@ class CelebAConf:
     _target_: str = "conduit.data.datasets.CelebA"
     root: Any = MISSING  # Union[str, Path]
     download: bool = True
-    superclass: Any = smiling  # Union[CelebAttr, str]
-    subclass: Any = male  # Union[CelebAttr, str]
+    superclass: Any = <enum 'CelebAttr'>.Smiling
+    subclass: Any = <enum 'CelebAttr'>.Male
     transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     split: Any = None  # Union[CelebASplit, str, NoneType]
 
@@ -62,14 +62,14 @@ class NICOConf:
     root: Any = MISSING  # Union[str, Path]
     download: bool = True
     transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    superclass: Any = animals  # Union[NicoSuperclass, str, NoneType]
+    superclass: Any = <enum 'NicoSuperclass'>.animals
 
 
 @dataclass
 class SSRPConf:
     _target_: str = "conduit.data.datasets.SSRP"
     root: Any = MISSING  # Union[str, Path]
-    split: Any = SSRPSplit.pretrain  # Union[SSRPSplit, str]
+    split: Any = <enum 'SSRPSplit'>.pretrain
     download: bool = True
     transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
 

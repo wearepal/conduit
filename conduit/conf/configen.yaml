@@ -16,9 +16,6 @@ configen:
 
   # list of modules to generate configs for
   modules:
-    - name: pytorch_lightning.trainer
-      classes:
-        - Trainer
     - name: conduit.models.self_supervised
       classes:
         - MoCoV2
@@ -34,27 +31,27 @@ configen:
     - name: conduit.data.datamodules
       classes:
         - CelebADataModule
-        # - ColoredMNISTDataModule
-        # - NICODataModule
-        # - CdtDataModule
-        # - WaterbirdsDataModule
-    # - name: conduit.models
-    #   classes:
-    #     - ERMClassifier
+        - ColoredMNISTDataModule
+        - NICODataModule
+        - CdtVisionDataModule
+        - WaterbirdsDataModule
+    - name: conduit.models
+      classes:
+        - ERMClassifier
 
-    # - name: conduit.fair.data.datamodules
-    #   classes:
-    #     - AdmissionsDataModule
-    #     - AdultDataModule
-    #     - CompasDataModule
-    #     - CreditDataModule
-    #     - HealthDataModule
-    #     - LawDataModule
-    # - name: conduit.fair.models
-    #   classes:
-    #     - DANN
-    #     - ERMClassifier
-    #     - FairMixup
-    #     - GPD
-    #     - KC
-    #     - LAFTR
+    - name: conduit.fair.data.datamodules
+      classes:
+        - AdmissionsDataModule
+        - AdultDataModule
+        - CompasDataModule
+        - CreditDataModule
+        - HealthDataModule
+        - LawDataModule
+    - name: conduit.fair.models
+      classes:
+        - DANN
+        - ERMClassifierF
+        - FairMixup
+        - GPD
+        - KC
+        - LAFTR

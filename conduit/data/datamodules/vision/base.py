@@ -1,5 +1,4 @@
 """Base class for vision datasets."""
-from __future__ import annotations
 from pathlib import Path
 from typing import Optional, Union
 
@@ -37,7 +36,7 @@ class CdtVisionDataModule(CdtDataModule):
         )
 
     @train_transforms.setter
-    def train_transforms(self, transform: ImageTform | None) -> None:  # type: ignore
+    def train_transforms(self, transform: Optional[ImageTform]) -> None:  # type: ignore
         self._train_transforms = transform
         if isinstance(self._train_data, ImageTransformer):
             self._train_data.transform = transform
@@ -53,7 +52,7 @@ class CdtVisionDataModule(CdtDataModule):
 
     @test_transforms.setter
     @final
-    def test_transforms(self, transform: ImageTform | None) -> None:  # type: ignore
+    def test_transforms(self, transform: Optional[ImageTform]) -> None:  # type: ignore
         self._test_transforms = transform
         if isinstance(self._val_data, ImageTransformer):
             self._val_data.transform = transform
@@ -82,7 +81,7 @@ class CdtVisionDataModule(CdtDataModule):
 
     @implements(CdtDataModule)
     @final
-    def _setup(self, stage: Stage | None = None) -> None:
+    def _setup(self, stage: Optional[Stage] = None) -> None:
         train, val, test = self._get_splits()
         train = ImageTransformer(train, transform=self.train_transforms)
         if self.instance_weighting:

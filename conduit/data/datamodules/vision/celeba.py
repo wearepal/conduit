@@ -1,12 +1,9 @@
 """CelebA data-module."""
-from __future__ import annotations
-from functools import partial
-from typing import Any, Union
+from typing import Any
 
 import albumentations as A
 import attr
 from kit import implements
-from kit.misc import str_to_enum
 from pytorch_lightning import LightningDataModule
 
 from conduit.data.datamodules.base import CdtDataModule
@@ -22,12 +19,8 @@ class CelebADataModule(CdtVisionDataModule):
     """Data-module for the CelebA dataset."""
 
     image_size: int = 224
-    superclass: Union[CelebAttr] = attr.field(
-        converter=partial(str_to_enum, enum=CelebAttr), default=CelebAttr.Smiling
-    )
-    subclass: Union[CelebAttr] = attr.field(
-        converter=partial(str_to_enum, enum=CelebAttr), default=CelebAttr.Male
-    )
+    superclass: CelebAttr = CelebAttr.Smiling
+    subclass: CelebAttr = CelebAttr.Male
     use_predefined_splits: bool = False
 
     @implements(LightningDataModule)

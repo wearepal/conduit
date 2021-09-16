@@ -1,12 +1,9 @@
 """Nico data-module."""
-from __future__ import annotations
-from functools import partial
-from typing import Any, Optional
+from typing import Any, Optional 
 
 import albumentations as A
 import attr
 from kit import implements
-from kit.misc import str_to_enum
 from pytorch_lightning import LightningDataModule
 
 from conduit.data.datamodules.base import CdtDataModule
@@ -23,9 +20,7 @@ class NICODataModule(CdtVisionDataModule):
 
     image_size: int = 224
     class_train_props: Optional[dict] = None
-    superclass: NicoSuperclass | str = attr.field(
-        converter=partial(str_to_enum, enum=NicoSuperclass), default=NicoSuperclass.animals
-    )
+    superclass: NicoSuperclass = NicoSuperclass.animals
 
     @property  # type: ignore[misc]
     @implements(CdtVisionDataModule)

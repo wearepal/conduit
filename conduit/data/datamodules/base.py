@@ -1,13 +1,10 @@
 """Base class from which all data-modules in conduit inherit."""
-from __future__ import annotations
 from abc import abstractmethod
-from functools import partial
 import logging
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Tuple
 
 import attr
 from kit import implements
-from kit.misc import str_to_enum
 from kit.torch import SequentialBatchSampler, StratifiedBatchSampler, TrainingMode
 from kit.torch.data import num_batches_per_epoch
 import pytorch_lightning as pl
@@ -29,7 +26,7 @@ from conduit.types import Stage
 __all__ = ["CdtDataModule"]
 
 
-@attr.define(kw_only=True)
+@attr.s(kw_only=True, auto_attribs=True)
 class CdtDataModule(pl.LightningDataModule):
     """Base DataModule for both Tabular and Vision data-modules.
 
@@ -46,7 +43,7 @@ class CdtDataModule(pl.LightningDataModule):
     """
 
     train_batch_size: int = 64
-    eval_batch_size: Optional[int] = 100
+    eval_batch_size: int = train_batch_size
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -55,9 +52,8 @@ class CdtDataModule(pl.LightningDataModule):
     pin_memory: bool = True
     stratified_sampling: bool = False
     instance_weighting: bool = False
-    training_mode: Union[TrainingMode, str] = attr.field(
-        converter=partial(str_to_enum, enum=TrainingMode), default=TrainingMode.epoch
-    )
+
+    training_mode: TrainingMode = TrainingMode.epoch
 
     _logger: Optional[logging.Logger] = attr.field(default=None, init=False)
 
@@ -87,7 +83,7 @@ class CdtDataModule(pl.LightningDataModule):
 
     @property
     def train_prop(self) -> float:
-        return 1 - (self.val_prop + self.test_prop)
+        return- (self.val_prop + self.test_prop)
 
     def make_dataloader(
         self,
@@ -96,7 +92,7 @@ class CdtDataModule(pl.LightningDataModule):
         batch_size: int,
         shuffle: bool = False,
         drop_last: bool = False,
-        batch_sampler: Sampler[Sequence[int]] | None = None,
+        batch_sampler: Optional[Sampler[Sequence[int]]] = None,
     ) -> DataLoader:
         """Make DataLoader."""
         return CdtDataLoader(
@@ -155,7 +151,7 @@ class CdtDataModule(pl.LightningDataModule):
         return self._test_data
 
     def train_dataloader(
-        self, *, shuffle: bool = False, drop_last: bool = False, batch_size: int | None = None
+        self, *, shuffle: bool = False, drop_last: bool = False, batch_size: Optional[int] = None
     ) -> DataLoader:
         batch_size = self.train_batch_size if batch_size is None else batch_size
 
@@ -165,7 +161,7 @@ class CdtDataModule(pl.LightningDataModule):
             num_samples_per_group = batch_size // num_groups
             if batch_size % num_groups:
                 self.log(
-                    f"For stratified sampling, the batch size must be a multiple of the number of groups."
+                    f"For stratified sampling, the batch size must bemultiple of the number of groups."
                     f"Since the batch size is not integer divisible by the number of groups ({num_groups}),"
                     f"the batch size is being reduced to {num_samples_per_group * num_groups}."
                 )
@@ -200,7 +196,7 @@ class CdtDataModule(pl.LightningDataModule):
     @property
     @final
     @implements(pl.LightningDataModule)
-    def dims(self) -> tuple[int, ...]:
+    def dims(self) -> Tuple[int, ...]:
         if self._dims:
             return self._dims
         if self._train_data is not None:
@@ -254,7 +250,7 @@ class CdtDataModule(pl.LightningDataModule):
 
     @property
     @final
-    def dim_y(self) -> tuple[int, ...]:
+    def dim_y(self) -> Tuple[int, ...]:
         if self._train_data_base is None:
             cls_name = self.__class__.__name__
             raise AttributeError(
@@ -269,7 +265,7 @@ class CdtDataModule(pl.LightningDataModule):
 
     @property
     @final
-    def dim_s(self) -> tuple[int, ...]:
+    def dim_s(self) -> Tuple[int, ...]:
         if self._train_data_base is None:
             cls_name = self.__class__.__name__
             raise AttributeError(
@@ -318,13 +314,13 @@ class CdtDataModule(pl.LightningDataModule):
 
     @implements(pl.LightningDataModule)
     @final
-    def setup(self, stage: Stage | None = None, force_reset: bool = False) -> None:
+    def setup(self, stage: Optional[Stage] = None, force_reset: bool = False) -> None:
         # Only perform the setup if it hasn't already been done
         if force_reset or (self._train_data is None):
             self._setup(stage=stage)
             self._post_setup()
 
-    def _setup(self, stage: Stage | None = None) -> None:
+    def _setup(self, stage: Optional[Stage] = None) -> None:
         train_data, self._val_data, self._test_data = self._get_splits()
         if self.instance_weighting:
             train_data = InstanceWeightedDataset(train_data)

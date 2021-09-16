@@ -15,7 +15,7 @@ from typing import Tuple
 @dataclass
 class MoCoV2Conf:
     _target_: str = "conduit.models.self_supervised.MoCoV2"
-    backbone: Any = ResNetArch.resnet18  # Union[Module, ResNetArch, str]
+    backbone: Any = <enum 'ResNetArch'>.resnet18
     out_dim: int = 128
     num_negatives: int = 65536
     momentum_teacher: float = 0.999
@@ -37,7 +37,7 @@ class MoCoV2Conf:
 @dataclass
 class DINOConf:
     _target_: str = "conduit.models.self_supervised.DINO"
-    backbone: Any = VitArch.small  # Union[Module, VitArch, VisionTransformer, ResNetArch, str]
+    backbone: Any = <enum 'VitArch'>.small
     out_dim: int = 65536
     lr: float = 0.0005
     warmup_iters: int = 10
