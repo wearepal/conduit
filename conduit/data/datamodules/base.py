@@ -1,7 +1,7 @@
 """Base class from which all data-modules in conduit inherit."""
 from abc import abstractmethod
 import logging
-from typing import Any, Optional, Sequence, Tuple, cast
+from typing import Any, Optional, Sequence, Tuple, Union, cast
 
 import attr
 from kit import implements
@@ -52,6 +52,9 @@ class CdtDataModule(pl.LightningDataModule):
     pin_memory: bool = True
     stratified_sampling: bool = False
     instance_weighting: bool = False
+    training_mode: Union[TrainingMode, str] = attr.field(
+        converter=partial(str_to_enum, enum=TrainingMode), default=TrainingMode.epoch
+    )
 
     training_mode: TrainingMode = TrainingMode.epoch
 
@@ -89,7 +92,7 @@ class CdtDataModule(pl.LightningDataModule):
 
     @property
     def train_prop(self) -> float:
-        return -(self.val_prop + self.test_prop)
+        return 1 - (self.val_prop + self.test_prop)
 
     def make_dataloader(
         self,

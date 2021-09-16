@@ -1,7 +1,6 @@
 """Datasets from EthicML."""
-from __future__ import annotations
 from itertools import groupby
-from typing import Iterator
+from typing import Iterator, List, Tuple
 
 from ethicml import DataTuple
 from ethicml.implementations.pytorch_common import _get_info
@@ -12,7 +11,7 @@ from conduit.data.datasets.base import CdtDataset
 __all__ = ["DataTupleDataset"]
 
 
-def group_features(disc_feats: list[str]) -> Iterator[tuple[str, Iterator[str]]]:
+def group_features(disc_feats: List[str]) -> Iterator[Tuple[str, Iterator[str]]]:
     """Group discrete features names according to the first segment of their name."""
 
     def _first_segment(feature_name: str) -> str:
@@ -21,7 +20,7 @@ def group_features(disc_feats: list[str]) -> Iterator[tuple[str, Iterator[str]]]
     return groupby(disc_feats, _first_segment)
 
 
-def grouped_features_indexes(disc_feats: list[str]) -> list[slice]:
+def grouped_features_indexes(disc_feats: List[str]) -> List[slice]:
     """Group discrete features names according to the first segment of their name.
 
     Then return a list of their corresponding slices (assumes order is maintained).
@@ -42,7 +41,7 @@ def grouped_features_indexes(disc_feats: list[str]) -> list[slice]:
 class DataTupleDataset(CdtDataset):
     """Wrapper for EthicML datasets."""
 
-    def __init__(self, dataset: DataTuple, disc_features: list[str], cont_features: list[str]):
+    def __init__(self, dataset: DataTuple, disc_features: List[str], cont_features: List[str]):
         """Create DataTupleDataset."""
         disc_features = [feat for feat in disc_features if feat in dataset.x.columns]
         self.disc_features = disc_features

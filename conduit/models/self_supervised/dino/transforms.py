@@ -1,6 +1,5 @@
-from __future__ import annotations
 import random
-from typing import Sequence
+from typing import List, Optional, Sequence, Tuple, Union
 
 from PIL import Image, ImageOps
 from torchvision import transforms as T
@@ -31,11 +30,11 @@ class Solarization:
 
 def dino_train_transform(
     *,
-    global_crop_size: int | Sequence[int] = 224,
-    local_crop_size: int | Sequence[int] = 96,
-    norm_values: MeanStd | None = IMAGENET_STATS,
-    global_crops_scale: tuple[float, float] = (0.4, 1.0),
-    local_crops_scale: tuple[float, float] = (0.05, 0.4),
+    global_crop_size: Union[int, Sequence[int]] = 224,
+    local_crop_size: Union[int, Sequence[int]] = 96,
+    norm_values: Optional[MeanStd] = IMAGENET_STATS,
+    global_crops_scale: Tuple[float, float] = (0.4, 1.0),
+    local_crops_scale: Tuple[float, float] = (0.05, 0.4),
     local_crops_number: int = 8,
 ) -> MultiCropTransform:
     flip_and_color_jitter = T.Compose(
@@ -47,7 +46,7 @@ def dino_train_transform(
             T.RandomGrayscale(p=0.2),
         ]
     )
-    normalize_ls: list[PillowTform] = [T.ToTensor()]
+    normalize_ls: List[PillowTform] = [T.ToTensor()]
     if norm_values is not None:
         normalize_ls.append(
             T.Normalize(mean=norm_values.mean, std=norm_values.std),

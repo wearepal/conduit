@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import List
 
 from kit.decorators import implements
 from torch import Tensor, nn
@@ -27,7 +27,7 @@ class DINOHead(nn.Module):
         if nlayers == 1:
             self.mlp = nn.Linear(in_dim, bottleneck_dim)
         else:
-            layers: list[nn.Module] = [nn.Linear(in_dim, hidden_dim)]
+            layers: List[nn.Module] = [nn.Linear(in_dim, hidden_dim)]
             if use_bn:
                 layers.append(nn.BatchNorm1d(hidden_dim))
             layers.append(nn.GELU())

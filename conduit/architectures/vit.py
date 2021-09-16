@@ -15,11 +15,10 @@
 Mostly copy-paste from timm library.
 https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
 """
-from __future__ import annotations
 from enum import Enum
 from functools import partial
 import math
-from typing import Any
+from typing import Any, List, Optional, Tuple, Union
 
 from kit.decorators import implements
 import torch
@@ -28,6 +27,8 @@ import torch.nn.functional as F
 from torch.nn.init import trunc_normal_
 
 __all__ = ["VisionTransformer", "vit_small", "vit_tiny", "vit_base", "VitArch"]
+
+from typing_extensions import Type
 
 
 def drop_path(x: Tensor, *, drop_prob: float = 0.0, training: bool = False) -> Tensor:
@@ -57,9 +58,9 @@ class MLP(nn.Module):
         self,
         in_features: int,
         *,
-        hidden_features: int | None = None,
-        out_features: int | None = None,
-        act_layer: type[nn.Module] = nn.GELU,
+        hidden_features: Optional[int] = None,
+        out_features: Optional[int] = None,
+        act_layer: Type[nn.Module] = nn.GELU,
         drop: float = 0.0,
     ) -> None:
         super().__init__()
@@ -86,7 +87,7 @@ class Attention(nn.Module):
         dim: int,
         num_heads: int = 8,
         qkv_bias: bool = False,
-        qk_scale: float | None = None,
+        qk_scale: Optional[float] = None,
         attn_drop: float = 0.0,
         proj_drop: float = 0.0,
     ) -> None:
@@ -101,7 +102,7 @@ class Attention(nn.Module):
         self.proj_drop = nn.Dropout(proj_drop)
 
     @implements(nn.Module)
-    def forward(self, x: Tensor) -> tuple[Tensor, Tensor]:
+    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor]:
         B, N, C = x.shape
         qkv = (
             self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
@@ -126,12 +127,12 @@ class Block(nn.Module):
         num_heads: int,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: float | None = None,
+        qk_scale: Optional[float] = None,
         drop: float = 0.0,
         attn_drop: float = 0.0,
         drop_path: float = 0.0,  # TODO: rename this as copies function name in outer scope
-        act_layer: type[nn.Module] = nn.GELU,
-        norm_layer: type[nn.LayerNorm] | type[nn.BatchNorm1d] = nn.LayerNorm,
+        act_layer: Type[nn.Module] = nn.GELU,
+        norm_layer: Union[Type[nn.LayerNorm], Type[nn.BatchNorm1d]] = nn.LayerNorm,
     ) -> None:
         super().__init__()
         self.norm1 = norm_layer(dim)
@@ -185,7 +186,7 @@ class VisionTransformer(nn.Module):
 
     def __init__(
         self,
-        img_size: int | list[int] = 224,
+        img_size: Union[int, List[int]] = 224,
         patch_size: int = 16,
         in_chans: int = 3,
         num_classes: int = 0,
@@ -194,11 +195,11 @@ class VisionTransformer(nn.Module):
         num_heads: int = 12,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: float | None = None,
+        qk_scale: Optional[float] = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         drop_path_rate: float = 0.0,
-        norm_layer: type[nn.LayerNorm] | type[nn.BatchNorm1d] = nn.LayerNorm,
+        norm_layer: Union[Type[nn.LayerNorm], Type[nn.BatchNorm1d]] = nn.LayerNorm,
     ) -> None:
         super().__init__()
         if isinstance(img_size, int):
@@ -301,7 +302,7 @@ class VisionTransformer(nn.Module):
                 return blk(x, return_attention=True)
         return x
 
-    def get_intermediate_layers(self, x: Tensor, *, n: int = 1) -> list[Tensor]:
+    def get_intermediate_layers(self, x: Tensor, *, n: int = 1) -> List[Tensor]:
         x = self.prepare_tokens(x)
         # we return the output tokens from the `n` last blocks
         output = []

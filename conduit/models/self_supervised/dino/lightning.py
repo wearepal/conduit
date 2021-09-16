@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Any, Callable, Optional, Tuple, Union, cast
 
 from kit import gcopy, implements, parsable
@@ -22,7 +21,10 @@ from conduit.models.self_supervised.base import (
     SelfSupervisedModel,
 )
 from conduit.models.self_supervised.dino.callbacks import DINOScheduler
-from conduit.models.self_supervised.dino.eval import DINOLinearClassifier
+from conduit.models.self_supervised.dino.eval import (
+    DatasetEncoder,
+    DINOLinearClassifier,
+)
 from conduit.models.self_supervised.dino.head import DINOHead
 from conduit.models.self_supervised.dino.loss import DINOLoss
 from conduit.models.self_supervised.dino.transforms import MultiCropTransform
@@ -160,7 +162,7 @@ class DINO(MomentumTeacherModel):
 
     @torch.no_grad()
     @implements(MomentumTeacherModel)
-    def _init_encoders(self) -> tuple[MultiCropWrapper, MultiCropWrapper]:
+    def _init_encoders(self) -> Tuple[MultiCropWrapper, MultiCropWrapper]:
         if isinstance(self.backbone, vit.VitArch):
             self.backbone = cast(
                 vit.VisionTransformer,
@@ -261,7 +263,7 @@ class DINO(MomentumTeacherModel):
         batch_idx: int,
         optimizer: optim.Optimizer,
         optimizer_idx: int,
-        optimizer_closure: Callable | None,
+        optimizer_closure: Optional[Callable],
         on_tpu: bool,
         using_native_amp: bool,
         using_lbfgs: bool,

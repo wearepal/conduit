@@ -27,9 +27,11 @@ class EthicMlDataModule(CdtDataModule):
     _train_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
     _val_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
     _test_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
-    _cont_features: List[str] = attr.field(default=None, init=False)
-    _disc_features: List[str] = attr.field(default=None, init=False)
-    _feature_groups: Dict[str, Optional[List[slice]]] = attr.field(default=None, init=False)
+    _cont_features: Optional[List[str]] = attr.field(default=None, init=False)
+    _disc_features: Optional[List[str]] = attr.field(default=None, init=False)
+    _feature_groups: Optional[Dict[str, Optional[List[slice]]]] = attr.field(
+        default=None, init=False
+    )
 
     @property
     @final
@@ -143,7 +145,7 @@ class EthicMlDataModule(CdtDataModule):
         self._disc_features = self.em_dataset.discrete_features
         self._cont_features = self.em_dataset.continuous_features
         assert self.em_dataset.disc_feature_groups is not None
-        self._feature_groups = Dict(
+        self._feature_groups = dict(
             discrete=self.grouped_features_indexes(self.em_dataset.disc_feature_groups)
         )
 

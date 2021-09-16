@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Dict, List, Union
 
 import numpy as np
 from torch import Tensor, nn
@@ -9,9 +9,9 @@ __all__ = [
 ]
 
 
-def get_params_groups(model: nn.Module) -> list[dict[str, list[Tensor] | float]]:
-    regularized: list[Tensor] = []
-    not_regularized: list[Tensor] = []
+def get_params_groups(model: nn.Module) -> List[Dict[str, Union[List[Tensor], float]]]:
+    regularized: List[Tensor] = []
+    not_regularized: List[Tensor] = []
     for name, param in model.named_parameters():
         if not param.requires_grad:
             continue

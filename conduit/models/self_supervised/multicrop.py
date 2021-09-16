@@ -1,9 +1,9 @@
-from __future__ import annotations
-from typing import Sequence
+from typing import List, Optional, Sequence, Tuple, Union
 
 from kit.decorators import implements
 import torch
 from torch import Tensor, nn
+from typing_extensions import Type
 
 from conduit.constants import IMAGENET_STATS
 from conduit.data.datasets.utils import (
@@ -25,8 +25,8 @@ class MultiCropTransform:
         self,
         *,
         global_transform_1: ImageTform,
-        global_transform_2: ImageTform | None = None,
-        local_transform: ImageTform | None = None,
+        global_transform_2: Optional[ImageTform] = None,
+        local_transform: Optional[ImageTform] = None,
         local_crops_number: int = 8,
     ) -> None:
         self.global_transform_1 = global_transform_1
@@ -40,15 +40,15 @@ class MultiCropTransform:
 
     @classmethod
     def with_dino_transform(
-        cls: type[MultiCropTransform],
+        cls: Type["MultiCropTransform"],
         *,
-        global_crop_size: int | Sequence[int] = 224,
-        local_crop_size: int | Sequence[int] = 96,
-        norm_values: MeanStd | None = IMAGENET_STATS,
-        global_crops_scale: tuple[float, float] = (0.4, 1.0),
-        local_crops_scale: tuple[float, float] = (0.05, 0.4),
+        global_crop_size: Union[int, Sequence[int]] = 224,
+        local_crop_size: Union[int, Sequence[int]] = 96,
+        norm_values: Optional[MeanStd] = IMAGENET_STATS,
+        global_crops_scale: Tuple[float, float] = (0.4, 1.0),
+        local_crops_scale: Tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
-    ) -> MultiCropTransform:
+    ) -> "MultiCropTransform":
         from conduit.models.self_supervised.dino.transforms import dino_train_transform
 
         return dino_train_transform(
@@ -62,10 +62,10 @@ class MultiCropTransform:
 
     @classmethod
     def with_mocov2_transform(
-        cls: type[MultiCropTransform],
-        crop_size: int | Sequence[int] = 224,
-        norm_values: MeanStd | None = IMAGENET_STATS,
-    ) -> MultiCropTransform:
+        cls: Type["MultiCropTransform"],
+        crop_size: Union[int, Sequence[int]] = 224,
+        norm_values: Optional[MeanStd] = IMAGENET_STATS,
+    ) -> "MultiCropTransform":
         from conduit.models.self_supervised.moco.transforms import (
             mocov2_train_transform,
         )
@@ -86,7 +86,7 @@ class MultiCropTransform:
             self._apply_transform(image, transform=transform)
             for transform in (self.global_transform_1, self.global_transform_2)
         ]
-        local_crops: list[Tensor] = []
+        local_crops: List[Tensor] = []
         if self.local_transform is not None:
             for _ in range(self.local_crops_number):
                 local_crops.append(self._apply_transform(image, transform=self.local_transform))
@@ -103,13 +103,13 @@ class MultiCropWrapper(nn.Module):
     concatenated features.
     """
 
-    def __init__(self, backbone: nn.Module, *, head: nn.Module | None) -> None:
+    def __init__(self, backbone: nn.Module, *, head: Optional[nn.Module]) -> None:
         super().__init__()
         self.backbone = backbone
         self.head = nn.Identity() if head is None else head
 
     @implements(nn.Module)
-    def forward(self, x: list[Tensor] | Tensor) -> Tensor:
+    def forward(self, x: Union[List[Tensor], Tensor]) -> Tensor:
         if isinstance(x, Tensor):
             return self.head(self.backbone(x))
 
