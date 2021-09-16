@@ -1,5 +1,5 @@
 """Tabular data-module."""
-from typing import Dict, Optional, List, Union
+from typing import Dict, Optional, List, Union, cast
 from abc import abstractmethod
 
 import attr
@@ -23,7 +23,7 @@ class EthicMlDataModule(CdtDataModule):
     """Base data-module for tabular datasets."""
 
     scaler: ScalerType = StandardScaler()
-    _datatuple: DataTuple = attr.field(default=None, init=False)
+    _datatuple: Optional[DataTuple] = attr.field(default=None, init=False)
     _train_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
     _val_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
     _test_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
@@ -34,13 +34,8 @@ class EthicMlDataModule(CdtDataModule):
     @property
     @final
     def datatuple(self) -> DataTuple:
-        if self._datatuple is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.datatuple' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        return self._datatuple
+        self._check_setup_called("datatuple")
+        return cast(DataTuple, self._datatuple)
 
     @property
     @abstractmethod
@@ -48,7 +43,7 @@ class EthicMlDataModule(CdtDataModule):
         ...
 
     @staticmethod
-    def _get_split_sizes(train_len: int, *, test_prop: Union[int , float]) -> List[int]:
+    def _get_split_sizes(train_len: int, *, test_prop: Union[int, float]) -> List[int]:
         """Computes split sizes for train and validation sets."""
         if isinstance(test_prop, int):
             train_len -= test_prop

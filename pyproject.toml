@@ -67,6 +67,7 @@ exclude = '''
     | buck-out
     | build
     | dist
+    | conduit/hydra
   )/
   | foo.py           # also separately exclude a file named foo.py in
                      # the root of the project

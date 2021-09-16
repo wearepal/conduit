@@ -1,7 +1,7 @@
 """Base class from which all data-modules in conduit inherit."""
 from abc import abstractmethod
 import logging
-from typing import Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence, Tuple, cast
 
 import attr
 from kit import implements
@@ -83,7 +83,7 @@ class CdtDataModule(pl.LightningDataModule):
 
     @property
     def train_prop(self) -> float:
-        return- (self.val_prop + self.test_prop)
+        return -(self.val_prop + self.test_prop)
 
     def make_dataloader(
         self,
@@ -109,46 +109,26 @@ class CdtDataModule(pl.LightningDataModule):
     @property
     @final
     def train_data_base(self) -> Dataset:
-        if self._train_data_base is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.train_data_base' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        return self._train_data_base
+        self._check_setup_called("train_data_base")
+        return cast(Dataset, self._train_data_base)
 
     @property
     @final
     def train_data(self) -> Dataset:
-        if self._train_data is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.train_data' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        return self._train_data
+        self._check_setup_called("train_data")
+        return cast(Dataset, self._train_data)
 
     @property
     @final
     def val_data(self) -> Dataset:
-        if self._val_data is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.val_data' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        return self._val_data
+        self._check_setup_called("val_data")
+        return cast(Dataset, self._val_data)
 
     @property
     @final
     def test_data(self) -> Dataset:
-        if self._test_data is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.test_data' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        return self._test_data
+        self._check_setup_called("test_data")
+        return cast(Dataset, self._test_data)
 
     def train_dataloader(
         self, *, shuffle: bool = False, drop_last: bool = False, batch_size: Optional[int] = None
@@ -199,18 +179,14 @@ class CdtDataModule(pl.LightningDataModule):
     def dims(self) -> Tuple[int, ...]:
         if self._dims:
             return self._dims
-        if self._train_data is not None:
-            input_size = self._train_data[0].x.shape  # type: ignore
-            if len(input_size) == 3:
-                input_size = ImageSize(*input_size)
-            else:
-                input_size = tuple(input_size)
-            self._dims = input_size
-            return self._dims
-        cls_name = self.__class__.__name__
-        raise AttributeError(
-            f"'{cls_name}.size' cannot be determined because 'setup' has not yet been called."
-        )
+        self._check_setup_called("size")
+        input_size = self._train_data[0].x.shape  # type: ignore
+        if len(input_size) == 3:
+            input_size = ImageSize(*input_size)
+        else:
+            input_size = tuple(input_size)
+        self._dims = input_size
+        return self._dims
 
     @final
     def _num_samples(self, dataset: Dataset) -> int:
@@ -251,62 +227,41 @@ class CdtDataModule(pl.LightningDataModule):
     @property
     @final
     def dim_y(self) -> Tuple[int, ...]:
-        if self._train_data_base is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.dim_y' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        if not isinstance(self._train_data_base, CdtDataset):
-            raise AttributeError(
-                f"'dim_y' can only determined for {CdtDataset.__name__} instances."
-            )
-        return self._train_data_base.dim_y
+        self._check_setup_called("dim_y")
+        return self._get_cdt_dataset_property("dim_y")
 
     @property
     @final
     def dim_s(self) -> Tuple[int, ...]:
-        if self._train_data_base is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.dim_s' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        if not isinstance(self._train_data_base, CdtDataset):
-            raise AttributeError(
-                f"'dim_s' can only determined for {CdtDataset.__name__} instances."
-            )
-        return self._train_data_base.dim_s
+        self._check_setup_called("dim_s")
+        return self._get_cdt_dataset_property("dim_s")
 
     @property
     @final
     def card_y(self) -> int:
-        if self._train_data_base is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.card_y' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        if not isinstance(self._train_data_base, CdtDataset):
-            raise AttributeError(
-                f"'card_y' can only determined for {CdtDataset.__name__} instances."
-            )
-        return self._train_data_base.card_y
+        self._check_setup_called("card_y")
+        return self._get_cdt_dataset_property("card_y")
 
     @property
     @final
     def card_s(self) -> int:
+        self._check_setup_called("card_s")
+        return self._get_cdt_dataset_property("card_s")
+
+    def _check_setup_called(self, attr: str) -> None:
         if self._train_data_base is None:
             cls_name = self.__class__.__name__
             raise AttributeError(
-                f"'{cls_name}.card_s' cannot be accessed as '{cls_name}.setup' has "
+                f"'{cls_name}.{attr}' cannot be accessed as '{cls_name}.setup' has "
                 "not yet been called."
             )
+
+    def _get_cdt_dataset_property(self, attr: str) -> Any:
         if not isinstance(self._train_data_base, CdtDataset):
             raise AttributeError(
-                f"'card_s' can only determined for {CdtDataset.__name__} instances."
+                f"'{attr}' can only determined for {CdtDataset.__name__} instances."
             )
-        return self._train_data_base.card_s
+        getattr(self, attr)
 
     @abstractmethod
     def _get_splits(self) -> TrainValTestSplit:

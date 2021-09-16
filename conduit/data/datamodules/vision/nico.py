@@ -1,5 +1,5 @@
 """Nico data-module."""
-from typing import Any, Optional 
+from typing import Any, Optional
 
 import albumentations as A
 import attr
