@@ -63,4 +63,5 @@ jobs:
         poetry run python -m pytest -vv tests/
     - name: Run configen
       run: |
+        source .venv/bin/activate
         sh generate_confs.sh
