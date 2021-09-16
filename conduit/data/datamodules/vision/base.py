@@ -1,7 +1,7 @@
 """Base class for vision datasets."""
 from __future__ import annotations
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -23,9 +23,9 @@ __all__ = ["CdtVisionDataModule"]
 class CdtVisionDataModule(CdtDataModule):
 
     root: Union[str, Path] = attr.field(kw_only=False)
-    _train_transforms: ImageTform | None = None
-    _test_transforms: ImageTform | None = None
-    norm_values: MeanStd | None = attr.field(default=IMAGENET_STATS, init=False)
+    _train_transforms: Optional[ImageTform] = None
+    _test_transforms: Optional[ImageTform] = None
+    norm_values: Optional[MeanStd] = attr.field(default=IMAGENET_STATS, init=False)
 
     @property
     @final

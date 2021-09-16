@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from functools import partial
 import logging
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 import attr
 from kit import implements
@@ -42,7 +42,6 @@ class CdtDataModule(pl.LightningDataModule):
     :param pin_memory: Should the memory be pinned?
     :param stratified_sampling: Use startified sampling?
     :param stratified_sampling: Use instance-weighting?
-    :param scaler: SKLearn style data scaler. Fit to train, applied to val and test.
     :param training mode: Which training mode to use ('epoch' vs. 'step').
     """
 
@@ -56,25 +55,25 @@ class CdtDataModule(pl.LightningDataModule):
     pin_memory: bool = True
     stratified_sampling: bool = False
     instance_weighting: bool = False
-    training_mode: TrainingMode | str = attr.field(
+    training_mode: Union[TrainingMode, str] = attr.field(
         converter=partial(str_to_enum, enum=TrainingMode), default=TrainingMode.epoch
     )
 
-    _logger: logging.Logger | None = attr.field(default=None, init=False)
+    _logger: Optional[logging.Logger] = attr.field(default=None, init=False)
 
-    _train_data_base: Dataset | None = attr.field(default=None, init=False)
-    _val_data_base: Dataset | None = attr.field(default=None, init=False)
-    _test_data_base: Dataset | None = attr.field(default=None, init=False)
+    _train_data_base: Optional[Dataset] = attr.field(default=None, init=False)
+    _val_data_base: Optional[Dataset] = attr.field(default=None, init=False)
+    _test_data_base: Optional[Dataset] = attr.field(default=None, init=False)
 
-    _train_data: Dataset | None = attr.field(default=None, init=False)
-    _val_data: Dataset | None = attr.field(default=None, init=False)
-    _test_data: Dataset | None = attr.field(default=None, init=False)
-    _card_s: int | None = attr.field(default=None, init=False)
-    _card_y: int | None = attr.field(default=None, init=False)
-    _dim_s: torch.Size | None = attr.field(default=None, init=False)
-    _dim_y: torch.Size | None = attr.field(default=None, init=False)
+    _train_data: Optional[Dataset] = attr.field(default=None, init=False)
+    _val_data: Optional[Dataset] = attr.field(default=None, init=False)
+    _test_data: Optional[Dataset] = attr.field(default=None, init=False)
+    _card_s: Optional[int] = attr.field(default=None, init=False)
+    _card_y: Optional[int] = attr.field(default=None, init=False)
+    _dim_s: Optional[torch.Size] = attr.field(default=None, init=False)
+    _dim_y: Optional[torch.Size] = attr.field(default=None, init=False)
 
-    def __attrs_pre_init__(self):
+    def __attrs_pre_init__(self) -> None:
         super().__init__()
 
     @property
