@@ -87,7 +87,7 @@ class CdtDataset(Dataset):
     @final
     def dim_x(
         self,
-    ) -> tuple[int, ...]:
+    ) -> torch.Size:
         if self._dim_x is None:
             self._dim_x = self._sample_x(0, coerce_to_tensor=True).shape
         return self._dim_x
@@ -96,7 +96,7 @@ class CdtDataset(Dataset):
     @final
     def dim_s(
         self,
-    ) -> tuple[int, ...]:
+    ) -> torch.Size:
         if self.s is None:
             cls_name = self.__class__.__name__
             raise AttributeError(
@@ -110,7 +110,7 @@ class CdtDataset(Dataset):
     @final
     def dim_y(
         self,
-    ) -> tuple[int, ...]:
+    ) -> torch.Size:
         if self.y is None:
             cls_name = self.__class__.__name__
             raise AttributeError(
