@@ -1,13 +1,12 @@
 """Base class for vision datasets."""
 from __future__ import annotations
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+import attr
 from kit import implements
-from kit.torch import TrainingMode
-import pytorch_lightning as pl
 from typing_extensions import final
 
 from conduit.constants import IMAGENET_STATS
@@ -20,44 +19,13 @@ from conduit.types import Stage
 __all__ = ["CdtVisionDataModule"]
 
 
+@attr.define(kw_only=True)
 class CdtVisionDataModule(CdtDataModule):
-    def __init__(
-        self,
-        root: Union[str, Path],
-        *,
-        train_batch_size: int = 64,
-        eval_batch_size: Optional[int] = 100,
-        num_workers: int = 0,
-        val_prop: float = 0.2,
-        test_prop: float = 0.2,
-        seed: int = 47,
-        persist_workers: bool = False,
-        pin_memory: bool = True,
-        stratified_sampling: bool = False,
-        instance_weighting: bool = False,
-        training_mode: Union[TrainingMode, str] = "epoch",
-        train_transforms: ImageTform | None = None,
-        test_transforms: ImageTform | None = None,
-    ) -> None:
-        super().__init__(
-            train_batch_size=train_batch_size,
-            eval_batch_size=eval_batch_size,
-            num_workers=num_workers,
-            persist_workers=persist_workers,
-            pin_memory=pin_memory,
-            seed=seed,
-            test_prop=test_prop,
-            val_prop=val_prop,
-            stratified_sampling=stratified_sampling,
-            instance_weighting=instance_weighting,
-            training_mode=training_mode,
-        )
 
-        pl.LightningDataModule.__init__(
-            self, train_transforms=train_transforms, test_transforms=test_transforms
-        )
-        self.root = root
-        self.norm_values: MeanStd | None = IMAGENET_STATS
+    root: Union[str, Path] = attr.field(kw_only=False)
+    _train_transforms: ImageTform | None = None
+    _test_transforms: ImageTform | None = None
+    norm_values: MeanStd | None = attr.field(default=IMAGENET_STATS, init=False)
 
     @property
     @final

@@ -1,15 +1,15 @@
 """Tabular data-module."""
 from __future__ import annotations
 from abc import abstractmethod
-from typing import Optional, Union
 
+import attr
 import ethicml as em
 from ethicml import DataTuple
 from ethicml.preprocessing.scaling import ScalerType
 from kit import implements
-from kit.torch import TrainingMode
 from pytorch_lightning import LightningDataModule
 from sklearn.preprocessing import StandardScaler
+from typing_extensions import final
 
 from conduit.data.datamodules import CdtDataModule
 from conduit.data.structures import TrainValTestSplit
@@ -18,62 +18,29 @@ from conduit.fair.data.datasets import DataTupleDataset
 __all__ = ["EthicMlDataModule"]
 
 
+@attr.define(kw_only=True)
 class EthicMlDataModule(CdtDataModule):
     """Base data-module for tabular datasets."""
 
-    dims: tuple[int, ...]
-    datatuple: DataTuple
+    scaler: ScalerType = attr.field(default=StandardScaler())
+    _datatuple: DataTuple = attr.field(default=None, init=False)
+    _train_datatuple: em.DataTuple | None = attr.field(default=None, init=False)
+    _val_datatuple: em.DataTuple | None = attr.field(default=None, init=False)
+    _test_datatuple: em.DataTuple | None = attr.field(default=None, init=False)
+    _cont_features: list[str] | None = attr.field(default=None, init=False)
+    _disc_features: list[str] | None = attr.field(default=None, init=False)
+    _feature_groups: dict[str, list[slice]] | None = attr.field(default=None, init=False)
 
-    def __init__(
-        self,
-        *,
-        train_batch_size: int = 100,
-        eval_batch_size: Optional[int] = 256,
-        num_workers: int = 0,
-        val_prop: float = 0.2,
-        test_prop: float = 0.2,
-        seed: int = 0,
-        persist_workers: bool = False,
-        pin_memory: bool = True,
-        stratified_sampling: bool = False,
-        instance_weighting: bool = False,
-        scaler: ScalerType | None = None,
-        training_mode: Union[TrainingMode, str] = "epoch",
-    ) -> None:
-        """Base data-module for ethicml-derived datasets.
-
-        :param val_prop: Proprtion (float)  of samples to use for the validation split
-        :param test_prop: Proportion (float) of samples to use for the test split
-        :param num_workers: How many workers to use for loading data
-        :param batch_size: How many samples per batch to load
-        :param seed: RNG Seed
-        :param persist_workers: Use persistent workers in dataloader?
-        :param pin_memory: Should the memory be pinned?
-        :param stratified_sampling: Use startified sampling?
-        :param stratified_sampling: Use instance-weighting?
-        :param scaler: SKLearn style data scaler. Fit to train, applied to val and test.
-        :param training mode: Which training mode to use ('epoch' vs. 'step').
-        """
-        super().__init__(
-            train_batch_size=train_batch_size,
-            eval_batch_size=eval_batch_size,
-            num_workers=num_workers,
-            persist_workers=persist_workers,
-            pin_memory=pin_memory,
-            seed=seed,
-            test_prop=test_prop,
-            val_prop=val_prop,
-            stratified_sampling=stratified_sampling,
-            instance_weighting=instance_weighting,
-            training_mode=training_mode,
-        )
-        self.scaler = scaler if scaler is not None else StandardScaler()
-        self._train_datatuple: em.DataTuple | None = None
-        self._val_datatuple: em.DataTuple | None = None
-        self._test_datatuple: em.DataTuple | None = None
-        self._cont_features: list[str] | None = None
-        self._disc_features: list[str] | None = None
-        self._feature_groups: dict[str, list[slice]] | None = None
+    @property
+    @final
+    def datatuple(self) -> DataTuple:
+        if self._datatuple is None:
+            cls_name = self.__class__.__name__
+            raise AttributeError(
+                f"'{cls_name}.datatuple' cannot be accessed as '{cls_name}.setup' has "
+                "not yet been called."
+            )
+        return self._datatuple
 
     @property
     @abstractmethod
@@ -101,7 +68,7 @@ class EthicMlDataModule(CdtDataModule):
 
     @implements(CdtDataModule)
     def _get_splits(self) -> TrainValTestSplit:
-        self.datatuple = self.em_dataset.load(ordered=True)
+        self._datatuple = self.em_dataset.load(ordered=True)
 
         data_len = int(self.datatuple.x.shape[0])
         num_train_val, num_test = self._get_split_sizes(data_len, test_prop=self.test_prop)

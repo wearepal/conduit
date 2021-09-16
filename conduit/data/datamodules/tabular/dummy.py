@@ -1,20 +1,18 @@
 from __future__ import annotations
 
+import attr
 from kit import implements
 
 from conduit.data import CdtDataModule, TrainValTestSplit
 from conduit.data.datasets.tabular.dummy import RandomTabularDataset
 
 
+@attr.define(kw_only=True)
 class DummyTabularDataModule(CdtDataModule):
-    def __init__(
-        self, num_samples: int, num_disc_features: int, num_cont_features: int, seed: int = 8
-    ) -> None:
-        super().__init__()
-        self.num_samples = num_samples
-        self.num_disc_features = num_disc_features
-        self.num_cont_features = num_cont_features
-        self.seed = seed
+    num_samples: int
+    num_disc_features: int
+    num_cont_features: int
+    seed: int = 8
 
     @implements(CdtDataModule)
     def _get_splits(self) -> TrainValTestSplit:

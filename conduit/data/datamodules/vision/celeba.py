@@ -1,67 +1,34 @@
 """CelebA data-module."""
 from __future__ import annotations
-from typing import Any, Optional, Union
+from functools import partial
+from typing import Any
 
 import albumentations as A
-from kit import implements, parsable
-from kit.torch.data import TrainingMode
+import attr
+from kit import implements
+from kit.misc import str_to_enum
 from pytorch_lightning import LightningDataModule
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
-from conduit.data.datasets.utils import ImageTform
 from conduit.data.datasets.vision.celeba import CelebA, CelebASplit, CelebAttr
 from conduit.data.structures import TrainValTestSplit
 
 __all__ = ["CelebADataModule"]
 
 
+@attr.define(kw_only=True)
 class CelebADataModule(CdtVisionDataModule):
     """Data-module for the CelebA dataset."""
 
-    @parsable
-    def __init__(
-        self,
-        root: str,
-        *,
-        image_size: int = 224,
-        train_batch_size: int = 32,
-        eval_batch_size: Optional[int] = 64,
-        num_workers: int = 0,
-        val_prop: float = 0.2,
-        test_prop: float = 0.2,
-        seed: int = 47,
-        persist_workers: bool = False,
-        pin_memory: bool = True,
-        superclass: CelebAttr = CelebAttr.Smiling,
-        subclass: CelebAttr = CelebAttr.Male,
-        use_predefined_splits: bool = False,
-        stratified_sampling: bool = False,
-        instance_weighting: bool = False,
-        training_mode: Union[TrainingMode, str] = "epoch",
-        train_transforms: Optional[ImageTform] = None,
-        test_transforms: Optional[ImageTform] = None,
-    ) -> None:
-        super().__init__(
-            root=root,
-            train_batch_size=train_batch_size,
-            eval_batch_size=eval_batch_size,
-            num_workers=num_workers,
-            val_prop=val_prop,
-            test_prop=test_prop,
-            seed=seed,
-            persist_workers=persist_workers,
-            pin_memory=pin_memory,
-            stratified_sampling=stratified_sampling,
-            instance_weighting=instance_weighting,
-            training_mode=training_mode,
-            train_transforms=train_transforms,
-            test_transforms=test_transforms,
-        )
-        self.image_size = image_size
-        self.superclass = superclass
-        self.subclass = subclass
-        self.use_predefined_splits = use_predefined_splits
+    image_size: int = 224
+    superclass: CelebAttr | str = attr.field(
+        converter=partial(str_to_enum, enum=CelebAttr), default=CelebAttr.Smiling
+    )
+    subclass: CelebAttr | str = attr.field(
+        converter=partial(str_to_enum, enum=CelebAttr), default=CelebAttr.Male
+    )
+    use_predefined_splits: bool = False
 
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
