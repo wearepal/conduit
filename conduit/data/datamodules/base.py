@@ -26,7 +26,7 @@ from conduit.types import Stage
 __all__ = ["CdtDataModule"]
 
 
-@attr.s(kw_only=True, auto_attribs=True)
+@attr.field(kw_only=True)
 class CdtDataModule(pl.LightningDataModule):
     """Base DataModule for both Tabular and Vision data-modules.
 
