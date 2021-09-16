@@ -258,6 +258,7 @@ class CdtDataModule(pl.LightningDataModule):
             if caller is None:
                 # inspect the call stack to find out who called this function
                 import inspect
+
                 curframe = inspect.currentframe()
                 calframe = inspect.getouterframes(curframe, 2)
                 caller = calframe[1][3]
@@ -272,6 +273,7 @@ class CdtDataModule(pl.LightningDataModule):
         if not isinstance(self._train_data_base, CdtDataset):
             # inspect the call stack to find out who called this function
             import inspect
+
             curframe = inspect.currentframe()
             calframe = inspect.getouterframes(curframe, 2)
             caller = calframe[1][3]
