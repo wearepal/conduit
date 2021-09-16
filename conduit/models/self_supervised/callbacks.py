@@ -36,7 +36,7 @@ class MeanTeacherWeightUpdate(pl.Callback):
     def on_train_batch_end(
         self,
         trainer: pl.Trainer,
-        pl_module: MomentumTeacherModel,
+        pl_module: "MomentumTeacherModel",
         outputs: STEP_OUTPUT,
         batch: Sequence,
         batch_idx: int,
