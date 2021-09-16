@@ -83,7 +83,7 @@ class CdtDataModule(pl.LightningDataModule):
 
     @property
     def train_prop(self) -> float:
-        return -(self.val_prop + self.test_prop)
+        return 1 - (self.val_prop + self.test_prop)
 
     def make_dataloader(
         self,
