@@ -49,15 +49,18 @@ jobs:
     - name: Format with isort
       run: |
         poetry run isort --check --diff .
-#    - name: Setup node.js (for pyright)
-#      uses: actions/setup-node@v1
-#      with:
-#        node-version: "14"
-#    - name: Run type checking
-#      run: |
-#        npm install -g pyright
-#        pyright bolts
-#        pyright tests
+    - name: Setup node.js (for pyright)
+      uses: actions/setup-node@v1
+      with:
+        node-version: "14"
+    - name: Run type checking
+      run: |
+       npm install -g pyright
+       pyright conduit
+       pyright tests
     - name: Test with pytest
       run: |
         poetry run python -m pytest -vv tests/
+    - name: Run configen
+      run: |
+        sh generate_confs.sh
