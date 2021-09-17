@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
 import re
-from typing import Any, Dict, List, NamedTuple, Optional, Type, TypeVar, Union
+import sys
+from typing import Any, ClassVar, Dict, List, NamedTuple, Optional, Type, TypeVar, Union
 
 import attr
 import hydra
@@ -36,61 +37,103 @@ class CdtExperiment:
     model: CdtModel
     seed: Optional[int] = 42
 
+    _CONFIG_NAME: ClassVar[str] = "config"
+    _SCHEMA_NAME: ClassVar[str] = "experiment_schema"
+
     def run(self, raw_config: Optional[Union[Dict[DictKeyType, Any], List[Any], str]] = None):
         self.datamodule.prepare_data()
         self.datamodule.setup()
-        print(f"Current working directory: '{os.getcwd()}'")
+        typer.echo(f"Current working directory: '{os.getcwd()}'")
         if raw_config is not None:
-            print("-----\n" + str(raw_config) + "\n-----")
+            typer.echo("-----\n" + str(raw_config) + "\n-----")
         self.model.run(datamodule=self.datamodule, trainer=self.trainer, seed=self.seed, copy=False)
 
     @classmethod
-    def _config_name(cls: Type[E]) -> str:
+    def _config_dir_name(cls: Type[E]) -> str:
         return re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
 
     @classmethod
+    def _init_dir(cls: Type[E], config_dir: Path, *, config_dict: Dict[str, List[Any]]) -> None:
+        config_dir.mkdir(parents=True)
+        typer.echo(f"\nInitialising config directory '{config_dir}'")
+        indent = "  "
+        with open((config_dir / cls._CONFIG_NAME).with_suffix(".yaml"), "w") as exp_config:
+            typer.echo(f"\nInitialising primary config file '{exp_config.name}'")
+            exp_config.write(f"defaults:")
+            exp_config.write(f"\n{indent}- {cls._SCHEMA_NAME}")
+
+            for group, schema_ls in config_dict.items():
+                group_dir = config_dir / group
+                group_dir.mkdir()
+                typer.echo(f"\nInitialising group '{group}'")
+                for info in schema_ls:
+                    open((group_dir / "defaults").with_suffix(".yaml"), "a").close()
+                    with open((group_dir / info.name).with_suffix(".yaml"), "w") as schema_config:
+                        schema_config.write(f"defaults:")
+                        schema_config.write(f"\n{indent}- /schema/{group}: {info.name}")
+                        schema_config.write(f"\n{indent}- defaults")
+                        typer.echo(f"- Initialising schema file '{schema_config.name}'")
+                default = "null" if len(schema_ls) > 1 else schema_ls[0].name
+                exp_config.write(f"\n{indent}- {group}: {default}")
+
+        typer.echo(f"\nFinished initialising config directory initialised at '{config_dir}'")
+
+    @classmethod
     def launch(
-        cls: Type[E], *, datamodule_confs: List[SchemaInfo], model_confs: List[SchemaInfo]
+        cls: Type[E],
+        base_dir: Union[Path, str],
+        *,
+        datamodule_confs: List[SchemaInfo],
+        model_confs: List[SchemaInfo],
     ) -> None:
-        app = typer.Typer()
+        base_dir = Path(base_dir)
+        config_dir_name = cls._config_dir_name()
+        config_dir = (base_dir / config_dir_name).expanduser().resolve()
 
-        @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
-        def launcher(ctx: typer.Context, config_dir: Path = typer.Option(Path("conf"))) -> None:
-            conf_cls_name = f"{cls.__name__}Conf"
+        import conduit.hydra.conduit.experiments.conf as exp_confs
 
-            import conduit.hydra.conduit.experiments.conf as exp_confs
-
-            try:
-                conf_cls = getattr(exp_confs, conf_cls_name)
-            except AttributeError:
-                raise AttributeError(
-                    f"Config class for {cls.__name__} could not be found in {exp_confs.__name__}."
-                    "Please try generating it with configen before trying again."
-                )
-
-            from conduit.hydra.pytorch_lightning.trainer.conf import TrainerConf
-
-            conf_dict = dict(
-                datamodule=datamodule_confs,
-                model=model_confs,
-                trainer=[SchemaInfo(name="trainer", conf=TrainerConf)],
+        try:
+            conf_cls = getattr(exp_confs, f"{cls.__name__}Conf")
+        except AttributeError:
+            raise AttributeError(
+                f"Config class for {cls.__name__} could not be found in {exp_confs.__name__}."
+                "Please generate it with configen before trying again."
             )
 
-            sr = SchemaRegistration()
-            sr.register(path="experiment_schema", config_class=conf_cls)
-            for group, schema_ls in conf_dict.items():
-                with sr.new_group(group_name=f"schema/{group}", target_path=f"{group}") as group:
-                    for name, conf in schema_ls:
-                        group.add_option(name=name, config_class=conf)
+        from conduit.hydra.pytorch_lightning.trainer.conf import TrainerConf
 
-            with hydra.initialize_config_dir(
-                config_dir=str(config_dir.expanduser().resolve()), job_name="run"
-            ):
-                cfg = hydra.compose(config_name=cls._config_name(), overrides=ctx.args)
-                print(f"Current working directory: f{os.getcwd()}")
-                if hasattr(cfg.datamodule, "root"):
-                    cfg.datamodule.root = to_absolute_path(cfg.datamodule.root)  # type: ignore
-                exp: E = instantiate(cfg, _recursive_=True)
-                exp.run(OmegaConf.to_container(cfg, enum_to_str=True))
+        conf_dict = dict(
+            datamodule=datamodule_confs,
+            model=model_confs,
+            trainer=[SchemaInfo(name="trainer", conf=TrainerConf)],
+        )
 
-        app()
+        if not config_dir.exists():
+            typer.echo(
+                f"Configuration directory {config_dir} not found."
+                "\nInitialising directory based on the supplied conf classes."
+            )
+            cls._init_dir(config_dir=config_dir, config_dict=conf_dict)
+            typer.echo(f"Relaunch the experiment, modifying the config files first if desired.")
+            return
+
+        sr = SchemaRegistration()
+        sr.register(path=cls._SCHEMA_NAME, config_class=conf_cls)
+        for group, schema_ls in conf_dict.items():
+            with sr.new_group(group_name=f"schema/{group}", target_path=f"{group}") as group:
+                for info in schema_ls:
+                    group.add_option(name=info.name, config_class=info.conf)
+
+        # config_path only allows for relative paths; we need to resort to argv-manipulation
+        # in order to set the config directory with an absolute path
+        sys.argv.extend(["--config-dir", str(config_dir)])
+
+        @hydra.main(config_path=None, config_name=cls._CONFIG_NAME)
+        def launcher(cfg: cls) -> None:
+            typer.echo(f"Current working directory: f{os.getcwd()}")
+            if hasattr(cfg.datamodule, "root"):
+                cfg.datamodule.root = to_absolute_path(cfg.datamodule.root)  # type: ignore
+            exp: E = instantiate(cfg, _recursive_=True)
+            exp.run(OmegaConf.to_container(cfg, enum_to_str=True))
+
+        launcher()
