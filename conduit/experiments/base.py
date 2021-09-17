@@ -81,14 +81,14 @@ class CdtExperiment:
     @classmethod
     def launch(
         cls: Type[E],
-        base_dir: Union[Path, str],
+        base_config_dir: Union[Path, str],
         *,
         datamodule_confs: List[SchemaInfo],
         model_confs: List[SchemaInfo],
     ) -> None:
-        base_dir = Path(base_dir)
+        base_config_dir = Path(base_config_dir)
         config_dir_name = cls._config_dir_name()
-        config_dir = (base_dir / config_dir_name).expanduser().resolve()
+        config_dir = (base_config_dir / config_dir_name).expanduser().resolve()
 
         import conduit.hydra.conduit.experiments.conf as exp_confs
 
