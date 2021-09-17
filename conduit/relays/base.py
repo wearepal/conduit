@@ -1,9 +1,21 @@
+import imp
 import logging
 import os
 from pathlib import Path
 import re
 import sys
-from typing import Any, ClassVar, Dict, List, NamedTuple, Optional, Type, TypeVar, Union
+from typing import (
+    Any,
+    ClassVar,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import attr
 from configen.config import ConfigenConf, ModuleConf
@@ -12,7 +24,6 @@ import hydra
 from hydra.utils import instantiate, to_absolute_path
 from kit.hydra import SchemaRegistration
 from omegaconf import OmegaConf
-from omegaconf.base import DictKeyType
 import pytorch_lightning as pl
 
 from conduit.data.datamodules.base import CdtDataModule
@@ -101,9 +112,6 @@ class Relay:
         conf_class_file = config_dir / cls._CONFIGEN_FILENAME
         if not (conf_class_file).exists():
             cls._create_conf(config_dir=config_dir)
-
-        import imp
-
         module = imp.load_source("conf", str(conf_class_file.with_suffix(".py")))
         return getattr(module, f"{cls.__name__}Conf")
 
@@ -152,22 +160,25 @@ class Relay:
         sys.argv.extend(["--config-dir", str(config_dir)])
 
         @hydra.main(config_path=None, config_name=cls._CONFIG_NAME)
-        def launcher(cfg: cls) -> None:
+        def launcher(cfg: Any) -> None:
             exp: R = instantiate(cfg, _recursive_=True)
-            exp.run(OmegaConf.to_container(cfg, enum_to_str=True))
+            exp.run(cfg)
 
         launcher()
 
-    def run(self, raw_config: Optional[Union[Dict[DictKeyType, Any], List[Any], str]] = None):
+    def run(self, raw_config: Any = None) -> None:
+        self.log(f"Current working directory: '{os.getcwd()}'")
+        if raw_config is not None:
+            config_dict = cast(Dict[str, Any], OmegaConf.to_container(raw_config, enum_to_str=True))
+            self.log("-----\n" + str(raw_config) + "\n-----")
+            try:
+                self.trainer.logger.log_hyperparams(config_dict)  # type: ignore
+            except:
+                ...
+
         if hasattr(self.datamodule, "root"):
             self.datamodule.root = to_absolute_path(cfg.datamodule.root)  # type: ignore
         self.datamodule.prepare_data()
         self.datamodule.setup()
-        self.log(f"Current working directory: '{os.getcwd()}'")
-        if raw_config is not None:
-            self.log("-----\n" + str(raw_config) + "\n-----")
-            try:
-                self.trainer.logger.log_hyperparams(raw_config)  # type: ignore
-            except TypeError:
-                ...
+
         self.model.run(datamodule=self.datamodule, trainer=self.trainer, seed=self.seed, copy=False)
