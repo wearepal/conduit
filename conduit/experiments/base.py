@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 import re
@@ -39,13 +40,24 @@ class CdtExperiment:
 
     _CONFIG_NAME: ClassVar[str] = "config"
     _SCHEMA_NAME: ClassVar[str] = "experiment_schema"
+    _logger: ClassVar[Optional[logging.Logger]] = logging.getLogger(__file__)
+
+    @classmethod
+    def _get_logger(cls: Type[E]) -> logging.Logger:
+        if cls._logger is None:
+            cls._logger = logging.getLogger(cls.__name__)
+        return cls._logger
+
+    @classmethod
+    def log(cls: Type[E], msg: str) -> None:
+        cls._get_logger().info(msg)
 
     def run(self, raw_config: Optional[Union[Dict[DictKeyType, Any], List[Any], str]] = None):
         self.datamodule.prepare_data()
         self.datamodule.setup()
-        typer.echo(f"Current working directory: '{os.getcwd()}'")
+        self.log(f"Current working directory: '{os.getcwd()}'")
         if raw_config is not None:
-            typer.echo("-----\n" + str(raw_config) + "\n-----")
+            self.log("-----\n" + str(raw_config) + "\n-----")
         self.model.run(datamodule=self.datamodule, trainer=self.trainer, seed=self.seed, copy=False)
 
     @classmethod
@@ -55,28 +67,28 @@ class CdtExperiment:
     @classmethod
     def _init_dir(cls: Type[E], config_dir: Path, *, config_dict: Dict[str, List[Any]]) -> None:
         config_dir.mkdir(parents=True)
-        typer.echo(f"\nInitialising config directory '{config_dir}'")
+        cls.log(f"\nInitialising config directory '{config_dir}'")
         indent = "  "
         with open((config_dir / cls._CONFIG_NAME).with_suffix(".yaml"), "w") as exp_config:
-            typer.echo(f"\nInitialising primary config file '{exp_config.name}'")
+            cls.log(f"\nInitialising primary config file '{exp_config.name}'")
             exp_config.write(f"defaults:")
             exp_config.write(f"\n{indent}- {cls._SCHEMA_NAME}")
 
             for group, schema_ls in config_dict.items():
                 group_dir = config_dir / group
                 group_dir.mkdir()
-                typer.echo(f"\nInitialising group '{group}'")
+                cls.log(f"\nInitialising group '{group}'")
                 for info in schema_ls:
                     open((group_dir / "defaults").with_suffix(".yaml"), "a").close()
                     with open((group_dir / info.name).with_suffix(".yaml"), "w") as schema_config:
                         schema_config.write(f"defaults:")
                         schema_config.write(f"\n{indent}- /schema/{group}: {info.name}")
                         schema_config.write(f"\n{indent}- defaults")
-                        typer.echo(f"- Initialising schema file '{schema_config.name}'")
+                        cls.log(f"- Initialising schema file '{schema_config.name}'")
                 default = "null" if len(schema_ls) > 1 else schema_ls[0].name
                 exp_config.write(f"\n{indent}- {group}: {default}")
 
-        typer.echo(f"\nFinished initialising config directory initialised at '{config_dir}'")
+        cls.log(f"\nFinished initialising config directory initialised at '{config_dir}'")
 
     @classmethod
     def launch(
@@ -109,12 +121,12 @@ class CdtExperiment:
         )
 
         if not config_dir.exists():
-            typer.echo(
+            cls.log(
                 f"Configuration directory {config_dir} not found."
                 "\nInitialising directory based on the supplied conf classes."
             )
             cls._init_dir(config_dir=config_dir, config_dict=conf_dict)
-            typer.echo(f"Relaunch the experiment, modifying the config files first if desired.")
+            cls.log(f"Relaunch the experiment, modifying the config files first if desired.")
             return
 
         sr = SchemaRegistration()
@@ -130,7 +142,7 @@ class CdtExperiment:
 
         @hydra.main(config_path=None, config_name=cls._CONFIG_NAME)
         def launcher(cfg: cls) -> None:
-            typer.echo(f"Current working directory: f{os.getcwd()}")
+            cls.log(f"Current working directory: f{os.getcwd()}")
             if hasattr(cfg.datamodule, "root"):
                 cfg.datamodule.root = to_absolute_path(cfg.datamodule.root)  # type: ignore
             exp: E = instantiate(cfg, _recursive_=True)
