@@ -64,7 +64,7 @@ class CdtExperiment:
                 conf_cls = getattr(exp_confs, conf_cls_name)
             except AttributeError:
                 raise AttributeError(
-                    f"Config class for {cls.__name__} could not be found in {str(exp_confs)}."
+                    f"Config class for {cls.__name__} could not be found in {exp_confs.__name__}."
                     "Please try generating it with configen before trying again."
                 )
 
