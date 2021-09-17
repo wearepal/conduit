@@ -131,7 +131,7 @@ class Relay:
 
         if not config_dir.exists():
             print(
-                f"Configuration directory {config_dir} not found."
+                f"Config directory {config_dir} not found."
                 "\nInitialising directory based on the supplied conf classes."
             )
             cls._init_dir(config_dir=config_dir, config_dict=conf_dict)
@@ -153,15 +153,14 @@ class Relay:
 
         @hydra.main(config_path=None, config_name=cls._CONFIG_NAME)
         def launcher(cfg: cls) -> None:
-            print(f"Current working directory: f{os.getcwd()}")
-            if hasattr(cfg.datamodule, "root"):
-                cfg.datamodule.root = to_absolute_path(cfg.datamodule.root)  # type: ignore
             exp: R = instantiate(cfg, _recursive_=True)
             exp.run(OmegaConf.to_container(cfg, enum_to_str=True))
 
         launcher()
 
     def run(self, raw_config: Optional[Union[Dict[DictKeyType, Any], List[Any], str]] = None):
+        if hasattr(self.datamodule, "root"):
+            self.datamodule.root = to_absolute_path(cfg.datamodule.root)  # type: ignore
         self.datamodule.prepare_data()
         self.datamodule.setup()
         self.log(f"Current working directory: '{os.getcwd()}'")
