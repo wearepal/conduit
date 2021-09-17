@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
-import sys
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+import re
+from typing import Any, Dict, List, NamedTuple, Optional, Type, TypeVar, Union
 
 import attr
 import hydra
@@ -15,7 +15,15 @@ import typer
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.models.base import CdtModel
 
-__all__ = ["CdtExperiment"]
+__all__ = [
+    "CdtExperiment",
+    "SchemaInfo",
+]
+
+
+class SchemaInfo(NamedTuple):
+    name: str
+    conf: Type
 
 
 E = TypeVar("E", bound="CdtExperiment")
@@ -37,45 +45,52 @@ class CdtExperiment:
         self.model.run(datamodule=self.datamodule, trainer=self.trainer, seed=self.seed, copy=False)
 
     @classmethod
-    def launch(cls: Type[E], *, datamodule_confs: List[Type], model_confs: List[Type]) -> None:
+    def _config_name(cls: Type[E]) -> str:
+        return re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
+
+    @classmethod
+    def launch(
+        cls: Type[E], *, datamodule_confs: List[SchemaInfo], model_confs: List[SchemaInfo]
+    ) -> None:
         app = typer.Typer()
-        conf_dict = dict(datamodule=datamodule_confs, model=model_confs)
 
         @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
-        def make_launcher(config_path: Path = Path("conf")) -> None:
-            sr = SchemaRegistration()
+        def launcher(ctx: typer.Context, config_dir: Path = typer.Option(Path("conf"))) -> None:
             conf_cls_name = f"{cls.__name__}Conf"
 
             import conduit.hydra.conduit.experiments.conf as exp_confs
 
             try:
-
                 conf_cls = getattr(exp_confs, conf_cls_name)
-                breakpoint()
             except AttributeError:
                 raise AttributeError(
                     f"Config class for {cls.__name__} could not be found in {str(exp_confs)}."
                     "Please try generating it with configen before trying again."
                 )
+
+            from conduit.hydra.pytorch_lightning.trainer.conf import TrainerConf
+
+            conf_dict = dict(
+                datamodule=datamodule_confs,
+                model=model_confs,
+                trainer=[SchemaInfo(name="trainer", conf=TrainerConf)],
+            )
+
+            sr = SchemaRegistration()
             sr.register(path="experiment_schema", config_class=conf_cls)
-            # Define the 'datamodule' group
-            for group, conf_ls in conf_dict.items():
+            for group, schema_ls in conf_dict.items():
                 with sr.new_group(group_name=f"schema/{group}", target_path=f"{group}") as group:
-                    for conf in conf_ls:
-                        name = conf.__name__
-                        if name.endswith("Conf"):
-                            name.rstrip("Conf")
+                    for name, conf in schema_ls:
                         group.add_option(name=name, config_class=conf)
 
-            @hydra.main(config_path=str(config_path), config_name="ssl_experiment")
-            def launcher(cfg: E) -> None:
+            with hydra.initialize_config_dir(
+                config_dir=str(config_dir.expanduser().resolve()), job_name="run"
+            ):
+                cfg = hydra.compose(config_name=cls._config_name(), overrides=ctx.args)
                 print(f"Current working directory: f{os.getcwd()}")
                 if hasattr(cfg.datamodule, "root"):
                     cfg.datamodule.root = to_absolute_path(cfg.datamodule.root)  # type: ignore
                 exp: E = instantiate(cfg, _recursive_=True)
                 exp.run(OmegaConf.to_container(cfg, enum_to_str=True))
 
-            del sys.argv[1]
-            launcher()
-
-        make_launcher()
+        app()

@@ -16,6 +16,9 @@ configen:
 
   # list of modules to generate configs for
   modules:
+    - name: pytorch_lightning.trainer
+      classes:
+        - Trainer
     - name: conduit.models.self_supervised
       classes:
         - MoCoV2
