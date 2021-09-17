@@ -34,6 +34,8 @@ opencv-python = "^4.5.3"
 soundfile = {version = "*", markers = "platform_system == 'Windows'"}
 sox = {version = "*", markers = "platform_system == 'Linux' or platform_system == 'macOS'"}
 attrs = "^21.2.0"
+hydra-core = {git = "https://github.com/facebookresearch/hydra.git", rev= "main"}
+typer = "^0.4.0"
 
 [tool.poetry.dev-dependencies]
 black = "*"

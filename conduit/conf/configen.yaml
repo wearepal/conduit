@@ -38,6 +38,10 @@ configen:
       classes:
         - ERMClassifier
 
+    - name: conduit.experiments
+      classes:
+        - CdtExperiment
+
     - name: conduit.fair.data.datamodules
       classes:
         - AdmissionsDataModule
