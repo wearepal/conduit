@@ -132,7 +132,6 @@ class Relay:
         datamodule_confs: List[SchemaInfo],
         model_confs: List[SchemaInfo],
     ) -> None:
-        # LOGGER.info("foo")
         base_config_dir = Path(base_config_dir)
         config_dir_name = cls._config_dir_name()
         config_dir = (base_config_dir / config_dir_name).expanduser().resolve()
