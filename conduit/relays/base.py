@@ -1,5 +1,4 @@
 import importlib
-from importlib.machinery import SourceFileLoader
 import logging
 import os
 from pathlib import Path
@@ -19,8 +18,6 @@ from typing import (
 )
 
 import attr
-from configen.config import ConfigenConf, ModuleConf
-from configen.configen import generate_module, save
 import hydra
 from hydra.utils import instantiate, to_absolute_path
 from kit.hydra import SchemaRegistration
@@ -54,12 +51,15 @@ class Relay:
     _CONFIG_NAME: ClassVar[str] = "config"
     _SCHEMA_NAME: ClassVar[str] = "experiment_schema"
     _CONFIGEN_FILENAME: ClassVar[str] = ".conf"
-    _logger: ClassVar[Optional[logging.Logger]] = logging.getLogger(__file__)
+    _logger: ClassVar[Optional[logging.Logger]] = None
 
     @classmethod
     def _get_logger(cls: Type[R]) -> logging.Logger:
         if cls._logger is None:
-            cls._logger = logging.getLogger(cls.__name__)
+            logger = logging.getLogger(__name__)
+            logger.addHandler(logging.StreamHandler(sys.stdout))
+            logger.setLevel(logging.INFO)
+            cls._logger = logger
         return cls._logger
 
     @classmethod
@@ -73,31 +73,34 @@ class Relay:
     @classmethod
     def _init_dir(cls: Type[R], config_dir: Path, *, config_dict: Dict[str, List[Any]]) -> None:
         config_dir.mkdir(parents=True)
-        print(f"\nInitialising config directory '{config_dir}'")
+        cls.log(f"Initialising config directory '{config_dir}'")
         indent = "  "
         with open((config_dir / cls._CONFIG_NAME).with_suffix(".yaml"), "w") as exp_config:
-            print(f"\nInitialising primary config file '{exp_config.name}'")
+            cls.log(f"Initialising primary config file '{exp_config.name}'")
             exp_config.write(f"defaults:")
             exp_config.write(f"\n{indent}- {cls._SCHEMA_NAME}")
 
             for group, schema_ls in config_dict.items():
                 group_dir = config_dir / group
                 group_dir.mkdir()
-                print(f"\nInitialising group '{group}'")
+                cls.log(f"Initialising group '{group}'")
                 for info in schema_ls:
                     open((group_dir / "defaults").with_suffix(".yaml"), "a").close()
                     with open((group_dir / info.name).with_suffix(".yaml"), "w") as schema_config:
                         schema_config.write(f"defaults:")
                         schema_config.write(f"\n{indent}- /schema/{group}: {info.name}")
                         schema_config.write(f"\n{indent}- defaults")
-                        print(f"- Initialising schema file '{schema_config.name}'")
+                        cls.log(f"- Initialising schema file '{schema_config.name}'")
                 default = "null" if len(schema_ls) > 1 else schema_ls[0].name
                 exp_config.write(f"\n{indent}- {group}: {default}")
 
-        print(f"\nFinished initialising config directory initialised at '{config_dir}'")
+        cls.log(f"Finished initialising config directory initialised at '{config_dir}'")
 
     @classmethod
     def _create_conf(cls: Type[R], config_dir: Path) -> None:
+        from configen.config import ConfigenConf, ModuleConf  # type: ignore
+        from configen.configen import generate_module, save  # type: ignore
+
         cfg = ConfigenConf(
             output_dir=str(config_dir),
             module_path_pattern="{{module_path}}" + f"/{cls._CONFIGEN_FILENAME}.py",
@@ -110,11 +113,11 @@ class Relay:
 
     @classmethod
     def _get_config_class(cls: Type[R], config_dir: Path) -> Any:
-        conf_class_file = config_dir / cls._CONFIGEN_FILENAME
+        conf_class_file = (config_dir / cls._CONFIGEN_FILENAME).with_suffix(".py")
         if not (conf_class_file).exists():
             cls._create_conf(config_dir=config_dir)
-        spec = importlib.util.spec_from_file_location(
-            name=conf_class_file.name, location=str(conf_class_file.with_suffix(".py"))
+        spec = importlib.util.spec_from_file_location(  # type: ignore
+            name=conf_class_file.name, location=str(conf_class_file)
         )
         module = importlib.util.module_from_spec(spec)  # type: ignore
         spec.loader.exec_module(module)
@@ -129,6 +132,7 @@ class Relay:
         datamodule_confs: List[SchemaInfo],
         model_confs: List[SchemaInfo],
     ) -> None:
+        # LOGGER.info("foo")
         base_config_dir = Path(base_config_dir)
         config_dir_name = cls._config_dir_name()
         config_dir = (base_config_dir / config_dir_name).expanduser().resolve()
@@ -144,12 +148,12 @@ class Relay:
         )
 
         if not config_dir.exists():
-            print(
+            cls.log(
                 f"Config directory {config_dir} not found."
                 "\nInitialising directory based on the supplied conf classes."
             )
             cls._init_dir(config_dir=config_dir, config_dict=conf_dict)
-            print(f"Relaunch the experiment, modifying the config files first if desired.")
+            cls.log(f"Relaunch the relay, modifying the config files first if desired.")
             return
 
         config_class = cls._get_config_class(config_dir=config_dir)
