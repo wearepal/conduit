@@ -1,4 +1,5 @@
-import imp
+import importlib
+from importlib.machinery import SourceFileLoader
 import logging
 import os
 from pathlib import Path
@@ -112,7 +113,12 @@ class Relay:
         conf_class_file = config_dir / cls._CONFIGEN_FILENAME
         if not (conf_class_file).exists():
             cls._create_conf(config_dir=config_dir)
-        module = imp.load_source("conf", str(conf_class_file.with_suffix(".py")))
+        spec = importlib.util.spec_from_file_location(
+            name=conf_class_file.name, location=str(conf_class_file.with_suffix(".py"))
+        )
+        module = importlib.util.module_from_spec(spec)  # type: ignore
+        spec.loader.exec_module(module)
+        sys.modules[conf_class_file.name] = module
         return getattr(module, f"{cls.__name__}Conf")
 
     @classmethod

@@ -394,23 +394,16 @@ protobuf = ["grpcio-tools (>=1.40.0)"]
 
 [[package]]
 name = "hydra-core"
-version = "1.2.0.dev1"
+version = "1.1.1"
 description = "A framework for elegantly configuring complex applications"
 category = "main"
 optional = false
 python-versions = "*"
-develop = false
 
 [package.dependencies]
 antlr4-python3-runtime = "4.8"
 importlib-resources = {version = "*", markers = "python_version < \"3.9\""}
 omegaconf = ">=2.1.0,<2.2.0"
-
-[package.source]
-type = "git"
-url = "https://github.com/facebookresearch/hydra.git"
-reference = "main"
-resolved_reference = "f147d1b48b49093dec284ea80034876b0bdbe977"
 
 [[package]]
 name = "identify"
@@ -1502,7 +1495,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.1"
-content-hash = "b88a84c401dfd525d912acc3871c7d7a6b77313364fe84bdf45d892672addb41"
+content-hash = "297f834d11c8fd1b4f7a34d9dcc9d68108aeaeeda0afcfe4f193103eb6ca989f"
 
 [metadata.files]
 absl-py = [
@@ -1742,7 +1735,10 @@ grpcio = [
     {file = "grpcio-1.40.0-cp39-cp39-win_amd64.whl", hash = "sha256:005fe14e67291498989da67d454d805be31d57a988af28ed3a2a0a7cabb05c53"},
     {file = "grpcio-1.40.0.tar.gz", hash = "sha256:3d172158fe886a2604db1b6e17c2de2ab465fe0fe36aba2ec810ca8441cefe3a"},
 ]
-hydra-core = []
+hydra-core = [
+    {file = "hydra-core-1.1.1.tar.gz", hash = "sha256:d396d4d979ff66e2d654b8ef5435ad3b6bbd093c4330f3ed316c339d5d741269"},
+    {file = "hydra_core-1.1.1-py3-none-any.whl", hash = "sha256:928b154d8105db4ee67d768e3cd0f74ca9373121fc99dee54488393b17a31929"},
+]
 identify = [
     {file = "identify-2.2.14-py2.py3-none-any.whl", hash = "sha256:113a76a6ba614d2a3dd408b3504446bcfac0370da5995aa6a17fd7c6dffde02d"},
     {file = "identify-2.2.14.tar.gz", hash = "sha256:32f465f3c48083f345ad29a9df8419a4ce0674bf4a8c3245191d65c83634bdbf"},
