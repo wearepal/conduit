@@ -201,7 +201,7 @@ class CdtRelay(Relay):
             model=model_confs,
             trainer=[SchemaInfo(name="trainer", conf=TrainerConf)],
         )
-        cls._launch(base_config_dir=base_config_dir, **configs)
+        super().with_hydra(base_config_dir=base_config_dir, **configs)
 
     def run(self, raw_config: Optional[Dict[str, Any]] = None) -> None:
         self.log(f"Current working directory: '{os.getcwd()}'")
