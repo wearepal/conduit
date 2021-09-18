@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import importlib
 import logging
 import os
@@ -11,6 +12,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Sequence,
     Type,
     TypeVar,
     Union,
@@ -23,11 +25,13 @@ from hydra.utils import instantiate, to_absolute_path
 from kit.hydra import SchemaRegistration
 from omegaconf import OmegaConf
 import pytorch_lightning as pl
+from typing_extensions import final
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.models.base import CdtModel
 
 __all__ = [
+    "CdtRelay",
     "Relay",
     "SchemaInfo",
 ]
@@ -43,11 +47,6 @@ R = TypeVar("R", bound="Relay")
 
 @attr.define(kw_only=True)
 class Relay:
-    datamodule: CdtDataModule
-    trainer: pl.Trainer
-    model: CdtModel
-    seed: Optional[int] = 42
-
     _CONFIG_NAME: ClassVar[str] = "config"
     _SCHEMA_NAME: ClassVar[str] = "experiment_schema"
     _CONFIGEN_FILENAME: ClassVar[str] = ".conf"
@@ -70,8 +69,11 @@ class Relay:
     def _config_dir_name(cls: Type[R]) -> str:
         return re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
 
+    @final
     @classmethod
-    def _init_dir(cls: Type[R], config_dir: Path, *, config_dict: Dict[str, List[Any]]) -> None:
+    def _init_config_dir(
+        cls: Type[R], *, config_dir: Path, config_dict: Dict[str, Sequence[Any]]
+    ) -> None:
         config_dir.mkdir(parents=True)
         cls.log(f"Initialising config directory '{config_dir}'")
         indent = "  "
@@ -125,41 +127,35 @@ class Relay:
         return getattr(module, f"{cls.__name__}Conf")
 
     @classmethod
-    def launch(
+    def with_hydra(
         cls: Type[R],
         base_config_dir: Union[Path, str],
-        *,
-        datamodule_confs: List[SchemaInfo],
-        model_confs: List[SchemaInfo],
+        **schemas: SchemaInfo,
+    ) -> None:
+        cls._launch(base_config_dir=base_config_dir, **schemas)
+
+    @final
+    @classmethod
+    def _launch(
+        cls: Type[R], *, base_config_dir: Union[Path, str], **schemas: Sequence[SchemaInfo]
     ) -> None:
         base_config_dir = Path(base_config_dir)
         config_dir_name = cls._config_dir_name()
         config_dir = (base_config_dir / config_dir_name).expanduser().resolve()
-
-        from conduit.hydra.pytorch_lightning.trainer.conf import (  # type: ignore
-            TrainerConf,
-        )
-
-        conf_dict = dict(
-            datamodule=datamodule_confs,
-            model=model_confs,
-            trainer=[SchemaInfo(name="trainer", conf=TrainerConf)],
-        )
 
         if not config_dir.exists():
             cls.log(
                 f"Config directory {config_dir} not found."
                 "\nInitialising directory based on the supplied conf classes."
             )
-            cls._init_dir(config_dir=config_dir, config_dict=conf_dict)
+            cls._init_config_dir(config_dir=config_dir, config_dict=schemas)
             cls.log(f"Relaunch the relay, modifying the config files first if desired.")
             return
 
         config_class = cls._get_config_class(config_dir=config_dir)
-
         sr = SchemaRegistration()
         sr.register(path=cls._SCHEMA_NAME, config_class=config_class)
-        for group, schema_ls in conf_dict.items():
+        for group, schema_ls in schemas.items():
             with sr.new_group(group_name=f"schema/{group}", target_path=f"{group}") as group:
                 for info in schema_ls:
                     group.add_option(name=info.name, config_class=info.conf)
@@ -171,14 +167,45 @@ class Relay:
         @hydra.main(config_path=None, config_name=cls._CONFIG_NAME)
         def launcher(cfg: Any) -> None:
             exp: R = instantiate(cfg, _recursive_=True)
-            exp.run(cfg)
+            config_dict = cast(Dict[str, Any], OmegaConf.to_container(cfg, enum_to_str=True))
+            exp.run(config_dict)
 
         launcher()
 
-    def run(self, raw_config: Any = None) -> None:
+    @abstractmethod
+    def run(self, raw_config: Optional[Dict[str, Any]] = None) -> None:
+        ...
+
+
+@attr.define(kw_only=True)
+class CdtRelay(Relay):
+    datamodule: CdtDataModule
+    trainer: pl.Trainer
+    model: CdtModel
+    seed: Optional[int] = 42
+
+    @classmethod
+    def with_hydra(
+        cls: Type[R],
+        base_config_dir: Union[Path, str],
+        *,
+        datamodule_confs: List[SchemaInfo],
+        model_confs: List[SchemaInfo],
+    ) -> None:
+        from conduit.hydra.pytorch_lightning.trainer.conf import (
+            TrainerConf,  # type: ignore
+        )
+
+        configs = dict(
+            datamodule=datamodule_confs,
+            model=model_confs,
+            trainer=[SchemaInfo(name="trainer", conf=TrainerConf)],
+        )
+        cls._launch(base_config_dir=base_config_dir, **configs)
+
+    def run(self, raw_config: Optional[Dict[str, Any]] = None) -> None:
         self.log(f"Current working directory: '{os.getcwd()}'")
         if raw_config is not None:
-            config_dict = cast(Dict[str, Any], OmegaConf.to_container(raw_config, enum_to_str=True))
             self.log("-----\n" + str(raw_config) + "\n-----")
             try:
                 self.trainer.logger.log_hyperparams(config_dict)  # type: ignore
