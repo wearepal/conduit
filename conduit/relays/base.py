@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from collections import defaultdict
 from dataclasses import is_dataclass
+from functools import lru_cache
 import importlib
 import logging
 import os
@@ -11,9 +12,9 @@ from types import ModuleType
 from typing import (
     Any,
     ClassVar,
+    DefaultDict,
     Dict,
     List,
-    NamedTuple,
     Optional,
     Sequence,
     Tuple,
@@ -42,15 +43,31 @@ __all__ = [
 ]
 
 
-class SchemaInfo(NamedTuple):
-    name: str
+@lru_cache()
+def _camel_to_snake(name: str) -> str:
+    name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+
+@attr.define(frozen=True)
+class SchemaInfo:
     conf: Type[Any]
+    _name: Optional[str] = None
+
+    @property
+    def name(self) -> str:
+        if self._name is None:
+            cls_name = self.conf.__name__
+            if cls_name.endswith("Conf"):
+                cls_name.rstrip("Conf")
+            return _camel_to_snake(cls_name)
+        return self._name
 
 
-class _SchemaImportInfo(NamedTuple):
+@attr.define(frozen=True)
+class _SchemaImportInfo:
+    conf_name: str
     name: str
-    class_name: str
-    module: ModuleType
 
 
 R = TypeVar("R", bound="Relay")
@@ -58,6 +75,26 @@ R = TypeVar("R", bound="Relay")
 
 @attr.define(kw_only=True)
 class Relay:
+    """
+    Abstract class for orchestrating hydra runs.
+
+    This class does away with the hassle of needing to define config-stores, initialise
+    config directories, and manually run configen on classes to convert them into schemas.
+    Regular non-hydra compatible, classes can be passed to the `with_hydra` method and
+    configen will be run on them automatically, with the resulting conf classes being
+    cached in the config directory.
+
+    Subclasses must implement a 'run' method.
+
+    >>>
+    Relay.with_hydra(
+        base_config_dir="conf",
+        model_confs=[SchemaInfo(MoCoV2), SchemaInfo(DINO)],
+        datamodule_confs=[SchemaInfo(ColoredMNISTDataModule, "cmnist")],
+    )
+
+    """
+
     _CONFIG_NAME: ClassVar[str] = "config"
     _PRIMARY_SCHEMA_NAME: ClassVar[str] = "relay_schema"
     _CONFIGEN_FILENAME: ClassVar[str] = "conf.py"
@@ -78,35 +115,38 @@ class Relay:
 
     @classmethod
     def _config_dir_name(cls: Type[R]) -> str:
-        return re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__).lower()
+        return _camel_to_snake(cls.__name__)
 
     @final
     @classmethod
-    def _init_config_dir(
-        cls: Type[R], *, config_dir: Path, config_dict: Dict[str, Sequence[Any]]
+    def _init_yaml_files(
+        cls: Type[R], *, config_dir: Path, config_dict: Dict[str, List[Any]]
     ) -> None:
-        # TODO: Make work for subsequent runs when new options are added
-        config_dir.mkdir(parents=True)
-        cls.log(f"Initialising config directory '{config_dir}'")
         indent = "  "
-        with open((config_dir / cls._CONFIG_NAME).with_suffix(".yaml"), "w") as exp_config:
-            cls.log(f"Initialising primary config file '{exp_config.name}'")
-            exp_config.write(f"defaults:")
-            exp_config.write(f"\n{indent}- {cls._PRIMARY_SCHEMA_NAME}")
+        primary_conf_fp = (config_dir / cls._CONFIG_NAME).with_suffix(".yaml")
+        primary_conf_exists = primary_conf_fp.exists()
+        with primary_conf_fp.open("a+") as primary_conf:
+            if not primary_conf_exists:
+                cls.log(f"Initialising primary config file '{primary_conf.name}'.")
+
+                primary_conf.write(f"defaults:")
+                primary_conf.write(f"\n{indent}- {cls._PRIMARY_SCHEMA_NAME}")
 
             for group, schema_ls in config_dict.items():
                 group_dir = config_dir / group
-                group_dir.mkdir()
+                if not group_dir.exists():
+                    group_dir.mkdir()
+                    default = "null" if len(schema_ls) > 1 else schema_ls[0].name
+                    primary_conf.write(f"\n{indent}- {group}: {default}")
+
                 cls.log(f"Initialising group '{group}'")
                 for info in schema_ls:
                     open((group_dir / "defaults").with_suffix(".yaml"), "a").close()
-                    with open((group_dir / info.name).with_suffix(".yaml"), "w") as schema_config:
+                    with (group_dir / info.name).with_suffix(".yaml").open("w") as schema_config:
                         schema_config.write(f"defaults:")
                         schema_config.write(f"\n{indent}- /schema/{group}: {info.name}")
                         schema_config.write(f"\n{indent}- defaults")
-                        cls.log(f"- Initialising schema file '{schema_config.name}'")
-                default = "null" if len(schema_ls) > 1 else schema_ls[0].name
-                exp_config.write(f"\n{indent}- {group}: {default}")
+                        cls.log(f"- Initialising config file '{schema_config.name}'.")
 
         cls.log(f"Finished initialising config directory initialised at '{config_dir}'")
 
@@ -115,19 +155,21 @@ class Relay:
         cls: Type[R], output_dir: Path, *, module_class_dict: Dict[str, List[str]]
     ) -> None:
         from configen.config import ConfigenConf, ModuleConf  # type: ignore
-        from configen.configen import generate_module, save  # type: ignore
+        from configen.configen import generate_module  # type: ignore
 
         cfg = ConfigenConf(
             output_dir=str(output_dir),
-            module_path_pattern="{{module_path}}" + f"/{cls._CONFIGEN_FILENAME}",
+            module_path_pattern=f"{cls._CONFIGEN_FILENAME}",
             modules=[],
             header="",
         )
         for module, classes in module_class_dict.items():
             module_conf = ModuleConf(name=module, classes=classes)
             code = generate_module(cfg=cfg, module=module_conf)
-            # TODO: Change saving to append if file already exists
-            save(cfg=cfg, module=module, code=code)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            conf_file = output_dir / cls._CONFIGEN_FILENAME
+            with conf_file.open("a+") as file:
+                file.write(code)
 
     @classmethod
     def _load_module_from_path(cls: Type[R], filepath: Path) -> ModuleType:
@@ -140,27 +182,31 @@ class Relay:
         return module
 
     @classmethod
-    def _get_schemas(
-        cls: Type[R], config_dir: Path, **options: Sequence[SchemaInfo]
-    ) -> Tuple[Type[Any], Dict[str, List[SchemaInfo]]]:
+    def _load_schemas(
+        cls: Type[R],
+        config_dir: Path,
+        *,
+        use_cached_confs: bool = True,
+        **options: Sequence[SchemaInfo],
+    ) -> Tuple[Type[Any], DefaultDict[str, List[SchemaInfo]], DefaultDict[str, List[SchemaInfo]]]:
         configen_dir = config_dir / "configen"
-        module_path_ps = configen_dir / cls.__module__.replace(".", "/") / cls._CONFIGEN_FILENAME
-        to_generate = defaultdict(list)
-        if not module_path_ps.exists():
-            to_generate[cls.__module__].append(cls.__name__)
-
-        imported_schemas = defaultdict(list)
-        to_import = defaultdict(list)
+        schema_filepath = configen_dir / cls._CONFIGEN_FILENAME
+        schemas_to_generate = defaultdict(list)
+        if not use_cached_confs:
+            schema_filepath.unlink(missing_ok=True)  # type: ignore
+        if schema_filepath.exists():
+            module = cls._load_module_from_path(schema_filepath)
+        else:
+            schemas_to_generate[cls.__module__].append(cls.__name__)
+            module = None
+        imported_schemas: DefaultDict[str, List[SchemaInfo]] = defaultdict(list)
+        schemas_to_import: DefaultDict[str, List[_SchemaImportInfo]] = defaultdict(list)
+        schemas_to_init: DefaultDict[str, List[SchemaInfo]] = defaultdict(list)
 
         for group, classes in options.items():
             for info in classes:
-                module_path_ss = (
-                    configen_dir / info.conf.__module__.replace(".", "/") / cls._CONFIGEN_FILENAME
-                )
-                module = (
-                    cls._load_module_from_path(module_path_ss) if module_path_ss.exists() else None
-                )
-
+                if not (config_dir / group / info.name).with_suffix(".yaml").exists():
+                    schemas_to_init[group].append(info)
                 cls_name = info.conf.__name__
                 if (not is_dataclass(info.conf)) or (not cls_name.endswith("Conf")):
                     schema_name = f"{cls_name}Conf"
@@ -172,60 +218,67 @@ class Relay:
                         if schema is None:
                             schema_missing = True
                         else:
-                            imported_schemas[group].append(SchemaInfo(name=info.name, conf=schema))
+                            imported_schemas[group].append(
+                                SchemaInfo(name=info.name, conf=schema)  # type: ignore
+                            )
                     if schema_missing:
-                        to_generate[info.conf.__module__].append(cls_name)
-                    import_info = _SchemaImportInfo(
-                        name=info.name, class_name=schema_name, module=module_path_ss
-                    )
-                    to_import[group].append(import_info)
+                        schemas_to_generate[info.conf.__module__].append(cls_name)
+                    import_info = _SchemaImportInfo(conf_name=schema_name, name=info.name)
+                    schemas_to_import[group].append(import_info)
                 else:
                     imported_schemas[group].append(info)
 
         # Generate any confs with configen that have yet to be generated
-        if to_generate:
-            cls._generate_conf(output_dir=configen_dir, module_class_dict=to_generate)
-
+        if schemas_to_generate:
+            cls._generate_conf(output_dir=configen_dir, module_class_dict=schemas_to_generate)
         # Load the primary schema
-        module = cls._load_module_from_path(module_path_ps)
+        module = cls._load_module_from_path(schema_filepath)
         primary_schema = getattr(module, cls.__name__ + "Conf")
         # Load the sub-schemas
-        for group, names in to_import.items():
-            for name, schema_cls_name, module_path in names:
-                module = cls._load_module_from_path(module_path)
+        for group, info_ls in schemas_to_import.items():
+            for info in info_ls:
                 imported_schemas[group].append(
-                    SchemaInfo(name=name, conf=getattr(module, schema_cls_name))
+                    SchemaInfo(name=info.name, conf=getattr(module, info.conf_name))  # type: ignore
                 )
 
-        return primary_schema, imported_schemas
+        return primary_schema, imported_schemas, schemas_to_init
 
     @classmethod
     def with_hydra(
         cls: Type,
         base_config_dir: Union[Path, str],
+        use_cached_confs: bool = True,
         **schemas: SchemaInfo,
     ) -> None:
-        cls._launch(base_config_dir=base_config_dir, **schemas)
+        cls._launch(base_config_dir=base_config_dir, use_cached_confs=use_cached_confs, **schemas)
 
     @final
     @classmethod
     def _launch(
-        cls: Type[R], *, base_config_dir: Union[Path, str], **options: Sequence[SchemaInfo]
+        cls: Type[R],
+        *,
+        base_config_dir: Union[Path, str],
+        use_cached_confs: bool = True,
+        **options: Sequence[SchemaInfo],
     ) -> None:
         base_config_dir = Path(base_config_dir)
         config_dir_name = cls._config_dir_name()
         config_dir = (base_config_dir / config_dir_name).expanduser().resolve()
+        config_dir.mkdir(exist_ok=True, parents=True)
 
-        if not config_dir.exists():
+        primary_schema, schemas, schemas_to_init = cls._load_schemas(
+            config_dir=config_dir, use_cached_confs=use_cached_confs, **options
+        )
+        # Initialise any missing yaml files
+        if schemas_to_init:
             cls.log(
-                f"Config directory {config_dir} not found."
-                "\nInitialising directory based on the supplied conf classes."
+                f"One or more config files not found in config directory {config_dir}."
+                "\nInitialising missing config files."
             )
-            cls._init_config_dir(config_dir=config_dir, config_dict=options)
+            cls._init_yaml_files(config_dir=config_dir, config_dict=schemas_to_init)
             cls.log(f"Relaunch the relay, modifying the config files first if desired.")
             return
 
-        primary_schema, schemas = cls._get_schemas(config_dir=config_dir, **options)
         sr = SchemaRegistration()
         sr.register(path=cls._PRIMARY_SCHEMA_NAME, config_class=primary_schema)
         for group, schema_ls in schemas.items():
@@ -262,6 +315,7 @@ class CdtRelay(Relay):
         cls: Type[R],
         base_config_dir: Union[Path, str],
         *,
+        use_cached_confs: bool = True,
         datamodule_confs: List[SchemaInfo],
         model_confs: List[SchemaInfo],
     ) -> None:
@@ -272,9 +326,11 @@ class CdtRelay(Relay):
         configs = dict(
             datamodule=datamodule_confs,
             model=model_confs,
-            trainer=[SchemaInfo(name="trainer", conf=TrainerConf)],
+            trainer=[SchemaInfo(name="trainer", conf=TrainerConf)],  # type: ignore
         )
-        super().with_hydra(base_config_dir=base_config_dir, **configs)
+        super().with_hydra(
+            base_config_dir=base_config_dir, use_cached_confs=use_cached_confs, **configs
+        )
 
     @implements(Relay)
     def run(self, raw_config: Optional[Dict[str, Any]] = None) -> None:
