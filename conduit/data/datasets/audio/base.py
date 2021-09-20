@@ -4,6 +4,7 @@ from typing import Optional, Union
 from kit import implements
 import numpy as np
 import numpy.typing as npt
+import torch
 from torch import Tensor
 import torchaudio
 
@@ -59,10 +60,11 @@ class CdtAudioDataset(CdtDataset):
         lines = [head] + [" " * self._repr_indent + line for line in body]
         return '\n'.join(lines)
 
-    def load_waveform(self, index: int) -> Tensor:
-        return torchaudio.load(self.audio_dir / self.x[index])
+    def load_sample(self, index: int) -> Tensor:
+        path = self.audio_dir / self.x[index]
+        return torchaudio.load(path) if str(self.x[index]).endswith('.wav') else torch.load(path)
 
     @implements(CdtDataset)
     def _sample_x(self, index: int, *, coerce_to_tensor: bool = False) -> Tensor:
-        waveform = self.load_waveform(index)
+        waveform = self.load_sample(index)
         return apply_waveform_transform(waveform, transform=None)

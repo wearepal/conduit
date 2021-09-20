@@ -16,6 +16,7 @@ from conduit.data import (
     TernarySample,
     TernarySampleIW,
 )
+from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
 from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 
@@ -33,12 +34,12 @@ def test_datasets(ds_cls: Type[VisionDataset]) -> None:
 
 
 @pytest.mark.slow
-def test_audio_dataset() -> None:
+def test_ecoacoustics_dataset() -> None:
     root_dir = Path("~/Data").expanduser()
     base_dir = root_dir / "Ecoacoustics"
     target_attribute = "habitat"
-    waveform_length = 60  # Length in seconds.
-    specgram_segment_len = 30  # Length in seconds.
+    waveform_length = 60.0  # Length in seconds.
+    specgram_segment_len = 30.0  # Length in seconds.
 
     ds = Ecoacoustics(
         root=root_dir,
@@ -53,10 +54,6 @@ def test_audio_dataset() -> None:
 
     # Test __str__
     assert str(ds).splitlines()[0] == "Dataset Ecoacoustics"
-
-    # Test __len__
-    num_processed_files = len(list(base_dir.glob("**/*.pt")))
-    assert len(ds) == num_processed_files
 
     # Test metadata aligns with labels file.
     audio_samples_to_check = [
@@ -73,13 +70,35 @@ def test_audio_dataset() -> None:
             assert np.isnan(matched_row.iloc[0][target_attribute])
 
     # Test processed folder
-    processed_audio_dir = root_dir / "Ecoacoustics" / "processed_audio"
+    processed_audio_dir = base_dir / "Spectrogram"
     assert processed_audio_dir.exists()
+
+    # Test __len__
+    num_processed_files = len(list(processed_audio_dir.glob("**/*.pt")))
+    assert len(ds) == num_processed_files
 
     # Test correct number of spectrogram segments are produced.
     segments_per_waveform = int(waveform_length / specgram_segment_len)
-    expected_num_processed_files = len(list(root_dir.glob("**/*.wav"))) * segments_per_waveform
+    expected_num_processed_files = len(list(base_dir.glob("**/*.wav"))) * segments_per_waveform
     assert num_processed_files == expected_num_processed_files
+
+
+@pytest.mark.slow
+def test_ecoacoustics_dm():
+    root = Path("~/Data").expanduser()
+
+    dm = EcoacousticsDataModule(root=root, specgram_segment_len=30.0)
+    dm.prepare_data()
+    dm.setup()
+
+    # Test loading a sample.
+    train_dl = dm.train_dataloader()
+    test_sample = next(iter(train_dl))
+
+    # Test size().
+    assert test_sample.x.size()[1] == dm.size().C
+    assert test_sample.x.size()[2] == dm.size().H
+    assert test_sample.x.size()[3] == dm.size().W
 
 
 def test_add_field() -> None:

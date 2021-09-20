@@ -5,17 +5,17 @@
     habitats" (Final) [Data set].
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
-from enum import Enum, auto
+from __future__ import annotations
 import math
 from os import mkdir
 from pathlib import Path
+import re
 import shutil
 import subprocess
 from typing import ClassVar, List, Optional, Union
 import zipfile
 
 from kit import parsable
-from kit.decorators import enum_name_str
 from kit.misc import str_to_enum
 import pandas as pd
 import torch
@@ -37,14 +37,9 @@ from conduit.data.datasets.utils import (
     UrlFileInfo,
     download_from_url,
 )
+from conduit.types import SoundscapeAttr
 
 __all__ = ["Ecoacoustics"]
-
-
-@enum_name_str
-class SoundscapeAttr(Enum):
-    habitat = auto()
-    site = auto()
 
 
 Extension = Literal[".pt", ".wav"]
@@ -60,7 +55,6 @@ class Ecoacoustics(CdtAudioDataset):
     _BASE_FOLDER: ClassVar[str] = "Ecoacoustics"
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
     _UK_LABELS_FILENAME: ClassVar[str] = "UK_AI.csv"
-    _PROCESSED_DIR: ClassVar[str] = "processed_audio"
     _AUDIO_LEN: ClassVar[float] = 60.0  # Audio samples' durations in seconds.
 
     _INDICES_FILE_INFO: UrlFileInfo = UrlFileInfo(
@@ -88,7 +82,7 @@ class Ecoacoustics(CdtAudioDataset):
         root: Union[str, Path],
         *,
         preprocessing_transform: Optional[AudioTform],
-        transform: Optional[AudioTform],
+        transform: Optional[AudioTform] = None,
         download: bool = True,
         target_attr: Union[SoundscapeAttr, str] = SoundscapeAttr.habitat,
         resample_rate: int = 22050,
@@ -98,8 +92,10 @@ class Ecoacoustics(CdtAudioDataset):
         self.root = Path(root).expanduser()
         self.download = download
         self.base_dir = self.root / self._BASE_FOLDER
-        self.labels_dir = self.base_dir / self.INDICES_DIR
-        self._processed_audio_dir = self.base_dir / self._PROCESSED_DIR
+        self.labels_dir = self.base_dir / self._INDICES_FILE_INFO.name[:-4] / self.INDICES_DIR
+        # target directory needs to depend on the preprocessing function
+        preprocess_id = re.sub(r"\W+", '', str(preprocessing_transform))
+        self._processed_audio_dir = self.base_dir / preprocess_id
         self._metadata_path = self.base_dir / self.METADATA_FILENAME
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
@@ -143,7 +139,7 @@ class Ecoacoustics(CdtAudioDataset):
 
         if not self.labels_dir.exists():
             raise FileNotFoundError(
-                f"Indices file not found at location {self.base_dir.resolve()}."
+                f"Indices file not found at location {self.labels_dir.resolve()}. "
                 "Have you downloaded it?"
             )
         if zipfile.is_zipfile(self.labels_dir):

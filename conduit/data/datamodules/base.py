@@ -33,13 +33,14 @@ class CdtDataModule(pl.LightningDataModule):
     :param val_prop: Proprtion (float)  of samples to use for the validation split
     :param test_prop: Proportion (float) of samples to use for the test split
     :param num_workers: How many workers to use for loading data
-    :param batch_size: How many samples per batch to load
+    :param train_batch_size: How many samples per batch to load
+    :param eval_batch_size: How many samples per batch to load
     :param seed: RNG Seed
     :param persist_workers: Use persistent workers in dataloader?
     :param pin_memory: Should the memory be pinned?
     :param stratified_sampling: Use startified sampling?
     :param stratified_sampling: Use instance-weighting?
-    :param training mode: Which training mode to use ('epoch' vs. 'step').
+    :param training_mode: Which training mode to use ('epoch' vs. 'step').
     """
 
     train_batch_size: int = 64

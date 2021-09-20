@@ -1,4 +1,5 @@
-from enum import Enum
+from __future__ import annotations
+from enum import Enum, auto
 from typing import Any, Dict, Union
 
 from kit.decorators import enum_name_str
@@ -8,12 +9,7 @@ from torch import Tensor
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR
 from typing_extensions import Protocol
 
-__all__ = [
-    "LRScheduler",
-    "Loss",
-    "MetricDict",
-    "Stage",
-]
+__all__ = ["LRScheduler", "Loss", "MetricDict", "Stage", "SoundscapeAttr"]
 
 
 class Loss(Protocol):
@@ -34,6 +30,12 @@ class Stage(Enum):
     fit = "fit"
     validate = "validate"
     test = "test"
+
+
+@enum_name_str
+class SoundscapeAttr(Enum):
+    habitat = auto()
+    site = auto()
 
 
 LRScheduler = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
