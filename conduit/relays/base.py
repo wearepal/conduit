@@ -26,6 +26,7 @@ from typing import (
 import attr
 import hydra
 from hydra.utils import instantiate, to_absolute_path
+from kit.decorators import implements
 from kit.hydra import SchemaRegistration
 from omegaconf import OmegaConf
 import pytorch_lightning as pl
@@ -275,6 +276,7 @@ class CdtRelay(Relay):
         )
         super().with_hydra(base_config_dir=base_config_dir, **configs)
 
+    @implements(Relay)
     def run(self, raw_config: Optional[Dict[str, Any]] = None) -> None:
         self.log(f"Current working directory: '{os.getcwd()}'")
         if raw_config is not None:
