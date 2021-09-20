@@ -1,7 +1,6 @@
 """Base class for vision datasets."""
-from __future__ import annotations
 from pathlib import Path
-from typing import Union
+from typing import List, Optional, Union
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -23,9 +22,9 @@ __all__ = ["CdtVisionDataModule"]
 class CdtVisionDataModule(CdtDataModule):
 
     root: Union[str, Path] = attr.field(kw_only=False)
-    _train_transforms: ImageTform | None = None
-    _test_transforms: ImageTform | None = None
-    norm_values: MeanStd | None = attr.field(default=IMAGENET_STATS, init=False)
+    _train_transforms: Optional[ImageTform] = None
+    _test_transforms: Optional[ImageTform] = None
+    norm_values: Optional[MeanStd] = attr.field(default=IMAGENET_STATS, init=False)
 
     @property
     @final
@@ -37,7 +36,7 @@ class CdtVisionDataModule(CdtDataModule):
         )
 
     @train_transforms.setter
-    def train_transforms(self, transform: ImageTform | None) -> None:  # type: ignore
+    def train_transforms(self, transform: Optional[ImageTform]) -> None:  # type: ignore
         self._train_transforms = transform
         if isinstance(self._train_data, ImageTransformer):
             self._train_data.transform = transform
@@ -53,7 +52,7 @@ class CdtVisionDataModule(CdtDataModule):
 
     @test_transforms.setter
     @final
-    def test_transforms(self, transform: ImageTform | None) -> None:  # type: ignore
+    def test_transforms(self, transform: Optional[ImageTform]) -> None:  # type: ignore
         self._test_transforms = transform
         if isinstance(self._val_data, ImageTransformer):
             self._val_data.transform = transform
@@ -62,7 +61,7 @@ class CdtVisionDataModule(CdtDataModule):
 
     @property
     def _default_train_transforms(self) -> A.Compose:
-        transform_ls: list[AlbumentationsTform] = [
+        transform_ls: List[AlbumentationsTform] = [
             A.ToFloat(),
         ]
         if self.norm_values is not None:
@@ -72,7 +71,7 @@ class CdtVisionDataModule(CdtDataModule):
 
     @property
     def _default_test_transforms(self) -> A.Compose:
-        transform_ls: list[AlbumentationsTform] = [
+        transform_ls: List[AlbumentationsTform] = [
             A.ToFloat(),
         ]
         if self.norm_values is not None:
@@ -82,7 +81,7 @@ class CdtVisionDataModule(CdtDataModule):
 
     @implements(CdtDataModule)
     @final
-    def _setup(self, stage: Stage | None = None) -> None:
+    def _setup(self, stage: Optional[Stage] = None) -> None:
         train, val, test = self._get_splits()
         train = ImageTransformer(train, transform=self.train_transforms)
         if self.instance_weighting:

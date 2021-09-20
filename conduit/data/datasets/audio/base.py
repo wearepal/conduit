@@ -1,5 +1,5 @@
-from __future__ import annotations
 from pathlib import Path
+from typing import Optional, Union
 
 from kit import implements
 import numpy as np
@@ -29,10 +29,10 @@ class CdtAudioDataset(CdtDataset):
         self,
         *,
         x: npt.NDArray[np.string_],
-        audio_dir: Path | str,
-        y: TargetData | None = None,
-        s: TargetData | None = None,
-        transform: AudioTform | None = None,
+        audio_dir: Union[Path, str],
+        y: Optional[TargetData] = None,
+        s: Optional[TargetData] = None,
+        transform: Optional[AudioTform] = None,
     ) -> None:
         super().__init__(x=x, y=y, s=s)
 

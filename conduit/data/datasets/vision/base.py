@@ -1,6 +1,5 @@
-from __future__ import annotations
 from pathlib import Path
-from typing import Sequence
+from typing import Optional, Sequence, Union
 
 from kit import implements
 import numpy as np
@@ -27,10 +26,10 @@ class CdtVisionDataset(CdtDataset):
         self,
         *,
         x: npt.NDArray[np.string_],
-        image_dir: Path | str,
-        y: TargetData | None = None,
-        s: TargetData | None = None,
-        transform: ImageTform | None = None,
+        image_dir: Union[Path, str],
+        y: Optional[TargetData] = None,
+        s: Optional[TargetData] = None,
+        transform: Optional[ImageTform] = None,
     ) -> None:
         super().__init__(x=x, y=y, s=s)
         if isinstance(image_dir, str):
@@ -40,7 +39,7 @@ class CdtVisionDataset(CdtDataset):
         # infer the appropriate image-loading backend based on the type of 'transform'
         self._il_backend: ImageLoadingBackend = infer_il_backend(transform)
 
-    def update_il_backend(self, transform: ImageTform | None) -> None:
+    def update_il_backend(self, transform: Optional[ImageTform]) -> None:
         new_backend = infer_il_backend(transform)
         if new_backend != self._il_backend:
             self._il_backend = new_backend
@@ -64,7 +63,7 @@ class CdtVisionDataset(CdtDataset):
     @implements(CdtDataset)
     def _sample_x(
         self, index: int, *, coerce_to_tensor: bool = False
-    ) -> RawImage | Tensor | Sequence[RawImage] | Sequence[Tensor]:
+    ) -> Union[RawImage, Tensor, Sequence[RawImage], Sequence[Tensor]]:
         image = self._load_image(index)
         image = apply_image_transform(image=image, transform=self.transform)
         if coerce_to_tensor and (not isinstance(image, Tensor)):

@@ -1,6 +1,6 @@
 """Tabular data-module."""
-from __future__ import annotations
 from abc import abstractmethod
+from typing import Dict, List, Optional, Union, cast
 
 import attr
 import ethicml as em
@@ -22,25 +22,22 @@ __all__ = ["EthicMlDataModule"]
 class EthicMlDataModule(CdtDataModule):
     """Base data-module for tabular datasets."""
 
-    scaler: ScalerType = attr.field(default=StandardScaler())
-    _datatuple: DataTuple = attr.field(default=None, init=False)
-    _train_datatuple: em.DataTuple | None = attr.field(default=None, init=False)
-    _val_datatuple: em.DataTuple | None = attr.field(default=None, init=False)
-    _test_datatuple: em.DataTuple | None = attr.field(default=None, init=False)
-    _cont_features: list[str] | None = attr.field(default=None, init=False)
-    _disc_features: list[str] | None = attr.field(default=None, init=False)
-    _feature_groups: dict[str, list[slice]] | None = attr.field(default=None, init=False)
+    scaler: ScalerType = StandardScaler()
+    _datatuple: Optional[DataTuple] = attr.field(default=None, init=False)
+    _train_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
+    _val_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
+    _test_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
+    _cont_features: Optional[List[str]] = attr.field(default=None, init=False)
+    _disc_features: Optional[List[str]] = attr.field(default=None, init=False)
+    _feature_groups: Optional[Dict[str, Optional[List[slice]]]] = attr.field(
+        default=None, init=False
+    )
 
     @property
     @final
     def datatuple(self) -> DataTuple:
-        if self._datatuple is None:
-            cls_name = self.__class__.__name__
-            raise AttributeError(
-                f"'{cls_name}.datatuple' cannot be accessed as '{cls_name}.setup' has "
-                "not yet been called."
-            )
-        return self._datatuple
+        self._check_setup_called("datatuple")
+        return cast(DataTuple, self._datatuple)
 
     @property
     @abstractmethod
@@ -48,7 +45,7 @@ class EthicMlDataModule(CdtDataModule):
         ...
 
     @staticmethod
-    def _get_split_sizes(train_len: int, *, test_prop: int | float) -> list[int]:
+    def _get_split_sizes(train_len: int, *, test_prop: Union[int, float]) -> List[int]:
         """Computes split sizes for train and validation sets."""
         if isinstance(test_prop, int):
             train_len -= test_prop
@@ -70,10 +67,10 @@ class EthicMlDataModule(CdtDataModule):
     def _get_splits(self) -> TrainValTestSplit:
         self._datatuple = self.em_dataset.load(ordered=True)
 
-        data_len = int(self.datatuple.x.shape[0])
+        data_len = int(self._datatuple.x.shape[0])
         num_train_val, num_test = self._get_split_sizes(data_len, test_prop=self.test_prop)
         train_val, test_data = em.train_test_split(
-            data=self.datatuple,
+            data=self._datatuple,
             train_percentage=(1 - (num_test / data_len)),
             random_seed=self.seed,
         )
@@ -129,17 +126,17 @@ class EthicMlDataModule(CdtDataModule):
         return self._test_datatuple
 
     @property
-    def feature_groups(self) -> dict[str, list[slice]]:
+    def feature_groups(self) -> Dict[str, Optional[List[slice]]]:
         assert self._feature_groups is not None
         return self._feature_groups
 
     @property
-    def disc_features(self) -> list[str]:
+    def disc_features(self) -> List[str]:
         assert self._disc_features is not None
         return self._disc_features
 
     @property
-    def cont_features(self) -> list[str]:
+    def cont_features(self) -> List[str]:
         assert self._cont_features is not None
         return self._cont_features
 
@@ -147,12 +144,13 @@ class EthicMlDataModule(CdtDataModule):
         """Make feature groups for reconstruction."""
         self._disc_features = self.em_dataset.discrete_features
         self._cont_features = self.em_dataset.continuous_features
+        assert self.em_dataset.disc_feature_groups is not None
         self._feature_groups = dict(
             discrete=self.grouped_features_indexes(self.em_dataset.disc_feature_groups)
         )
 
     @staticmethod
-    def grouped_features_indexes(group_iter: dict[str, list[str]]) -> list[slice]:
+    def grouped_features_indexes(group_iter: Dict[str, List[str]]) -> List[slice]:
         """Group discrete features names according to the first segment of their name.
 
         Then return a list of their corresponding slices (assumes order is maintained).

@@ -1,8 +1,7 @@
 """SSRP Dataset."""
-from __future__ import annotations
 from enum import Enum
 from pathlib import Path
-from typing import ClassVar, Optional, Union, cast
+from typing import ClassVar, List, Optional, Union, cast
 
 from kit import parsable, str_to_enum
 import pandas as pd
@@ -65,7 +64,7 @@ class SSRP(CdtVisionDataset):
     def _extract_metadata(self) -> None:
         """Extract concept/context/superclass information from the image filepaths and it save to csv."""
         self.log("Extracting metadata.")
-        image_paths: list[Path] = []
+        image_paths: List[Path] = []
         for ext in ("jpg", "jpeg", "png"):
             # Glob images from child folders recusrively, excluding hidden files
             image_paths.extend(self._base_dir.glob(f"**/[!.]*.{ext}"))

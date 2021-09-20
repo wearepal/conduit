@@ -6,12 +6,13 @@
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
 from __future__ import annotations
+from enum import Enum, auto
 import math
 from os import mkdir
 from pathlib import Path
 import shutil
 import subprocess
-from typing import ClassVar, Optional, Union
+from typing import ClassVar, List, Optional, Union
 import zipfile
 
 from kit import parsable
@@ -63,7 +64,7 @@ class Ecoacoustics(CdtAudioDataset):
         md5="b23208eb7db3766a1d61364b75cb4def",
     )
 
-    _AUDIO_FILE_INFO: list[UrlFileInfo] = [
+    _AUDIO_FILE_INFO: List[UrlFileInfo] = [
         UrlFileInfo(
             name="EC_BIRD.zip",
             url="https://zenodo.org/record/1255218/files/EC_BIRD.zip",

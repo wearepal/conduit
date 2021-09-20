@@ -1,5 +1,4 @@
 """ColoredMNIST data-module."""
-from __future__ import annotations
 from functools import partial
 from typing import Any, Dict, List, Optional
 

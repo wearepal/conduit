@@ -1,6 +1,5 @@
 """Zhang Gradient Projection Debiasing Baseline Model."""
-from __future__ import annotations
-from typing import NamedTuple, cast
+from typing import Dict, NamedTuple, Tuple, cast
 
 import ethicml as em
 from kit import implements
@@ -93,7 +92,7 @@ class GPD(CdtModel):
 
     @implements(CdtModel)
     @torch.no_grad()
-    def inference_step(self, batch: TernarySample, *, stage: Stage) -> dict[str, Tensor]:
+    def inference_step(self, batch: TernarySample, *, stage: Stage) -> Dict[str, Tensor]:
         assert isinstance(batch.x, Tensor)
         model_out = self.forward(batch.x)
         loss_adv, loss_clf, loss = self._get_losses(model_out=model_out, batch=batch)
@@ -112,7 +111,7 @@ class GPD(CdtModel):
         }
 
     @implements(CdtModel)
-    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> Dict[str, float]:
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
         subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
         logits_y_all = aggregate_over_epoch(outputs=outputs, metric="logits_y")
@@ -137,7 +136,7 @@ class GPD(CdtModel):
 
     def _get_losses(
         self, model_out: ModelOut, *, batch: TernarySample
-    ) -> tuple[Tensor, Tensor, Tensor]:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         loss_adv = self._loss_adv_fn(model_out.s, target=batch.s)
         loss_clf = self._loss_clf_fn(model_out.y, target=batch.y)
         return loss_adv, loss_clf, loss_adv + loss_clf

@@ -1,7 +1,6 @@
 """Dataset wrappers."""
-from __future__ import annotations
 from dataclasses import is_dataclass, replace
-from typing import Any
+from typing import Any, Optional, Union
 
 from PIL import Image
 import numpy as np
@@ -43,22 +42,22 @@ class ImageTransformer(Dataset):
     that share the same underlying dataset.
     """
 
-    def __init__(self, dataset: Dataset, *, transform: ImageTform | None) -> None:
+    def __init__(self, dataset: Dataset, *, transform: Optional[ImageTform]) -> None:
         self.dataset = dataset
-        self._transform: ImageTform | None = None
+        self._transform: Optional[ImageTform] = None
         self.transform = transform
 
-    def __len__(self) -> int | None:
+    def __len__(self) -> Optional[int]:
         if hasattr(self.dataset, "__len__"):
             return len(self.dataset)  # type: ignore
         return None
 
     @property
-    def transform(self) -> ImageTform | None:
+    def transform(self) -> Optional[ImageTform]:
         return self._transform
 
     @transform.setter
-    def transform(self, transform: ImageTform | None) -> None:
+    def transform(self, transform: Optional[ImageTform]) -> None:
         base_dataset = extract_base_dataset(self.dataset, return_subset_indices=False)
         if isinstance(base_dataset, CdtVisionDataset):
             base_dataset.update_il_backend(transform)
@@ -93,14 +92,14 @@ class TabularTransformer(Dataset):
         self,
         dataset: Dataset,
         *,
-        transform: TabularTransform | None,
-        target_transform: TabularTransform | None,
+        transform: Optional[TabularTransform],
+        target_transform: Optional[TabularTransform],
     ) -> None:
         self.dataset = dataset
         self.transform = transform
         self.target_transform = target_transform
 
-    def __len__(self) -> int | None:
+    def __len__(self) -> Optional[int]:
         if hasattr(self.dataset, "__len__"):
             return len(self.dataset)  # type: ignore
         return None
@@ -140,7 +139,7 @@ class InstanceWeightedDataset(Dataset):
         self.dataset = dataset
         self.iw = compute_instance_weights(dataset)
 
-    def __getitem__(self, index: int) -> BinarySampleIW | SubgroupSampleIW | TernarySampleIW:
+    def __getitem__(self, index: int) -> Union[BinarySampleIW, SubgroupSampleIW, TernarySampleIW]:
         sample = self.dataset[index]
         iw = self.iw[index]
         if isinstance(sample, (BinarySample, SubgroupSample, TernarySample)):

@@ -1,6 +1,5 @@
 """ERM Baseline Model."""
-from __future__ import annotations
-from typing import Optional
+from typing import Dict, Optional
 
 import ethicml as em
 from kit import implements
@@ -60,7 +59,7 @@ class ERMClassifierF(ERMClassifier):
 
     @implements(CdtModel)
     @torch.no_grad()
-    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> dict[str, float]:
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> Dict[str, float]:
         logits_all = aggregate_over_epoch(outputs=outputs, metric="logits")
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
         subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")

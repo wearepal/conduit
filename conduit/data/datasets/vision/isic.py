@@ -1,29 +1,36 @@
 """ISIC Dataset."""
 from __future__ import annotations
 from collections.abc import Iterable, Iterator
+from enum import Enum, auto
 from itertools import islice
 import os
 from pathlib import Path
 import shutil
-from typing import ClassVar, TypeVar, Union
+from typing import ClassVar, Iterable, Iterator, List, Optional, TypeVar, Union
 import zipfile
 
 from PIL import Image
 from kit import flatten_dict
+from kit.decorators import enum_name_str, parsable
 import numpy as np
 import pandas as pd
 import requests
 import torch
 from tqdm import tqdm
-from typing_extensions import Literal
 
 from conduit.data.datasets.utils import ImageTform
 from conduit.data.datasets.vision.base import CdtVisionDataset
 
-__all__ = ["ISIC"]
+__all__ = ["IsicAttr", "ISIC"]
 
 
-IsicAttr = Literal["histo", "malignant", "patch"]
+@enum_name_str
+class IsicAttr(Enum):
+    histo = auto()
+    malignant = auto()
+    patch = auto()
+
+
 T = TypeVar("T")
 
 
@@ -37,15 +44,16 @@ class ISIC(CdtVisionDataset):
     _PBAR_COL: ClassVar[str] = "#fac000"
     _REST_API_URL: ClassVar[str] = "https://isic-archive.com/api/v1"
 
+    @parsable
     def __init__(
         self,
         root: Union[str, Path],
         *,
         download: bool = True,
         max_samples: int = 25_000,  # default is the number of samples used for the NSLB paper
-        context_attr: IsicAttr = "histo",
-        target_attr: IsicAttr = "malignant",
-        transform: ImageTform | None = None,
+        context_attr: IsicAttr = IsicAttr.histo,
+        target_attr: IsicAttr = IsicAttr.malignant,
+        transform: Optional[ImageTform] = None,
     ) -> None:
 
         self.root = Path(root)
@@ -70,8 +78,8 @@ class ISIC(CdtVisionDataset):
         # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # considerably slower than indexing with numpy/torch
         x = self.metadata["path"].to_numpy()
-        s = torch.as_tensor(self.metadata[context_attr], dtype=torch.int32)
-        y = torch.as_tensor(self.metadata[target_attr], dtype=torch.int32)
+        s = torch.as_tensor(self.metadata[str(context_attr)], dtype=torch.int32)
+        y = torch.as_tensor(self.metadata[str(target_attr)], dtype=torch.int32)
 
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._processed_dir)
 
@@ -86,7 +94,7 @@ class ISIC(CdtVisionDataset):
         ).exists()
 
     @staticmethod
-    def chunk(it: Iterable[T], *, size: int) -> Iterator[list[T]]:
+    def chunk(it: Iterable[T], *, size: int) -> Iterator[List[T]]:
         """Divide any iterable into chunks of the given size."""
         it = iter(it)
         return iter(lambda: list(islice(it, size)), [])  # this is magic from stackoverflow
@@ -210,7 +218,7 @@ class ISIC(CdtVisionDataset):
                 with zipfile.ZipFile(file, "r") as zip_ref:
                     zip_ref.extractall(self._processed_dir)
                     pbar.update()
-        images: list[Path] = []
+        images: List[Path] = []
         for ext in ("jpg", "jpeg", "png", "gif"):
             images.extend(self._processed_dir.glob(f"**/*.{ext}"))
         with tqdm(total=len(images), desc="Processing images", colour=self._PBAR_COL) as pbar:
