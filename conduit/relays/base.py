@@ -122,7 +122,6 @@ class Relay:
             modules=[],
             header="",
         )
-        # for module, class in cfg.modules:
         for module, classes in module_class_dict.items():
             module_conf = ModuleConf(name=module, classes=classes)
             code = generate_module(cfg=cfg, module=module_conf)
