@@ -69,7 +69,7 @@ class EcoacousticsDataModule(CdtAudioDataModule):
         self.resample_rate = resample_rate
         if preprocessing_transform.__name__ == "MelSpectrogram":
             self.preprocessing_transform = preprocessing_transform(
-                sample_rate=self.resample_rate, n_fft=self.num_freq_bins
+                sample_rate=self.resample_rate, n_mels=self.num_freq_bins
             )
         else:
             self.preprocessing_transform = preprocessing_transform(n_fft=self.num_freq_bins)
