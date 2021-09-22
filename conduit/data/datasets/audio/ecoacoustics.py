@@ -6,7 +6,6 @@
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
 from __future__ import annotations
-from enum import Enum, auto
 import math
 from os import mkdir
 from pathlib import Path
@@ -55,7 +54,6 @@ class Ecoacoustics(CdtAudioDataset):
     _BASE_FOLDER: ClassVar[str] = "Ecoacoustics"
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
     _UK_LABELS_FILENAME: ClassVar[str] = "UK_AI.csv"
-    _PROCESSED_DIR: ClassVar[str] = "processed_audio"
     _AUDIO_LEN: ClassVar[float] = 60.0  # Audio samples' durations in seconds.
 
     _INDICES_FILE_INFO: UrlFileInfo = UrlFileInfo(
@@ -93,11 +91,11 @@ class Ecoacoustics(CdtAudioDataset):
         self.root = Path(root).expanduser()
         self.download = download
         self.base_dir = self.root / self._BASE_FOLDER
-        self.labels_dir = self.base_dir / self.INDICES_DIR
-        self._processed_audio_dir = self.base_dir / self._PROCESSED_DIR
         self._metadata_path = self.base_dir / self.METADATA_FILENAME
+        self.labels_dir = self.base_dir / self._INDICES_FILE_INFO.name[:-4]
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
+        self._processed_audio_dir = self.base_dir / preprocessing_transform.__class__.__name__
 
         if isinstance(target_attr, str):
             target_attr = str_to_enum(str_=target_attr, enum=SoundscapeAttr)
@@ -138,7 +136,7 @@ class Ecoacoustics(CdtAudioDataset):
 
         if not self.labels_dir.exists():
             raise FileNotFoundError(
-                f"Indices file not found at location {self.base_dir.resolve()}."
+                f"Indices file not found at location {self.labels_dir.resolve()}."
                 "Have you downloaded it?"
             )
         if zipfile.is_zipfile(self.labels_dir):

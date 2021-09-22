@@ -2,7 +2,6 @@
 
 from typing import Any, Optional, Union
 
-import albumentations as A
 from kit import implements, parsable
 from kit.torch import prop_random_split
 from kit.torch.data import TrainingMode
@@ -28,13 +27,11 @@ class EcoacousticsDataModule(CdtAudioDataModule):
         self,
         root: str,
         *,
-        image_size: int = 224,
         train_batch_size: int = 32,
         eval_batch_size: Optional[int] = 64,
         num_workers: int = 0,
         val_prop: float = 0.2,
         test_prop: float = 0.2,
-        class_train_props: Optional[dict] = None,
         seed: int = 47,
         persist_workers: bool = False,
         pin_memory: bool = True,
@@ -61,8 +58,6 @@ class EcoacousticsDataModule(CdtAudioDataModule):
             instance_weighting=instance_weighting,
             training_mode=training_mode,
         )
-        self.image_size = image_size
-        self.class_train_props = class_train_props
         self.specgram_segment_len = specgram_segment_len
         self.num_freq_bins = num_freq_bins
         self.target_attr = target_attr
@@ -73,20 +68,6 @@ class EcoacousticsDataModule(CdtAudioDataModule):
             )
         else:
             self.preprocessing_transform = preprocessing_transform(n_fft=self.num_freq_bins)
-
-    @property  # type: ignore[misc]
-    @implements(CdtAudioDataModule)
-    def _base_augmentations(self) -> A.Compose:
-        return A.Compose(
-            [
-                A.Resize(self.image_size, self.image_size),
-            ]
-        )
-
-    @property  # type: ignore[misc]
-    @implements(CdtAudioDataModule)
-    def _train_augmentations(self) -> A.Compose:
-        return A.Compose([])
 
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:

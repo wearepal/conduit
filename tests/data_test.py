@@ -34,7 +34,7 @@ def test_datasets(ds_cls: Type[VisionDataset]) -> None:
 
 
 @pytest.mark.slow
-def test_audio_dataset() -> None:
+def test_ecoacoustics_dataset() -> None:
     root_dir = Path("~/Data").expanduser()
     base_dir = root_dir / "Ecoacoustics"
     target_attribute = "habitat"
@@ -55,10 +55,6 @@ def test_audio_dataset() -> None:
     # Test __str__
     assert str(ds).splitlines()[0] == "Dataset Ecoacoustics"
 
-    # Test __len__
-    num_processed_files = len(list(base_dir.glob("**/*.pt")))
-    assert len(ds) == num_processed_files
-
     # Test metadata aligns with labels file.
     audio_samples_to_check = [
         "FS-08_0_20150802_0625=0.pt",
@@ -74,12 +70,16 @@ def test_audio_dataset() -> None:
             assert np.isnan(matched_row.iloc[0][target_attribute])
 
     # Test processed folder
-    processed_audio_dir = root_dir / "Ecoacoustics" / "processed_audio"
+    processed_audio_dir = base_dir / "Spectrogram"
     assert processed_audio_dir.exists()
+
+    # Test __len__
+    num_processed_files = len(list(base_dir.glob("**/*.pt")))
+    assert len(ds) == num_processed_files
 
     # Test correct number of spectrogram segments are produced.
     segments_per_waveform = int(waveform_length / specgram_segment_len)
-    expected_num_processed_files = len(list(root_dir.glob("**/*.wav"))) * segments_per_waveform
+    expected_num_processed_files = len(list(base_dir.glob("**/*.wav"))) * segments_per_waveform
     assert num_processed_files == expected_num_processed_files
 
 
@@ -87,7 +87,7 @@ def test_audio_dataset() -> None:
 def test_datamodule():
     root = Path("~/Data").expanduser()
 
-    dm = EcoacousticsDataModule(root=root, specgram_segment_len=30.0)
+    dm = EcoacousticsDataModule(root=root, specgram_segment_len=29.9)
     dm.prepare_data()
     dm.setup()
 
