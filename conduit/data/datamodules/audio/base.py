@@ -6,9 +6,7 @@ from typing import Union
 import albumentations as A
 import attr
 
-
 from conduit.data.datamodules.base import CdtDataModule
-
 
 __all__ = ["CdtAudioDataModule"]
 
