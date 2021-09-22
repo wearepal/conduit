@@ -94,7 +94,7 @@ class Ecoacoustics(CdtAudioDataset):
         self.base_dir = self.root / self._BASE_FOLDER
         self.labels_dir = self.base_dir / self._INDICES_FILE_INFO.name[:-4]
         # target directory needs to depend on the preprocessing function
-        preprocess_id = re.sub(r"\W+", '', str(preprocessing_transform))
+        preprocess_id = preprocessing_transform.__class__.__name__
         self._processed_audio_dir = self.base_dir / preprocess_id
         self._metadata_path = self.base_dir / self.METADATA_FILENAME
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
