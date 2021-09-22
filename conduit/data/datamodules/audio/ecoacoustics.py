@@ -24,8 +24,6 @@ __all__ = ["EcoacousticsDataModule"]
 class EcoacousticsDataModule(CdtAudioDataModule):
     """Data-module for the Ecoacoustics dataset."""
 
-    image_size: int = 224
-    class_train_props: Optional[dict] = None
     specgram_segment_len: float = 15
     target_attr: Union[SoundscapeAttr, str] = SoundscapeAttr.habitat
     resample_rate: int = 22050
@@ -41,11 +39,6 @@ class EcoacousticsDataModule(CdtAudioDataModule):
                 A.Resize(self.image_size, self.image_size),
             ]
         )
-
-    @property  # type: ignore[misc]
-    @implements(CdtAudioDataModule)
-    def _train_augmentations(self) -> A.Compose:
-        return A.Compose([])
 
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
