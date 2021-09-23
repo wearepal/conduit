@@ -5,6 +5,7 @@ import logging
 from multiprocessing.context import BaseContext
 from pathlib import Path
 import platform
+import subprocess
 from typing import (
     Any,
     Callable,
@@ -17,6 +18,7 @@ from typing import (
     cast,
     overload,
 )
+from zipfile import BadZipFile
 
 from PIL import Image
 import albumentations as A
@@ -520,12 +522,23 @@ def download_from_url(
                 logger.info(f"Downloading file '{info.name}' from address '{info.url}'.")
                 download_url(url=info.url, filename=info.name, root=str(root), md5=info.md5)
 
-            print(f"Extracting '{filepath.resolve()}' to '{root.resolve()}'")
-            extract_archive(
-                from_path=str(filepath),
-                to_path=str(extracted_filepath),
-                remove_finished=remove_finished,
-            )
+            logger.info(f"Extracting '{filepath.resolve()}' to '{root.resolve()}'")
+            try:
+                extract_archive(
+                    from_path=str(filepath),
+                    to_path=str(extracted_filepath),
+                    remove_finished=remove_finished,
+                )
+            # Fall back on using jar to unzip the archive
+            except BadZipFile:
+                try:
+                    subprocess.run(["jar", "-xvf", str(filepath)], check=True, cwd=root)
+                except subprocess.CalledProcessError:
+                    logger.info(
+                        "Attmpted to fall back on using Java to extract malformed .zip file; "
+                        "however, there was a problem. Try redownloading the zip file or "
+                        "checking that Java has been properly added to your system variables."
+                    )
 
 
 class GdriveFileInfo(NamedTuple):

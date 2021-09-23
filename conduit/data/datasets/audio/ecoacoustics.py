@@ -8,8 +8,6 @@
 import math
 from os import mkdir
 from pathlib import Path
-import shutil
-import subprocess
 from typing import ClassVar, List, Optional, Union
 import zipfile
 
@@ -19,12 +17,7 @@ import pandas as pd
 import torch
 import torchaudio
 import torchaudio.functional as F
-from torchvision.datasets.utils import (
-    _decompress,
-    _detect_file_type,
-    check_integrity,
-    download_url,
-)
+from torchvision.datasets.utils import check_integrity
 from tqdm import tqdm
 from typing_extensions import Literal
 
@@ -176,34 +169,11 @@ class Ecoacoustics(CdtAudioDataset):
             download_from_url(file_info=self._INDICES_FILE_INFO, root=self.base_dir)
         for finfo in self._AUDIO_FILE_INFO:
             if not self._check_integrity(finfo):
-                self.download_and_extract_archive_jar(finfo)
-
-    def download_and_extract_archive_jar(
-        self, finfo: UrlFileInfo, *, remove_finished: bool = False
-    ) -> None:
-        download_url(finfo.url, str(self.base_dir), finfo.name, finfo.md5)
-
-        archive = self.base_dir / finfo.name
-        self.log(f"Extracting {archive}")
-
-        _, archive_type, _ = _detect_file_type(str(archive))
-        if not archive_type:
-            _ = _decompress(
-                str(archive),
-                str((self.base_dir / finfo.name).with_suffix("")),
-                remove_finished=remove_finished,
-            )
-            return
-
-        try:
-            subprocess.run(["jar", "-xvf", str(archive)], check=True, cwd=self.base_dir)
-        except subprocess.CalledProcessError:
-            self.log(
-                "Tried to extract malformed .zip file using Java."
-                "However, there was a problem. Is Java in your system path?"
-            )
-        if (self.base_dir / "__MACOSX").exists():
-            shutil.rmtree(self.base_dir / "__MACOSX")
+                download_from_url(
+                    file_info=finfo, root=self.base_dir, logger=self.logger, remove_finished=True
+                )
+                if (self.base_dir / "__MACOSX").exists():
+                    (self.base_dir / "__MACOSX").rmdir()
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
