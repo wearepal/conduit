@@ -28,14 +28,14 @@ class CdtRelay(Relay):
         cls,
         base_config_dir: Union[Path, str],
         *,
+        datamodules: List[Union[Type[Any], Option]],
+        models: List[Union[Type[Any], Option]],
         use_cached_confs: bool = True,
-        datamodule_confs: List[Type[Any]],
-        model_confs: List[Type[Any]],
     ) -> None:
 
         configs = dict(
-            datamodule=datamodule_confs,
-            model=model_confs,
+            datamodule=datamodules,
+            model=models,
             trainer=[Option(class_=pl.Trainer, name="trainer")],
         )
         super().with_hydra(
