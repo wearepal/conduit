@@ -5,7 +5,6 @@
     habitats" (Final) [Data set].
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
-from __future__ import annotations
 import math
 from os import mkdir
 from pathlib import Path
