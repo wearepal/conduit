@@ -225,7 +225,9 @@ class Ecoacoustics(CdtAudioDataset):
             )
 
         ec_labels = pd.read_csv(self.ec_labels_path, encoding="ISO-8859-1")
+        # Some waveforms use full names for location i.e. BALMER and KNEPP, change indices file to do the same.
         uk_labels = pd.read_csv(self.uk_labels_path, encoding="ISO-8859-1")
+        uk_labels.replace(regex={"BA-": "BALMER-", "KN-": "KNEPP-"}, inplace=True)
 
         sgram_seg_metadata = gen_files_df(".pt")
 
