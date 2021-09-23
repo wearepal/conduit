@@ -26,9 +26,9 @@ albumentations = "^1.0.0"
 ethicml = "^0.3.0"
 lightning-bolts = "^0.3.4"
 palkit = {git = "https://github.com/predictive-analytics-lab/palkit.git", branch = "main" }
-torch = "*"
-torchvision = "*"
-torchaudio = "*"
+torch = "^1.9.1"
+torchvision = "^0.10.1"
+torchaudio = "^0.9.1"
 gdown = "^3.13.0"
 opencv-python = "^4.5.3"
 soundfile = {version = "*", markers = "platform_system == 'Windows'"}
