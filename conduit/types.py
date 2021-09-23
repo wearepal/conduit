@@ -36,6 +36,9 @@ class Stage(Enum):
 class SoundscapeAttr(Enum):
     habitat = auto()
     site = auto()
+    time = auto()
+    NN = auto()
+    N0 = auto()
 
 
 LRScheduler = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
