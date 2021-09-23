@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -6,7 +7,6 @@ import pytest
 import torch
 import torchaudio.transforms as AT
 from torchvision import transforms as T
-from torchvision.datasets import VisionDataset
 from typing_extensions import Type
 
 from conduit.data import (
@@ -20,22 +20,25 @@ from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
 from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 
+ROOT = Path("~/Data").expanduser()
+
 
 @pytest.mark.slow
 @pytest.mark.parametrize("ds_cls", [ColoredMNIST, ISIC])
-def test_datasets(ds_cls: Type[VisionDataset]) -> None:
+def test_datasets(ds_cls: Union[Type[ColoredMNIST], Type[ISIC]]) -> None:
     """Basic test for datasets.
     Confirms that the datasets can be instantiated and have a functional __getitem__ method.
     """
     transform = T.ToTensor()
-    ds = ds_cls(root="~/Data", transform=transform)
+    ds = ds_cls(root=ROOT, transform=transform)
     for _ds in ds:
-        assert _ds[0] is not None
+        assert isinstance(_ds, TernarySample)
+        assert _ds.x[0] is not None
 
 
 @pytest.mark.slow
 def test_ecoacoustics_dataset() -> None:
-    root_dir = Path("~/Data").expanduser()
+    root_dir = Path(ROOT).expanduser()
     base_dir = root_dir / "Ecoacoustics"
     target_attribute = "habitat"
     waveform_length = 60.0  # Length in seconds.
@@ -85,9 +88,7 @@ def test_ecoacoustics_dataset() -> None:
 
 @pytest.mark.slow
 def test_ecoacoustics_dm():
-    root = Path("~/Data").expanduser()
-
-    dm = EcoacousticsDataModule(root=root, specgram_segment_len=30.0)
+    dm = EcoacousticsDataModule(root=ROOT, specgram_segment_len=30.0)
     dm.prepare_data()
     dm.setup()
 
