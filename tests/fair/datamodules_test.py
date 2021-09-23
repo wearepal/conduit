@@ -83,11 +83,9 @@ def test_data_modules_props(dm_cls: Type[EthicMlDataModule]) -> None:
 
 
 @pytest.mark.slow
-def test_persist_param() -> None:
+def test_persist_param(root: Path) -> None:
     """Test that the loader works with persist_workers flag."""
-    dm = CelebADataModule(
-        root=str(Path("~/Data").expanduser()), persist_workers=True, num_workers=1
-    )
+    dm = CelebADataModule(root=root, persist_workers=True, num_workers=1)
     dm.prepare_data()
     dm.setup()
     loader = dm.train_dataloader()

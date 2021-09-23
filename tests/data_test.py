@@ -20,25 +20,23 @@ from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
 from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 
-ROOT = Path("~/Data").expanduser()
-
 
 @pytest.mark.slow
 @pytest.mark.parametrize("ds_cls", [ColoredMNIST, ISIC])
-def test_datasets(ds_cls: Union[Type[ColoredMNIST], Type[ISIC]]) -> None:
+def test_datasets(root: Path, ds_cls: Union[Type[ColoredMNIST], Type[ISIC]]) -> None:
     """Basic test for datasets.
     Confirms that the datasets can be instantiated and have a functional __getitem__ method.
     """
     transform = T.ToTensor()
-    ds = ds_cls(root=ROOT, transform=transform)
+    ds = ds_cls(root=root, transform=transform)
     for _ds in ds:
         assert isinstance(_ds, TernarySample)
         assert _ds.x[0] is not None
 
 
 @pytest.mark.slow
-def test_ecoacoustics_dataset() -> None:
-    root_dir = Path(ROOT).expanduser()
+def test_ecoacoustics_dataset(root: Path) -> None:
+    root_dir = Path(root).expanduser()
     base_dir = root_dir / "Ecoacoustics"
     target_attribute = "habitat"
     waveform_length = 60.0  # Length in seconds.

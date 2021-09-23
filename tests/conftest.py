@@ -1,4 +1,5 @@
 """Fixtures."""
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -29,3 +30,8 @@ def pytest_collection_modifyitems(config: Any, items: Any) -> None:
     for item in items:
         if "gpu" in item.keywords:
             item.add_marker(skip_gpu)
+
+
+@pytest.fixture
+def root() -> Path:
+    return Path("~/Data").expanduser()
