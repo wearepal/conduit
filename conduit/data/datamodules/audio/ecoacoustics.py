@@ -1,8 +1,7 @@
 """Ecoacoustics data-module."""
 
-from typing import Any, Optional, Union
+from typing import Any, Union
 
-import albumentations as A
 import attr
 from kit import implements
 from kit.torch import prop_random_split
