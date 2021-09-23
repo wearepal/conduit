@@ -31,15 +31,6 @@ class EcoacousticsDataModule(CdtAudioDataModule):
         factory=lambda: T.MelSpectrogram(sample_rate=22050, n_fft=160)
     )
 
-    @property  # type: ignore[misc]
-    @implements(CdtAudioDataModule)
-    def _base_augmentations(self) -> A.Compose:
-        return A.Compose(
-            [
-                A.Resize(self.image_size, self.image_size),
-            ]
-        )
-
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
         Ecoacoustics(

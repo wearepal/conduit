@@ -15,8 +15,3 @@ __all__ = ["CdtAudioDataModule"]
 class CdtAudioDataModule(CdtDataModule):
 
     root: Union[str, Path] = attr.field(kw_only=False)
-
-    @property
-    @abstractmethod
-    def _base_augmentations(self) -> A.Compose:
-        ...
