@@ -10,11 +10,15 @@ from torchvision import transforms as T
 from typing_extensions import Type
 
 from conduit.data import (
+    NICO,
+    SSRP,
     BinarySample,
     BinarySampleIW,
+    CelebA,
     NamedSample,
     TernarySample,
     TernarySampleIW,
+    Waterbirds,
 )
 from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
@@ -22,8 +26,13 @@ from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("ds_cls", [ColoredMNIST, ISIC])
-def test_datasets(root: Path, ds_cls: Union[Type[ColoredMNIST], Type[ISIC]]) -> None:
+@pytest.mark.parametrize("ds_cls", [ColoredMNIST, ISIC, CelebA, NICO, SSRP, Waterbirds])
+def test_vision_datasets(
+    root: Path,
+    ds_cls: Union[
+        Type[ColoredMNIST], Type[ISIC], Type[CelebA], Type[NICO], Type[SSRP], Type[Waterbirds]
+    ],
+) -> None:
     """Basic test for datasets.
     Confirms that the datasets can be instantiated and have a functional __getitem__ method.
     """
@@ -35,14 +44,15 @@ def test_datasets(root: Path, ds_cls: Union[Type[ColoredMNIST], Type[ISIC]]) -> 
 
 
 @pytest.mark.slow
-def test_ecoacoustics_dataset(root: Path) -> None:
+@pytest.mark.parametrize("ds_cls", [Ecoacoustics])
+def test_audio_dataset(root: Path, ds_cls: Type[Ecoacoustics]) -> None:
     root_dir = Path(root).expanduser()
     base_dir = root_dir / "Ecoacoustics"
     target_attribute = "habitat"
     waveform_length = 60.0  # Length in seconds.
     specgram_segment_len = 30.0  # Length in seconds.
 
-    ds = Ecoacoustics(
+    ds = ds_cls(
         root=root_dir,
         download=True,
         target_attr=target_attribute,
@@ -85,8 +95,8 @@ def test_ecoacoustics_dataset(root: Path) -> None:
 
 
 @pytest.mark.slow
-def test_ecoacoustics_dm():
-    dm = EcoacousticsDataModule(root=ROOT, specgram_segment_len=30.0)
+def test_ecoacoustics_dm(root: Path):
+    dm = EcoacousticsDataModule(root=root, specgram_segment_len=30.0)
     dm.prepare_data()
     dm.setup()
 
