@@ -1,9 +1,7 @@
 """Base class for audio datasets."""
-from abc import abstractmethod
 from pathlib import Path
 from typing import Union
 
-import albumentations as A
 import attr
 
 from conduit.data.datamodules.base import CdtDataModule
