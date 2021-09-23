@@ -8,7 +8,6 @@
 import math
 from os import mkdir
 from pathlib import Path
-import re
 import shutil
 import subprocess
 from typing import ClassVar, List, Optional, Union
