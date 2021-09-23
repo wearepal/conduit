@@ -535,7 +535,7 @@ def download_from_url(
                     subprocess.run(["jar", "-xvf", str(filepath)], check=True, cwd=root)
                 except subprocess.CalledProcessError:
                     logger.info(
-                        "Attmpted to fall back on using Java to extract malformed .zip file; "
+                        "Attempted to fall back on using Java to extract malformed .zip file; "
                         "however, there was a problem. Try redownloading the zip file or "
                         "checking that Java has been properly added to your system variables."
                     )

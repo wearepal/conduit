@@ -6,7 +6,7 @@
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
 import math
-from os import mkdir
+import os
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union
 import zipfile
@@ -22,12 +22,7 @@ from tqdm import tqdm
 from typing_extensions import Literal
 
 from conduit.data.datasets.audio.base import CdtAudioDataset
-from conduit.data.datasets.utils import (
-    AudioTform,
-    GdriveFileInfo,
-    UrlFileInfo,
-    download_from_url,
-)
+from conduit.data.datasets.utils import AudioTform, UrlFileInfo, download_from_url
 from conduit.types import SoundscapeAttr
 
 __all__ = ["Ecoacoustics"]
@@ -42,19 +37,17 @@ class Ecoacoustics(CdtAudioDataset):
     INDICES_DIR: ClassVar[str] = "AvianID_AcousticIndices"
     METADATA_FILENAME: ClassVar[str] = "metadata.csv"
 
-    _FILE_INFO: ClassVar[GdriveFileInfo] = GdriveFileInfo(name="Ecoacoustics.zip", id="PLACEHOLDER")
     _BASE_FOLDER: ClassVar[str] = "Ecoacoustics"
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
     _UK_LABELS_FILENAME: ClassVar[str] = "UK_AI.csv"
     _AUDIO_LEN: ClassVar[float] = 60.0  # Audio samples' durations in seconds.
 
-    _INDICES_FILE_INFO: UrlFileInfo = UrlFileInfo(
-        name="AvianID_AcousticIndices.zip",
-        url="https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip",
-        md5="b23208eb7db3766a1d61364b75cb4def",
-    )
-
-    _AUDIO_FILE_INFO: List[UrlFileInfo] = [
+    _FILE_INFO: List[UrlFileInfo] = [
+        UrlFileInfo(
+            name="AvianID_AcousticIndices.zip",
+            url="https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip",
+            md5="b23208eb7db3766a1d61364b75cb4def",
+        ),
         UrlFileInfo(
             name="EC_BIRD.zip",
             url="https://zenodo.org/record/1255218/files/EC_BIRD.zip",
@@ -83,7 +76,7 @@ class Ecoacoustics(CdtAudioDataset):
         self.root = Path(root).expanduser()
         self.download = download
         self.base_dir = self.root / self._BASE_FOLDER
-        self.labels_dir = self.base_dir / self._INDICES_FILE_INFO.name[:-4]
+        self.labels_dir = self.base_dir / os.path.splitext(self._FILE_INFO[0].name)[0]
         # target directory needs to depend on the preprocessing function
         preprocess_id = preprocessing_transform.__class__.__name__
         self._processed_audio_dir = self.base_dir / preprocess_id
@@ -91,12 +84,9 @@ class Ecoacoustics(CdtAudioDataset):
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
 
-        if isinstance(target_attr, str):
-            target_attr = str_to_enum(str_=target_attr, enum=SoundscapeAttr)
-        self.target_attr = target_attr
+        self.target_attr = target_attr = str_to_enum(str_=target_attr, enum=SoundscapeAttr)
         self.specgram_segment_len = specgram_segment_len
         self.resample_rate = resample_rate
-        self._n_sgram_segments = int(self._AUDIO_LEN / specgram_segment_len)
         self.preprocessing_transform = preprocessing_transform
 
         if self.download:
@@ -114,9 +104,8 @@ class Ecoacoustics(CdtAudioDataset):
 
         x = self.metadata["filePath_pt"].to_numpy()
         y = torch.as_tensor(self.metadata[f'{self.target_attr}_le'])
-        s = None
 
-        super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self.base_dir)
+        super().__init__(x=x, y=y, transform=transform, audio_dir=self.base_dir)
 
     def _check_integrity(self, file_info: UrlFileInfo) -> bool:
         fpath = self.base_dir / file_info.name
@@ -125,7 +114,7 @@ class Ecoacoustics(CdtAudioDataset):
         self.log(f"{file_info.name} already downloaded.")
         return True
 
-    def _check_files(self) -> bool:
+    def _check_files(self) -> None:
         """Check necessary files are present and unzipped."""
 
         if not self.labels_dir.exists():
@@ -145,8 +134,6 @@ class Ecoacoustics(CdtAudioDataset):
             if zipfile.is_zipfile(dir_):
                 raise RuntimeError(f"{dir_} file not unzipped.")
 
-        return True
-
     @staticmethod
     def _label_encode_metadata(metadata: pd.DataFrame) -> pd.DataFrame:
         """Label encode the extracted concept/context/superclass information."""
@@ -160,20 +147,16 @@ class Ecoacoustics(CdtAudioDataset):
 
     def _download_files(self) -> None:
         """Download all files necessary for dataset to work."""
-
-        # Create necessary directories if they doesn't already exist.
-        self.root.mkdir(parents=True, exist_ok=True)
+        # Create necessary directories if they don't already exist.
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
-        if not self._check_integrity(self._INDICES_FILE_INFO):
-            download_from_url(file_info=self._INDICES_FILE_INFO, root=self.base_dir)
-        for finfo in self._AUDIO_FILE_INFO:
+        for finfo in self._FILE_INFO:
             if not self._check_integrity(finfo):
                 download_from_url(
                     file_info=finfo, root=self.base_dir, logger=self.logger, remove_finished=True
                 )
-                if (self.base_dir / "__MACOSX").exists():
-                    (self.base_dir / "__MACOSX").rmdir()
+        if (self.base_dir / "__MACOSX").exists():
+            (self.base_dir / "__MACOSX").rmdir()
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
@@ -195,13 +178,13 @@ class Ecoacoustics(CdtAudioDataset):
         ec_labels = pd.read_csv(self.ec_labels_path, encoding="ISO-8859-1")
         # Some waveforms use full names for location i.e. BALMER and KNEPP, change indices file to do the same.
         uk_labels = pd.read_csv(self.uk_labels_path, encoding="ISO-8859-1")
-        uk_labels.replace(regex={"BA-": "BALMER-", "KN-": "KNEPP-"}, inplace=True)
+        uk_labels.replace(regex={"BA-": "BALMER-", "KN-": "KNEPP-"}, inplace=True)  # type: ignore
 
         sgram_seg_metadata = gen_files_df(".pt")
 
         # Merge labels and metadata files.
         metadata = gen_files_df(".wav")
-        metadata = metadata.merge(pd.concat([uk_labels, ec_labels], ignore_index=True), how="left")
+        metadata = metadata.merge(pd.concat([uk_labels, ec_labels], ignore_index=True), how="left")  # type: ignore
 
         metadata = sgram_seg_metadata.merge(
             metadata, how='left', on='baseFile', suffixes=('_pt', '_wav')
@@ -214,10 +197,7 @@ class Ecoacoustics(CdtAudioDataset):
         Applies transformation to audio samples then segments transformed samples and stores
         them as processed files.
         """
-
-        if not self._processed_audio_dir.exists():
-            mkdir(self._processed_audio_dir)
-
+        self._processed_audio_dir.mkdir(parents=True, exist_ok=True)
         waveform_paths = list(self.base_dir.glob("**/*.wav"))
 
         for path in tqdm(waveform_paths, desc="Preprocessing"):
