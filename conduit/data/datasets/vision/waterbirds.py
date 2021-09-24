@@ -49,9 +49,9 @@ class Waterbirds(CdtVisionDataset):
         split: Optional[Union[WaterbirdsSplit, str]] = None,
     ) -> None:
 
-        if isinstance(split, str):
-            split = str_to_enum(str_=split, enum=WaterbirdsSplit)
-
+        self.split = (
+            str_to_enum(str_=split, enum=WaterbirdsSplit) if isinstance(split, str) else split
+        )
         self.root = Path(root)
         self._base_dir = self.root / self._BASE_FOLDER
         self.download = download
@@ -72,8 +72,8 @@ class Waterbirds(CdtVisionDataset):
         self.metadata = pd.read_csv(self._base_dir / 'metadata.csv')
         # Use an official split of the data, if specified, else just use all
         # of the data
-        if split is not None:
-            split_indices = self.metadata["split"] == split.value
+        if self.split is not None:
+            split_indices = self.metadata["split"] == self.split.value
             self.metadata = cast(pd.DataFrame, self.metadata[split_indices])
 
         # Extract filenames

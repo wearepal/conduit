@@ -49,13 +49,15 @@ class NICO(CdtVisionDataset):
         superclass: Optional[Union[NicoSuperclass, str]] = NicoSuperclass.animals,
     ) -> None:
 
-        if isinstance(superclass, str):
-            superclass = str_to_enum(str_=superclass, enum=NicoSuperclass)
+        self.superclass = (
+            str_to_enum(str_=superclass, enum=NicoSuperclass)
+            if isinstance(superclass, str)
+            else superclass
+        )
         self.root = Path(root)
         self.download = download
         self._base_dir = self.root / self._BASE_FOLDER
         self._metadata_path = self._base_dir / "metadata.csv"
-        self.superclass = superclass
 
         if self.download:
             download_from_gdrive(file_info=self._FILE_INFO, root=self.root, logger=self.logger)
@@ -81,8 +83,8 @@ class NICO(CdtVisionDataset):
             self.metadata[["context", "context_le"]].set_index("context_le").to_dict()["context"]
         )
 
-        if superclass is not None:
-            self.metadata = self.metadata[self.metadata["superclass"] == str(superclass)]
+        if self.superclass is not None:
+            self.metadata = self.metadata[self.metadata["superclass"] == str(self.superclass)]
         # # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # # substantially slower than indexing with numpy/torch
         x = self.metadata["filepath"].to_numpy()

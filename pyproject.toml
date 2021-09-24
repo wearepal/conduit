@@ -34,7 +34,7 @@ soundfile = {version = "*", markers = "platform_system == 'Windows'"}
 sox = {version = "*", markers = "platform_system == 'Linux' or platform_system == 'macOS'"}
 attrs = "^21.2.0"
 hydra-core = "^1.1.1"
-palkit = "^0.3.13"
+palkit = "^0.4.0"
 
 [tool.poetry.dev-dependencies]
 black = "*"
@@ -44,7 +44,7 @@ pre-commit = "*"
 pydocstyle = "*"
 pytest = "*"
 python-type-stubs = {git = "https://github.com/predictive-analytics-lab/python-type-stubs.git", branch = "main" }
-neoconfigen = {git = "https://github.com/predictive-analytics-lab/neoconfigen.git", branch = "main"}
+neoconfigen = {version = "^2.0.0"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
