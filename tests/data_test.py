@@ -79,6 +79,7 @@ def test_audio_dataset(root: Path, ds_cls: Type[Ecoacoustics]) -> None:
     assert num_processed_files == expected_num_processed_files
 
 
+@pytest.mark.slow
 def test_ecouacoustics_labels(root: Path):
     target_attr = "habitat"
     ds = Ecoacoustics(
