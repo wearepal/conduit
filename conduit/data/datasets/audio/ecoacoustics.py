@@ -37,7 +37,6 @@ class Ecoacoustics(CdtAudioDataset):
     INDICES_DIR: ClassVar[str] = "AvianID_AcousticIndices"
     METADATA_FILENAME: ClassVar[str] = "metadata.csv"
 
-    _BASE_FOLDER: ClassVar[str] = "Ecoacoustics"
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
     _UK_LABELS_FILENAME: ClassVar[str] = "UK_AI.csv"
     _AUDIO_LEN: ClassVar[float] = 60.0  # Audio samples' durations in seconds.
@@ -75,7 +74,7 @@ class Ecoacoustics(CdtAudioDataset):
 
         self.root = Path(root).expanduser()
         self.download = download
-        self.base_dir = self.root / self._BASE_FOLDER
+        self.base_dir = self.root / self.__class__.__name__
         self.labels_dir = self.base_dir / os.path.splitext(self._FILE_INFO[0].name)[0]
         # target directory needs to depend on the preprocessing function
         preprocess_id = preprocessing_transform.__class__.__name__

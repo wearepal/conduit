@@ -33,7 +33,7 @@ class SSRP(CdtVisionDataset):
         transform: Optional[ImageTform] = None,
     ) -> None:
         self.root = Path(root)
-        self._base_dir = self.root / "ssrp"
+        self._base_dir = self.root / self.__class__.__name__
         self._metadata_path = self._base_dir / "metadata.csv"
         self.download = download
         self.split = str_to_enum(str_=split, enum=SSRPSplit)

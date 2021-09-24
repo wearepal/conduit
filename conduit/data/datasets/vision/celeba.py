@@ -68,9 +68,7 @@ class CelebASplit(Enum):
 class CelebA(CdtVisionDataset):
     """CelebA dataset."""
 
-    # The data is downloaded to `download_dir` / `_BASE_FOLDER`.
-    _BASE_FOLDER: ClassVar[str] = "celeba"
-    # The data is downloaded to `download_dir` / `_BASE_FOLDER` / `_IMAGE_DIR`.
+    # The data is downloaded to `download_dir` / `CelebA` / `_IMAGE_DIR`.
     _IMAGE_DIR: ClassVar[str] = "img_align_celeba"
     # Google drive IDs, MD5 hashes and filenames for the CelebA files.
     _FILE_LIST: ClassVar[List[GdriveFileInfo]] = [
@@ -108,7 +106,7 @@ class CelebA(CdtVisionDataset):
         self.split = str_to_enum(str_=split, enum=CelebASplit) if isinstance(split, str) else split
 
         self.root = Path(root)
-        self._base_dir = self.root / self._BASE_FOLDER
+        self._base_dir = self.root / self.__class__.__name__
         image_dir = self._base_dir / self._IMAGE_DIR
 
         if download:

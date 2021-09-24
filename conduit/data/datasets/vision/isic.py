@@ -58,7 +58,7 @@ class ISIC(CdtVisionDataset):
 
         self.root = Path(root)
         self.download = download
-        self._base_dir = self.root / "ISIC"
+        self._base_dir = self.root / self.__class__.__name__
         self._processed_dir = self._base_dir / "processed"
         self._raw_dir = self._base_dir / "raw"
 
