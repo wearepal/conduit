@@ -85,9 +85,8 @@ class Ecoacoustics(CdtAudioDataset):
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
 
         if isinstance(target_attr, str):
-            self.target_attr = str_to_enum(str_=target_attr, enum=SoundscapeAttr)
-        else:
-            self.target_attr = target_attr
+            target_attr = str_to_enum(str_=target_attr, enum=SoundscapeAttr)
+        self.target_attr = target_attr
         self.specgram_segment_len = specgram_segment_len
         self.resample_rate = resample_rate
         self.preprocessing_transform = preprocessing_transform

@@ -37,9 +37,8 @@ class SSRP(CdtVisionDataset):
         self._metadata_path = self._base_dir / "metadata.csv"
         self.download = download
         if isinstance(split, str):
-            self.split = str_to_enum(str_=split, enum=SSRPSplit)
-        else:
-            self.split = split
+            split = str_to_enum(str_=split, enum=SSRPSplit)
+        self.split = split
 
         if self.download:
             download_from_gdrive(file_info=self._FILE_INFO, root=self._base_dir, logger=self.logger)
