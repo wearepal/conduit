@@ -267,11 +267,9 @@ class ISIC(CdtVisionDataset):
             return
         # Create the directory and any required ancestors if not already existent
         self._base_dir.mkdir(exist_ok=True, parents=True)
-        self.log(f"Downloading metadata into {str(self._raw_dir / self.METADATA_FILENAME)}...")
+        self.log(f"Downloading metadata into {self._raw_dir / self.METADATA_FILENAME}...")
         self._download_isic_metadata()
-        self.log(
-            f"Downloading data into {str(self._raw_dir)} for up to {self.max_samples} samples..."
-        )
+        self.log(f"Downloading data into {self._raw_dir} for up to {self.max_samples} samples...")
         self._download_isic_images()
 
     def _preprocess_data(self) -> None:

@@ -23,7 +23,7 @@ readme="README.md"
 [tool.poetry.dependencies]
 python = "^3.7.1"
 albumentations = "^1.0.0"
-ethicml = "^0.3.2"
+ethicml = "^0.3.0"
 lightning-bolts = "^0.3.4"
 torch = "^1.9.1"
 torchvision = "^0.10.1"
@@ -37,12 +37,12 @@ hydra-core = "^1.1.1"
 palkit = "^0.3.13"
 
 [tool.poetry.dev-dependencies]
-black = "^21.9b0"
-isort = "^5.9.3"
-mypy = "^0.910"
-pre-commit = "^2.15.0"
-pydocstyle = "^6.1.1"
-pytest = "^6.2.5"
+black = "*"
+isort = "*"
+mypy = "*"
+pre-commit = "*"
+pydocstyle = "*"
+pytest = "*"
 python-type-stubs = {git = "https://github.com/predictive-analytics-lab/python-type-stubs.git", branch = "main" }
 neoconfigen = {git = "https://github.com/predictive-analytics-lab/neoconfigen.git", branch = "main"}
 
