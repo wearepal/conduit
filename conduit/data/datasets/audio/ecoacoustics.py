@@ -8,6 +8,7 @@
 import math
 import os
 from pathlib import Path
+import shutil
 from typing import ClassVar, List, Optional, Union
 import zipfile
 
@@ -155,7 +156,7 @@ class Ecoacoustics(CdtAudioDataset):
                     file_info=finfo, root=self.base_dir, logger=self.logger, remove_finished=True
                 )
         if (self.base_dir / "__MACOSX").exists():
-            (self.base_dir / "__MACOSX").rmdir()
+            shutil.rmtree(self.base_dir / "__MACOSX")
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
