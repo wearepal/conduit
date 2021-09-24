@@ -16,6 +16,7 @@ from conduit.data import (
     BinarySampleIW,
     CelebA,
     NamedSample,
+    SampleBase,
     TernarySample,
     TernarySampleIW,
     Waterbirds,
@@ -39,21 +40,21 @@ def test_vision_datasets(
     transform = T.ToTensor()
     ds = ds_cls(root=root, transform=transform)
     for _ds in ds:
-        assert isinstance(_ds, TernarySample)
+        assert isinstance(_ds, SampleBase)
         assert _ds.x[0] is not None
+        break
 
 
 @pytest.mark.slow
 @pytest.mark.parametrize("ds_cls", [Ecoacoustics])
 def test_audio_dataset(root: Path, ds_cls: Type[Ecoacoustics]) -> None:
-    root_dir = Path(root).expanduser()
-    base_dir = root_dir / "Ecoacoustics"
+    base_dir = root / "Ecoacoustics"
     target_attribute = "habitat"
     waveform_length = 60.0  # Length in seconds.
     specgram_segment_len = 30.0  # Length in seconds.
 
     ds = ds_cls(
-        root=root_dir,
+        root=root,
         download=True,
         target_attr=target_attribute,
         specgram_segment_len=specgram_segment_len,
@@ -61,24 +62,8 @@ def test_audio_dataset(root: Path, ds_cls: Type[Ecoacoustics]) -> None:
         transform=None,
     )
 
-    metadata = pd.read_csv(base_dir / "metadata.csv")
-
     # Test __str__
-    assert str(ds).splitlines()[0] == "Dataset Ecoacoustics"
-
-    # Test metadata aligns with labels file.
-    audio_samples_to_check = [
-        "FS-08_0_20150802_0625=0.pt",
-        "PL-10_0_20150604_0445=0.pt",
-        "KNEPP-02_0_20150510_0730=0.pt",
-    ]
-    habitat_target_attributes = ["EC2", "UK1", np.nan]
-    for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
-        matched_row = metadata.loc[metadata['fileName_pt'] == sample]
-        if type(label) == str:
-            assert matched_row.iloc[0][target_attribute] == label
-        else:
-            assert np.isnan(matched_row.iloc[0][target_attribute])
+    assert str(ds).splitlines()[0] == f"Dataset {ds.__class__.__name__}"
 
     # Test processed folder
     processed_audio_dir = base_dir / "Spectrogram"
@@ -92,6 +77,32 @@ def test_audio_dataset(root: Path, ds_cls: Type[Ecoacoustics]) -> None:
     segments_per_waveform = int(waveform_length / specgram_segment_len)
     expected_num_processed_files = len(list(base_dir.glob("**/*.wav"))) * segments_per_waveform
     assert num_processed_files == expected_num_processed_files
+
+
+def test_ecouacoustics_labels(root: Path):
+    target_attr = "habitat"
+    ds = Ecoacoustics(
+        root=root,
+        download=True,
+        target_attr=target_attr,
+        specgram_segment_len=30.0,
+        preprocessing_transform=AT.Spectrogram(n_fft=120, hop_length=60),
+        transform=None,
+    )
+    metadata = pd.read_csv(root / ds._BASE_FOLDER / ds.METADATA_FILENAME)
+    # Test metadata aligns with labels file.
+    audio_samples_to_check = [
+        "FS-08_0_20150802_0625=0.pt",
+        "PL-10_0_20150604_0445=0.pt",
+        "KNEPP-02_0_20150510_0730=0.pt",
+    ]
+    habitat_target_attributes = ["EC2", "UK1", np.nan]
+    for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
+        matched_row = metadata.loc[metadata['fileName_pt'] == sample]
+        if type(label) == str:
+            assert matched_row.iloc[0][target_attr] == label
+        else:
+            assert np.isnan(matched_row.iloc[0][target_attr])
 
 
 @pytest.mark.slow
