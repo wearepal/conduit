@@ -76,7 +76,7 @@ class Ecoacoustics(CdtAudioDataset):
         self.root = Path(root).expanduser()
         self.download = download
         self.base_dir = self.root / self._BASE_FOLDER
-        self.labels_dir = self.base_dir / os.path.splitext(self._FILE_INFO[0].name)[0]
+        self.labels_dir = self.base_dir / os.path.splitext(self._FILE_INFO[0].name)[0] / self.INDICES_DIR
         # target directory needs to depend on the preprocessing function
         preprocess_id = preprocessing_transform.__class__.__name__
         self._processed_audio_dir = self.base_dir / preprocess_id
