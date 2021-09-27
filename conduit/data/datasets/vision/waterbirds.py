@@ -33,7 +33,6 @@ class Waterbirds(CdtVisionDataset):
     (waterbirds on land and landbirds on water) would have too few samples to accurately estimate performance on.
     """
 
-    _BASE_FOLDER: ClassVar[str] = "Waterbirds"
     _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
         name="Waterbirds.tar.gz",
         url="https://worksheets.codalab.org/rest/bundles/0x505056d5cdea4e4eaa0e242cbfe2daa4/contents/blob/",
@@ -53,7 +52,7 @@ class Waterbirds(CdtVisionDataset):
             str_to_enum(str_=split, enum=WaterbirdsSplit) if isinstance(split, str) else split
         )
         self.root = Path(root)
-        self._base_dir = self.root / self._BASE_FOLDER
+        self._base_dir = self.root / self.__class__.__name__
         self.download = download
         if self.download:
             download_from_url(

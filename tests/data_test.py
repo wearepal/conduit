@@ -90,7 +90,7 @@ def test_ecouacoustics_labels(root: Path):
         preprocessing_transform=AT.Spectrogram(n_fft=120, hop_length=60),
         transform=None,
     )
-    metadata = pd.read_csv(root / ds._BASE_FOLDER / ds.METADATA_FILENAME)
+    metadata = pd.read_csv(root / ds.__class__.__name__ / ds.METADATA_FILENAME)
     # Test metadata aligns with labels file.
     audio_samples_to_check = [
         "FS-08_0_20150802_0625=0.pt",

@@ -37,7 +37,6 @@ class NICO(CdtVisionDataset):
         id="1L6cHNhuwwvrolukBklFyhFu7Y8WUUIQ7",
         md5="78c686f84e31ad6b6c052f97ed5f532b",
     )
-    _BASE_FOLDER: ClassVar[str] = "NICO"
 
     @parsable
     def __init__(
@@ -56,7 +55,7 @@ class NICO(CdtVisionDataset):
         )
         self.root = Path(root)
         self.download = download
-        self._base_dir = self.root / self._BASE_FOLDER
+        self._base_dir = self.root / self.__class__.__name__
         self._metadata_path = self._base_dir / "metadata.csv"
 
         if self.download:
