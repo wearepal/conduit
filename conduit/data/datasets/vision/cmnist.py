@@ -84,9 +84,9 @@ class ColoredMNIST(CdtVisionDataset):
         black: bool = True,
         split: Optional[Union[ColoredMNISTSplit, str]] = None,
     ) -> None:
-        if isinstance(split, str):
-            split = str_to_enum(str_=split, enum=ColoredMNISTSplit)
-        self.split = split
+        self.split = (
+            str_to_enum(str_=split, enum=ColoredMNISTSplit) if isinstance(split, str) else split
+        )
         self.label_map = label_map
         self.scale = scale
         self.num_colors = num_colors
@@ -101,7 +101,7 @@ class ColoredMNIST(CdtVisionDataset):
             )
         self.correlation = correlation
 
-        if split is None:
+        if self.split is None:
             x_ls, y_ls = [], []
             for _split in ColoredMNISTSplit:
                 base_dataset = MNIST(
@@ -113,7 +113,7 @@ class ColoredMNIST(CdtVisionDataset):
             y = torch.cat(y_ls, dim=0)
         else:
             base_dataset = MNIST(
-                root=str(root), download=download, train=split is ColoredMNISTSplit.train
+                root=str(root), download=download, train=self.split is ColoredMNISTSplit.train
             )
             x = base_dataset.data
             y = base_dataset.targets

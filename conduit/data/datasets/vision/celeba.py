@@ -68,9 +68,7 @@ class CelebASplit(Enum):
 class CelebA(CdtVisionDataset):
     """CelebA dataset."""
 
-    # The data is downloaded to `download_dir` / `_BASE_FOLDER`.
-    _BASE_FOLDER: ClassVar[str] = "celeba"
-    # The data is downloaded to `download_dir` / `_BASE_FOLDER` / `_IMAGE_DIR`.
+    # The data is downloaded to `download_dir` / `CelebA` / `_IMAGE_DIR`.
     _IMAGE_DIR: ClassVar[str] = "img_align_celeba"
     # Google drive IDs, MD5 hashes and filenames for the CelebA files.
     _FILE_LIST: ClassVar[List[GdriveFileInfo]] = [
@@ -103,18 +101,13 @@ class CelebA(CdtVisionDataset):
         split: Optional[Union[CelebASplit, str]] = None,
     ) -> None:
 
-        if isinstance(superclass, str):
-            superclass = str_to_enum(str_=superclass, enum=CelebAttr)
-        if isinstance(subclass, str):
-            subclass = str_to_enum(str_=subclass, enum=CelebAttr)
-        if isinstance(split, str):
-            split = str_to_enum(str_=split, enum=CelebASplit)
+        self.superclass = str_to_enum(str_=superclass, enum=CelebAttr)
+        self.subclass = str_to_enum(str_=subclass, enum=CelebAttr)
+        self.split = str_to_enum(str_=split, enum=CelebASplit) if isinstance(split, str) else split
 
         self.root = Path(root)
-        self._base_dir = self.root / self._BASE_FOLDER
+        self._base_dir = self.root / self.__class__.__name__
         image_dir = self._base_dir / self._IMAGE_DIR
-        self.superclass: CelebAttr = superclass
-        self.subclass: CelebAttr = subclass
 
         if download:
             download_from_gdrive(file_info=self._FILE_LIST, root=self._base_dir, logger=self.logger)
@@ -123,7 +116,7 @@ class CelebA(CdtVisionDataset):
                 f"Data not found at location {self._base_dir.resolve()}. Have you downloaded it?"
             )
 
-        if split is None:
+        if self.split is None:
             skiprows = None
         else:
             # splits: information about which samples belong to train, val or test
@@ -136,18 +129,18 @@ class CelebA(CdtVisionDataset):
                 .to_numpy()
                 .squeeze()
             )
-            skiprows = (splits != split.value).nonzero()[0] + 2
+            skiprows = (splits != self.split.value).nonzero()[0] + 2
         attrs = pd.read_csv(
             self._base_dir / "list_attr_celeba.txt",
             delim_whitespace=True,
             header=1,
-            usecols=[superclass.name, subclass.name],
+            usecols=[self.superclass.name, self.subclass.name],
             skiprows=skiprows,
         )
 
         x = np.array(attrs.index)
-        s_unmapped = torch.as_tensor(attrs[subclass.name].to_numpy())
-        y_unmapped = torch.as_tensor(attrs[superclass.name].to_numpy())
+        s_unmapped = torch.as_tensor(attrs[self.subclass.name].to_numpy())
+        y_unmapped = torch.as_tensor(attrs[self.superclass.name].to_numpy())
         # map from {-1, 1} to {0, 1}
         s_binary = torch.div(s_unmapped + 1, 2, rounding_mode='floor')
         y_binary = torch.div(y_unmapped + 1, 2, rounding_mode='floor')
