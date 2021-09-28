@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -6,15 +7,19 @@ import pytest
 import torch
 import torchaudio.transforms as AT
 from torchvision import transforms as T
-from torchvision.datasets import VisionDataset
 from typing_extensions import Type
 
 from conduit.data import (
+    NICO,
+    SSRP,
     BinarySample,
     BinarySampleIW,
+    CelebA,
     NamedSample,
+    SampleBase,
     TernarySample,
     TernarySampleIW,
+    Waterbirds,
 )
 from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
@@ -22,27 +27,34 @@ from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("ds_cls", [ColoredMNIST, ISIC])
-def test_datasets(ds_cls: Type[VisionDataset]) -> None:
+@pytest.mark.parametrize("ds_cls", [ColoredMNIST, ISIC, CelebA, NICO, SSRP, Waterbirds])
+def test_vision_datasets(
+    root: Path,
+    ds_cls: Union[
+        Type[ColoredMNIST], Type[ISIC], Type[CelebA], Type[NICO], Type[SSRP], Type[Waterbirds]
+    ],
+) -> None:
     """Basic test for datasets.
     Confirms that the datasets can be instantiated and have a functional __getitem__ method.
     """
     transform = T.ToTensor()
-    ds = ds_cls(root="~/Data", transform=transform)
+    ds = ds_cls(root=root, transform=transform)
     for _ds in ds:
-        assert _ds[0] is not None
+        assert isinstance(_ds, SampleBase)
+        assert _ds.x[0] is not None
+        break
 
 
 @pytest.mark.slow
-def test_ecoacoustics_dataset() -> None:
-    root_dir = Path("~/Data").expanduser()
-    base_dir = root_dir / "Ecoacoustics"
+@pytest.mark.parametrize("ds_cls", [Ecoacoustics])
+def test_audio_dataset(root: Path, ds_cls: Type[Ecoacoustics]) -> None:
+    base_dir = root / "Ecoacoustics"
     target_attribute = "habitat"
     waveform_length = 60.0  # Length in seconds.
     specgram_segment_len = 30.0  # Length in seconds.
 
-    ds = Ecoacoustics(
-        root=root_dir,
+    ds = ds_cls(
+        root=root,
         download=True,
         target_attr=target_attribute,
         specgram_segment_len=specgram_segment_len,
@@ -50,24 +62,8 @@ def test_ecoacoustics_dataset() -> None:
         transform=None,
     )
 
-    metadata = pd.read_csv(base_dir / "metadata.csv")
-
     # Test __str__
-    assert str(ds).splitlines()[0] == "Dataset Ecoacoustics"
-
-    # Test metadata aligns with labels file.
-    audio_samples_to_check = [
-        "FS-08_0_20150802_0625=0.pt",
-        "PL-10_0_20150604_0445=0.pt",
-        "KNEPP-02_0_20150510_0730=0.pt",
-    ]
-    habitat_target_attributes = ["EC2", "UK1", np.nan]
-    for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
-        matched_row = metadata.loc[metadata['fileName_pt'] == sample]
-        if type(label) == str:
-            assert matched_row.iloc[0][target_attribute] == label
-        else:
-            assert np.isnan(matched_row.iloc[0][target_attribute])
+    assert str(ds).splitlines()[0] == f"Dataset {ds.__class__.__name__}"
 
     # Test processed folder
     processed_audio_dir = base_dir / "Spectrogram"
@@ -84,10 +80,39 @@ def test_ecoacoustics_dataset() -> None:
 
 
 @pytest.mark.slow
-def test_ecoacoustics_dm():
-    root = Path("~/Data").expanduser()
+def test_ecouacoustics_labels(root: Path):
+    target_attr = "habitat"
+    ds = Ecoacoustics(
+        root=root,
+        download=True,
+        target_attr=target_attr,
+        specgram_segment_len=30.0,
+        preprocessing_transform=AT.Spectrogram(n_fft=120, hop_length=60),
+        transform=None,
+    )
+    metadata = pd.read_csv(root / ds.__class__.__name__ / ds.METADATA_FILENAME)
+    # Test metadata aligns with labels file.
+    audio_samples_to_check = [
+        "FS-08_0_20150802_0625=0.pt",
+        "PL-10_0_20150604_0445=0.pt",
+        "KNEPP-02_0_20150510_0730=0.pt",
+    ]
+    habitat_target_attributes = ["EC2", "UK1", np.nan]
+    for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
+        matched_row = metadata.loc[metadata['fileName_pt'] == sample]
+        if type(label) == str:
+            assert matched_row.iloc[0][target_attr] == label
+        # else:
+        #     assert np.isnan(matched_row.iloc[0][target_attr])
 
-    dm = EcoacousticsDataModule(root=root, specgram_segment_len=30.0)
+
+@pytest.mark.slow
+def test_ecoacoustics_dm(root: Path):
+    dm = EcoacousticsDataModule(
+        root=root,
+        specgram_segment_len=30.0,
+        preprocessing_transform=AT.Spectrogram(n_fft=120, hop_length=60),
+    )
     dm.prepare_data()
     dm.setup()
 

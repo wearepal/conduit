@@ -174,8 +174,7 @@ class FairMixup(CdtModel):
     ) -> Mixed:
         '''Returns mixed inputs, pairs of targets, and lambda'''
         assert isinstance(batch.x, Tensor)
-        if isinstance(fairness, str):
-            fairness = str_to_enum(str_=fairness, enum=FairnessType)
+        fairness = str_to_enum(str_=fairness, enum=FairnessType)
         lam = (
             Beta(
                 torch.tensor([alpha]).to(device),

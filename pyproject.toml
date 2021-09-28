@@ -25,7 +25,6 @@ python = "^3.7.1"
 albumentations = "^1.0.0"
 ethicml = "^0.3.0"
 lightning-bolts = "^0.3.4"
-palkit = {git = "https://github.com/predictive-analytics-lab/palkit.git", branch = "main" }
 torch = "^1.9.1"
 torchvision = "^0.10.1"
 torchaudio = "^0.9.1"
@@ -35,6 +34,7 @@ soundfile = {version = "*", markers = "platform_system == 'Windows'"}
 sox = {version = "*", markers = "platform_system == 'Linux' or platform_system == 'macOS'"}
 attrs = "^21.2.0"
 hydra-core = "^1.1.1"
+palkit = "^0.4.0"
 
 [tool.poetry.dev-dependencies]
 black = "*"
@@ -44,7 +44,7 @@ pre-commit = "*"
 pydocstyle = "*"
 pytest = "*"
 python-type-stubs = {git = "https://github.com/predictive-analytics-lab/python-type-stubs.git", branch = "main" }
-neoconfigen = {git = "https://github.com/predictive-analytics-lab/neoconfigen.git", branch = "main"}
+neoconfigen = {version = "^2.0.0"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -75,7 +75,7 @@ exclude = '''
 )
 '''
 [tool.isort]
-known_third_party = ["PIL", "albumentations", "attr", "cv2", "ethicml", "kit", "numpy", "omegaconf", "pandas", "pytest", "pytorch_lightning", "requests", "sklearn", "torch", "torchaudio", "torchmetrics", "torchvision", "tqdm", "typing_extensions"]
+known_third_party = ["PIL", "albumentations", "attr", "cv2", "ethicml", "hydra", "kit", "numpy", "omegaconf", "pandas", "pytest", "pytorch_lightning", "requests", "sklearn", "torch", "torchaudio", "torchmetrics", "torchvision", "tqdm", "typing_extensions"]
 known_future_library = []
 extra_standard_library = ["dataclasses", "__future__", "typing_extensions"]
 line_length = 88

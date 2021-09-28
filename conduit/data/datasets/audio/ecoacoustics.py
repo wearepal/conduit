@@ -8,6 +8,7 @@
 import math
 import os
 from pathlib import Path
+import shutil
 from typing import ClassVar, List, Optional, Union
 import zipfile
 
@@ -37,7 +38,6 @@ class Ecoacoustics(CdtAudioDataset):
     INDICES_DIR: ClassVar[str] = "AvianID_AcousticIndices"
     METADATA_FILENAME: ClassVar[str] = "metadata.csv"
 
-    _BASE_FOLDER: ClassVar[str] = "Ecoacoustics"
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
     _UK_LABELS_FILENAME: ClassVar[str] = "UK_AI.csv"
     _AUDIO_LEN: ClassVar[float] = 60.0  # Audio samples' durations in seconds.
@@ -75,7 +75,7 @@ class Ecoacoustics(CdtAudioDataset):
 
         self.root = Path(root).expanduser()
         self.download = download
-        self.base_dir = self.root / self._BASE_FOLDER
+        self.base_dir = self.root / self.__class__.__name__
         self.labels_dir = (
             self.base_dir / os.path.splitext(self._FILE_INFO[0].name)[0] / self.INDICES_DIR
         )
@@ -86,7 +86,7 @@ class Ecoacoustics(CdtAudioDataset):
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
 
-        self.target_attr = target_attr = str_to_enum(str_=target_attr, enum=SoundscapeAttr)
+        self.target_attr = str_to_enum(str_=target_attr, enum=SoundscapeAttr)
         self.specgram_segment_len = specgram_segment_len
         self.resample_rate = resample_rate
         self.preprocessing_transform = preprocessing_transform
@@ -158,7 +158,7 @@ class Ecoacoustics(CdtAudioDataset):
                     file_info=finfo, root=self.base_dir, logger=self.logger, remove_finished=True
                 )
         if (self.base_dir / "__MACOSX").exists():
-            (self.base_dir / "__MACOSX").rmdir()
+            shutil.rmtree(self.base_dir / "__MACOSX")
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with

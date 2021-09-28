@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Union, cast
 
 from kit import implements
 import numpy as np
@@ -58,7 +58,8 @@ class CdtVisionDataset(CdtDataset):
         return '\n'.join(lines)
 
     def _load_image(self, index: int) -> RawImage:
-        return load_image(self.image_dir / self.x[index], backend=self._il_backend)
+        filepath = cast(str, self.x[index])
+        return load_image(self.image_dir / filepath, backend=self._il_backend)
 
     @implements(CdtDataset)
     def _sample_x(
