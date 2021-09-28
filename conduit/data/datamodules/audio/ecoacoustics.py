@@ -26,7 +26,9 @@ class EcoacousticsDataModule(CdtAudioDataModule):
     specgram_segment_len: float = 15
     target_attr: Union[SoundscapeAttr, str] = SoundscapeAttr.habitat
     resample_rate: int = 22050
-    preprocessing_transform: AudioTform = T.MelSpectrogram(sample_rate=22050, n_fft=160)
+    preprocessing_transform: AudioTform = attr.field(
+        factory=lambda: T.MelSpectrogram(sample_rate=22050, n_fft=160)
+    )
 
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
