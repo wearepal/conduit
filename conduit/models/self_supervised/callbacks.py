@@ -1,7 +1,7 @@
 import sys
 from typing import TYPE_CHECKING, Callable, Sequence, Union
 
-from kit import implements
+from ranzen import implements
 import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import ProgressBar, reset

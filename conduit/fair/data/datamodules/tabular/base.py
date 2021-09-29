@@ -6,7 +6,7 @@ import attr
 import ethicml as em
 from ethicml import DataTuple
 from ethicml.preprocessing.scaling import ScalerType
-from kit import implements
+from ranzen import implements
 from pytorch_lightning import LightningDataModule
 from sklearn.preprocessing import StandardScaler
 from typing_extensions import final

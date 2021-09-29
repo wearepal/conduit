@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 import attr
-from kit import implements
+from ranzen import implements
 import numpy as np
 from pytorch_lightning import LightningDataModule
 from torchvision.datasets import MNIST

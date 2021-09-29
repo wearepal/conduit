@@ -2,8 +2,8 @@
 from typing import Dict, NamedTuple, Tuple, cast
 
 import ethicml as em
-from kit import implements
-from kit.torch import CrossEntropyLoss, TrainingMode
+from ranzen import implements
+from ranzen.torch import CrossEntropyLoss, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT

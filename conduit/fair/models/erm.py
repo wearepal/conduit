@@ -2,9 +2,9 @@
 from typing import Dict, Optional
 
 import ethicml as em
-from kit import implements
-from kit.decorators import parsable
-from kit.torch import TrainingMode
+from ranzen import implements
+from ranzen.decorators import parsable
+from ranzen.torch import TrainingMode
 import pandas as pd
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch

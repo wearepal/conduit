@@ -1,7 +1,7 @@
 import inspect
 from typing import Any, Callable, Dict, List, Tuple, TypeVar, Union
 
-from kit.misc import gcopy
+from ranzen.misc import gcopy
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 import torch
 from torch import Tensor, nn

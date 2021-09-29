@@ -3,8 +3,8 @@ import itertools
 from typing import Any, Dict, List, Mapping, NamedTuple, Tuple, Union
 
 import ethicml as em
-from kit import implements
-from kit.torch import CrossEntropyLoss, ReductionType, TrainingMode
+from ranzen import implements
+from ranzen.torch import CrossEntropyLoss, ReductionType, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT

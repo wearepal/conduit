@@ -1,8 +1,8 @@
 from typing import Any, Callable, Optional, Tuple, Union, cast
 
-from kit import gcopy, implements, parsable
-from kit.misc import str_to_enum
-from kit.torch.data import TrainingMode
+from ranzen import gcopy, implements, parsable
+from ranzen.misc import str_to_enum
+from ranzen.torch.data import TrainingMode
 import numpy as np
 import pytorch_lightning as pl
 import torch

@@ -1,8 +1,8 @@
 from typing import Any, Dict, Optional, Tuple, Union
 
-from kit import implements, parsable
-from kit.misc import gcopy, str_to_enum
-from kit.torch.loss import CrossEntropyLoss, ReductionType
+from ranzen import implements, parsable
+from ranzen.misc import gcopy, str_to_enum
+from ranzen.torch.loss import CrossEntropyLoss, ReductionType
 import pytorch_lightning as pl
 import torch
 from torch import Tensor, nn, optim

@@ -2,9 +2,9 @@ from abc import abstractmethod
 import inspect
 from typing import List, Mapping, Optional, Tuple, Union, cast
 
-from kit import implements
-from kit.misc import gcopy
-from kit.torch.data import TrainingMode
+from ranzen import implements
+from ranzen.misc import gcopy
+from ranzen.torch.data import TrainingMode
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch

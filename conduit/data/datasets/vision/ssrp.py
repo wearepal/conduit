@@ -3,7 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union, cast
 
-from kit import parsable, str_to_enum
+from ranzen import parsable, str_to_enum
 import pandas as pd
 import torch
 

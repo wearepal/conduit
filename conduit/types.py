@@ -1,8 +1,8 @@
 from enum import Enum, auto
 from typing import Any, Dict, Union
 
-from kit.decorators import enum_name_str
-from kit.torch.loss import ReductionType
+from ranzen.decorators import enum_name_str
+from ranzen.torch.loss import ReductionType
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 from torch import Tensor
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR

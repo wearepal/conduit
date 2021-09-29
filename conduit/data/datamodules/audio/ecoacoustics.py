@@ -3,8 +3,8 @@
 from typing import Any, Union
 
 import attr
-from kit import implements
-from kit.torch import prop_random_split
+from ranzen import implements
+from ranzen.torch import prop_random_split
 from pytorch_lightning import LightningDataModule
 import torchaudio.transforms as T
 

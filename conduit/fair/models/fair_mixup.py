@@ -4,9 +4,9 @@ https://github.com/chingyaoc/fair-mixup
 from typing import Dict, NamedTuple, Optional, Union
 
 import ethicml as em
-from kit import implements, parsable
-from kit.misc import str_to_enum
-from kit.torch import CrossEntropyLoss, ReductionType, TrainingMode
+from ranzen import implements, parsable
+from ranzen.misc import str_to_enum
+from ranzen.torch import CrossEntropyLoss, ReductionType, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT

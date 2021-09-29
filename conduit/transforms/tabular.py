@@ -2,7 +2,7 @@ from abc import abstractmethod
 import math
 from typing import ClassVar, List, Union
 
-from kit import implements
+from ranzen import implements
 import torch
 from torch import Tensor
 from typing_extensions import final

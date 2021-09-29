@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import ClassVar, Dict, List, NamedTuple, Optional, Union, cast
 
 from PIL import Image, UnidentifiedImageError
-from kit import parsable, str_to_enum
-from kit.decorators import enum_name_str
+from ranzen import parsable, str_to_enum
+from ranzen.decorators import enum_name_str
 import numpy as np
 import pandas as pd
 import torch

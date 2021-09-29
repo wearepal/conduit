@@ -10,8 +10,8 @@ from typing import ClassVar, Iterable, Iterator, List, Optional, TypeVar, Union
 import zipfile
 
 from PIL import Image
-from kit import flatten_dict
-from kit.decorators import enum_name_str, parsable
+from ranzen import flatten_dict
+from ranzen.decorators import enum_name_str, parsable
 import numpy as np
 import pandas as pd
 import requests

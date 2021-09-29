@@ -1,5 +1,5 @@
 import attr
-from kit import implements
+from ranzen import implements
 
 from conduit.data import CdtDataModule, TrainValTestSplit
 from conduit.data.datasets.tabular.dummy import RandomTabularDataset

@@ -23,7 +23,7 @@ from zipfile import BadZipFile
 from PIL import Image
 import albumentations as A
 import cv2
-from kit.misc import gcopy
+from ranzen.misc import gcopy
 import numpy as np
 import numpy.typing as npt
 import torch

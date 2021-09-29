@@ -3,7 +3,7 @@ from typing import Any
 
 import albumentations as A
 import attr
-from kit import implements
+from ranzen import implements
 from pytorch_lightning import LightningDataModule
 
 from conduit.data.datamodules.base import CdtDataModule

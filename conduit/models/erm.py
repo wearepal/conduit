@@ -1,9 +1,9 @@
 from typing import Dict, Optional
 
-from kit import implements
-from kit.decorators import parsable
-from kit.torch import CrossEntropyLoss, TrainingMode
-from kit.torch.loss import ReductionType
+from ranzen import implements
+from ranzen.decorators import parsable
+from ranzen.torch import CrossEntropyLoss, TrainingMode
+from ranzen.torch.loss import ReductionType
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 import torch

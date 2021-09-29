@@ -2,7 +2,7 @@ from enum import Enum
 from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
 
-from kit.misc import str_to_enum
+from ranzen.misc import str_to_enum
 import pandas as pd
 import torch
 

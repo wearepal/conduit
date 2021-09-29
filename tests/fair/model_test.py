@@ -2,7 +2,7 @@
 from abc import abstractmethod
 from typing import List, Optional, Tuple
 
-from kit import implements
+from ranzen import implements
 import pytest
 import pytorch_lightning as pl
 import torch

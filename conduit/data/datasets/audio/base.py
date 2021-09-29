@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional, Union
 
-from kit import implements
+from ranzen import implements
 import numpy as np
 import numpy.typing as npt
 import torch

@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Optional, Type, Union
 
 import attr
 from hydra.utils import to_absolute_path
-from kit.decorators import implements
-from kit.hydra import Option, Relay
+from ranzen.decorators import implements
+from ranzen.hydra import Option, Relay
 import pytorch_lightning as pl
 
 from conduit.data.datamodules.base import CdtDataModule

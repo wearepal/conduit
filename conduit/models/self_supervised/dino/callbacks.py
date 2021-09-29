@@ -1,6 +1,6 @@
 from typing import Any
 
-from kit.decorators import implements
+from ranzen.decorators import implements
 import pytorch_lightning as pl
 
 from conduit.models.self_supervised.dino.utils import cosine_scheduler

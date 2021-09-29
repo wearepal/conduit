@@ -3,8 +3,8 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union
 
-from kit import parsable, str_to_enum
-from kit.decorators import enum_name_str
+from ranzen import parsable, str_to_enum
+from ranzen.decorators import enum_name_str
 import numpy as np
 import pandas as pd
 import torch
