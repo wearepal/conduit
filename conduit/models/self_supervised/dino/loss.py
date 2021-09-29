@@ -1,6 +1,6 @@
 from typing import Optional
 
-from kit.decorators import implements
+from ranzen.decorators import implements
 import torch
 from torch import Tensor, nn
 import torch.nn.functional as F

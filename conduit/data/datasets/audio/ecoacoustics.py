@@ -12,9 +12,9 @@ import shutil
 from typing import ClassVar, List, Optional, Union
 import zipfile
 
-from kit import parsable
-from kit.misc import str_to_enum
 import pandas as pd
+from ranzen import parsable
+from ranzen.misc import str_to_enum
 import torch
 import torchaudio
 import torchaudio.functional as F

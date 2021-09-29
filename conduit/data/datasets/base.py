@@ -1,10 +1,10 @@
 import logging
 from typing import ClassVar, List, Optional, Sequence, TypeVar, Union, cast
 
-from kit import implements
-from kit.torch.data import prop_random_split
 import numpy as np
 import numpy.typing as npt
+from ranzen import implements
+from ranzen.torch.data import prop_random_split
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset

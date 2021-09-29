@@ -14,7 +14,7 @@ from conduit.fair.data.datamodules.tabular.german import GermanSens
 from conduit.fair.data.datamodules.tabular.health import HealthSens
 from conduit.fair.data.datamodules.tabular.law import LawSens
 from conduit.fair.data.datamodules.tabular.sqf import SqfSens
-from kit.torch.data import TrainingMode
+from ranzen.torch.data import TrainingMode
 from omegaconf import MISSING
 from typing import Any
 from typing import Optional

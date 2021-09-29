@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import Optional, Sequence, Union, cast
 
-from kit import implements
 import numpy as np
 import numpy.typing as npt
+from ranzen import implements
 from torch import Tensor
 
 from conduit.data.datasets.base import CdtDataset

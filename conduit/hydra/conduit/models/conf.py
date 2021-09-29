@@ -5,7 +5,7 @@
 # flake8: noqa
 
 from dataclasses import dataclass, field
-from kit.torch.data import TrainingMode
+from ranzen.torch.data import TrainingMode
 from omegaconf import MISSING
 from typing import Any
 

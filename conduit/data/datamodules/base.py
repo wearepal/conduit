@@ -4,10 +4,10 @@ import logging
 from typing import Optional, Sequence, Tuple, cast
 
 import attr
-from kit import implements
-from kit.torch import SequentialBatchSampler, StratifiedBatchSampler, TrainingMode
-from kit.torch.data import num_batches_per_epoch
 import pytorch_lightning as pl
+from ranzen import implements
+from ranzen.torch import SequentialBatchSampler, StratifiedBatchSampler, TrainingMode
+from ranzen.torch.data import num_batches_per_epoch
 import torch
 from torch.utils.data import DataLoader, Sampler
 from torch.utils.data.dataset import Dataset

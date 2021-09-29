@@ -23,9 +23,9 @@ from zipfile import BadZipFile
 from PIL import Image
 import albumentations as A
 import cv2
-from kit.misc import gcopy
 import numpy as np
 import numpy.typing as npt
+from ranzen.misc import gcopy
 import torch
 from torch import Tensor
 from torch.utils.data import ConcatDataset, Dataset, Subset

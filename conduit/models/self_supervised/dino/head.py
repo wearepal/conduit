@@ -1,6 +1,6 @@
 from typing import List
 
-from kit.decorators import implements
+from ranzen.decorators import implements
 from torch import Tensor, nn
 import torch.nn.functional as F
 from torch.nn.init import trunc_normal_

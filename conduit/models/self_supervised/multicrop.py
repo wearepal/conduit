@@ -1,6 +1,6 @@
 from typing import List, Optional, Sequence, Tuple, Union
 
-from kit.decorators import implements
+from ranzen.decorators import implements
 import torch
 from torch import Tensor, nn
 from typing_extensions import Type

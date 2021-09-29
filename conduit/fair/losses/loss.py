@@ -1,4 +1,4 @@
-from kit.decorators import implements
+from ranzen.decorators import implements
 from torch import Tensor, nn
 
 from conduit.types import Loss
