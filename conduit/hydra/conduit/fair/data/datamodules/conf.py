@@ -10,8 +10,10 @@ from conduit.fair.data.datamodules.tabular.adult import AdultSens
 from conduit.fair.data.datamodules.tabular.compas import CompasSens
 from conduit.fair.data.datamodules.tabular.credit import CreditSens
 from conduit.fair.data.datamodules.tabular.crime import CrimeSens
+from conduit.fair.data.datamodules.tabular.german import GermanSens
 from conduit.fair.data.datamodules.tabular.health import HealthSens
 from conduit.fair.data.datamodules.tabular.law import LawSens
+from conduit.fair.data.datamodules.tabular.sqf import SqfSens
 from kit.torch.data import TrainingMode
 from omegaconf import MISSING
 from typing import Any
@@ -116,6 +118,25 @@ class CrimeDataModuleConf:
 
 
 @dataclass
+class GermanDataModuleConf:
+    _target_: str = "conduit.fair.data.datamodules.GermanDataModule"
+    train_batch_size: int = 64
+    eval_batch_size: Optional[int] = None
+    val_prop: float = 0.2
+    test_prop: float = 0.2
+    num_workers: int = 0
+    seed: int = 47
+    persist_workers: bool = False
+    pin_memory: bool = True
+    stratified_sampling: bool = False
+    instance_weighting: bool = False
+    training_mode: TrainingMode = TrainingMode.epoch
+    scaler: Any = MISSING  # ScalerType
+    sens_feat: GermanSens = GermanSens.sex
+    disc_feats_only: bool = False
+
+
+@dataclass
 class HealthDataModuleConf:
     _target_: str = "conduit.fair.data.datamodules.HealthDataModule"
     train_batch_size: int = 64
@@ -150,4 +171,23 @@ class LawDataModuleConf:
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
     sens_feat: LawSens = LawSens.sex
+    disc_feats_only: bool = False
+
+
+@dataclass
+class SqfDataModuleConf:
+    _target_: str = "conduit.fair.data.datamodules.SqfDataModule"
+    train_batch_size: int = 64
+    eval_batch_size: Optional[int] = None
+    val_prop: float = 0.2
+    test_prop: float = 0.2
+    num_workers: int = 0
+    seed: int = 47
+    persist_workers: bool = False
+    pin_memory: bool = True
+    stratified_sampling: bool = False
+    instance_weighting: bool = False
+    training_mode: TrainingMode = TrainingMode.epoch
+    scaler: Any = MISSING  # ScalerType
+    sens_feat: SqfSens = SqfSens.sex
     disc_feats_only: bool = False

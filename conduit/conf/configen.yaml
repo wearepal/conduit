@@ -45,8 +45,10 @@ configen:
         - CompasDataModule
         - CreditDataModule
         - CrimeDataModule
+        - GermanDataModule
         - HealthDataModule
         - LawDataModule
+        - SqfDataModule
     - name: conduit.fair.models
       classes:
         - DANN
