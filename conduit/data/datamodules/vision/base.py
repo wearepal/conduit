@@ -5,7 +5,7 @@ from typing import List, Optional, Union
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import attr
-from kit import implements
+from ranzen import implements
 from typing_extensions import final
 
 from conduit.constants import IMAGENET_STATS

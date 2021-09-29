@@ -3,8 +3,8 @@ from typing import Any
 
 import albumentations as A
 import attr
-from kit import implements
 from pytorch_lightning import LightningDataModule
+from ranzen import implements
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule

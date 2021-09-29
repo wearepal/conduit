@@ -6,7 +6,7 @@
 
 from dataclasses import dataclass, field
 from conduit.fair.misc import FairnessType
-from kit.torch.data import TrainingMode
+from ranzen.torch.data import TrainingMode
 from omegaconf import MISSING
 from typing import Any
 from typing import Optional

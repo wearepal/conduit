@@ -20,7 +20,7 @@ from functools import partial
 import math
 from typing import Any, List, Optional, Tuple, Union
 
-from kit.decorators import implements
+from ranzen.decorators import implements
 import torch
 from torch import Tensor, nn
 import torch.nn.functional as F

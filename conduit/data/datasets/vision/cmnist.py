@@ -5,10 +5,10 @@ from typing import Dict, List, Optional, Tuple, Union, overload
 
 from PIL import Image
 from ethicml.vision import LdColorizer
-from kit.decorators import implements, parsable
-from kit.misc import str_to_enum
 import numpy as np
 import numpy.typing as npt
+from ranzen.decorators import implements, parsable
+from ranzen.misc import str_to_enum
 import torch
 from torch.functional import Tensor
 from torchvision.datasets import MNIST

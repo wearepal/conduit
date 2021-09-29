@@ -2,12 +2,12 @@ from abc import abstractmethod
 from dataclasses import replace
 from typing import Any, Callable, Optional, Tuple, Union
 
-from kit.decorators import implements
-from kit.misc import gcopy
-from kit.torch.data import TrainingMode
 import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from ranzen.decorators import implements
+from ranzen.misc import gcopy
+from ranzen.torch.data import TrainingMode
 import torch
 from torch import nn
 from torch.functional import Tensor

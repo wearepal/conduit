@@ -11,7 +11,7 @@ from conduit.fair.data.datamodules.tabular.compas import CompasSens
 from conduit.fair.data.datamodules.tabular.credit import CreditSens
 from conduit.fair.data.datamodules.tabular.health import HealthSens
 from conduit.fair.data.datamodules.tabular.law import LawSens
-from kit.torch.data import TrainingMode
+from ranzen.torch.data import TrainingMode
 from omegaconf import MISSING
 from typing import Any
 from typing import Optional

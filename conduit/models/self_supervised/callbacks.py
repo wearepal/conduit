@@ -1,11 +1,11 @@
 import sys
 from typing import TYPE_CHECKING, Callable, Sequence, Union
 
-from kit import implements
 import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import ProgressBar, reset
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from ranzen import implements
 from torch import Tensor, nn
 from tqdm import tqdm
 

@@ -1,6 +1,6 @@
 """K&C Baseline model."""
-from kit import implements
-from kit.torch import CrossEntropyLoss, ReductionType, TrainingMode
+from ranzen import implements
+from ranzen.torch import CrossEntropyLoss, ReductionType, TrainingMode
 from torch import Tensor, nn
 
 from conduit.data.structures import TernarySampleIW
