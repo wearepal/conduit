@@ -2,9 +2,9 @@
 from abc import abstractmethod
 from typing import List, Optional, Tuple
 
-from ranzen import implements
 import pytest
 import pytorch_lightning as pl
+from ranzen import implements
 import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader

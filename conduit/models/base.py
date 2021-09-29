@@ -2,11 +2,11 @@ from abc import abstractmethod
 import inspect
 from typing import List, Mapping, Optional, Tuple, Union, cast
 
+import pytorch_lightning as pl
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 from ranzen import implements
 from ranzen.misc import gcopy
 from ranzen.torch.data import TrainingMode
-import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
 from torch import optim
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts

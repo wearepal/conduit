@@ -2,11 +2,11 @@
 from typing import Dict, NamedTuple, Optional, Tuple
 
 import ethicml as em
-from ranzen import implements
-from ranzen.torch import CrossEntropyLoss, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from ranzen import implements
+from ranzen.torch import CrossEntropyLoss, TrainingMode
 import torch
 from torch import Tensor, autograd, nn
 

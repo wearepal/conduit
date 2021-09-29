@@ -2,8 +2,8 @@ from collections import defaultdict
 from dataclasses import replace
 from typing import List, Optional, Tuple
 
-from ranzen import implements
 import pytorch_lightning as pl
+from ranzen import implements
 import torch
 from torch import Tensor, nn, optim
 

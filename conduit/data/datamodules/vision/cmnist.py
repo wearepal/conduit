@@ -5,9 +5,9 @@ from typing import Any, Dict, List, Optional
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 import attr
-from ranzen import implements
 import numpy as np
 from pytorch_lightning import LightningDataModule
+from ranzen import implements
 from torchvision.datasets import MNIST
 
 from conduit.data.datamodules.base import CdtDataModule

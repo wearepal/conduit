@@ -10,10 +10,10 @@ from typing import ClassVar, Iterable, Iterator, List, Optional, TypeVar, Union
 import zipfile
 
 from PIL import Image
-from ranzen import flatten_dict
-from ranzen.decorators import enum_name_str, parsable
 import numpy as np
 import pandas as pd
+from ranzen import flatten_dict
+from ranzen.decorators import enum_name_str, parsable
 import requests
 import torch
 from tqdm import tqdm

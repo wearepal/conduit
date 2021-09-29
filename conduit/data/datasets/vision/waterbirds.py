@@ -2,8 +2,8 @@ from enum import Enum
 from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
 
-from ranzen.misc import str_to_enum
 import pandas as pd
+from ranzen.misc import str_to_enum
 import torch
 
 from conduit.data.datasets.utils import ImageTform, UrlFileInfo, download_from_url

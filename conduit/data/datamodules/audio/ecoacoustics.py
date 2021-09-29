@@ -3,9 +3,9 @@
 from typing import Any, Union
 
 import attr
+from pytorch_lightning import LightningDataModule
 from ranzen import implements
 from ranzen.torch import prop_random_split
-from pytorch_lightning import LightningDataModule
 import torchaudio.transforms as T
 
 from conduit.data.datamodules.base import CdtDataModule

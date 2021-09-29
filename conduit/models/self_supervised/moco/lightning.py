@@ -1,9 +1,9 @@
 from typing import Any, Dict, Optional, Tuple, Union
 
+import pytorch_lightning as pl
 from ranzen import implements, parsable
 from ranzen.misc import gcopy, str_to_enum
 from ranzen.torch.loss import CrossEntropyLoss, ReductionType
-import pytorch_lightning as pl
 import torch
 from torch import Tensor, nn, optim
 import torch.nn.functional as F

@@ -3,10 +3,10 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union
 
-from ranzen import parsable, str_to_enum
-from ranzen.decorators import enum_name_str
 import numpy as np
 import pandas as pd
+from ranzen import parsable, str_to_enum
+from ranzen.decorators import enum_name_str
 import torch
 
 from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive

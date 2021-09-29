@@ -2,11 +2,11 @@
 from typing import Dict, NamedTuple, Tuple, cast
 
 import ethicml as em
-from ranzen import implements
-from ranzen.torch import CrossEntropyLoss, TrainingMode
 import pandas as pd
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
+from ranzen import implements
+from ranzen.torch import CrossEntropyLoss, TrainingMode
 import torch
 from torch import Tensor, nn
 from torch.optim.optimizer import Optimizer

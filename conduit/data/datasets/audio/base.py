@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import Optional, Union
 
-from ranzen import implements
 import numpy as np
 import numpy.typing as npt
+from ranzen import implements
 import torch
 from torch import Tensor
 import torchaudio
