@@ -4,7 +4,7 @@
 # isort:skip_file
 # flake8: noqa
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from builtins import dict
 from conduit.data.datasets.vision.celeba import CelebAttr
 from conduit.data.datasets.vision.nico import NicoSuperclass
@@ -34,8 +34,8 @@ class CelebADataModuleConf:
     train_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     test_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     image_size: int = 224
-    superclass: CelebAttr = CelebAttr.Smiling
-    subclass: CelebAttr = CelebAttr.Male
+    superclass: CelebAttr = smiling
+    subclass: CelebAttr = male
     use_predefined_splits: bool = False
 
 
@@ -88,7 +88,7 @@ class NICODataModuleConf:
     test_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     image_size: int = 224
     class_train_props: Optional[dict] = None
-    superclass: NicoSuperclass = NicoSuperclass.animals
+    superclass: NicoSuperclass = animals
 
 
 @dataclass

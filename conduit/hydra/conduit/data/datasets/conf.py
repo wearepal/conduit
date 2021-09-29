@@ -4,10 +4,8 @@
 # isort:skip_file
 # flake8: noqa
 
-from dataclasses import dataclass, field
-from conduit.data.datasets.vision.celeba import CelebAttr
+from dataclasses import dataclass
 from conduit.data.datasets.vision.isic import IsicAttr
-from conduit.data.datasets.vision.nico import NicoSuperclass
 from conduit.data.datasets.vision.ssrp import SSRPSplit
 from omegaconf import MISSING
 from typing import Any
@@ -21,8 +19,8 @@ class CelebAConf:
     _target_: str = "conduit.data.datasets.CelebA"
     root: Any = MISSING  # Union[str, Path]
     download: bool = True
-    superclass: Any = CelebAttr.Smiling  # Union[CelebAttr, str]
-    subclass: Any = CelebAttr.Male  # Union[CelebAttr, str]
+    superclass: Any = smiling  # Union[CelebAttr, str]
+    subclass: Any = male  # Union[CelebAttr, str]
     transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     split: Any = None  # Union[CelebASplit, str, NoneType]
 
@@ -51,8 +49,8 @@ class ISICConf:
     root: Any = MISSING  # Union[str, Path]
     download: bool = True
     max_samples: int = 25000
-    context_attr: IsicAttr = IsicAttr.histo
-    target_attr: IsicAttr = IsicAttr.malignant
+    context_attr: IsicAttr = histo
+    target_attr: IsicAttr = malignant
     transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
 
 
@@ -62,7 +60,7 @@ class NICOConf:
     root: Any = MISSING  # Union[str, Path]
     download: bool = True
     transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    superclass: Any = NicoSuperclass.animals  # Union[NicoSuperclass, str, NoneType]
+    superclass: Any = animals  # Union[NicoSuperclass, str, NoneType]
 
 
 @dataclass
