@@ -34,8 +34,8 @@ class CelebADataModuleConf:
     train_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     test_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     image_size: int = 224
-    superclass: CelebAttr = smiling
-    subclass: CelebAttr = male
+    superclass: CelebAttr = CelebAttr.Smiling
+    subclass: CelebAttr = CelebAttr.Male
     use_predefined_splits: bool = False
 
 
@@ -88,7 +88,7 @@ class NICODataModuleConf:
     test_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     image_size: int = 224
     class_train_props: Optional[dict] = None
-    superclass: NicoSuperclass = animals
+    superclass: NicoSuperclass = NicoSuperclass.animals
 
 
 @dataclass
