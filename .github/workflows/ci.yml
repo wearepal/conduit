@@ -5,7 +5,7 @@ on:
     branches:
     - main
   schedule:  # Scheduled workflows run on the latest commit on the default or base branch
-    - cron: '0 0 * * 0'  # Run once a week at midnight on Sunday morning
+    - cron: '0 0 * * SUN'  # Run once a week at midnight on Sunday morning
 
 jobs:
   ci_suite:
