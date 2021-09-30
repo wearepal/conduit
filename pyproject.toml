@@ -34,7 +34,7 @@ soundfile = {version = "*", markers = "platform_system == 'Windows'"}
 sox = {version = "*", markers = "platform_system == 'Linux' or platform_system == 'macOS'"}
 attrs = "^21.2.0"
 hydra-core = "^1.1.1"
-ranzen = "^1.0.0"
+ranzen = {version = "^1.0.0", extras = ["hydra"]}
 
 [tool.poetry.dev-dependencies]
 black = "*"
