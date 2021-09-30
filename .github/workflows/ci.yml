@@ -61,6 +61,11 @@ jobs:
     #    pyright conduit
     #    pyright tests
     - name: Test with pytest
+      if: (github.event_name == 'schedule') # for schedule event
+      run: |
+        poetry run python -m pytest -vv --run-slow tests/
+    - name: Test with pytest
+      if: (github.event_name != 'schedule') # for pull requests
       run: |
         poetry run python -m pytest -vv tests/
     - name: Run configen
