@@ -44,7 +44,7 @@ pre-commit = "*"
 pydocstyle = "*"
 pytest = "*"
 python-type-stubs = {git = "https://github.com/predictive-analytics-lab/python-type-stubs.git", branch = "main" }
-neoconfigen = {version = "^2.0.0"}
+neoconfigen = {version = "^2.1.0"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

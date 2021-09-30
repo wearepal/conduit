@@ -4,7 +4,7 @@
 # isort:skip_file
 # flake8: noqa
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from builtins import dict
 from conduit.data.datasets.vision.celeba import CelebAttr
 from conduit.data.datasets.vision.nico import NicoSuperclass

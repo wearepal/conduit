@@ -12,7 +12,9 @@ from conduit.fair.data.datamodules import AdultDataModule, CompasDataModule
 from conduit.fair.data.datamodules.tabular.admissions import AdmissionsDataModule
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 from conduit.fair.data.datamodules.tabular.credit import CreditDataModule
+from conduit.fair.data.datamodules.tabular.german import GermanDataModule
 from conduit.fair.data.datamodules.tabular.law import LawDataModule
+from conduit.fair.data.datamodules.tabular.sqf import SqfDataModule
 
 BATCHSIZE: Final[int] = 4
 
@@ -58,8 +60,10 @@ def test_data_modules(dm_cls: Type[EthicMlDataModule], stratified: bool) -> None
         CompasDataModule,
         CreditDataModule,
         CrimeDataModule,
+        GermanDataModule,
         HealthDataModule,
         LawDataModule,
+        SqfDataModule,
     ],
 )
 def test_data_modules_props(dm_cls: Type[EthicMlDataModule]) -> None:

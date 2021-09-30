@@ -4,5 +4,7 @@ from .base import *
 from .compas import *
 from .credit import *
 from .crime import *
+from .german import *
 from .health import *
 from .law import *
+from .sqf import *
