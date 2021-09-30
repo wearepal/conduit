@@ -26,21 +26,19 @@ class CdtRelay(Relay):
     @classmethod
     def with_hydra(
         cls,
-        base_config_dir: Union[Path, str],
+        root: Union[Path, str],
         *,
-        datamodules: List[Union[Type[Any], Option]],
-        models: List[Union[Type[Any], Option]],
-        use_cached_confs: bool = True,
+        datamodule: List[Union[Type[Any], Option]],
+        model: List[Union[Type[Any], Option]],
+        clear_cache: bool = False,
     ) -> None:
 
         configs = dict(
-            datamodule=datamodules,
-            model=models,
+            datamodule=datamodule,
+            model=model,
             trainer=[Option(class_=pl.Trainer, name="trainer")],
         )
-        super().with_hydra(
-            base_config_dir=base_config_dir, use_cached_confs=use_cached_confs, **configs
-        )
+        super().with_hydra(root=root, clear_cache=clear_cache, **configs)
 
     @implements(Relay)
     def run(self, raw_config: Optional[Dict[str, Any]] = None) -> None:
