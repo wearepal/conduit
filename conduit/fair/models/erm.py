@@ -22,7 +22,6 @@ __all__ = ["ERMClassifierF"]
 class ERMClassifierF(ERMClassifier):
     """Empirical Risk Minimisation baseline."""
 
-    @parsable
     def __init__(
         self,
         *,
