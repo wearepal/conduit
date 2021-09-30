@@ -510,7 +510,7 @@ plugins = ["setuptools"]
 name = "jinja2"
 version = "2.11.3"
 description = "A very fast and expressive template engine."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
@@ -575,7 +575,7 @@ testing = ["coverage", "pyyaml"]
 name = "markupsafe"
 version = "2.0.1"
 description = "Safely add untrusted strings to HTML/XML markup."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -633,7 +633,7 @@ python-versions = "*"
 name = "neoconfigen"
 version = "2.1.0"
 description = "A fork of hydra-core's configen with extended type-compatibility."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 
@@ -1033,6 +1033,10 @@ description = "A toolkit facilitating machine-learning experimentation."
 category = "main"
 optional = false
 python-versions = ">=3.7.1,<4.0.0"
+
+[package.dependencies]
+hydra-core = {version = ">=1.1.0,<2.0.0", optional = true, markers = "extra == \"all\" or extra == \"hydra\""}
+neoconfigen = {version = ">=2.0.0,<3.0.0", optional = true, markers = "extra == \"all\" or extra == \"hydra\""}
 
 [package.extras]
 torch = ["torch (>=1.8,<2.0)", "numpy (>=1.20.3,<2.0.0)"]
@@ -1505,7 +1509,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.1"
-content-hash = "412bf0f0c9de3f9d38169e9244957b71b7507c9a93c34ac183035cf1d3c82326"
+content-hash = "053512a83753d95e824369652b3aa0bcdcf54803cbc0ba684902a8898434f02f"
 
 [metadata.files]
 absl-py = [
