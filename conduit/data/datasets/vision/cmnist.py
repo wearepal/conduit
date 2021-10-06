@@ -1,10 +1,9 @@
 """ColoredMNIST Dataset."""
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union, overload
+from typing import ClassVar, Dict, List, Optional, Tuple, Union, cast, overload
 
 from PIL import Image
-from ethicml.vision import LdColorizer
 import numpy as np
 import numpy.typing as npt
 from ranzen.decorators import implements, parsable
@@ -16,11 +15,130 @@ from typing_extensions import Literal
 
 from conduit.data.datasets.utils import ImageTform, RawImage
 from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.types import NDArrayR
 
 __all__ = [
     "ColoredMNIST",
     "ColoredMNISTSplit",
+    "MNISTColorizer",
 ]
+
+
+class MNISTColorizer:
+    """Convert a greyscale MNIST image to RGB."""
+
+    COLORS: ClassVar[Tensor] = torch.tensor(
+        [
+            (0, 255, 255),
+            (0, 0, 255),  # blue
+            (255, 0, 255),
+            (0, 128, 0),
+            (0, 255, 0),  # green
+            (128, 0, 0),
+            (0, 0, 128),
+            (128, 0, 128),
+            (255, 0, 0),  # red
+            (255, 255, 0),  # yellow
+        ],
+        dtype=torch.float32,
+    )
+
+    def __init__(
+        self,
+        scale: float,
+        *,
+        min_val: float = 0.0,
+        max_val: float = 1.0,
+        binarize: bool = False,
+        background: bool = False,
+        black: bool = True,
+        seed: Optional[int] = 42,
+        greyscale: bool = False,
+        color_indices: Optional[Union[List[int], slice]] = None,
+        normalize: bool = True,
+    ) -> None:
+        """
+        Colorizes a grayscale image by sampling colors from multivariate normal distributions.
+
+        The distribution is centered on predefined means and standard deviation determined by the
+        scale argument.
+
+        :param min_val: Minimum value the input data can take (needed for clamping).
+        :param max_val: Maximum value the input data can take (needed for clamping).
+        :param scale: Standard deviation of the multivariate normal distributions from which
+            the colors are drawn. Lower values correspond to higher bias. Defaults to 0.02.
+        :param binarize: Whether the binarize the grayscale data before colorisation.
+        :param background: Whether to color the background instead of the foreground.
+        :param black: Whether not to invert the black. Defaults to True.
+        :param seed: Random seed used for sampling colors. Defaults to 42.
+        :param greyscale: Whether to greyscale the colorised images. Defaults to False.
+        :param color_indices: Choose specific colors if you don't need all 10
+        :param normalize: Whether to normalize the pixel-values to [0, 1].
+        """
+        super().__init__()
+        self.min_val = min_val
+        self.max_val = max_val
+        self.binarize = binarize
+        self.background = background
+        self.black = black
+        self.greyscale = greyscale
+        self.scale = scale
+        self.normalize = normalize
+
+        self.generator = (
+            torch.default_generator if seed is None else torch.Generator().manual_seed(seed)
+        )
+        self.palette = self.COLORS if color_indices is None else self.COLORS[color_indices]
+
+    def _sample_colors(self, mean_color_values: Tensor) -> Tensor:
+        return torch.normal(mean=mean_color_values, std=self.scale, generator=self.generator).clip(
+            0, 1
+        )
+
+    def __call__(
+        self, images: Union[Tensor, NDArrayR], *, labels: Union[Tensor, NDArrayR]
+    ) -> Tensor:
+        """Apply the transformation.
+
+        :param images:  Greyscale images to be colorized.
+        :param labels: Indexes (0-9) indicating the gaussian distribution from which to sample each image's color.
+        :returns: Images converted to RGB.
+        """
+        if isinstance(images, np.ndarray):
+            images = torch.as_tensor(images, dtype=torch.float32)
+        if isinstance(labels, np.ndarray):
+            labels = torch.as_tensor(labels, dtype=torch.long)
+        # Add a singular channel dimension if one isn't already there.
+        images = cast(Tensor, torch.atleast_3d(images))
+        if images.ndim == 3:
+            images = images.unsqueeze(1)
+        images = images.expand(-1, 3, -1, -1)
+
+        colors = self._sample_colors(self.palette[labels]).view(-1, 3, 1, 1)
+        if self.normalize:
+            colors /= 255.0
+
+        if self.binarize:
+            images = (images > 0.5).float()
+
+        if self.background:
+            if self.black:
+                # colorful background, black digits
+                images_colorized = (1 - images) * colors
+            else:
+                # colorful background, white digits
+                images_colorized = (images + colors).clip(0, 1)
+        elif self.black:
+            # black background, colorful digits
+            images_colorized = images * colors
+        else:
+            # white background, colorful digits
+            images_colorized = 1 - images * (1 - colors)
+
+        if self.greyscale:
+            images_colorized = images_colorized.mean(dim=1, keepdim=True)
+
+        return images_colorized
 
 
 @overload
@@ -133,7 +251,7 @@ class ColoredMNIST(CdtVisionDataset):
             )
 
         # Colorize the greyscale images
-        colorizer = LdColorizer(
+        colorizer = MNISTColorizer(
             scale=self.scale,
             background=self.background,
             black=self.black,
@@ -141,9 +259,8 @@ class ColoredMNIST(CdtVisionDataset):
             greyscale=self.greyscale,
             color_indices=self.colors,
         )
-
-        x_tiled = x.unsqueeze(1).expand(-1, 3, -1, -1)
-        x_colorized = colorizer(data=x_tiled, labels=s)
+        x_colorized = colorizer(images=x, labels=s)
+        # Convert to HWC format for compatibility with transforms
         x_colorized = x_colorized.movedim(1, -1).numpy().astype(np.uint8)
 
         super().__init__(x=x_colorized, y=y, s=s, transform=transform, image_dir=root)

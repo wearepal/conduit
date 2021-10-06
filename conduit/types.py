@@ -1,6 +1,8 @@
 from enum import Enum, auto
 from typing import Any, Dict, Union
 
+import numpy as np
+import numpy.typing as npt
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 from ranzen.decorators import enum_name_str
 from ranzen.torch.loss import ReductionType
@@ -8,7 +10,14 @@ from torch import Tensor
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR
 from typing_extensions import Protocol
 
-__all__ = ["LRScheduler", "Loss", "MetricDict", "Stage", "SoundscapeAttr"]
+__all__ = [
+    "LRScheduler",
+    "Loss",
+    "MetricDict",
+    "NDArrayR",
+    "SoundscapeAttr",
+    "Stage",
+]
 
 
 class Loss(Protocol):
@@ -42,3 +51,4 @@ class SoundscapeAttr(Enum):
 
 LRScheduler = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
 MetricDict = Dict[str, _METRIC_COLLECTION]
+NDArrayR = Union[npt.NDArray[np.floating], npt.NDArray[np.integer]]
