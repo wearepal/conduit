@@ -1522,12 +1522,13 @@ docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.0.1)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [extras]
+all = ["ethicml"]
 fair = ["ethicml"]
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.1"
-content-hash = "e3365af727a3e1d5f241faff30f21b6c9a07df0d59bed149d723127fa51af354"
+content-hash = "e6f69ae39e72284914deb7a6d9c03157e87d0525b665a8333cd729129c4a9a64"
 
 [metadata.files]
 absl-py = [
