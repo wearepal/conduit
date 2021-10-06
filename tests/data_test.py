@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -24,6 +24,35 @@ from conduit.data import (
 from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
 from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
+from conduit.data.datasets.vision.cmnist import MNISTColorizer
+
+
+@pytest.mark.parametrize("greyscale", [True, False])
+@pytest.mark.parametrize("black", [True, False])
+@pytest.mark.parametrize("background", [True, False])
+@pytest.mark.parametrize("binarize", [True, False])
+@pytest.mark.parametrize("num_channels", [1, 3, None])
+def test_colorizer(
+    num_channels: Optional[int], binarize: bool, background: bool, black: bool, greyscale: bool
+):
+    """Test label dependent transforms."""
+    image_shape = [4, 7, 7]
+    if num_channels is not None:
+        image_shape.insert(1, num_channels)
+    images = torch.rand(*image_shape)
+    labels = torch.randint(low=0, high=10, size=(len(images),))
+    transform = MNISTColorizer(
+        scale=0.02,
+        min_val=0.0,
+        max_val=1.0,
+        binarize=binarize,
+        background=background,
+        black=black,
+        seed=47,
+        greyscale=greyscale,
+    )
+
+    images = transform(images=images, labels=labels)
 
 
 @pytest.mark.slow

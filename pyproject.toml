@@ -22,8 +22,8 @@ readme="README.md"
 
 [tool.poetry.dependencies]
 python = "^3.7.1"
+numpy = "^1.21"
 albumentations = "^1.0.0"
-ethicml = "^0.3.0"
 lightning-bolts = "^0.3.4"
 torch = "^1.9.1"
 torchvision = "^0.10.1"
@@ -35,6 +35,7 @@ sox = {version = "*", markers = "platform_system == 'Linux' or platform_system =
 attrs = "^21.2.0"
 hydra-core = "^1.1.1"
 ranzen = {version = "^1.0.0", extras = ["hydra"]}
+ethicml = {version = "^0.3.0", optional=true}
 
 [tool.poetry.dev-dependencies]
 black = "*"
@@ -45,6 +46,10 @@ pydocstyle = "*"
 pytest = "*"
 python-type-stubs = {git = "https://github.com/predictive-analytics-lab/python-type-stubs.git", branch = "main" }
 neoconfigen = {version = "^2.1.0"}
+
+[tool.poetry.extras]
+all = ["ethicml"]
+fair = ["ethicml"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
