@@ -47,6 +47,7 @@ python-type-stubs = {git = "https://github.com/predictive-analytics-lab/python-t
 neoconfigen = {version = "^2.1.0"}
 
 [tool.poetry.extras]
+all = ["ethicml"]
 fair = ["ethicml"]
 
 [build-system]
