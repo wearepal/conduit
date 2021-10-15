@@ -17,7 +17,7 @@ class DummyVisionDataset(CdtVisionDataset):
         s_card: Optional[int] = 2,
         y_card: Optional[int] = 2,
         num_samples: int = 10_000,
-    ):
+    ) -> None:
         self.channels = channels
         self.height = height
         self.width = width
