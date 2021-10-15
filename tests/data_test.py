@@ -23,6 +23,7 @@ from conduit.data import (
 )
 from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
+from conduit.data.datamodules.vision.dummy import DummyVisionDataModule
 from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 from conduit.data.datasets.vision.cmnist import MNISTColorizer
 
@@ -194,3 +195,10 @@ def test_tabular_dummy_data():
     test_sample = next(iter(dm.test_dataloader()))
     assert test_sample.y.shape == (20,)
     assert test_sample.x.shape == (20, 8)
+
+
+def test_vision_dummy_data():
+    dm = DummyVisionDataModule()
+    dm.prepare_data()
+    dm.setup()
+    next(iter(dm.train_dataloader()))
