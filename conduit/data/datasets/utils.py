@@ -38,7 +38,7 @@ from torch.utils.data.dataloader import DataLoader, _worker_init_fn_t
 from torch.utils.data.sampler import Sampler
 from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import functional as TF
-from typing_extensions import Final, Literal, get_args
+from typing_extensions import Final, Literal, TypeAlias, get_args
 
 from conduit.data.datasets.base import CdtDataset, D
 from conduit.data.structures import BinarySample, NamedSample, SampleBase, TernarySample
@@ -69,10 +69,10 @@ __all__ = [
 ]
 
 
-ImageLoadingBackend = Literal["opencv", "pillow"]
+ImageLoadingBackend: TypeAlias = Literal["opencv", "pillow"]
 
 
-RawImage = Union[npt.NDArray[np.integer], Image.Image]
+RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
 
 
 @overload
@@ -105,9 +105,9 @@ def load_image(filepath: Union[Path, str], *, backend: ImageLoadingBackend = "op
     return Image.open(filepath)
 
 
-AlbumentationsTform = Union[A.Compose, A.BasicTransform]
-PillowTform = Callable[[Image.Image], Any]
-ImageTform = Union[AlbumentationsTform, PillowTform]
+AlbumentationsTform: TypeAlias = Union[A.Compose, A.BasicTransform]
+PillowTform: TypeAlias = Callable[[Image.Image], Any]
+ImageTform: TypeAlias = Union[AlbumentationsTform, PillowTform]
 
 
 def infer_il_backend(transform: Optional[ImageTform]) -> ImageLoadingBackend:
@@ -151,7 +151,7 @@ def img_to_tensor(img: Union[Image.Image, np.ndarray]) -> Tensor:
     )
 
 
-AudioLoadingBackend = Literal["sox_io", "soundfile"]
+AudioLoadingBackend: TypeAlias = Literal["sox_io", "soundfile"]
 
 
 def infer_al_backend() -> AudioLoadingBackend:
@@ -161,7 +161,7 @@ def infer_al_backend() -> AudioLoadingBackend:
     return soundfile if platform.system() == "Windows" else sox
 
 
-AudioTform = Callable[[Tensor], Tensor]
+AudioTform: TypeAlias = Callable[[Tensor], Tensor]
 
 
 def apply_waveform_transform(waveform: Tensor, *, transform: Optional[AudioTform]) -> Tensor:
