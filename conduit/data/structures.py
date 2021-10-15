@@ -7,6 +7,7 @@ import numpy as np
 import numpy.typing as npt
 from torch import Tensor
 from torch.utils.data import Dataset
+from typing_extensions import TypeAlias
 
 __all__ = [
     "BinarySample",
@@ -265,7 +266,7 @@ class TrainValTestSplit(NamedTuple):
     test: Dataset
 
 
-InputData = Union[
+InputData: TypeAlias = Union[
     npt.NDArray[np.floating], npt.NDArray[np.integer], npt.NDArray[np.string_], Tensor
 ]
-TargetData = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
+TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]

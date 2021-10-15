@@ -8,7 +8,7 @@ from ranzen.decorators import enum_name_str
 from ranzen.torch.loss import ReductionType
 from torch import Tensor
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR
-from typing_extensions import Protocol
+from typing_extensions import Protocol, TypeAlias
 
 __all__ = [
     "LRScheduler",
@@ -49,6 +49,6 @@ class SoundscapeAttr(Enum):
     N0 = auto()
 
 
-LRScheduler = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
-MetricDict = Dict[str, _METRIC_COLLECTION]
-NDArrayR = Union[npt.NDArray[np.floating], npt.NDArray[np.integer]]
+LRScheduler: TypeAlias = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
+MetricDict: TypeAlias = Dict[str, _METRIC_COLLECTION]
+NDArrayR: TypeAlias = Union[npt.NDArray[np.floating], npt.NDArray[np.integer]]
