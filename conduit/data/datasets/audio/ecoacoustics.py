@@ -20,7 +20,7 @@ import torchaudio
 import torchaudio.functional as F
 from torchvision.datasets.utils import check_integrity
 from tqdm import tqdm
-from typing_extensions import Literal
+from typing_extensions import Literal, TypeAlias
 
 from conduit.data.datasets.audio.base import CdtAudioDataset
 from conduit.data.datasets.utils import AudioTform, UrlFileInfo, download_from_url
@@ -29,7 +29,7 @@ from conduit.types import SoundscapeAttr
 __all__ = ["Ecoacoustics"]
 
 
-Extension = Literal[".pt", ".wav"]
+Extension: TypeAlias = Literal[".pt", ".wav"]
 
 
 class Ecoacoustics(CdtAudioDataset):

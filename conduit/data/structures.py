@@ -1,6 +1,7 @@
 """Data structures."""
 from dataclasses import dataclass, field, fields, is_dataclass
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union, overload
+from typing_extensions import TypeAlias
 
 from PIL import Image
 import numpy as np
@@ -265,7 +266,7 @@ class TrainValTestSplit(NamedTuple):
     test: Dataset
 
 
-InputData = Union[
+InputData: TypeAlias = Union[
     npt.NDArray[np.floating], npt.NDArray[np.integer], npt.NDArray[np.string_], Tensor
 ]
-TargetData = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
+TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
