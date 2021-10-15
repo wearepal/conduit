@@ -101,7 +101,7 @@ class CdtDataset(Dataset):
             raise AttributeError(
                 f"'{cls_name}.dim_s' cannot be determined as '{cls_name}.s' is 'None'"
             )
-        elif self._dim_s is None:
+        if self._dim_s is None:
             self._dim_s = torch.Size((1,)) if self.s.ndim == 1 else self.s.shape[1:]
         return self._dim_s
 
@@ -129,7 +129,7 @@ class CdtDataset(Dataset):
             raise AttributeError(
                 f"'{cls_name}.card_y' cannot be determined as '{cls_name}.y' is 'None'"
             )
-        elif self._card_y is None:
+        if self._card_y is None:
             self._card_y = len(self.y.unique())
         return self._card_y
 
@@ -143,7 +143,7 @@ class CdtDataset(Dataset):
             raise AttributeError(
                 f"'{cls_name}.card_s' cannot be determined as '{cls_name}.s' is 'None'"
             )
-        elif self._card_s is None:
+        if self._card_s is None:
             self._card_s = len(self.s.unique())
         return self._card_s
 

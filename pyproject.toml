@@ -48,6 +48,7 @@ pydocstyle = "*"
 pytest = "*"
 python-type-stubs = {git = "https://github.com/predictive-analytics-lab/python-type-stubs.git", branch = "main" }
 neoconfigen = {version = "^2.1.0"}
+pylint = "^2.11.1"
 
 [tool.poetry.extras]
 all = ["ethicml"]
