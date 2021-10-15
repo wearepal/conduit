@@ -36,15 +36,15 @@ class RandomTabularDataset(CdtTabularDataset):
             cont_feat = rng.random(num_samples)
             feats[f"cont_{i}"] = cont_feat
 
-        if y_card is not None:
-            y = torch.as_tensor(rng.integers(low=0, high=y_card, size=num_samples))
-        else:
+        if y_card is None:
             y = None
-
-        if s_card is not None:
-            s = torch.as_tensor(rng.integers(low=0, high=s_card, size=num_samples))
         else:
+            y = torch.as_tensor(rng.integers(low=0, high=y_card, size=num_samples))
+
+        if s_card is None:
             s = None
+        else:
+            s = torch.as_tensor(rng.integers(low=0, high=s_card, size=num_samples))
 
         super().__init__(
             x=torch.as_tensor(feats.to_numpy()),
