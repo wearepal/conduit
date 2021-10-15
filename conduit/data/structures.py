@@ -1,13 +1,13 @@
 """Data structures."""
 from dataclasses import dataclass, field, fields, is_dataclass
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union, overload
-from typing_extensions import TypeAlias
 
 from PIL import Image
 import numpy as np
 import numpy.typing as npt
 from torch import Tensor
 from torch.utils.data import Dataset
+from typing_extensions import TypeAlias
 
 __all__ = [
     "BinarySample",
