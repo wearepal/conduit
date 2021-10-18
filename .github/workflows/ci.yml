@@ -66,8 +66,9 @@ jobs:
         poetry run python -m pytest -vv tests/
     - name: Test with pytest (slow)
       if: (github.event_name == 'schedule') # for schedule event
+      # poetry run python -m pytest -vv --runslow tests/
       run: |
-        poetry run python -m pytest -vv --runslow tests/
+        poetry run python -m pytest -vv tests/
     - name: Run configen
       run: |
         source .venv/bin/activate
