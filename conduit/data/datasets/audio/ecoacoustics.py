@@ -76,7 +76,9 @@ class Ecoacoustics(CdtAudioDataset):
         *,
         transform: Optional[AudioTform] = None,
         download: bool = True,
-        target_attr: Union[SoundscapeAttr, str] = SoundscapeAttr.habitat,
+        target_attrs: Union[
+            Union[SoundscapeAttr, str], List[Union[SoundscapeAttr, str]]
+        ] = SoundscapeAttr.habitat,
         segment_len: float = 15,
     ) -> None:
 
@@ -91,7 +93,11 @@ class Ecoacoustics(CdtAudioDataset):
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
 
-        self.target_attr = str_to_enum(str_=target_attr, enum=SoundscapeAttr)
+        if not isinstance(target_attrs, list):
+            target_attrs = [target_attrs]
+        self.target_attrs = [
+            str(str_to_enum(str_=elem, enum=SoundscapeAttr)) for elem in target_attrs
+        ]
 
         if self.download:
             self._download_files()
@@ -111,7 +117,7 @@ class Ecoacoustics(CdtAudioDataset):
 
         x = self.metadata["segmentFileName"].to_numpy()
         y = torch.as_tensor(
-            self._label_encode(self.metadata[str(self.target_attr)], inplace=True).to_numpy()
+            self._label_encode(self.metadata[self.target_attrs], inplace=True).to_numpy()
         )
 
         super().__init__(x=x, y=y, transform=transform, audio_dir=self.base_dir)
