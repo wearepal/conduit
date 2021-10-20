@@ -1,6 +1,7 @@
 """Base class from which all data-modules in conduit inherit."""
 from abc import abstractmethod
 import logging
+import sys
 from typing import Optional, Sequence, Tuple, cast
 
 import attr
@@ -21,6 +22,7 @@ from conduit.data.datasets.utils import (
 )
 from conduit.data.datasets.wrappers import InstanceWeightedDataset
 from conduit.data.structures import ImageSize, TrainValTestSplit
+from conduit.logging import LoggingContext, init_logger
 from conduit.types import Stage
 
 __all__ = ["CdtDataModule"]
@@ -81,11 +83,12 @@ class CdtDataModule(pl.LightningDataModule):
     @property
     def logger(self) -> logging.Logger:
         if self._logger is None:
-            self._logger = logging.getLogger(self.__class__.__name__)
+            self._logger = init_logger(self.__class__.__name__)
         return self._logger
 
-    def log(self, msg: str) -> None:
-        self.logger.info(msg)
+    def log(self, msg: str, level: Optional[int] = logging.INFO) -> None:
+        with LoggingContext(self.logger, level=level):
+            self.logger.info(msg)
 
     @property
     def train_prop(self) -> float:

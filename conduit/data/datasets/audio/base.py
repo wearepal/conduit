@@ -62,7 +62,7 @@ class CdtAudioDataset(CdtDataset):
 
     def load_sample(self, index: int) -> Tensor:
         path = self.audio_dir / self.x[index]
-        return torchaudio.load(path) if str(self.x[index]).endswith('.wav') else torch.load(path)
+        return torchaudio.load(path)  # type: ignore
 
     @implements(CdtDataset)
     def _sample_x(self, index: int, *, coerce_to_tensor: bool = False) -> Tensor:

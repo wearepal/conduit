@@ -9,10 +9,9 @@ from ranzen.torch import prop_random_split
 import torchaudio.transforms as T
 
 from conduit.data.datamodules.base import CdtDataModule
-from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics
+from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
 from conduit.data.datasets.utils import AudioTform
 from conduit.data.structures import TrainValTestSplit
-from conduit.types import SoundscapeAttr
 
 from .base import CdtAudioDataModule
 

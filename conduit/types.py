@@ -15,7 +15,6 @@ __all__ = [
     "Loss",
     "MetricDict",
     "NDArrayR",
-    "SoundscapeAttr",
     "Stage",
 ]
 
@@ -38,15 +37,6 @@ class Stage(Enum):
     fit = "fit"
     validate = "validate"
     test = "test"
-
-
-@enum_name_str
-class SoundscapeAttr(Enum):
-    habitat = auto()
-    site = auto()
-    time = auto()
-    NN = auto()
-    N0 = auto()
 
 
 LRScheduler: TypeAlias = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
