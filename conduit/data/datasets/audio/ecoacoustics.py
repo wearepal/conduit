@@ -10,7 +10,7 @@ import logging
 import math
 from pathlib import Path
 import shutil
-from typing import ClassVar, List, Optional, Union, cast
+from typing import ClassVar, List, Optional, Tuple, Union, cast
 import zipfile
 
 import numpy as np
@@ -198,7 +198,7 @@ class Ecoacoustics(CdtAudioDataset):
         """
         self._processed_audio_dir.mkdir(parents=True, exist_ok=True)
         waveform_paths = self.base_dir / self.metadata["baseFilePath"]  # type: ignore
-        segment_metadata = []
+        segment_filenames: List[Tuple[str, str]] = []
         for path in tqdm(waveform_paths, desc="Preprocessing", colour=self._PBAR_COL):
             if not path.exists():
                 continue
@@ -239,8 +239,8 @@ class Ecoacoustics(CdtAudioDataset):
                     src=segment,
                     sample_rate=sr,
                 )
-                segment_metadata.append((waveform_filename, str(segment_filepath)))
+                segment_filenames.append((waveform_filename, str(segment_filepath)))
 
-        pd.DataFrame(segment_metadata, columns=["baseFileName", "segmentFileName"]).to_csv(
+        pd.DataFrame(segment_filenames, columns=["baseFileName", "segmentFileName"]).to_csv(
             self._processed_audio_dir / "filenames.csv"
         )
