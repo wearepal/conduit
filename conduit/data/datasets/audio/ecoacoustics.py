@@ -116,12 +116,6 @@ class Ecoacoustics(CdtAudioDataset):
 
         super().__init__(x=x, y=y, transform=transform, audio_dir=self.base_dir)
 
-    def _check_integrity(self, file_info: UrlFileInfo) -> bool:
-        fpath = self.base_dir / file_info.name
-        if not check_integrity(str(fpath), file_info.md5):
-            return False
-        return True
-
     def _check_files(self) -> None:
         """Check necessary files are present and unzipped."""
 
