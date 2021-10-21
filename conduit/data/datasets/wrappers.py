@@ -4,11 +4,14 @@ from typing import Any, Optional, Union
 
 from PIL import Image
 import numpy as np
+from ranzen.decorators import implements
 from torch import Tensor
 from torch.utils.data import Dataset
 
 from conduit.data.datasets.utils import (
+    AudioTform,
     ImageTform,
+    apply_audio_transform,
     apply_image_transform,
     compute_instance_weights,
     extract_base_dataset,
@@ -28,6 +31,7 @@ from conduit.data.structures import (
 from conduit.transforms.tabular import TabularTransform
 
 __all__ = [
+    "AudioTransformer",
     "ImageTransformer",
     "InstanceWeightedDataset",
     "TabularTransformer",
@@ -70,13 +74,57 @@ class ImageTransformer(Dataset):
                 sample = apply_image_transform(image=sample, transform=self.transform)
             elif isinstance(sample, SampleBase):
                 image = sample.x
-                assert not isinstance(image, Tensor)
+                if not isinstance(image, (Image.Image, np.ndarray)):
+                    raise TypeError(
+                        f"Image transform cannot be applied to input of type '{type(image)}'"
+                        "(must be a PIL Image or a numpy array)."
+                    )
                 image = apply_image_transform(image=image, transform=self.transform)
                 sample = replace(sample, x=image)
             else:
                 image = apply_image_transform(image=sample[0], transform=self.transform)
                 data_type = type(sample)
                 sample = data_type(image, *sample[1:])
+        return sample
+
+
+class AudioTransformer(Dataset):
+    """
+    Wrapper class for applying image transformations.
+
+    Useful when wanting to have different transformations for different subsets of the data
+    that share the same underlying dataset.
+    """
+
+    def __init__(self, dataset: Dataset, *, transform: Optional[AudioTform]) -> None:
+        self.dataset = dataset
+        self._transform: Optional[ImageTform] = None
+        self.transform = transform
+
+    def __len__(self) -> Optional[int]:
+        if hasattr(self.dataset, "__len__"):
+            return len(self.dataset)  # type: ignore
+        return None
+
+    @implements(Dataset)
+    def __getitem__(self, index: int) -> Any:
+        sample = self.dataset[index]
+        if self.transform is not None:
+            if isinstance(sample, SampleBase):
+                if not isinstance(sample.x, Tensor):
+                    raise TypeError(
+                        f"Audio transform cannot be applied to input of type '{type(sample.x)}'"
+                        "(must be a PyTorch Tensor)."
+                    )
+
+                waveform = apply_audio_transform(waveform=sample.x, transform=self.transform)
+                sample = replace(sample, x=waveform)
+            elif isinstance(sample, Tensor):
+                sample = apply_audio_transform(waveform=sample, transform=self.transform)
+            else:
+                waveform = apply_audio_transform(waveform=sample[0], transform=self.transform)
+                data_type = type(sample)
+                sample = data_type(waveform, *sample[1:])
         return sample
 
 
@@ -104,10 +152,16 @@ class TabularTransformer(Dataset):
             return len(self.dataset)  # type: ignore
         return None
 
+    @implements(Dataset)
     def __getitem__(self, index: int) -> Any:
         sample = self.dataset[index]
         if self.transform is not None:
             if isinstance(sample, SampleBase):
+                if not isinstance(sample.x, Tensor):
+                    raise TypeError(
+                        f"Tabular transform cannot be applied to input of type '{type(sample.x)}'"
+                        "(must be a PyTorch Tensor)."
+                    )
                 new_values = {"x": self.transform(sample.x)}
                 if (self.target_transform is not None) and (isinstance(sample, _BinarySampleMixin)):
                     new_values["y"] = self.target_transform(sample.y)
@@ -139,6 +193,7 @@ class InstanceWeightedDataset(Dataset):
         self.dataset = dataset
         self.iw = compute_instance_weights(dataset)
 
+    @implements(Dataset)
     def __getitem__(self, index: int) -> Union[BinarySampleIW, SubgroupSampleIW, TernarySampleIW]:
         sample = self.dataset[index]
         iw = self.iw[index]

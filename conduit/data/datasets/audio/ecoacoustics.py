@@ -17,9 +17,10 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_categorical_dtype, is_object_dtype
 from ranzen import parsable
-from ranzen.decorators import enum_name_str
+from ranzen.decorators import enum_name_str, implements
 from ranzen.misc import str_to_enum
 import torch
+from torch import Tensor
 import torchaudio
 from tqdm import tqdm
 
@@ -69,6 +70,11 @@ class Ecoacoustics(CdtAudioDataset):
         ),
     ]
 
+    SAMPLE_RATE: ClassVar[int] = 48_000
+    AUDIO_LEN: ClassVar[int] = 60
+    NUM_FRAMES_TOTAL: ClassVar[int] = SAMPLE_RATE * AUDIO_LEN
+    _num_frames_in_segment: Optional[int]
+
     @parsable
     def __init__(
         self,
@@ -79,16 +85,16 @@ class Ecoacoustics(CdtAudioDataset):
         target_attrs: Union[
             Union[SoundscapeAttr, str], List[Union[SoundscapeAttr, str]]
         ] = SoundscapeAttr.habitat,
-        segment_len: float = 15,
+        segment_len: Optional[float] = 15,
+        preprocess: bool = False,
     ) -> None:
 
         self.root = Path(root).expanduser()
         self.download = download
         self.base_dir = self.root / self.__class__.__name__
         self.labels_dir = self.base_dir / self.INDICES_DIR
-        # data directory depends on the segment length
         self.segment_len = segment_len
-        self._processed_audio_dir = self.base_dir / f"segment_length={self.segment_len}"
+        self.preprocess = preprocess
         self._metadata_path = self.base_dir / self.METADATA_FILENAME
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
@@ -109,18 +115,37 @@ class Ecoacoustics(CdtAudioDataset):
 
         self.metadata = pd.read_csv(self.base_dir / self.METADATA_FILENAME)
 
-        if not self._processed_audio_dir.exists():
-            self._preprocess_audio()
+        if self.preprocess and (self.num_frames_in_segment is not None):
+            # data directory depends on the segment length
+            processed_audio_dir = self.base_dir / f"segment_len={self.segment_len}"
+            if not (processed_audio_dir / "filepaths.csv").exists():
+                self._preprocess_files()
 
-        filenames = pd.read_csv(self._processed_audio_dir / "filenames.csv")
-        self.metadata = filenames.merge(self.metadata, how='left', on='baseFileName')
+            filepaths = pd.read_csv(processed_audio_dir / "filepaths.csv")
+            self.metadata.drop("filePath", inplace=True, axis=1)
+            self.metadata = filepaths.merge(self.metadata, how='left', on='fileName')
 
-        x = self.metadata["segmentFileName"].to_numpy()
+        x = self.metadata["filePath"].to_numpy()
         y = torch.as_tensor(
             self._label_encode(self.metadata[self.target_attrs], inplace=True).to_numpy()
         )
 
         super().__init__(x=x, y=y, transform=transform, audio_dir=self.base_dir)
+
+    @property
+    def segment_len(self) -> Optional[float]:
+        return self._segment_len
+
+    @segment_len.setter
+    def segment_len(self, value: Optional[float]) -> None:
+        self._segment_len = value
+        self._num_frames_in_segment = (
+            None if self.segment_len is None else int(self.segment_len * self.SAMPLE_RATE)
+        )
+
+    @property
+    def num_frames_in_segment(self) -> Optional[int]:
+        return self._num_frames_in_segment
 
     def _check_files(self) -> None:
         """Check necessary files are present and unzipped."""
@@ -147,8 +172,7 @@ class Ecoacoustics(CdtAudioDataset):
         data: Union[pd.DataFrame, pd.Series], inplace=True
     ) -> Union[pd.DataFrame, pd.Series]:
         """Label encode the extracted concept/context/superclass information."""
-        if not inplace:
-            data = data.clone()
+        data = data.copy(deep=not inplace)
         if isinstance(data, pd.Series):
             if is_object_dtype(data) or is_categorical_dtype(data):
                 data.update(data.factorize()[0])  # type: ignore
@@ -175,33 +199,34 @@ class Ecoacoustics(CdtAudioDataset):
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
         information on processed files to produce a master file."""
-        self.log("Extracting metadata.")
 
+        self.log("Extracting metadata.")
         # Process the metadata for samples from Ecuador.
         ec_labels = pd.read_csv(self.ec_labels_path, encoding="ISO-8859-1")
-        ec_labels["baseFilePath"] = "EC_BIRD/" + ec_labels["fileName"]
+        ec_labels["filePath"] = "EC_BIRD/" + ec_labels["fileName"]
         # Process the metadata for samples from the UK.
         uk_labels = pd.read_csv(self.uk_labels_path, encoding="ISO-8859-1")
         # Some waveforms use full names for location i.e. BALMER and KNEPP, change indices file to do the same.
         uk_labels.replace(regex={"BA-": "BALMER-", "KN-": "KNEPP-"}, inplace=True)
-        uk_labels["baseFilePath"] = "UK_BIRD/" + uk_labels["fileName"]
+        uk_labels["filePath"] = "UK_BIRD/" + uk_labels["fileName"]
 
         metadata = cast(pd.DataFrame, pd.concat([uk_labels, ec_labels]))
-        metadata.rename({"fileName": "baseFileName"}, inplace=True, axis=1)  # type: ignore
+        metadata = metadata[[(self.base_dir / fp).exists() for fp in metadata["filePath"]]]
         # metadata = self._label_encode_metadata(metadata)
-        metadata.to_csv(self._metadata_path)
+        metadata.to_csv(self._metadata_path, index=False)
 
-    def _preprocess_audio(self) -> None:
+    def _preprocess_files(self) -> None:
         """
-        Applies transformation to audio samples then segments transformed samples and stores
-        them as processed files.
+        Segment the waveform files based on :py:attr:`segment_len` and cache the file-segments.
         """
-        self._processed_audio_dir.mkdir(parents=True, exist_ok=True)
-        waveform_paths = self.base_dir / self.metadata["baseFilePath"]  # type: ignore
+        if self.segment_len is None:
+            return
+        processed_audio_dir = self.base_dir / f"segment_len={self.segment_len}"
+        processed_audio_dir.mkdir(parents=True, exist_ok=True)
+
+        waveform_paths = self.base_dir / self.metadata["filePath"]  # type: ignore
         segment_filenames: List[Tuple[str, str]] = []
         for path in tqdm(waveform_paths, desc="Preprocessing", colour=self._PBAR_COL):
-            if not path.exists():
-                continue
             waveform_filename = path.stem
             waveform, sr = torchaudio.load(path)  # type: ignore
             audio_len = waveform.size(-1) / sr
@@ -233,14 +258,35 @@ class Ecoacoustics(CdtAudioDataset):
             waveform_segments = waveform.chunk(chunks=num_segments, dim=-1)
             for seg_idx, segment in enumerate(waveform_segments):
                 segment_filename = f"{waveform_filename}_{seg_idx}.wav"
-                segment_filepath = self._processed_audio_dir / segment_filename
+                segment_filepath = processed_audio_dir / segment_filename
                 torchaudio.save(  # type: ignore
                     filepath=segment_filepath,
                     src=segment,
                     sample_rate=sr,
                 )
-                segment_filenames.append((waveform_filename, str(segment_filepath)))
+                segment_filenames.append(
+                    (waveform_filename, str(segment_filepath.relative_to(self.base_dir)))
+                )
 
-        pd.DataFrame(segment_filenames, columns=["baseFileName", "segmentFileName"]).to_csv(
-            self._processed_audio_dir / "filenames.csv"
+        pd.DataFrame(segment_filenames, columns=["fileName", "filePath"]).to_csv(
+            processed_audio_dir / "filepaths.csv", index=False
         )
+
+    @implements(CdtAudioDataset)
+    def load_sample(self, index: int) -> Tensor:
+        path = self.audio_dir / self.x[index]
+        # Segmentation is being done dynamically.
+        if (not self.preprocess) and (self.num_frames_in_segment is not None):
+            #  Randomly sample a segment of length 'segment_len' from the waveform
+            frame_offset = torch.randint(
+                low=0, high=self.NUM_FRAMES_TOTAL - self.num_frames_in_segment, size=(1,)
+            )
+            # Slicing the tensor while decoding is more efficient than loading the full tensor
+            # and then slicing.
+            waveform, _ = torchaudio.load(  # type: ignore
+                path, frame_offset=frame_offset, num_frames=self.num_frames_in_segment
+            )
+        else:
+            waveform, _ = torchaudio.load(path)  # type: ignore
+
+        return waveform

@@ -164,7 +164,7 @@ def infer_al_backend() -> AudioLoadingBackend:
 AudioTform: TypeAlias = Callable[[Tensor], Tensor]
 
 
-def apply_waveform_transform(waveform: Tensor, *, transform: Optional[AudioTform]) -> Tensor:
+def apply_audio_transform(waveform: Tensor, *, transform: Optional[AudioTform]) -> Tensor:
     return waveform if transform is None else transform(waveform)
 
 

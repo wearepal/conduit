@@ -2,9 +2,9 @@ from pathlib import Path
 from typing import Optional, Union
 
 import numpy as np
-import pandas as pd
 import pytest
 import torch
+from torch import Tensor
 import torchaudio.transforms as AT
 from torchvision import transforms as T
 from typing_extensions import Type
@@ -75,37 +75,33 @@ def test_vision_datasets(
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("ds_cls", [Ecoacoustics])
-def test_audio_dataset(root: Path, ds_cls: Type[Ecoacoustics]) -> None:
-    base_dir = root / "Ecoacoustics"
-    target_attribute = "habitat"
-    waveform_length = 60.0  # Length in seconds.
-    specgram_segment_len = 30.0  # Length in seconds.
+@pytest.mark.parametrize("preprocess", [False, True])
+@pytest.mark.parametrize("segment_len", [None, 15, 30])
+def test_audio_dataset(root: Path, preprocess: bool, segment_len: float) -> None:
 
-    ds = ds_cls(
+    ds = Ecoacoustics(
         root=root,
         download=True,
-        target_attr=target_attribute,
-        specgram_segment_len=specgram_segment_len,
-        preprocessing_transform=AT.Spectrogram(n_fft=120, hop_length=60),
+        target_attrs=["habitat", "site"],
         transform=None,
+        segment_len=segment_len,
+        preprocess=preprocess,
     )
 
-    # Test __str__
-    assert str(ds).splitlines()[0] == f"Dataset {ds.__class__.__name__}"
-
-    # Test processed folder
-    processed_audio_dir = base_dir / "Spectrogram"
-    assert processed_audio_dir.exists()
-
-    # Test __len__
-    num_processed_files = len(list(processed_audio_dir.glob("**/*.pt")))
-    assert len(ds) == num_processed_files
-
-    # Test correct number of spectrogram segments are produced.
-    segments_per_waveform = int(waveform_length / specgram_segment_len)
-    expected_num_processed_files = len(list(base_dir.glob("**/*.wav"))) * segments_per_waveform
-    assert num_processed_files == expected_num_processed_files
+    if preprocess:
+        assert (ds.base_dir / f"segment_len={segment_len}" / "filepaths.csv").exists()
+    assert len(ds) == len(ds.x) == len(ds.metadata)
+    assert ds.y is not None
+    assert ds.y.shape == (len(ds), 2)
+    assert ds.y.dtype == torch.long
+    for idx in (0, -1):
+        sample = ds[idx]
+        assert isinstance(sample, BinarySample)
+        assert isinstance(sample.x, Tensor)
+        num_frames = (
+            ds.AUDIO_LEN * ds.SAMPLE_RATE if segment_len is None else segment_len * ds.SAMPLE_RATE
+        )
+        assert sample.x.shape == (1, num_frames)
 
 
 @pytest.mark.slow
@@ -114,12 +110,10 @@ def test_ecouacoustics_labels(root: Path):
     ds = Ecoacoustics(
         root=root,
         download=True,
-        target_attr=target_attr,
-        specgram_segment_len=30.0,
-        preprocessing_transform=AT.Spectrogram(n_fft=120, hop_length=60),
+        target_attrs=target_attr,
+        segment_len=None,
         transform=None,
     )
-    metadata = pd.read_csv(root / ds.__class__.__name__ / ds.METADATA_FILENAME)
     # Test metadata aligns with labels file.
     audio_samples_to_check = [
         "FS-08_0_20150802_0625=0.pt",
@@ -128,19 +122,15 @@ def test_ecouacoustics_labels(root: Path):
     ]
     habitat_target_attributes = ["EC2", "UK1", np.nan]
     for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
-        matched_row = metadata.loc[metadata['fileName_pt'] == sample]
+        matched_row = ds.metadata.loc[ds.metadata["fileName"] == sample]
         if type(label) == str:
             assert matched_row.iloc[0][target_attr] == label
-        # else:
-        #     assert np.isnan(matched_row.iloc[0][target_attr])
 
 
 @pytest.mark.slow
 def test_ecoacoustics_dm(root: Path):
     dm = EcoacousticsDataModule(
-        root=root,
-        specgram_segment_len=30.0,
-        preprocessing_transform=AT.Spectrogram(n_fft=120, hop_length=60),
+        root=root, segment_len=30.0, target_attrs="habitat", train_transforms=AT.Spectrogram()
     )
     dm.prepare_data()
     dm.setup()
@@ -150,9 +140,9 @@ def test_ecoacoustics_dm(root: Path):
     test_sample = next(iter(train_dl))
 
     # Test size().
-    assert test_sample.x.size()[1] == dm.size().C
-    assert test_sample.x.size()[2] == dm.size().H
-    assert test_sample.x.size()[3] == dm.size().W
+    assert test_sample.x.size()[1] == dm.dims[0]
+    assert test_sample.x.size()[2] == dm.dims[1]
+    assert test_sample.x.size()[3] == dm.dims[2]
 
 
 def test_add_field() -> None:
