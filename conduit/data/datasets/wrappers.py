@@ -116,7 +116,6 @@ class AudioTransformer(Dataset):
                         f"Audio transform cannot be applied to input of type '{type(sample.x)}'"
                         "(must be a PyTorch Tensor)."
                     )
-
                 waveform = apply_audio_transform(waveform=sample.x, transform=self.transform)
                 sample = replace(sample, x=waveform)
             elif isinstance(sample, Tensor):
