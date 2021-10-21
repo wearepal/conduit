@@ -1,6 +1,7 @@
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
+from albumentations.pytorch import ToTensorV2
 import numpy as np
 import pandas as pd
 import pytest
@@ -15,6 +16,7 @@ from conduit.data import (
     BinarySample,
     BinarySampleIW,
     CelebA,
+    ImageTform,
     NamedSample,
     SampleBase,
     TernarySample,
@@ -23,6 +25,7 @@ from conduit.data import (
 )
 from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
+from conduit.data.datamodules.vision.dummy import DummyVisionDataModule
 from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 from conduit.data.datasets.vision.cmnist import MNISTColorizer
 
@@ -181,16 +184,74 @@ def test_add_field() -> None:
     assert isinstance(tsi.add_field(), TernarySampleIW)
 
 
-def test_tabular_dummy_data():
-    dm = DummyTabularDataModule(num_samples=100, num_disc_features=1, num_cont_features=1)
+@pytest.mark.parametrize("batch_size", [8, 32])
+@pytest.mark.parametrize("disc_feats", [1, 100])
+@pytest.mark.parametrize("cont_feats", [1, 10])
+@pytest.mark.parametrize("s_card", [None, 2, 10])
+@pytest.mark.parametrize("y_card", [None, 2, 10])
+def test_tabular_dummy_data(
+    batch_size: int, disc_feats: int, cont_feats: int, s_card: Optional[int], y_card: Optional[int]
+):
+    dm = DummyTabularDataModule(
+        num_samples=1_000,
+        num_disc_features=disc_feats,
+        num_cont_features=cont_feats,
+        train_batch_size=batch_size,
+        eval_batch_size=batch_size,
+        s_card=s_card,
+        y_card=y_card,
+    )
     dm.prepare_data()
     dm.setup()
-    train_sample = next(iter(dm.train_dataloader()))
-    assert train_sample.y.shape == (60,)
-    assert train_sample.x.shape == (60, 8)
-    val_sample = next(iter(dm.val_dataloader()))
-    assert val_sample.y.shape == (20,)
-    assert val_sample.x.shape == (20, 8)
-    test_sample = next(iter(dm.test_dataloader()))
-    assert test_sample.y.shape == (20,)
-    assert test_sample.x.shape == (20, 8)
+    for loader in [dm.train_dataloader(), dm.val_dataloader(), dm.test_dataloader()]:
+        sample = next(iter(loader))
+        if s_card is None:
+            assert isinstance(sample, (NamedSample, BinarySample))
+        else:
+            assert sample.s.shape == (batch_size,)
+        if y_card is None:
+            assert isinstance(sample, (NamedSample))
+        else:
+            assert sample.y.shape == (batch_size,)
+        for group in dm.train_data.feature_groups:
+            assert sample.x[:, group].sum() == batch_size
+        assert sample.x[:, dm.train_data.cont_indexes].shape == (batch_size, cont_feats)
+
+
+@pytest.mark.parametrize("batch_size", [8, 32])
+@pytest.mark.parametrize("size", [8, 32])
+@pytest.mark.parametrize("s_card", [None, 10])
+@pytest.mark.parametrize("y_card", [None, 10])
+@pytest.mark.parametrize("channels_transforms", [(1, ToTensorV2()), (3, None)])
+def test_vision_dummy_data(
+    batch_size: int,
+    size: int,
+    s_card: Optional[int],
+    y_card: Optional[int],
+    channels_transforms: Tuple[int, ImageTform],
+):
+    channels, transforms = channels_transforms
+    dm = DummyVisionDataModule(
+        train_batch_size=batch_size,
+        eval_batch_size=batch_size,
+        height=size,
+        width=size,
+        s_card=s_card,
+        y_card=y_card,
+        channels=channels,
+        train_transforms=transforms,
+        test_transforms=transforms,
+    )
+    dm.prepare_data()
+    dm.setup()
+    for loader in [dm.train_dataloader(), dm.val_dataloader(), dm.test_dataloader()]:
+        sample = next(iter(loader))
+        assert sample.x.shape == (batch_size, channels, size, size)
+        if s_card is None:
+            assert isinstance(sample, (NamedSample, BinarySample))
+        else:
+            assert sample.s.shape == (batch_size,)
+        if y_card is None:
+            assert isinstance(sample, (NamedSample))
+        else:
+            assert sample.y.shape == (batch_size,)

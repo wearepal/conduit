@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -14,6 +14,8 @@ class RandomTabularDataset(CdtTabularDataset):
         num_cont_features: int = 5,
         num_samples: int = 256,
         seed: int = 0,
+        s_card: Optional[int] = None,
+        y_card: Optional[int] = None,
     ) -> None:
         rng = np.random.default_rng(seed)
         feats_dict = {}
@@ -34,10 +36,20 @@ class RandomTabularDataset(CdtTabularDataset):
             cont_feat = rng.random(num_samples)
             feats[f"cont_{i}"] = cont_feat
 
+        if y_card is None:
+            y = None
+        else:
+            y = torch.as_tensor(rng.integers(low=0, high=y_card, size=num_samples))
+
+        if s_card is None:
+            s = None
+        else:
+            s = torch.as_tensor(rng.integers(low=0, high=s_card, size=num_samples))
+
         super().__init__(
             x=torch.as_tensor(feats.to_numpy()),
-            y=torch.as_tensor(rng.integers(low=0, high=2, size=num_samples)),
-            s=None,
+            y=y,
+            s=s,
             feature_groups=feature_groups,
             disc_indexes=list(range(num_disc_feats)),
             cont_indexes=list(range(num_disc_feats, feats.shape[1])),
