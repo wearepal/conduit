@@ -1,29 +1,30 @@
-from typing import Optional
-
 import attr
 from ranzen import implements
 
-from conduit.data import CdtDataModule, TrainValTestSplit
-from conduit.data.datasets.tabular.dummy import RandomTabularDataset
+from conduit.data import CdtDataModule, CdtVisionDataModule, TrainValTestSplit
+from conduit.data.datasets.vision.dummy import DummyVisionDataset
 
 
 @attr.define(kw_only=True)
-class DummyTabularDataModule(CdtDataModule):
-    num_samples: int
-    num_disc_features: int
-    num_cont_features: int
+class DummyVisionDataModule(CdtVisionDataModule):
+    num_samples: int = 1_000
     seed: int = 8
-    s_card: Optional[int] = None
-    y_card: Optional[int] = None
+    root: str = ""
+    height: int = 32
+    width: int = 32
+    channels: int = 3
+    batch_size: int = 32
+    s_card: int = 2
+    y_card: int = 2
 
     @implements(CdtDataModule)
     def _get_splits(self) -> TrainValTestSplit:
         # Split the data randomly according to val- and test-prop
-        data = RandomTabularDataset(
-            num_cont_features=self.num_cont_features,
-            num_disc_features=self.num_disc_features,
+        data = DummyVisionDataset(
+            channels=self.channels,
+            height=self.height,
+            width=self.width,
             num_samples=self.num_samples,
-            seed=self.seed,
             s_card=self.s_card,
             y_card=self.y_card,
         )

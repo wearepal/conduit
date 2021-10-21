@@ -48,6 +48,7 @@ pydocstyle = "*"
 pytest = "*"
 python-type-stubs = {git = "https://github.com/predictive-analytics-lab/python-type-stubs.git", branch = "main" }
 neoconfigen = {version = "^2.1.0"}
+pylint = "^2.11.1"
 
 [tool.poetry.extras]
 all = ["ethicml"]
@@ -82,7 +83,7 @@ exclude = '''
 )
 '''
 [tool.isort]
-known_third_party = ["PIL", "albumentations", "attr", "cv2", "ethicml", "hydra", "ranzen", "numpy", "omegaconf", "pandas", "pytest", "pytorch_lightning", "requests", "sklearn", "torch", "torchaudio", "torchmetrics", "torchvision", "tqdm", "typing_extensions"]
+known_third_party = ["PIL", "albumentations", "attr", "cv2", "ethicml", "hydra", "numpy", "omegaconf", "pandas", "pytest", "pytorch_lightning", "ranzen", "requests", "sklearn", "torch", "torchaudio", "torchmetrics", "torchvision", "tqdm", "typing_extensions"]
 known_future_library = []
 extra_standard_library = ["dataclasses", "__future__", "typing_extensions"]
 line_length = 88

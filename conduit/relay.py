@@ -51,7 +51,7 @@ class CdtRelay(Relay):
                 ...
 
         if hasattr(self.datamodule, "root"):
-            self.datamodule.root = to_absolute_path(cfg.datamodule.root)  # type: ignore
+            self.datamodule.root = to_absolute_path(self.datamodule.root)  # type: ignore
         self.datamodule.prepare_data()
         self.datamodule.setup()
 

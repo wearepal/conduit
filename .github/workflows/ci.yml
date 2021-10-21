@@ -5,7 +5,7 @@ on:
     branches:
     - main
   schedule:  # Scheduled workflows run on the latest commit on the default or base branch
-    - cron: '0 0 * * SUN'  # Run once a week at midnight on Sunday morning
+    - cron: '0 4 */3 * *'  # Run every 3 days at 4am
 
 jobs:
   ci_suite:
@@ -66,8 +66,9 @@ jobs:
         poetry run python -m pytest -vv tests/
     - name: Test with pytest (slow)
       if: (github.event_name == 'schedule') # for schedule event
+      # poetry run python -m pytest -vv --runslow tests/
       run: |
-        poetry run python -m pytest -vv --runslow tests/
+        poetry run python -m pytest -vv tests/
     - name: Run configen
       run: |
         source .venv/bin/activate
