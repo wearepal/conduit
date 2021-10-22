@@ -22,7 +22,7 @@ from conduit.data.datasets.utils import (
 )
 from conduit.data.datasets.wrappers import InstanceWeightedDataset
 from conduit.data.structures import ImageSize, TrainValTestSplit
-from conduit.logging import LoggingContext, init_logger
+from conduit.logging import init_logger
 from conduit.types import Stage
 
 __all__ = ["CdtDataModule"]
@@ -86,10 +86,6 @@ class CdtDataModule(pl.LightningDataModule):
             self._logger = init_logger(self.__class__.__name__)
         return self._logger
 
-    def log(self, msg: str, level: Optional[int] = logging.INFO) -> None:
-        with LoggingContext(self.logger, level=level):
-            self.logger.info(msg)
-
     @property
     def train_prop(self) -> float:
         return 1 - (self.val_prop + self.test_prop)
@@ -149,7 +145,7 @@ class CdtDataModule(pl.LightningDataModule):
             num_groups = len(group_ids.unique())
             num_samples_per_group = batch_size // num_groups
             if batch_size % num_groups:
-                self.log(
+                self.logger.info(
                     f"For stratified sampling, the batch size must be a multiple of the number of groups."
                     f"Since the batch size is not integer divisible by the number of groups ({num_groups}),"
                     f"the batch size is being reduced to {num_samples_per_group * num_groups}."

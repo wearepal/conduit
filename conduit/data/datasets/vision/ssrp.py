@@ -63,7 +63,7 @@ class SSRP(CdtVisionDataset):
 
     def _extract_metadata(self) -> None:
         """Extract concept/context/superclass information from the image filepaths and it save to csv."""
-        self.log("Extracting metadata.")
+        self.logger.info("Extracting metadata.")
         image_paths: List[Path] = []
         for ext in ("jpg", "jpeg", "png"):
             # Glob images from child folders recusrively, excluding hidden files

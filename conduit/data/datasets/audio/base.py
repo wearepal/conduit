@@ -45,7 +45,7 @@ class CdtAudioDataset(CdtDataset):
 
         # Infer the appropriate audio-loading backend based on the operating system.
         self.al_backend: AudioLoadingBackend = infer_al_backend()
-        self.log(f"Using {self.al_backend} as backend for audio-loading.")
+        self.logger.info(f"Using {self.al_backend} as backend for audio-loading.")
         torchaudio.set_audio_backend(self.al_backend)
 
     def __repr__(self) -> str:

@@ -200,7 +200,7 @@ class Ecoacoustics(CdtAudioDataset):
         """Extract information such as labels from relevant csv files, combining them along with
         information on processed files to produce a master file."""
 
-        self.log("Extracting metadata.")
+        self.logger.info("Extracting metadata.")
         # Process the metadata for samples from Ecuador.
         ec_labels = pd.read_csv(self.ec_labels_path, encoding="ISO-8859-1")
         ec_labels["filePath"] = "EC_BIRD/" + ec_labels["fileName"]
@@ -234,11 +234,10 @@ class Ecoacoustics(CdtAudioDataset):
             num_segments = int(num_segments)
 
             if frac_remainder >= 0.5:
-                self.log(
+                self.logger.debug(
                     f"Length of audio file '{path.resolve()}' is not integer-divisible by "
                     f"{self.segment_len}: terminally zero-padding the file along the "
                     f"time-axis to compensate.",
-                    level=logging.WARNING,
                 )
                 padding = torch.zeros(
                     waveform.size(0),
@@ -247,11 +246,10 @@ class Ecoacoustics(CdtAudioDataset):
                 waveform = torch.cat((waveform, padding), dim=-1)
                 num_segments += 1
             if 0 < frac_remainder < 0.5:
-                self.log(
+                self.logger.debug(
                     f"Length of audio file '{path.resolve()}' is not integer-divisible by "
                     f"{self.segment_len} and not of sufficient length to be padded "
                     f"(fractional remainder must be greater than 0.5): discarding terminal segment.",
-                    level=logging.WARNING,
                 )
                 waveform = waveform[:, : int(num_segments * self.segment_len * sr)]
 

@@ -1,5 +1,4 @@
 import logging
-import sys
 from typing import ClassVar, List, Optional, Sequence, TypeVar, Union, cast
 
 import numpy as np
@@ -19,7 +18,7 @@ from conduit.data.structures import (
     TargetData,
     TernarySample,
 )
-from conduit.logging import LoggingContext, init_logger
+from conduit.logging import init_logger
 
 __all__ = ["CdtDataset", "D"]
 
@@ -64,10 +63,6 @@ class CdtDataset(Dataset):
         if self._logger is None:
             self._logger = init_logger(self.__class__.__name__)
         return self._logger
-
-    def log(self, msg: str, level: Optional[int] = logging.INFO) -> None:
-        with LoggingContext(self.logger, level=level):
-            self.logger.info(msg)
 
     def _sample_x(self, index: int, *, coerce_to_tensor: bool = False) -> Tensor:
         x = self.x[index]

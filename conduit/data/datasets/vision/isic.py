@@ -262,27 +262,29 @@ class ISIC(CdtVisionDataset):
         # # Check whether the data has already been downloaded - if it has and the integrity
         # # of the files can be confirmed, then we are done
         if self._check_downloaded():
-            self.log("Files already downloaded and verified.")
+            self.logger.info("Files already downloaded and verified.")
             return
         # Create the directory and any required ancestors if not already existent
         self._base_dir.mkdir(exist_ok=True, parents=True)
-        self.log(f"Downloading metadata into {self._raw_dir / self.METADATA_FILENAME}...")
+        self.logger.info(f"Downloading metadata into {self._raw_dir / self.METADATA_FILENAME}...")
         self._download_isic_metadata()
-        self.log(f"Downloading data into {self._raw_dir} for up to {self.max_samples} samples...")
+        self.logger.info(
+            f"Downloading data into {self._raw_dir} for up to {self.max_samples} samples..."
+        )
         self._download_isic_images()
 
     def _preprocess_data(self) -> None:
         """Preprocess the downloaded data if the processed image-directory/metadata don't exist."""
         # If the data has already been processed, skip this operation
         if self._check_processed():
-            self.log("Metadata and images already preprocessed.")
+            self.logger.info("Metadata and images already preprocessed.")
             return
-        self.log(
+        self.logger.info(
             f"Preprocessing metadata (adding columns, removing uncertain diagnoses) and saving into "
             f"{str(self._processed_dir / self.LABELS_FILENAME)}..."
         )
         self._preprocess_isic_metadata()
-        self.log(
+        self.logger.info(
             f"Preprocessing images (transforming to 3-channel RGB, resizing to 224x224) and saving "
             f"into{str(self._processed_dir / 'ISIC-images')}..."
         )
