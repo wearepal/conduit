@@ -54,7 +54,6 @@ class MNISTColorizer:
         black: bool = True,
         greyscale: bool = False,
         color_indices: Optional[Union[List[int], slice]] = None,
-        normalize: bool = False,
         seed: Optional[int] = 42,
     ) -> None:
         """
@@ -72,7 +71,6 @@ class MNISTColorizer:
         :param black: Whether not to invert the black. Defaults to True.
         :param greyscale: Whether to greyscale the colorised images. Defaults to False.
         :param color_indices: Choose specific colors if you don't need all 10
-        :param normalize: Whether to normalize the pixel-values to [0, 1].
         :param seed: Random seed used for sampling colors.
         """
         super().__init__()
@@ -83,7 +81,6 @@ class MNISTColorizer:
         self.black = black
         self.greyscale = greyscale
         self.scale = scale
-        self.normalize = normalize
         self.seed = seed
 
         self.generator = (
@@ -262,7 +259,6 @@ class ColoredMNIST(CdtVisionDataset):
             binarize=self.binarize,
             greyscale=self.greyscale,
             color_indices=self.colors,
-            normalize=False,
             seed=self.seed,
         )
         x_colorized = colorizer(images=x, labels=s)
