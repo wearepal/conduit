@@ -54,7 +54,7 @@ class MNISTColorizer:
         black: bool = True,
         greyscale: bool = False,
         color_indices: Optional[Union[List[int], slice]] = None,
-        normalize: bool = True,
+        normalize: bool = False,
         seed: Optional[int] = 42,
     ) -> None:
         """
