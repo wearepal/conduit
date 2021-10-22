@@ -28,6 +28,7 @@ def denormalize(
     tensor: Tensor,
     mean: Union[float, Tensor, Sequence[float], NDArrayR],
     std: Union[float, Tensor, Sequence[float], NDArrayR],
+    inplace: bool = False,
 ) -> Tensor:
     """Denormalize a float tensor image with mean and standard deviation.
 
@@ -40,7 +41,9 @@ def denormalize(
         This transform acts out of place, i.e., it does not mutate the input tensor.
     """
     mean_inv, std_inv = _invert_norm_values(mean=mean, std=std)
-    return TF.normalize(tensor=tensor, mean=mean_inv.tolist(), std=std_inv.tolist())
+    return TF.normalize(
+        tensor=tensor, mean=mean_inv.tolist(), std=std_inv.tolist(), inplace=inplace
+    )
 
 
 class Denormalize(T.Normalize):
@@ -59,9 +62,7 @@ class Denormalize(T.Normalize):
         self,
         mean: Union[float, Tensor, Sequence[float], NDArrayR],
         std: Union[float, Tensor, Sequence[float], NDArrayR],
+        inplace: bool = False,
     ) -> None:
         mean_inv, std_inv = _invert_norm_values(mean=mean, std=std)
-        super().__init__(mean=mean_inv, std=std_inv)
-
-    def __call__(self, tensor: Tensor) -> Tensor:
-        return super().__call__(tensor.clone())
+        super().__init__(mean=mean_inv, std=std_inv, inplace=inplace)
