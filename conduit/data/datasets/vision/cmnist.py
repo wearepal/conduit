@@ -27,22 +27,20 @@ __all__ = [
 class MNISTColorizer:
     """Convert a greyscale MNIST image to RGB."""
 
-    COLORS: ClassVar[Tensor] = (
-        torch.tensor(
-            [
-                (0, 255, 255),
-                (0, 0, 255),  # blue
-                (255, 0, 255),
-                (0, 128, 0),
-                (0, 255, 0),  # green
-                (128, 0, 0),
-                (0, 0, 128),
-                (128, 0, 128),
-                (255, 0, 0),  # red
-                (255, 255, 0),  # yellow
-            ],
-            dtype=torch.float32,
-        )
+    COLORS: ClassVar[Tensor] = torch.tensor(
+        [
+            (0, 255, 255),
+            (0, 0, 255),  # blue
+            (255, 0, 255),
+            (0, 128, 0),
+            (0, 255, 0),  # green
+            (128, 0, 0),
+            (0, 0, 128),
+            (128, 0, 128),
+            (255, 0, 0),  # red
+            (255, 255, 0),  # yellow
+        ],
+        dtype=torch.float32,
     )
 
     def __init__(
