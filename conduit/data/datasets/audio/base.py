@@ -12,7 +12,7 @@ from conduit.data.datasets.base import CdtDataset
 from conduit.data.datasets.utils import (
     AudioLoadingBackend,
     AudioTform,
-    apply_waveform_transform,
+    apply_audio_transform,
     infer_al_backend,
 )
 from conduit.data.structures import TargetData
@@ -45,7 +45,7 @@ class CdtAudioDataset(CdtDataset):
 
         # Infer the appropriate audio-loading backend based on the operating system.
         self.al_backend: AudioLoadingBackend = infer_al_backend()
-        self.log(f'Using {self.al_backend} as backend for audio-loading')
+        self.logger.info(f"Using {self.al_backend} as backend for audio-loading.")
         torchaudio.set_audio_backend(self.al_backend)
 
     def __repr__(self) -> str:
@@ -62,9 +62,9 @@ class CdtAudioDataset(CdtDataset):
 
     def load_sample(self, index: int) -> Tensor:
         path = self.audio_dir / self.x[index]
-        return torchaudio.load(path) if str(self.x[index]).endswith('.wav') else torch.load(path)
+        return torchaudio.load(path)[0]  # type: ignore
 
     @implements(CdtDataset)
     def _sample_x(self, index: int, *, coerce_to_tensor: bool = False) -> Tensor:
         waveform = self.load_sample(index)
-        return apply_waveform_transform(waveform, transform=None)
+        return apply_audio_transform(waveform, transform=None)

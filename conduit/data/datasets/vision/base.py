@@ -43,7 +43,7 @@ class CdtVisionDataset(CdtDataset):
         new_backend = infer_il_backend(transform)
         if new_backend != self._il_backend:
             self._il_backend = new_backend
-            self.log(f"Using {self._il_backend} as backend for image-loading.")
+            self.logger.info(f"Using {self._il_backend} as backend for image-loading.")
 
     def __repr__(self) -> str:
         head = "Dataset " + self.__class__.__name__

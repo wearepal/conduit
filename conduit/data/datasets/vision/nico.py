@@ -97,7 +97,7 @@ class NICO(CdtVisionDataset):
 
     def _extract_metadata(self) -> None:
         """Extract concept/context/superclass information from the image filepaths and it save to csv."""
-        self.log("Extracting metadata.")
+        self.logger.info("Extracting metadata.")
         image_paths: List[Path] = []
         for ext in ("jpg", "jpeg", "png"):
             image_paths.extend(self._base_dir.glob(f"**/*.{ext}"))

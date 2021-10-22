@@ -42,7 +42,7 @@ class CdtRelay(Relay):
 
     @implements(Relay)
     def run(self, raw_config: Optional[Dict[str, Any]] = None) -> None:
-        self.log(f"Current working directory: '{os.getcwd()}'")
+        self.logger.info(f"Current working directory: '{os.getcwd()}'")
         if raw_config is not None:
             self.log("-----\n" + str(raw_config) + "\n-----")
             try:
