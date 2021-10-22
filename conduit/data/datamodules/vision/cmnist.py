@@ -39,7 +39,9 @@ class ColoredMNISTDataModule(CdtVisionDataModule):
     @implements(CdtVisionDataModule)
     def _default_train_transforms(self) -> A.Compose:
         base_transforms = A.Compose([A.Resize(self.image_size, self.image_size)])
-        normalization = A.Compose([A.Normalize(self.norm_values), ToTensorV2])
+        normalization = A.Compose(
+            [A.Normalize(mean=self.norm_values.mean, std=self.norm_values.std), ToTensorV2()]
+        )
         return A.Compose([base_transforms, normalization])
 
     @property  # type: ignore[misc]

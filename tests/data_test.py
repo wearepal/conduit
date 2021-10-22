@@ -15,13 +15,18 @@ from conduit.data import (
     SSRP,
     BinarySample,
     BinarySampleIW,
+    CdtVisionDataModule,
     CelebA,
+    CelebADataModule,
+    ColoredMNISTDataModule,
     ImageTform,
     NamedSample,
+    NICODataModule,
     SampleBase,
     TernarySample,
     TernarySampleIW,
     Waterbirds,
+    WaterbirdsDataModule,
 )
 from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
@@ -56,6 +61,17 @@ def test_colorizer(
     )
 
     images = transform(images=images, labels=labels)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "dm", [ColoredMNISTDataModule, CelebADataModule, NICODataModule, WaterbirdsDataModule]
+)
+def test_vision_datamodules(root, dm: Type[CdtVisionDataModule]):
+    dm = dm(root=root)
+    dm.prepare_data()
+    dm.setup()
+    _ = next(iter(dm.train_dataloader()))
 
 
 @pytest.mark.slow
