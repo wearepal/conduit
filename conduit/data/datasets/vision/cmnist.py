@@ -52,10 +52,10 @@ class MNISTColorizer:
         binarize: bool = False,
         background: bool = False,
         black: bool = True,
-        seed: Optional[int] = 42,
         greyscale: bool = False,
         color_indices: Optional[Union[List[int], slice]] = None,
         normalize: bool = True,
+        seed: Optional[int] = 42,
     ) -> None:
         """
         Colorizes a grayscale image by sampling colors from multivariate normal distributions.
@@ -67,13 +67,13 @@ class MNISTColorizer:
         :param max_val: Maximum value the input data can take (needed for clamping).
         :param scale: Standard deviation of the multivariate normal distributions from which
             the colors are drawn. Lower values correspond to higher bias. Defaults to 0.02.
-        :param binarize: Whether the binarize the grayscale data before colorisation.
+        :param binarize: Whether to the binarize the grayscale data before colorisation.
         :param background: Whether to color the background instead of the foreground.
         :param black: Whether not to invert the black. Defaults to True.
-        :param seed: Random seed used for sampling colors. Defaults to 42.
         :param greyscale: Whether to greyscale the colorised images. Defaults to False.
         :param color_indices: Choose specific colors if you don't need all 10
         :param normalize: Whether to normalize the pixel-values to [0, 1].
+        :param seed: Random seed used for sampling colors.
         """
         super().__init__()
         self.min_val = min_val
@@ -84,15 +84,18 @@ class MNISTColorizer:
         self.greyscale = greyscale
         self.scale = scale
         self.normalize = normalize
+        self.seed = seed
 
         self.generator = (
-            torch.default_generator if seed is None else torch.Generator().manual_seed(seed)
+            torch.default_generator
+            if self.seed is None
+            else torch.Generator().manual_seed(self.seed)
         )
         self.palette = self.COLORS if color_indices is None else self.COLORS[color_indices]
 
     def _sample_colors(self, mean_color_values: Tensor) -> Tensor:
         return torch.normal(mean=mean_color_values, std=self.scale, generator=self.generator).clip(
-            0, 1
+            0, 255
         )
 
     def __call__(
@@ -201,6 +204,7 @@ class ColoredMNIST(CdtVisionDataset):
         background: bool = False,
         black: bool = True,
         split: Optional[Union[ColoredMNISTSplit, str]] = None,
+        seed: Optional[int] = 42,
     ) -> None:
         self.split = (
             str_to_enum(str_=split, enum=ColoredMNISTSplit) if isinstance(split, str) else split
@@ -213,6 +217,8 @@ class ColoredMNIST(CdtVisionDataset):
         self.binarize = binarize
         self.black = black
         self.greyscale = greyscale
+        self.seed = seed
+
         if not 0 <= correlation <= 1:
             raise ValueError(
                 "Strength of correlation between colour and targets must be between 0 and 1."
@@ -258,6 +264,8 @@ class ColoredMNIST(CdtVisionDataset):
             binarize=self.binarize,
             greyscale=self.greyscale,
             color_indices=self.colors,
+            normalize=False,
+            seed=self.seed,
         )
         x_colorized = colorizer(images=x, labels=s)
         # Convert to HWC format for compatibility with transforms
