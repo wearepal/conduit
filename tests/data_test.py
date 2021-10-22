@@ -15,7 +15,9 @@ from conduit.data import (
     SSRP,
     BinarySample,
     BinarySampleIW,
+    CdtVisionDataModule,
     CelebA,
+    ColoredMNISTDataModule,
     ImageTform,
     NamedSample,
     SampleBase,
@@ -56,6 +58,15 @@ def test_colorizer(
     )
 
     images = transform(images=images, labels=labels)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("dm", [ColoredMNISTDataModule, ISIC, CelebA, NICO, SSRP, Waterbirds])
+def test_vision_datamodules(root, dm: Type[CdtVisionDataModule]):
+    dm = dm(root=root)
+    dm.prepare_data()
+    dm.setup()
+    _ = next(iter(dm.train_dataloader()))
 
 
 @pytest.mark.slow
