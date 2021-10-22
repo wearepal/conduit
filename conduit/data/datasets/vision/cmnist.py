@@ -27,21 +27,24 @@ __all__ = [
 class MNISTColorizer:
     """Convert a greyscale MNIST image to RGB."""
 
-    COLORS: ClassVar[Tensor] = torch.tensor(
-        [
-            (0, 255, 255),
-            (0, 0, 255),  # blue
-            (255, 0, 255),
-            (0, 128, 0),
-            (0, 255, 0),  # green
-            (128, 0, 0),
-            (0, 0, 128),
-            (128, 0, 128),
-            (255, 0, 0),  # red
-            (255, 255, 0),  # yellow
-        ],
-        dtype=torch.float32,
-    ) / 255.0
+    COLORS: ClassVar[Tensor] = (
+        torch.tensor(
+            [
+                (0, 255, 255),
+                (0, 0, 255),  # blue
+                (255, 0, 255),
+                (0, 128, 0),
+                (0, 255, 0),  # green
+                (128, 0, 0),
+                (0, 0, 128),
+                (128, 0, 128),
+                (255, 0, 0),  # red
+                (255, 255, 0),  # yellow
+            ],
+            dtype=torch.float32,
+        )
+        / 255.0
+    )
 
     def __init__(
         self,
@@ -91,9 +94,12 @@ class MNISTColorizer:
         self.palette = self.COLORS if color_indices is None else self.COLORS[color_indices]
 
     def _sample_colors(self, mean_color_values: Tensor) -> Tensor:
-        return torch.normal(mean=mean_color_values, std=self.scale, generator=self.generator).clip(
-            0, 255
-        ) / 255.0
+        return (
+            torch.normal(mean=mean_color_values, std=self.scale, generator=self.generator).clip(
+                0, 255
+            )
+            / 255.0
+        )
 
     def __call__(
         self, images: Union[Tensor, NDArrayR], *, labels: Union[Tensor, NDArrayR]
@@ -125,7 +131,7 @@ class MNISTColorizer:
                 images_colorized = (1 - images) * colors
             else:
                 # colorful background, white digits
-                images_colorized = (images + colors)
+                images_colorized = images + colors
         elif self.black:
             # black background, colorful digits
             images_colorized = images * colors
