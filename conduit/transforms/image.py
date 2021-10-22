@@ -1,4 +1,4 @@
-from typing import Sequence, Union
+from typing import Sequence, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -11,6 +11,17 @@ __all__ = [
     "Denormalize",
     "denormalize",
 ]
+
+
+def _invert_norm_values(
+    mean: Union[float, Tensor, Sequence[float], NDArrayR],
+    std: Union[float, Tensor, Sequence[float], NDArrayR],
+) -> Tuple[Tensor, Tensor]:
+    mean = torch.as_tensor(mean)
+    std = torch.as_tensor(std)
+    std_inv = std.reciprocal().clip(torch.finfo(std.dtype).eps)
+    mean_inv = -mean * std_inv
+    return mean_inv, std_inv
 
 
 def denormalize(
@@ -28,10 +39,7 @@ def denormalize(
     .. note::
         This transform acts out of place, i.e., it does not mutate the input tensor.
     """
-    mean = torch.as_tensor(mean)
-    std = torch.as_tensor(std)
-    std_inv = std.reciprocal().clip(torch.finfo(std.dtype).eps)
-    mean_inv = -mean * std_inv
+    mean_inv, std_inv = _invert_norm_values(mean=mean, std=std)
     return TF.normalize(tensor=tensor, mean=mean_inv.tolist(), std=std_inv.tolist())
 
 
@@ -52,10 +60,7 @@ class Denormalize(T.Normalize):
         mean: Union[float, Tensor, Sequence[float], NDArrayR],
         std: Union[float, Tensor, Sequence[float], NDArrayR],
     ) -> None:
-        mean = torch.as_tensor(mean)
-        std = torch.as_tensor(std)
-        std_inv = std.reciprocal().clip(torch.finfo(std.dtype).eps)
-        mean_inv = -mean * std_inv
+        mean_inv, std_inv = _invert_norm_values(mean=mean, std=std)
         super().__init__(mean=mean_inv, std=std_inv)
 
     def __call__(self, tensor: Tensor) -> Tensor:
