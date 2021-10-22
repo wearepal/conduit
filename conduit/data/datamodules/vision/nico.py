@@ -31,7 +31,7 @@ class NICODataModule(CdtVisionDataModule):
                 A.CenterCrop(self.image_size, self.image_size),
             ]
         )
-        normalization = super()._default_train_transforms()
+        normalization = super()._default_train_transforms
         return A.Compose([base_transforms, normalization])
 
     @property  # type: ignore[misc]

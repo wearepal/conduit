@@ -61,9 +61,7 @@ class CdtVisionDataModule(CdtDataModule):
 
     @property
     def _default_train_transforms(self) -> A.Compose:
-        transform_ls: List[AlbumentationsTform] = [
-            A.ToFloat(),
-        ]
+        transform_ls: List[AlbumentationsTform] = [A.ToFloat()]
         if self.norm_values is not None:
             transform_ls.append(A.Normalize(mean=self.norm_values.mean, std=self.norm_values.std))
         transform_ls.append(ToTensorV2())
@@ -71,9 +69,7 @@ class CdtVisionDataModule(CdtDataModule):
 
     @property
     def _default_test_transforms(self) -> A.Compose:
-        transform_ls: List[AlbumentationsTform] = [
-            A.ToFloat(),
-        ]
+        transform_ls: List[AlbumentationsTform] = [A.ToFloat()]
         if self.norm_values is not None:
             transform_ls.append(A.Normalize(mean=self.norm_values.mean, std=self.norm_values.std))
         transform_ls.append(ToTensorV2())
