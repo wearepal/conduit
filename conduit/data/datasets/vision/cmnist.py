@@ -43,7 +43,6 @@ class MNISTColorizer:
             ],
             dtype=torch.float32,
         )
-        / 255.0
     )
 
     def __init__(
