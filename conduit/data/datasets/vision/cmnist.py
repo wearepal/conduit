@@ -41,7 +41,7 @@ class MNISTColorizer:
             (255, 255, 0),  # yellow
         ],
         dtype=torch.float32,
-    )
+    ) / 255.0
 
     def __init__(
         self,
@@ -96,14 +96,14 @@ class MNISTColorizer:
     def _sample_colors(self, mean_color_values: Tensor) -> Tensor:
         return torch.normal(mean=mean_color_values, std=self.scale, generator=self.generator).clip(
             0, 255
-        )
+        ) / 255.0
 
     def __call__(
         self, images: Union[Tensor, NDArrayR], *, labels: Union[Tensor, NDArrayR]
     ) -> Tensor:
         """Apply the transformation.
 
-        :param images:  Greyscale images to be colorized.
+        :param images:  Greyscale images to be colorized. Expected to be unnormalized (in the range [0, 255]).
         :param labels: Indexes (0-9) indicating the gaussian distribution from which to sample each image's color.
         :returns: Images converted to RGB.
         """
@@ -118,11 +118,9 @@ class MNISTColorizer:
         images = images.expand(-1, 3, -1, -1)
 
         colors = self._sample_colors(self.palette[labels]).view(-1, 3, 1, 1)
-        if self.normalize:
-            colors /= 255.0
 
         if self.binarize:
-            images = (images > 0.5).float()
+            images = (images > 127).float()
 
         if self.background:
             if self.black:
@@ -130,7 +128,7 @@ class MNISTColorizer:
                 images_colorized = (1 - images) * colors
             else:
                 # colorful background, white digits
-                images_colorized = (images + colors).clip(0, 1)
+                images_colorized = (images + colors)
         elif self.black:
             # black background, colorful digits
             images_colorized = images * colors
