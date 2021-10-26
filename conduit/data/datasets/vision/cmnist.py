@@ -54,7 +54,6 @@ class MNISTColorizer:
         black: bool = True,
         greyscale: bool = False,
         color_indices: Optional[Union[List[int], slice]] = None,
-        normalize: bool = False,
         seed: Optional[int] = 42,
     ) -> None:
         """
@@ -72,7 +71,6 @@ class MNISTColorizer:
         :param black: Whether not to invert the black. Defaults to True.
         :param greyscale: Whether to greyscale the colorised images. Defaults to False.
         :param color_indices: Choose specific colors if you don't need all 10
-        :param normalize: Whether to normalize the pixel-values to [0, 1].
         :param seed: Random seed used for sampling colors.
         """
         super().__init__()
@@ -83,7 +81,6 @@ class MNISTColorizer:
         self.black = black
         self.greyscale = greyscale
         self.scale = scale
-        self.normalize = normalize
         self.seed = seed
 
         self.generator = (
@@ -94,8 +91,11 @@ class MNISTColorizer:
         self.palette = self.COLORS if color_indices is None else self.COLORS[color_indices]
 
     def _sample_colors(self, mean_color_values: Tensor) -> Tensor:
-        return torch.normal(mean=mean_color_values, std=self.scale, generator=self.generator).clip(
-            0, 255
+        return (
+            torch.normal(mean=mean_color_values, std=self.scale, generator=self.generator).clip(
+                0, 255
+            )
+            / 255.0
         )
 
     def __call__(
@@ -103,7 +103,7 @@ class MNISTColorizer:
     ) -> Tensor:
         """Apply the transformation.
 
-        :param images:  Greyscale images to be colorized.
+        :param images:  Greyscale images to be colorized. Expected to be unnormalized (in the range [0, 255]).
         :param labels: Indexes (0-9) indicating the gaussian distribution from which to sample each image's color.
         :returns: Images converted to RGB.
         """
@@ -118,11 +118,9 @@ class MNISTColorizer:
         images = images.expand(-1, 3, -1, -1)
 
         colors = self._sample_colors(self.palette[labels]).view(-1, 3, 1, 1)
-        if self.normalize:
-            colors /= 255.0
 
         if self.binarize:
-            images = (images > 0.5).float()
+            images = (images > 127).float()
 
         if self.background:
             if self.black:
@@ -130,7 +128,7 @@ class MNISTColorizer:
                 images_colorized = (1 - images) * colors
             else:
                 # colorful background, white digits
-                images_colorized = (images + colors).clip(0, 1)
+                images_colorized = images + colors
         elif self.black:
             # black background, colorful digits
             images_colorized = images * colors
@@ -264,7 +262,6 @@ class ColoredMNIST(CdtVisionDataset):
             binarize=self.binarize,
             greyscale=self.greyscale,
             color_indices=self.colors,
-            normalize=False,
             seed=self.seed,
         )
         x_colorized = colorizer(images=x, labels=s)
