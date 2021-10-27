@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from dataclasses import replace
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Tuple, Union, cast
 
 import numpy as np
 import pytorch_lightning as pl
@@ -148,6 +148,11 @@ class InstanceDiscriminator(SelfSupervisedModel):
         eval_epochs: int,
         instance_transforms: Optional[MultiCropTransform] = None,
         batch_transforms: Optional[BatchTransform] = None,
+        global_crop_size: Optional[Union[Tuple[int, int], int]] = None,
+        local_crop_size: Union[Tuple[float, float], float] = 0.43,
+        global_crops_scale: Tuple[float, float] = (0.4, 1.0),
+        local_crops_scale: Tuple[float, float] = (0.05, 0.4),
+        local_crops_number: int = 0,
     ) -> None:
         super().__init__(
             lr=lr,
@@ -158,7 +163,32 @@ class InstanceDiscriminator(SelfSupervisedModel):
         self.instance_transforms = instance_transforms
         self.batch_transforms = batch_transforms
 
-    def _get_positive_views(self, batch: NamedSample) -> MultiCropOutput:
+        # View-generation settings
+        self._global_crop_size = global_crop_size
+        self._local_crop_size = local_crop_size
+        self.local_crops_number = local_crops_number
+        self.local_crops_scale = local_crops_scale
+        self.global_crops_scale = global_crops_scale
+
+    @property
+    def global_crop_size(self) -> Union[int, Tuple[int, int]]:
+        # return 224 if self._global_crop_size is None else self._global_crop_size
+        if not isinstance(self.datamodule, CdtVisionDataModule):
+            raise AttributeError("'global_crop_size' is only applicable to vision datasets.")
+        return (
+            self.datamodule.dims[1:] if (self._global_crop_size is None) else self._global_crop_size
+        )
+
+    @property
+    def local_crop_size(self) -> Union[int, Tuple[int, int]]:
+        size_ = np.multiply(self.global_crop_size, self._local_crop_size).astype(np.int64)
+        if isinstance(size_, np.integer):
+            size = int(size_)
+        else:
+            size = cast(Tuple[int, int], tuple(size_))
+        return size
+
+    def _get_positives(self, batch: NamedSample) -> MultiCropOutput:
         if isinstance(batch.x, Tensor):
             if self.batch_transforms is None:
                 return MultiCropOutput(global_crops=[batch.x, batch.x])

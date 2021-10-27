@@ -36,8 +36,8 @@ from conduit.models.self_supervised.moco.transforms import (
     moco_ft_transform,
     moco_test_transform,
 )
-from conduit.models.self_supervised.moco.utils import ResNetArch
 from conduit.models.self_supervised.multicrop import MultiCropWrapper
+from conduit.models.self_supervised.utils import ResNetArch
 from conduit.types import Stage
 
 __all__ = ["DINO"]
@@ -72,6 +72,8 @@ class DINO(MomentumTeacherModel):
         warmup_teacher_temp_iters: int = 30,
         num_eval_blocks: int = 1,
         lr_eval: float = 1.0e-4,
+        global_crop_size: Optional[Union[Tuple[int, int], int]] = None,
+        local_crop_size: Union[Tuple[float, float], float] = 0.43,
         global_crops_scale: Tuple[float, float] = (0.4, 1.0),
         local_crops_scale: Tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
@@ -85,6 +87,11 @@ class DINO(MomentumTeacherModel):
             eval_epochs=eval_epochs,
             eval_batch_size=eval_batch_size,
             batch_transforms=batch_transforms,
+            global_crop_size=global_crop_size,
+            local_crop_size=local_crop_size,
+            global_crops_scale=global_crops_scale,
+            local_crops_scale=local_crops_scale,
+            local_crops_number=local_crops_number,
         )
         if isinstance(backbone, str):
             backbone = str_to_enum(str_=backbone, enum=vit.VitArch)
@@ -105,9 +112,6 @@ class DINO(MomentumTeacherModel):
         self.warmup_teacher_temp_iters = warmup_teacher_temp_iters
         self.student_temp = student_temp
         self.eval_lr = lr_eval
-        self.local_crops_number = local_crops_number
-        self.local_crops_scale = local_crops_scale
-        self.global_crops_scale = global_crops_scale
 
         # ViT-specific arguments
         self.patch_size = patch_size
@@ -123,9 +127,15 @@ class DINO(MomentumTeacherModel):
     @implements(CdtModel)
     def _build(self) -> None:
         if isinstance(self.datamodule, CdtVisionDataModule):
+            global_crop_size = (
+                self.datamodule.dims if self.global_crop_size is None else self.global_crop_size
+            )
+            local_crop_size = tuple(
+                np.multiply(global_crop_size, self.local_crop_size).astype(np.int64)
+            )
             self.instance_transforms = MultiCropTransform.with_dino_transform(
-                global_crop_size=224,
-                local_crop_size=96,
+                global_crop_size=global_crop_size,
+                local_crop_size=local_crop_size,
                 global_crops_scale=self.global_crops_scale,
                 local_crops_scale=self.local_crops_scale,
                 local_crops_number=self.local_crops_number,
@@ -133,7 +143,7 @@ class DINO(MomentumTeacherModel):
             )
 
             self.datamodule.test_transforms = moco_test_transform(
-                crop_size=224,
+                crop_size=self.datamodule.dims[1],
                 amount_to_crop=32,
                 norm_values=self.datamodule.norm_values,
             )
@@ -175,7 +185,7 @@ class DINO(MomentumTeacherModel):
             student_backbone.fc = nn.Identity()
             student_backbone.head = nn.Identity()
         elif isinstance(self.backbone, ResNetArch):
-            student_backbone = cast(ResNet, self.backbone.value(self.patch_size))
+            student_backbone = cast(ResNet, self.backbone.value(self.patch_size))  # type: ignore
             self.embed_dim = student_backbone.fc.weight.shape[1]
             student_backbone.fc = nn.Identity()  # type: ignore
         else:
@@ -243,11 +253,11 @@ class DINO(MomentumTeacherModel):
                 p.grad = None
 
     def _get_loss(self, batch: NamedSample, batch_idx: int) -> Tensor:
-        views = self._get_positive_views(batch=batch)
+        positives = self._get_positives(batch=batch)
         teacher_logits = self.teacher(
-            views.global_crops
+            positives.global_crops
         )  # only the 2 global views pass through the teacher
-        student_logits = self.student(views.all_crops)
+        student_logits = self.student(positives.all_crops)
         return self._loss_fn(
             student_logits=student_logits, teacher_logits=teacher_logits, step=batch_idx
         )
@@ -287,7 +297,9 @@ class DINO(MomentumTeacherModel):
     @implements(SelfSupervisedModel)
     def _ft_transform(self) -> ImageTform:
         assert isinstance(self.datamodule, CdtVisionDataModule)
-        return moco_ft_transform(crop_size=224, norm_values=self.datamodule.norm_values)
+        return moco_ft_transform(
+            crop_size=self.datamodule.dims[1], norm_values=self.datamodule.norm_values
+        )
 
     @implements(SelfSupervisedModel)
     @torch.no_grad()

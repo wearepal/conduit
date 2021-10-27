@@ -1,9 +1,8 @@
 import torch
 from torch import Tensor
+from torchvision.models import resnet
 
-__all__ = [
-    "concat_all_gather",
-]
+__all__ = ["concat_all_gather"]
 
 
 @torch.no_grad()

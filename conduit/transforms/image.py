@@ -1,5 +1,7 @@
+import random
 from typing import Sequence, Tuple, Union
 
+from PIL import Image, ImageFilter, ImageOps
 import torch
 from torch import Tensor
 import torchvision.transforms as T
@@ -9,6 +11,8 @@ from conduit.types import NDArrayR
 
 __all__ = [
     "Denormalize",
+    "RandomGaussianBlur",
+    "RandomSolarize",
     "denormalize",
 ]
 
@@ -66,3 +70,37 @@ class Denormalize(T.Normalize):
     ) -> None:
         mean_inv, std_inv = _invert_norm_values(mean=mean, std=std)
         super().__init__(mean=mean_inv, std=std_inv, inplace=inplace)
+
+
+class RandomGaussianBlur:
+    """
+    Apply Gaussian Blur to the PIL image with some probability.
+    """
+
+    def __init__(self, p: float = 0.5, *, radius_min: float = 0.1, radius_max: float = 2.0) -> None:
+        self.prob = p
+        self.radius_min = radius_min
+        self.radius_max = radius_max
+
+    def __call__(self, img: Image.Image) -> Image.Image:
+        do_it = random.random() <= self.prob
+        if not do_it:
+            return img
+
+        return img.filter(
+            ImageFilter.GaussianBlur(radius=random.uniform(self.radius_min, self.radius_max))
+        )
+
+
+class RandomSolarize:
+    """
+    Apply Solarization to a PIL image with some probability.
+    """
+
+    def __init__(self, p: float) -> None:
+        self.p = p
+
+    def __call__(self, img: Image.Image) -> Image.Image:
+        if random.random() < self.p:
+            return ImageOps.solarize(img)
+        return img

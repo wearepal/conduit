@@ -1,31 +1,15 @@
-import random
 from typing import List, Optional, Sequence, Tuple, Union
 
-from PIL import Image, ImageOps
 from torchvision import transforms as T
 from torchvision.transforms.functional import InterpolationMode
 
 from conduit.constants import IMAGENET_STATS
 from conduit.data.datasets.utils import PillowTform
 from conduit.data.structures import MeanStd
-from conduit.models.self_supervised.moco.transforms import GaussianBlur
 from conduit.models.self_supervised.multicrop import MultiCropTransform
+from conduit.transforms import RandomGaussianBlur, RandomSolarize
 
-__all__ = ["Solarization", "dino_train_transform"]
-
-
-class Solarization:
-    """
-    Apply Solarization to a PIL image with some probability.
-    """
-
-    def __init__(self, p: float) -> None:
-        self.p = p
-
-    def __call__(self, img: Image.Image) -> Image.Image:
-        if random.random() < self.p:
-            return ImageOps.solarize(img)
-        return img
+__all__ = ["dino_train_transform"]
 
 
 def dino_train_transform(
@@ -60,7 +44,7 @@ def dino_train_transform(
                 global_crop_size, scale=global_crops_scale, interpolation=InterpolationMode.BICUBIC
             ),
             flip_and_color_jitter,
-            GaussianBlur(1.0),
+            RandomGaussianBlur(1.0),
             normalize,
         ]
     )
@@ -71,8 +55,8 @@ def dino_train_transform(
                 local_crop_size, scale=global_crops_scale, interpolation=InterpolationMode.BICUBIC
             ),
             flip_and_color_jitter,
-            GaussianBlur(0.1),
-            Solarization(0.2),
+            RandomGaussianBlur(0.1),
+            RandomSolarize(0.2),
             normalize,
         ]
     )
@@ -83,7 +67,7 @@ def dino_train_transform(
                 local_crop_size, scale=local_crops_scale, interpolation=InterpolationMode.BICUBIC
             ),
             flip_and_color_jitter,
-            GaussianBlur(p=0.5),
+            RandomGaussianBlur(p=0.5),
             normalize,
         ]
     )

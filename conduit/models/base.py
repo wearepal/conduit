@@ -88,9 +88,9 @@ class CdtModel(pl.LightningModule):
     def trainer(self, trainer: pl.Trainer) -> None:
         self._trainer = trainer
 
-    def build(self, datamodule: CdtDataModule, *, trainer: pl.Trainer, copy: bool = True) -> None:
+    def build(self, datamodule: CdtDataModule, *, trainer: pl.Trainer, copy: bool = False) -> None:
         if copy:
-            datamodule = gcopy(datamodule, deep=False)
+            datamodule = gcopy(datamodule, deep=True)
             trainer = gcopy(trainer, deep=True)
         self._datamodule = datamodule
         self._trainer = trainer
@@ -176,6 +176,7 @@ class CdtModel(pl.LightningModule):
     ) -> None:
         """Seed, build, fit, and test the model."""
         pl.seed_everything(seed)
+        # datamodule.setup()
         self.build(datamodule=datamodule, trainer=trainer, copy=copy)
         self.fit()
         self.test()

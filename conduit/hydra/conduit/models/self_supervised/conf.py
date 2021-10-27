@@ -6,7 +6,7 @@
 
 from dataclasses import dataclass, field
 from conduit.architectures.vit import VitArch
-from conduit.models.self_supervised.moco.utils import ResNetArch
+from conduit.models.self_supervised.utils import ResNetArch
 from typing import Any
 from typing import Optional
 from typing import Tuple

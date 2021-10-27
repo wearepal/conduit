@@ -1,7 +1,6 @@
 """Base class from which all data-modules in conduit inherit."""
 from abc import abstractmethod
 import logging
-import sys
 from typing import Optional, Sequence, Tuple, cast
 
 import attr
@@ -21,7 +20,7 @@ from conduit.data.datasets.utils import (
     get_group_ids,
 )
 from conduit.data.datasets.wrappers import InstanceWeightedDataset
-from conduit.data.structures import ImageSize, TrainValTestSplit
+from conduit.data.structures import TrainValTestSplit
 from conduit.logging import init_logger
 from conduit.types import Stage
 
@@ -179,17 +178,12 @@ class CdtDataModule(pl.LightningDataModule):
         return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.test_data)
 
     @property
-    @final
     @implements(pl.LightningDataModule)
     def dims(self) -> Tuple[int, ...]:
         if self._dims:
             return self._dims
         self._check_setup_called()
-        input_size = self._train_data[0].x.shape  # type: ignore
-        if len(input_size) == 3:
-            input_size = ImageSize(*input_size)
-        else:
-            input_size = tuple(input_size)
+        input_size = tuple(self._train_data[0].x.shape)  # type: ignore
         self._dims = input_size
         return self._dims
 
@@ -254,7 +248,7 @@ class CdtDataModule(pl.LightningDataModule):
         return self._get_base_dataset().card_s
 
     def _check_setup_called(self, caller: Optional[str] = None) -> None:
-        if self._train_data is None:
+        if not self.is_set_up:
             if caller is None:
                 # inspect the call stack to find out who called this function
                 import inspect
@@ -282,11 +276,15 @@ class CdtDataModule(pl.LightningDataModule):
     def _get_splits(self) -> TrainValTestSplit:
         ...
 
+    @property
+    def is_set_up(self) -> bool:
+        return self._train_data is not None
+
     @implements(pl.LightningDataModule)
     @final
     def setup(self, stage: Optional[Stage] = None, force_reset: bool = False) -> None:
         # Only perform the setup if it hasn't already been done
-        if force_reset or (self._train_data is None):
+        if force_reset or (not self.is_set_up):
             self._setup(stage=stage)
             self._post_setup()
 
