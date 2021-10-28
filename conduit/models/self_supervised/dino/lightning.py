@@ -231,7 +231,7 @@ class DINO(MomentumTeacherModel):
         dataloader = cast(DataLoader, getattr(dm_cp, f"{stage}_dataloader")(**dl_kwargs))
         # Encode the dataset
         dataset_encoder = DatasetEncoder(model=self.student.backbone)
-        self.finetuner.test(
+        self.ft_trainer.test(
             dataset_encoder,
             test_dataloaders=dataloader,
             verbose=False,
