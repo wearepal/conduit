@@ -176,7 +176,7 @@ class CdtModel(pl.LightningModule):
     ) -> None:
         """Seed, build, fit, and test the model."""
         pl.seed_everything(seed)
-        # datamodule.setup()
+        datamodule.setup()
         self.build(datamodule=datamodule, trainer=trainer, copy=copy)
         self.fit()
         self.test()
