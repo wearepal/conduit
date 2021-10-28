@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from dataclasses import replace
-from typing import Any, Callable, Optional, Tuple, Union, cast
+from typing import Any, Callable, Dict, Optional, Tuple, Union, cast
 
 import numpy as np
 import pytorch_lightning as pl
@@ -27,7 +27,7 @@ from conduit.models.self_supervised.multicrop import (
     MultiCropTransform,
     MultiCropWrapper,
 )
-from conduit.types import MetricDict, Stage
+from conduit.types import Stage
 
 __all__ = [
     "BatchTransform",
@@ -62,7 +62,7 @@ class SelfSupervisedModel(CdtModel):
     def ft_clf(self) -> ERMClassifier:
         if self._ft_clf is None:
             self._ft_clf = self._init_ft_clf()
-            self._ft_clf.build(datamodule=self.datamodule, trainer=self.finetuner, copy=False)
+            self._ft_clf.build(datamodule=self.datamodule, trainer=self.ft_trainer, copy=False)
         return self._ft_clf
 
     @ft_clf.setter
@@ -70,18 +70,19 @@ class SelfSupervisedModel(CdtModel):
         self._ft_clf = clf
 
     @property
-    def finetuner(self) -> pl.Trainer:
+    def ft_trainer(self) -> pl.Trainer:
         if self._finetuner is None:
             self._finetuner = gcopy(self.trainer, deep=True, num_sanity_val_batches=0)
             self._finetuner.fit_loop.max_epochs = self.eval_epochs
             self._finetuner.fit_loop.max_steps = None  # type: ignore
+            self._finetuner.logger = None  # type: ignore
             bar = PostHocProgressBar()
             bar._trainer = self._finetuner
             self._finetuner.callbacks = [bar]
         return self._finetuner
 
-    @finetuner.setter
-    def finetuner(self, trainer: pl.Trainer) -> None:
+    @ft_trainer.setter
+    def ft_trainer(self, trainer: pl.Trainer) -> None:
         self._finetuner = trainer
 
     @abstractmethod
@@ -105,24 +106,46 @@ class SelfSupervisedModel(CdtModel):
         if self.eval_batch_size is not None:
             dm_cp.train_batch_size = self.eval_batch_size
 
-        self.finetuner.fit(
+        self.ft_trainer.fit(
             self.ft_clf,
             train_dataloaders=dm_cp.train_dataloader(),
         )
 
-    @implements(CdtModel)
-    def inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
-        return self.ft_clf.inference_step(batch=batch, stage=stage)
-
-    @implements(CdtModel)
-    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
-        results_dict = self.ft_clf.inference_epoch_end(outputs=outputs, stage=stage)
-        # Free up memory
-        self._ft_clf = None
-        return results_dict
-
     def on_inference_start(self) -> None:
         self._finetune()
+
+    def validation_step(self, batch: NamedSample, batch_idx: int) -> STEP_OUTPUT:
+        """Validation is handled entirely within on_validation_start/on_validation_end."""
+
+    def test_step(self, batch: NamedSample, batch_idx: int) -> STEP_OUTPUT:
+        """Testing is handled entirely within on_test_start/on_test_end."""
+
+    @implements(pl.LightningModule)
+    @torch.no_grad()
+    def validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+        results_dict = self.inference_epoch_end(outputs=outputs, stage=Stage.validate)
+        self.log_dict(results_dict)  # type: ignore
+
+    @implements(pl.LightningModule)
+    @torch.no_grad()
+    def test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+        results_dict = self.inference_epoch_end(outputs=outputs, stage=Stage.test)
+        self.log_dict(results_dict)  # type: ignore
+
+    @implements(CdtModel)
+    def inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> Dict[str, float]:
+        if stage is Stage.validate:
+            results_dict = self.ft_trainer.validate(self.ft_clf, self.datamodule)[0]
+        else:
+            results_dict = self.ft_trainer.test(self.ft_clf, self.datamodule)[0]
+        self._ft_clf = None
+        self.student.to(self.device)
+        # return {}
+        return results_dict
+
+    @implements(CdtModel)
+    def inference_step(self, batch: BinarySample, stage: Stage) -> STEP_OUTPUT:
+        ...
 
     @implements(pl.LightningModule)
     def on_validation_start(self) -> None:
@@ -172,7 +195,6 @@ class InstanceDiscriminator(SelfSupervisedModel):
 
     @property
     def global_crop_size(self) -> Union[int, Tuple[int, int]]:
-        # return 224 if self._global_crop_size is None else self._global_crop_size
         if not isinstance(self.datamodule, CdtVisionDataModule):
             raise AttributeError("'global_crop_size' is only applicable to vision datasets.")
         return (
