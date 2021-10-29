@@ -9,6 +9,6 @@ if __name__ == "__main__":
     moco = MoCoV2(eval_epochs=1)
     moco.run(
         datamodule=dm,
-        trainer=pl.Trainer(gpus=1, limit_train_batches=1, limit_val_batches=1),
+        trainer=pl.Trainer(gpus=0, limit_train_batches=1, limit_val_batches=1),
         copy=False,
     )
