@@ -23,10 +23,10 @@ from conduit.models.self_supervised.moco.transforms import (
     moco_test_transform,
 )
 from conduit.models.self_supervised.moco.utils import (
-    MemoryBank,
-    ResNetArch,
     concat_all_gather,
 )
+from conduit.models.self_supervised.memory_bank import MemoryBank
+from conduit.models.self_supervised.utils import ResNetArch
 from conduit.models.self_supervised.multicrop import (
     MultiCropTransform,
     MultiCropWrapper,
