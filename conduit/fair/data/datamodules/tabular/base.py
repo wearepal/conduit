@@ -22,7 +22,7 @@ __all__ = ["EthicMlDataModule"]
 class EthicMlDataModule(CdtDataModule):
     """Base data-module for tabular datasets."""
 
-    scaler: ScalerType = StandardScaler()
+    scaler: ScalerType = attr.field(factory=StandardScaler)
     _datatuple: Optional[DataTuple] = attr.field(default=None, init=False)
     _train_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
     _val_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)

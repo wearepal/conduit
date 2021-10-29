@@ -31,7 +31,7 @@ class DINOScheduler(pl.Callback):
         self._lr_schedule = cosine_scheduler(
             base_value=base_lr,
             final_value=min_lr,
-            total_iters=max_steps,  # type: ignore
+            total_iters=total_iters,
             warmup_iters=min(total_iters - 1, warmup_iters),
             start_warmup_value=start_warmup_lr,
         )

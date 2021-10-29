@@ -1,11 +1,10 @@
-from typing import Dict, Optional
+from typing import Dict
 
+import attr
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 from ranzen import implements
-from ranzen.decorators import parsable
-from ranzen.torch import CrossEntropyLoss, TrainingMode
-from ranzen.torch.loss import ReductionType
+from ranzen.torch import CrossEntropyLoss
 import torch
 from torch import Tensor, nn
 
@@ -23,31 +22,10 @@ from conduit.types import Loss, MetricDict, Stage
 __all__ = ["ERMClassifier", "FineTuner"]
 
 
+@attr.define(kw_only=True, eq=False)
 class ERMClassifier(CdtModel):
-    @parsable
-    def __init__(
-        self,
-        model: nn.Module,
-        lr: float = 3.0e-4,
-        weight_decay: float = 0.0,
-        lr_initial_restart: int = 10,
-        lr_restart_mult: int = 2,
-        lr_sched_interval: TrainingMode = TrainingMode.epoch,
-        lr_sched_freq: int = 1,
-        loss_fn: Optional[Loss] = None,
-    ) -> None:
-        super().__init__(
-            lr=lr,
-            weight_decay=weight_decay,
-            lr_initial_restart=lr_initial_restart,
-            lr_restart_mult=lr_restart_mult,
-            lr_sched_interval=lr_sched_interval,
-            lr_sched_freq=lr_sched_freq,
-        )
-        self.model = model
-        self.loss_fn = (
-            CrossEntropyLoss(reduction=ReductionType.mean) if loss_fn is None else loss_fn
-        )
+    model: nn.Module
+    loss_fn: Loss = attr.field(factory=CrossEntropyLoss)
 
     def _get_loss(self, logits: Tensor, *, batch: BinarySample) -> Tensor:
         return self.loss_fn(input=logits, target=batch.y)
@@ -104,30 +82,13 @@ class ERMClassifier(CdtModel):
         return self.model(x)
 
 
+@attr.define(kw_only=True, eq=False)
 class FineTuner(ERMClassifier):
-    def __init__(
-        self,
-        encoder: nn.Module,
-        classifier: nn.Module,
-        lr: float = 3.0e-4,
-        weight_decay: float = 0.0,
-        lr_initial_restart: int = 10,
-        lr_restart_mult: int = 2,
-        lr_sched_interval: TrainingMode = TrainingMode.epoch,
-        lr_sched_freq: int = 1,
-        loss_fn: Loss = CrossEntropyLoss(reduction="mean"),
-    ) -> None:
-        encoder = make_no_grad(encoder).eval()
-        model = nn.Sequential(encoder, classifier)
-        super().__init__(
-            model=model,
-            lr=lr,
-            weight_decay=weight_decay,
-            lr_initial_restart=lr_initial_restart,
-            lr_restart_mult=lr_restart_mult,
-            lr_sched_interval=lr_sched_interval,
-            lr_sched_freq=lr_sched_freq,
-            loss_fn=loss_fn,
-        )
-        self.encoder = encoder
-        self.classifier = classifier
+    classifier: nn.Module
+    encoder: nn.Module
+    model: None = None
+
+    def __attrs_post_init__(self) -> None:
+        self.encoder = make_no_grad(self.encoder).eval()
+        super().__init__(model=nn.Sequential(self.encoder, self.classifier))
+        breakpoint()

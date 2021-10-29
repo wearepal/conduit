@@ -2,6 +2,7 @@ from abc import abstractmethod
 import inspect
 from typing import List, Mapping, Optional, Tuple, Union, cast
 
+import attr
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 from ranzen import implements
@@ -19,26 +20,20 @@ from conduit.types import LRScheduler, MetricDict, Stage
 __all__ = ["CdtModel"]
 
 
+# 'eq' needs to be False for the model to be hashable
+@attr.define(kw_only=True, eq=False)
 class CdtModel(pl.LightningModule):
-    def __init__(
-        self,
-        *,
-        lr: float = 3.0e-4,
-        weight_decay: float = 0.0,
-        lr_initial_restart: int = 10,
-        lr_restart_mult: int = 2,
-        lr_sched_interval: TrainingMode = TrainingMode.epoch,
-        lr_sched_freq: int = 1,
-    ) -> None:
+    lr: float = 3.0e-4
+    weight_decay: float = 0.0
+    lr_initial_restart: int = 10
+    lr_restart_mult: int = 2
+    lr_sched_interval: TrainingMode = TrainingMode.epoch
+    lr_sched_freq: int = 1
+    _datamodule: Optional[CdtDataModule] = attr.field(default=None, init=False)
+    _trainer: Optional[pl.Trainer] = attr.field(default=None, init=False)
+
+    def __attrs_pre_init__(self) -> None:
         super().__init__()
-        self.lr = lr
-        self.weight_decay = weight_decay
-        self.lr_initial_restart = lr_initial_restart
-        self.lr_restart_mult = lr_restart_mult
-        self.lr_sched_interval = lr_sched_interval
-        self.lr_sched_freq = lr_sched_freq
-        self._datamodule: Optional[CdtDataModule] = None
-        self._trainer: Optional[pl.Trainer] = None
 
     @implements(pl.LightningModule)
     def configure_optimizers(

@@ -2,6 +2,7 @@ from abc import abstractmethod
 from dataclasses import replace
 from typing import Any, Callable, Dict, Optional, Tuple, Union, cast
 
+import attr
 import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
@@ -37,22 +38,15 @@ __all__ = [
 ]
 
 
+@attr.define(kw_only=True, eq=False)
 class SelfSupervisedModel(CdtModel):
-    embed_dim: int
+    embed_dim: int = attr.field(init=False)
+    eval_batch_size: Optional[int] = None
+    eval_epochs: int = 100
+    eval_lr: float = 3.0e-4
 
-    def __init__(
-        self,
-        *,
-        lr: float = 3.0e-4,
-        weight_decay: float = 0.0,
-        eval_batch_size: Optional[int] = None,
-        eval_epochs: int = 100,
-    ) -> None:
-        super().__init__(lr=lr, weight_decay=weight_decay)
-        self.eval_batch_size = eval_batch_size
-        self.eval_epochs = eval_epochs
-        self._finetuner: Optional[pl.Trainer] = None
-        self._ft_clf: Optional[ERMClassifier] = None
+    _finetuner: Optional[pl.Trainer] = attr.field(default=None, init=False)
+    _ft_clf: Optional[ERMClassifier] = attr.field(default=None, init=False)
 
     @abstractmethod
     def features(self, x: Tensor, **kwargs: Any) -> nn.Module:
@@ -140,7 +134,6 @@ class SelfSupervisedModel(CdtModel):
             results_dict = self.ft_trainer.test(self.ft_clf, self.datamodule)[0]
         self._ft_clf = None
         self.student.to(self.device)
-        # return {}
         return results_dict
 
     @implements(CdtModel)
@@ -161,37 +154,15 @@ class BatchTransform(Protocol):
         ...
 
 
+@attr.define(kw_only=True, eq=False)
 class InstanceDiscriminator(SelfSupervisedModel):
-    def __init__(
-        self,
-        *,
-        lr: float,
-        weight_decay: float,
-        eval_batch_size: Optional[int],
-        eval_epochs: int,
-        instance_transforms: Optional[MultiCropTransform] = None,
-        batch_transforms: Optional[BatchTransform] = None,
-        global_crop_size: Optional[Union[Tuple[int, int], int]] = None,
-        local_crop_size: Union[Tuple[float, float], float] = 0.43,
-        global_crops_scale: Tuple[float, float] = (0.4, 1.0),
-        local_crops_scale: Tuple[float, float] = (0.05, 0.4),
-        local_crops_number: int = 0,
-    ) -> None:
-        super().__init__(
-            lr=lr,
-            weight_decay=weight_decay,
-            eval_batch_size=eval_batch_size,
-            eval_epochs=eval_epochs,
-        )
-        self.instance_transforms = instance_transforms
-        self.batch_transforms = batch_transforms
-
-        # View-generation settings
-        self._global_crop_size = global_crop_size
-        self._local_crop_size = local_crop_size
-        self.local_crops_number = local_crops_number
-        self.local_crops_scale = local_crops_scale
-        self.global_crops_scale = global_crops_scale
+    instance_transforms: Optional[MultiCropTransform] = None
+    batch_transforms: Optional[BatchTransform] = None
+    _global_crop_size: Optional[Union[Tuple[int, int], int]] = None
+    _local_crop_size: Union[Tuple[float, float], float] = 0.43
+    global_crops_scale: Tuple[float, float] = (0.4, 1.0)
+    local_crops_scale: Tuple[float, float] = (0.05, 0.4)
+    local_crops_number: int = 0
 
     @property
     def global_crop_size(self) -> Union[int, Tuple[int, int]]:
@@ -233,9 +204,10 @@ class InstanceDiscriminator(SelfSupervisedModel):
             datamodule.train_transforms = self.instance_transforms
 
 
+@attr.define(kw_only=True, eq=False)
 class MomentumTeacherModel(InstanceDiscriminator):
-    student: MultiCropWrapper
-    teacher: MultiCropWrapper
+    student: MultiCropWrapper = attr.field(init=False)
+    teacher: MultiCropWrapper = attr.field(init=False)
 
     @torch.no_grad()
     def init_encoders(self) -> Tuple[MultiCropWrapper, MultiCropWrapper]:

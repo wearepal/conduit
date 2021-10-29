@@ -1,4 +1,5 @@
 from collections import defaultdict
+import attr
 from dataclasses import replace
 from typing import List, Optional, Tuple
 
@@ -18,32 +19,23 @@ __all__ = [
 ]
 
 
+@attr.define(kw_only=True, eq=False)
 class DINOLinearClassifier(FineTuner):
     encoder: nn.Module
+    classifier: nn.Module = attr.field(init=False)
+    embed_dim: int
+    target_dim: int
+    weight_decay: float
+    lr: float
+    epochs: int
+    num_eval_blocks: int = 1
 
-    def __init__(
-        self,
-        encoder: nn.Module,
-        *,
-        embed_dim: int,
-        target_dim: int,
-        weight_decay: float,
-        lr: float,
-        epochs: int,
-        num_eval_blocks: int = 1,
-    ) -> None:
-        self.epochs = epochs
-        self.num_eval_blocks = num_eval_blocks
-        if isinstance(encoder, VisionTransformer):
-            embed_dim *= num_eval_blocks
-            encoder = PartialModule(VisionTransformer.encode, num_eval_blocks=num_eval_blocks)
-        classifier = nn.Linear(embed_dim, target_dim)
-        super().__init__(
-            encoder=encoder,
-            classifier=classifier,
-            lr=lr,
-            weight_decay=weight_decay,
-        )
+    def __attrs_post_init__(self) -> None:
+        if isinstance(self.encoder, VisionTransformer):
+            self.embed_dim *= self.num_eval_blocks
+            self.encoder = PartialModule(VisionTransformer.encode, num_eval_blocks=self.num_eval_blocks)
+        self.classifier = nn.Linear(self.embed_dim, self.target_dim)
+        super().__attrs_post_init__()
 
     @implements(pl.LightningModule)
     def configure_optimizers(

@@ -135,7 +135,7 @@ class MoCoV2(MomentumTeacherModel):
 
         # View-generation settings
         self._global_crop_size = global_crop_size
-        self._local_crop_size = local_crop_size
+        self._local_crop_frac = local_crop_size
         self.local_crops_number = local_crops_number
         self.local_crops_scale = local_crops_scale
         self.global_crops_scale = global_crops_scale
