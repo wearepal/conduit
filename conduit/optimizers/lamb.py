@@ -20,9 +20,6 @@ class LAMB(Optimizer):
 
     .. _Large Batch Optimization for Deep Learning:
         https://arxiv.org/abs/1904.00962v5
-
-    .. _On the Convergence of Adam and Beyond:
-        https://openreview.net/forum?id=ryQu7f-RZ
     """
 
     def __init__(
