@@ -13,9 +13,9 @@ class SAM(Optimizer):
     `_Sharpness Aware Minimization`_) and the adaptive variant of it introduced in `ASAM`_.
 
     SAM seeks parameters that lie in neighborhoods having uniformly low loss (rather than
-    parameters that only themselves have low loss value) and act as a meta-optimizer, wrapping
-    around some base optimizer. The adaptive variant of the algorithm addresses the original
-    algorithm's sensitivity to parameter re-scaling (scale-variance).
+    parameters that only themselves have low loss value). The adaptive variant of the
+    algorithm addresses the original algorithm's sensitivity to parameter re-scaling
+    that can lead to weakening of the connection between sharpness and generalization gap.
 
 
     .. example-code::
