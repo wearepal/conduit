@@ -37,8 +37,8 @@ class LAMB(Optimizer):
         :params: iterable of parameters to optimize or dicts defining parameter groups.
         :lr: learning rate.
         :betas: coefficients used for computing running averages of gradient and its square.
-        :eps:: term added to the denominator to improve numerical stability.
-        :weight_decay:: weight decay coefficient.
+        :eps: term added to the denominator to improve numerical stability.
+        :weight_decay: weight decay coefficient.
         :debias: whether to include the bias-correction term (1 - beta**step) from Adam.
         """
         if lr <= 0.0:
