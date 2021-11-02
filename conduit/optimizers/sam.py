@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Iterable
+from typing import Any, Callable, Dict
 
 import torch
 from torch import Tensor
@@ -10,11 +10,12 @@ __all__ = ["SAM"]
 class SAM(Optimizer):
     """
     Implements the 'Sharpness Aware Minimization' (SAM) algorithm introducued in
-    `_Sharpness Aware Minimization`_.
+    `_Sharpness Aware Minimization`_) and the adaptive variant of it introduced in `ASAM`_.
 
     SAM seeks parameters that lie in neighborhoods having uniformly low loss (rather than
     parameters that only themselves have low loss value) and act as a meta-optimizer, wrapping
-    around some base optimizer.
+    around some base optimizer. The adaptive variant of the algorithm addresses the original
+    algorithm's sensitivity to parameter re-scaling (scale-variance).
 
 
     .. example-code::
@@ -29,14 +30,21 @@ class SAM(Optimizer):
 
     .. _Sharpness Aware Minimization:
         https://arxiv.org/abs/2010.01412
+    .. _ASAM:
+         https://arxiv.org/abs/2102.11600
     """
 
     def __init__(
         self,
         base_optimizer: Optimizer,
         rho: float = 0.05,
-        adaptive: bool = False,
+        adaptive: bool = True,
     ) -> None:
+        """
+        :base_optimizer: Base optimizer for SAM.
+        :rho: Neighborhood size.
+        :adaptive: Whether to use the adaptive variant of the algorithm.
+        """
         if rho < 0.0:
             raise ValueError(f"Invalid rho value: {rho}. (Should be non-negative)")
 
@@ -55,7 +63,7 @@ class SAM(Optimizer):
                 if p.grad is None:
                     continue
                 self.state[p]["old_p"] = p.data.clone()
-                e_w = (torch.pow(p, 2) if group["adaptive"] else 1.0) * p.grad * scale.to(p)
+                e_w = (p.pow(2) if group["adaptive"] else 1.0) * p.grad * scale.to(p)
                 p.add_(e_w)  # climb to the local maximum "w + e(w)"
 
         if zero_grad:
