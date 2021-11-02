@@ -34,12 +34,12 @@ class LAMB(Optimizer):
         debias: bool = False,
     ) -> None:
         """
-        :params: iterable of parameters to optimize or dicts defining parameter groups.
-        :lr: learning rate.
-        :betas: coefficients used for computing running averages of gradient and its square.
-        :eps: term added to the denominator to improve numerical stability.
-        :weight_decay: weight decay coefficient.
-        :debias: whether to include the bias-correction term (1 - beta**step) from Adam.
+        :param params: iterable of parameters to optimize or dicts defining parameter groups.
+        :param lr: learning rate.
+        :param betas: coefficients used for computing running averages of gradient and its square.
+        :param eps: term added to the denominator to improve numerical stability.
+        :param weight_decay: weight decay coefficient.
+        :param debias: whether to include the bias-correction term (1 - beta**step) from Adam.
         """
         if lr <= 0.0:
             raise ValueError(f"Invalid learning rate: {lr}")
