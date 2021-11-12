@@ -4,9 +4,9 @@
 # isort:skip_file
 # flake8: noqa
 
-from dataclasses import dataclass, field
-from ranzen.torch.data import TrainingMode
+from dataclasses import dataclass
 from omegaconf import MISSING
+from ranzen.torch.data import TrainingMode
 from typing import Any
 
 

@@ -4,10 +4,10 @@
 # isort:skip_file
 # flake8: noqa
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from conduit.fair.misc import FairnessType
-from ranzen.torch.data import TrainingMode
 from omegaconf import MISSING
+from ranzen.torch.data import TrainingMode
 from typing import Any
 from typing import Optional
 
