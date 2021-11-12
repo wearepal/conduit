@@ -1,5 +1,7 @@
 """Test DataModules."""
+from __future__ import annotations
 from pathlib import Path
+from typing import Any
 
 import ethicml as em
 import pytest
@@ -19,11 +21,13 @@ from conduit.fair.data.datamodules.tabular.sqf import SqfDataModule
 BATCHSIZE: Final[int] = 4
 
 
-def _create_dm(dm_cls: Type[EthicMlDataModule], stratified: bool = False) -> EthicMlDataModule:
-    dm_kwargs = dict(
-        train_batch_size=BATCHSIZE,
-        stratified_sampling=stratified,
-    )
+def _create_dm(
+    dm_cls: Type[EthicMlDataModule],
+    stratified: bool = False,
+    extra_args: dict[str, Any] | None = None,
+) -> EthicMlDataModule:
+    extra_args = {} if extra_args is None else extra_args
+    dm_kwargs = dict(train_batch_size=BATCHSIZE, stratified_sampling=stratified, **extra_args)
     dm = dm_cls(**dm_kwargs)  # type: ignore[arg-type]
     dm.prepare_data()
     dm.setup()
@@ -50,6 +54,15 @@ def test_data_modules(dm_cls: Type[EthicMlDataModule], stratified: bool) -> None
     assert batch.x.size() == torch.Size([BATCHSIZE, *dm.size()])  # type: ignore
     assert batch.s.size() == torch.Size([BATCHSIZE])
     assert batch.y.size() == torch.Size([BATCHSIZE])
+
+    dm_2 = _create_dm(dm_cls, stratified, extra_args={"invert_s": True})
+    loader = dm_2.train_dataloader()
+    batch_2 = next(iter(loader))
+
+    torch.testing.assert_allclose(batch.x, batch_2.x)
+    torch.testing.assert_allclose(batch.y, batch_2.y)
+    with pytest.raises(AssertionError):
+        torch.testing.assert_allclose(batch.s, batch_2.s)
 
 
 @pytest.mark.parametrize(

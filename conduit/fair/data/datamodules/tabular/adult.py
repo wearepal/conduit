@@ -36,4 +36,5 @@ class AdultDataModule(EthicMlDataModule):
             binarize_nationality=self.bin_nationality,
             discrete_only=self.disc_feats_only,
             binarize_race=self.bin_race,
+            invert_s=self.invert_s,
         )

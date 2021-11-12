@@ -8,8 +8,8 @@ from dataclasses import dataclass
 from builtins import dict
 from conduit.data.datasets.vision.celeba import CelebAttr
 from conduit.data.datasets.vision.nico import NicoSuperclass
-from ranzen.torch.data import TrainingMode
 from omegaconf import MISSING
+from ranzen.torch.data import TrainingMode
 from typing import Any
 from typing import Dict
 from typing import List
