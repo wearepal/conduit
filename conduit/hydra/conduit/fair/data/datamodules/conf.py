@@ -35,6 +35,7 @@ class AdmissionsDataModuleConf:
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
+    invert_s: bool = False
     sens_feat: AdmissionsSens = AdmissionsSens.gender
     disc_feats_only: bool = False
 
@@ -54,6 +55,7 @@ class AdultDataModuleConf:
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
+    invert_s: bool = False
     bin_nationality: bool = False
     sens_feat: AdultSens = AdultSens.sex
     bin_race: bool = False
@@ -75,6 +77,7 @@ class CompasDataModuleConf:
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
+    invert_s: bool = False
     sens_feat: CompasSens = CompasSens.sex
     disc_feats_only: bool = False
 
@@ -94,6 +97,7 @@ class CreditDataModuleConf:
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
+    invert_s: bool = False
     sens_feat: CreditSens = CreditSens.sex
     disc_feats_only: bool = False
 
@@ -113,6 +117,7 @@ class CrimeDataModuleConf:
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
+    invert_s: bool = False
     sens_feat: CrimeSens = CrimeSens.raceBinary
     disc_feats_only: bool = False
 
@@ -132,6 +137,7 @@ class GermanDataModuleConf:
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
+    invert_s: bool = False
     sens_feat: GermanSens = GermanSens.sex
     disc_feats_only: bool = False
 
@@ -151,6 +157,7 @@ class HealthDataModuleConf:
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
+    invert_s: bool = False
     sens_feat: HealthSens = HealthSens.sex
     disc_feats_only: bool = False
 
@@ -170,6 +177,7 @@ class LawDataModuleConf:
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
+    invert_s: bool = False
     sens_feat: LawSens = LawSens.sex
     disc_feats_only: bool = False
 
@@ -189,5 +197,6 @@ class SqfDataModuleConf:
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
+    invert_s: bool = False
     sens_feat: SqfSens = SqfSens.sex
     disc_feats_only: bool = False
