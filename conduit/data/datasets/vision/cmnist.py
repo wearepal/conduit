@@ -244,15 +244,17 @@ class ColoredMNIST(CdtVisionDataset):
             _filter_data_by_labels(data=x, targets=y, label_map=self.label_map, inplace=True)
         s = y % self.num_colors
 
-        if self.correlation < 1:
-            # Change the values of randomly-selected labeld to values other than their original ones
+        # Special-case where every s-label needs to be randomly reassigned to a new value.
+        if self.correlation == 0:
+            s = torch.randint_like(s, low=0, high=self.num_colors)
+        elif self.correlation < 1:
+            # Change the values of randomly-selected labels to values other than their original ones
             to_flip = torch.rand(s.size(0)) > self.correlation
-            s[to_flip] += (
-                torch.randint(  # type: ignore
-                    low=1, high=self.num_colors, size=(to_flip.count_nonzero(),)
-                )
-                % self.num_colors
-            )
+            s[to_flip] += torch.randint(
+                low=1, high=self.num_colors, size=(int(to_flip.count_nonzero()),)
+            )  # type: ignore
+            # s labels live inside the Z/(num_colors * Z) ring
+            s[to_flip] %= self.num_colors
 
         # Colorize the greyscale images
         colorizer = MNISTColorizer(
