@@ -1,7 +1,6 @@
 """Base class from which all data-modules in conduit inherit."""
 from abc import abstractmethod
 import logging
-import sys
 from typing import Optional, Sequence, Tuple, cast
 
 import attr
@@ -54,6 +53,7 @@ class CdtDataModule(pl.LightningDataModule):
     persist_workers: bool = False
     pin_memory: bool = True
     stratified_sampling: bool = False
+    infinite_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
 
@@ -73,6 +73,12 @@ class CdtDataModule(pl.LightningDataModule):
 
     def __attrs_pre_init__(self) -> None:
         super().__init__()
+
+    def __attrs_post_init__(self) -> None:
+        if self.infinite_sampling and self.stratified_sampling:
+            raise ValueError(
+                "Only one of `infinite_sampling` and `stratified_sampling` can be set."
+            )
 
     @property
     def eval_batch_size(self) -> int:
@@ -140,6 +146,7 @@ class CdtDataModule(pl.LightningDataModule):
     ) -> DataLoader:
         batch_size = self.train_batch_size if batch_size is None else batch_size
 
+        batch_sampler = None
         if self.stratified_sampling:
             group_ids = get_group_ids(self.train_data)
             num_groups = len(group_ids.unique())
@@ -158,7 +165,7 @@ class CdtDataModule(pl.LightningDataModule):
                 training_mode=self.training_mode,
                 drop_last=drop_last,
             )
-        else:
+        elif self.infinite_sampling:
             batch_sampler = SequentialBatchSampler(
                 data_source=self._train_data,  # type: ignore
                 batch_size=batch_size,
