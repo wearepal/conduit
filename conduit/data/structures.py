@@ -29,7 +29,7 @@ __all__ = [
 ]
 
 
-@dataclass(frozen=True)
+@dataclass
 class MultiCropOutput:
     global_crops: List[Tensor]
     local_crops: List[Tensor] = field(default_factory=list)
@@ -56,7 +56,7 @@ class MultiCropOutput:
         return len(self.global_crops) + len(self.local_crops)
 
 
-@dataclass(frozen=True)
+@dataclass
 class SampleBase:
     # Instantiate as NamedSample
     x: Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]
@@ -65,7 +65,7 @@ class SampleBase:
         return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
 
 
-@dataclass(frozen=True)
+@dataclass
 class NamedSample(SampleBase):
     @overload
     def add_field(self, *, y: None = ..., s: None = ..., iw: None = ...) -> "NamedSample":
@@ -101,17 +101,17 @@ class NamedSample(SampleBase):
         return self
 
 
-@dataclass(frozen=True)
+@dataclass
 class _BinarySampleMixin:
     y: Tensor
 
 
-@dataclass(frozen=True)
+@dataclass
 class _SubgroupSampleMixin:
     s: Tensor
 
 
-@dataclass(frozen=True)
+@dataclass
 class BinarySample(NamedSample, _BinarySampleMixin):
     @overload
     def add_field(self, *, s: None = ..., iw: None = ...) -> "BinarySample":
@@ -141,7 +141,7 @@ class BinarySample(NamedSample, _BinarySampleMixin):
         return self
 
 
-@dataclass(frozen=True)
+@dataclass
 class SubgroupSample(NamedSample, _SubgroupSampleMixin):
     @overload
     def add_field(self, *, y: None = ..., iw: None = ...) -> "SubgroupSample":
@@ -171,12 +171,12 @@ class SubgroupSample(NamedSample, _SubgroupSampleMixin):
         return self
 
 
-@dataclass(frozen=True)
+@dataclass
 class _IwMixin:
     iw: Tensor
 
 
-@dataclass(frozen=True)
+@dataclass
 class BinarySampleIW(SampleBase, _BinarySampleMixin, _IwMixin):
     @overload
     def add_field(self, s: None = ...) -> "BinarySampleIW":
@@ -192,7 +192,7 @@ class BinarySampleIW(SampleBase, _BinarySampleMixin, _IwMixin):
         return self
 
 
-@dataclass(frozen=True)
+@dataclass
 class SubgroupSampleIW(SubgroupSample, _IwMixin):
     @overload
     def add_field(self, y: None = ...) -> "SubgroupSampleIW":
@@ -208,7 +208,7 @@ class SubgroupSampleIW(SubgroupSample, _IwMixin):
         return self
 
 
-@dataclass(frozen=True)
+@dataclass
 class TernarySample(BinarySample, _SubgroupSampleMixin):
     @overload
     def add_field(self, iw: None = ...) -> "TernarySample":
@@ -224,7 +224,7 @@ class TernarySample(BinarySample, _SubgroupSampleMixin):
         return self
 
 
-@dataclass(frozen=True)
+@dataclass
 class TernarySampleIW(TernarySample, _IwMixin):
     def add_field(self) -> "TernarySampleIW":
         return self
