@@ -65,7 +65,7 @@ __all__ = [
     "infer_il_backend",
     "load_image",
     "make_subset",
-    "pb_collate",
+    "cdt_collate",
 ]
 
 
@@ -360,7 +360,7 @@ def make_subset(
     return subset
 
 
-class pb_collate:
+class cdt_collate:
     def __init__(self, cast_to_sample: bool = True) -> None:
         self.cast_to_sample = cast_to_sample
 
@@ -465,7 +465,7 @@ class CdtDataLoader(DataLoader):
             sampler=sampler,
             batch_sampler=batch_sampler,
             num_workers=num_workers,
-            collate_fn=pb_collate(cast_to_sample=cast_to_sample),
+            collate_fn=cdt_collate(cast_to_sample=cast_to_sample),
             pin_memory=pin_memory,
             drop_last=drop_last,
             timeout=timeout,
