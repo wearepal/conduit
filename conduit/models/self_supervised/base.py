@@ -140,7 +140,6 @@ class SelfSupervisedModel(CdtModel):
             results_dict = self.ft_trainer.test(self.ft_clf, self.datamodule)[0]
         self._ft_clf = None
         self.student.to(self.device)
-        # return {}
         return results_dict
 
     @implements(CdtModel)
