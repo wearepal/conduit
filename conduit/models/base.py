@@ -189,4 +189,3 @@ class CdtModel(CdtAbstractModel):
             "frequency": self.lr_sched_freq,
         }
         return [opt], [sched]
-
