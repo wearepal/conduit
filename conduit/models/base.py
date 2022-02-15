@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 import inspect
 from typing import List, Mapping, Optional, Tuple, Union, cast
 
@@ -10,53 +10,21 @@ from ranzen.torch.data import TrainingMode
 import torch
 from torch import optim
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+from typing_extensions import final
 
 from conduit.data import NamedSample
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.models.utils import prefix_keys
 from conduit.types import LRScheduler, MetricDict, Stage
 
-__all__ = ["CdtModel"]
+__all__ = ["CdtAbstractModel", "CdtModel"]
 
 
-class CdtModel(pl.LightningModule):
-    def __init__(
-        self,
-        *,
-        lr: float = 3.0e-4,
-        weight_decay: float = 0.0,
-        lr_initial_restart: int = 10,
-        lr_restart_mult: int = 2,
-        lr_sched_interval: TrainingMode = TrainingMode.epoch,
-        lr_sched_freq: int = 1,
-    ) -> None:
+class CdtAbstractModel(pl.LightningModule, ABC):
+    def __init__(self) -> None:
         super().__init__()
-        self.lr = lr
-        self.weight_decay = weight_decay
-        self.lr_initial_restart = lr_initial_restart
-        self.lr_restart_mult = lr_restart_mult
-        self.lr_sched_interval = lr_sched_interval
-        self.lr_sched_freq = lr_sched_freq
         self._datamodule: Optional[CdtDataModule] = None
         self._trainer: Optional[pl.Trainer] = None
-
-    @implements(pl.LightningModule)
-    def configure_optimizers(
-        self,
-    ) -> Tuple[List[optim.Optimizer], List[Mapping[str, Union[LRScheduler, int, TrainingMode]]]]:
-        opt = optim.AdamW(
-            self.parameters(),
-            lr=self.lr,
-            weight_decay=self.weight_decay,
-        )
-        sched = {
-            "scheduler": CosineAnnealingWarmRestarts(
-                optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
-            ),
-            "interval": self.lr_sched_interval.name,
-            "frequency": self.lr_sched_freq,
-        }
-        return [opt], [sched]
 
     @property
     def datamodule(self) -> CdtDataModule:
@@ -75,6 +43,7 @@ class CdtModel(pl.LightningModule):
         self._datamodule.setup()
 
     @property
+    @final
     def trainer(self) -> pl.Trainer:
         if self._trainer is None:
             cls_name = self.__class__.__name__
@@ -108,6 +77,7 @@ class CdtModel(pl.LightningModule):
         ...
 
     @property
+    @final
     def num_training_steps(self) -> int:
         """Total training steps inferred from the datamodule and trainer."""
         if self.trainer.max_steps:
@@ -180,3 +150,43 @@ class CdtModel(pl.LightningModule):
         self.build(datamodule=datamodule, trainer=trainer, copy=copy)
         self.fit()
         self.test()
+
+
+class CdtModel(CdtAbstractModel):
+    def __init__(
+        self,
+        *,
+        lr: float = 3.0e-4,
+        weight_decay: float = 0.0,
+        lr_initial_restart: int = 10,
+        lr_restart_mult: int = 2,
+        lr_sched_interval: TrainingMode = TrainingMode.epoch,
+        lr_sched_freq: int = 1,
+    ) -> None:
+
+        super().__init__()
+        self.lr = lr
+        self.weight_decay = weight_decay
+        self.lr_initial_restart = lr_initial_restart
+        self.lr_restart_mult = lr_restart_mult
+        self.lr_sched_interval = lr_sched_interval
+        self.lr_sched_freq = lr_sched_freq
+
+    @implements(pl.LightningModule)
+    def configure_optimizers(
+        self,
+    ) -> Tuple[List[optim.Optimizer], List[Mapping[str, Union[LRScheduler, int, TrainingMode]]]]:
+        opt = optim.AdamW(
+            self.parameters(),
+            lr=self.lr,
+            weight_decay=self.weight_decay,
+        )
+        sched = {
+            "scheduler": CosineAnnealingWarmRestarts(
+                optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
+            ),
+            "interval": self.lr_sched_interval.name,
+            "frequency": self.lr_sched_freq,
+        }
+        return [opt], [sched]
+
