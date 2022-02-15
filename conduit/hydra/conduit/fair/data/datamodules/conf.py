@@ -4,7 +4,7 @@
 # isort:skip_file
 # flake8: noqa
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from conduit.fair.data.datamodules.tabular.admissions import AdmissionsSens
 from conduit.fair.data.datamodules.tabular.adult import AdultSens
 from conduit.fair.data.datamodules.tabular.compas import CompasSens

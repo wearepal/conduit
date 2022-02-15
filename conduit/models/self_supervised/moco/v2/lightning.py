@@ -44,6 +44,7 @@ class MoCoV2(MomentumTeacherModel):
         self,
         *,
         backbone: Union[nn.Module, ResNetArch, str] = ResNetArch.resnet18,
+        head: Optional[nn.Module] = None,
         out_dim: int = 128,
         num_negatives: int = 65_536,
         momentum_teacher: float = 0.999,
@@ -54,10 +55,11 @@ class MoCoV2(MomentumTeacherModel):
         use_mlp: bool = False,
         instance_transforms: Optional[MultiCropTransform] = None,
         batch_transforms: Optional[BatchTransform] = None,
-        multicrop: bool = False,
+        global_crop_size: Optional[Union[Tuple[int, int], int]] = None,
+        local_crop_size: Union[Tuple[float, float], float] = 0.43,
         global_crops_scale: Tuple[float, float] = (0.4, 1.0),
         local_crops_scale: Tuple[float, float] = (0.05, 0.4),
-        local_crops_number: int = 8,
+        local_crops_number: int = 0,
         eval_epochs: int = 100,
         eval_batch_size: Optional[int] = None,
     ) -> None:
@@ -111,10 +113,17 @@ class MoCoV2(MomentumTeacherModel):
             eval_batch_size=eval_batch_size,
             instance_transforms=instance_transforms,
             batch_transforms=batch_transforms,
+            global_crop_size=global_crop_size,
+            local_crop_size=local_crop_size,
+            global_crops_scale=global_crops_scale,
+            local_crops_scale=global_crops_scale,
+            local_crops_number=local_crops_number,
         )
         if isinstance(backbone, str):
             backbone = str_to_enum(str_=backbone, enum=ResNetArch)
         self.backbone = backbone
+        self.head = head
+
         self.out_dim = out_dim
         self.temp = temp
         self.lr = lr
@@ -123,7 +132,10 @@ class MoCoV2(MomentumTeacherModel):
         self.momentum_sgd = momentum_sgd
         self.num_negatives = num_negatives
         self.use_mlp = use_mlp
-        self.multicrop = multicrop
+
+        # View-generation settings
+        self._global_crop_size = global_crop_size
+        self._local_crop_size = local_crop_size
         self.local_crops_number = local_crops_number
         self.local_crops_scale = local_crops_scale
         self.global_crops_scale = global_crops_scale
@@ -137,10 +149,10 @@ class MoCoV2(MomentumTeacherModel):
         self.use_ddp = "ddp" in str(self.trainer.distributed_backend)
         if isinstance(self.datamodule, CdtVisionDataModule):
             if (self.instance_transforms is None) and (self.batch_transforms is None):
-                if self.multicrop:
+                if self.local_crops_number > 0:
                     self.instance_transforms = MultiCropTransform.with_dino_transform(
-                        global_crop_size=224,
-                        local_crop_size=96,
+                        global_crop_size=self.global_crop_size,
+                        local_crop_size=self.local_crop_size,
                         global_crops_scale=self.global_crops_scale,
                         local_crops_scale=self.local_crops_scale,
                         local_crops_number=self.local_crops_number,
@@ -148,12 +160,12 @@ class MoCoV2(MomentumTeacherModel):
                     )
                 else:
                     self.instance_transforms = MultiCropTransform.with_mocov2_transform(
-                        crop_size=224,
+                        crop_size=self.global_crop_size,
                         norm_values=self.datamodule.norm_values,
                     )
             self.datamodule.test_transforms = moco_test_transform(
-                crop_size=224,
-                amount_to_crop=32,
+                crop_size=self.global_crop_size,
+                amount_to_crop=0,  # TODO: De-hardcode this
                 norm_values=self.datamodule.norm_values,
             )
 
@@ -161,10 +173,13 @@ class MoCoV2(MomentumTeacherModel):
     @implements(MomentumTeacherModel)
     def _init_encoders(self) -> Tuple[MultiCropWrapper, MultiCropWrapper]:
         # create the encoders
+        head = self.head
+        needs_head = self.head is None
         if isinstance(self.backbone, ResNetArch):
             student_backbone = self.backbone.value(num_classes=self.out_dim)
             self.embed_dim = student_backbone.fc.weight.shape[1]
-            head = student_backbone.fc
+            if needs_head:
+                head = student_backbone.fc
             student_backbone.fc = nn.Identity()
         else:
             student_backbone = self.backbone
@@ -174,9 +189,11 @@ class MoCoV2(MomentumTeacherModel):
             if embed_dim_t.ndim > 1:
                 student_backbone = nn.Sequential(student_backbone, nn.Flatten())
             self.embed_dim = embed_dim_t.numel()
-            head = nn.Linear(self.embed_dim, self.out_dim)
-        if self.use_mlp:
-            head = nn.Sequential(nn.Linear(self.embed_dim, self.embed_dim), nn.ReLU(), head)  # type: ignore
+            if needs_head:
+                head = nn.Linear(self.embed_dim, self.out_dim)
+        if needs_head:
+            if self.use_mlp:
+                head = nn.Sequential(nn.Linear(self.embed_dim, self.embed_dim), nn.ReLU(), head)  # type: ignore
 
         student = MultiCropWrapper(backbone=student_backbone, head=head)
         teacher = gcopy(student, deep=True)
@@ -280,10 +297,10 @@ class MoCoV2(MomentumTeacherModel):
 
     @implements(pl.LightningModule)
     def training_step(self, batch: NamedSample, batch_idx: int) -> MetricDict:
-        views = self._get_positives(batch=batch)
-        global_crop_s, global_crop_t = views.global_crops
+        positives = self._get_positives(batch=batch)
+        global_crop_s, global_crop_t = positives.global_crops
         # compute query features
-        student_logits = self.student([global_crop_s] + views.local_crops)  # queries: NxC
+        student_logits = self.student([global_crop_s] + positives.local_crops)  # queries: NxC
         student_logits = F.normalize(student_logits, dim=1)
 
         # compute teacher's logits
@@ -321,7 +338,9 @@ class MoCoV2(MomentumTeacherModel):
     @implements(SelfSupervisedModel)
     def _ft_transform(self) -> ImageTform:
         assert isinstance(self.datamodule, CdtVisionDataModule)
-        return moco_ft_transform(crop_size=224, norm_values=self.datamodule.norm_values)
+        return moco_ft_transform(
+            crop_size=self.global_crop_size, norm_values=self.datamodule.norm_values
+        )
 
     @implements(MomentumTeacherModel)
     @torch.no_grad()

@@ -1,35 +1,19 @@
-import random
 from typing import List, Optional, Sequence, Union
 
-from PIL import Image, ImageFilter
+import numpy as np
 from torchvision import transforms as T
 from torchvision.transforms.functional import InterpolationMode
 
 from conduit.constants import IMAGENET_STATS
 from conduit.data.datasets.utils import PillowTform
 from conduit.data.structures import MeanStd
+from conduit.transforms import RandomGaussianBlur
 
-__all__ = ["moco_ft_transform", "moco_test_transform", "mocov2_train_transform", "GaussianBlur"]
-
-
-class GaussianBlur:
-    """
-    Apply Gaussian Blur to the PIL image with some probability.
-    """
-
-    def __init__(self, p: float = 0.5, *, radius_min: float = 0.1, radius_max: float = 2.0) -> None:
-        self.prob = p
-        self.radius_min = radius_min
-        self.radius_max = radius_max
-
-    def __call__(self, img: Image.Image) -> Image.Image:
-        do_it = random.random() <= self.prob
-        if not do_it:
-            return img
-
-        return img.filter(
-            ImageFilter.GaussianBlur(radius=random.uniform(self.radius_min, self.radius_max))
-        )
+__all__ = [
+    "moco_ft_transform",
+    "moco_test_transform",
+    "mocov2_train_transform",
+]
 
 
 def mocov2_train_transform(
@@ -39,7 +23,7 @@ def mocov2_train_transform(
         T.RandomResizedCrop(crop_size, scale=(0.2, 1.0)),
         T.RandomApply([T.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),  # not strengthened
         T.RandomGrayscale(p=0.2),
-        T.RandomApply([GaussianBlur(p=0.5, radius_min=0.1, radius_max=2.0)], p=0.5),
+        T.RandomApply([RandomGaussianBlur(p=0.5, radius_min=0.1, radius_max=2.0)], p=0.5),
         T.RandomHorizontalFlip(),
         T.ToTensor(),
     ]
@@ -62,12 +46,17 @@ def moco_ft_transform(
 
 
 def moco_test_transform(
-    crop_size: int = 224,
+    crop_size: Union[int, Sequence[int]] = 224,
     amount_to_crop: int = 32,
     norm_values: Optional[MeanStd] = IMAGENET_STATS,
 ) -> T.Compose:
+    resized_size = np.add(crop_size, amount_to_crop).astype(np.int64)
+    if isinstance(resized_size, np.integer):
+        resized_size = resized_size.item()
+    else:
+        resized_size = tuple(resized_size)
     transform_ls: List[PillowTform] = [
-        T.Resize(crop_size + amount_to_crop, interpolation=InterpolationMode.BICUBIC),
+        T.Resize(resized_size, interpolation=InterpolationMode.BICUBIC),
         T.CenterCrop(crop_size),
         T.ToTensor(),
     ]

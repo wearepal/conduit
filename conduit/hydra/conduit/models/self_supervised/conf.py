@@ -6,7 +6,7 @@
 
 from dataclasses import dataclass, field
 from conduit.architectures.vit import VitArch
-from conduit.models.self_supervised.moco.utils import ResNetArch
+from conduit.models.self_supervised.utils import ResNetArch
 from typing import Any
 from typing import Optional
 from typing import Tuple
@@ -16,6 +16,7 @@ from typing import Tuple
 class MoCoV2Conf:
     _target_: str = "conduit.models.self_supervised.MoCoV2"
     backbone: Any = ResNetArch.resnet18  # Union[Module, ResNetArch, str]
+    head: Any = None  # Optional[Module]
     out_dim: int = 128
     num_negatives: int = 65536
     momentum_teacher: float = 0.999
@@ -26,10 +27,11 @@ class MoCoV2Conf:
     use_mlp: bool = False
     instance_transforms: Any = None  # Optional[MultiCropTransform]
     batch_transforms: Any = None  # Optional[BatchTransform]
-    multicrop: bool = False
+    global_crop_size: Any = None  # Union[Tuple[int, int], int, NoneType]
+    local_crop_size: Any = 0.43  # Union[Tuple[float, float], float]
     global_crops_scale: Tuple[float, float] = (0.4, 1.0)
     local_crops_scale: Tuple[float, float] = (0.05, 0.4)
-    local_crops_number: int = 8
+    local_crops_number: int = 0
     eval_epochs: int = 100
     eval_batch_size: Optional[int] = None
 
@@ -57,6 +59,8 @@ class DINOConf:
     warmup_teacher_temp_iters: int = 30
     num_eval_blocks: int = 1
     lr_eval: float = 0.0001
+    global_crop_size: Any = None  # Union[Tuple[int, int], int, NoneType]
+    local_crop_size: Any = 0.43  # Union[Tuple[float, float], float]
     global_crops_scale: Tuple[float, float] = (0.4, 1.0)
     local_crops_scale: Tuple[float, float] = (0.05, 0.4)
     local_crops_number: int = 8

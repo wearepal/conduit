@@ -12,7 +12,7 @@ from conduit.constants import IMAGENET_STATS
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.utils import AlbumentationsTform, ImageTform
 from conduit.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
-from conduit.data.structures import MeanStd
+from conduit.data.structures import ImageSize, MeanStd
 from conduit.types import Stage
 
 __all__ = ["CdtVisionDataModule"]
@@ -66,6 +66,11 @@ class CdtVisionDataModule(CdtDataModule):
             transform_ls.append(A.Normalize(mean=self.norm_values.mean, std=self.norm_values.std))
         transform_ls.append(ToTensorV2())
         return A.Compose(transform_ls)
+
+    @property
+    @implements(CdtDataModule)
+    def dims(self) -> ImageSize:
+        return ImageSize(*super().dims)
 
     @property
     def _default_test_transforms(self) -> A.Compose:
