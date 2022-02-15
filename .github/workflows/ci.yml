@@ -4,8 +4,6 @@ on:
   pull_request:
     branches:
     - main
-  schedule:  # Scheduled workflows run on the latest commit on the default or base branch
-    - cron: '0 4 */3 * *'  # Run every 3 days at 4am
 
 jobs:
   ci_suite:
@@ -61,12 +59,6 @@ jobs:
     #    pyright conduit
     #    pyright tests
     - name: Test with pytest
-      if: (github.event_name != 'schedule') # for pull requests
-      run: |
-        poetry run python -m pytest -vv tests/
-    - name: Test with pytest (slow)
-      if: (github.event_name == 'schedule') # for schedule event
-      # poetry run python -m pytest -vv --runslow tests/
       run: |
         poetry run python -m pytest -vv tests/
     - name: Run configen

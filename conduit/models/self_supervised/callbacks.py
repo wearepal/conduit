@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING, Callable, Sequence, Union
 
 import numpy as np
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.progress import ProgressBar, reset
+from pytorch_lightning.callbacks.progress import TQDMProgressBar
+from pytorch_lightning.callbacks.progress.tqdm_progress import reset
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from ranzen import implements
 from torch import Tensor, nn
@@ -58,12 +59,12 @@ class MeanTeacherWeightUpdate(pl.Callback):
             param_t.data = param_t.data * em + param_s.data * (1.0 - em)
 
 
-class PostHocProgressBar(ProgressBar):
+class PostHocProgressBar(TQDMProgressBar):
     """Progress bar with descriptions tailored for post-hoc evaluation."""
 
     _train_batch_idx: int
 
-    @implements(ProgressBar)
+    @implements(TQDMProgressBar)
     def init_train_tqdm(self) -> tqdm:
         return tqdm(
             desc="Training (Post-Hoc)",
@@ -76,7 +77,7 @@ class PostHocProgressBar(ProgressBar):
             smoothing=0,
         )
 
-    @implements(ProgressBar)
+    @implements(TQDMProgressBar)
     def init_validation_tqdm(self) -> tqdm:
         has_main_bar = self.main_progress_bar is not None
         return tqdm(
@@ -88,7 +89,7 @@ class PostHocProgressBar(ProgressBar):
             file=sys.stdout,
         )
 
-    @implements(ProgressBar)
+    @implements(TQDMProgressBar)
     def on_train_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._train_batch_idx = 0
         total_train_batches = self.total_train_batches

@@ -43,6 +43,7 @@ class ColoredMNISTConf:
     background: bool = False
     black: bool = True
     split: Any = None  # Union[ColoredMNISTSplit, str, NoneType]
+    seed: Optional[int] = 42
 
 
 @dataclass

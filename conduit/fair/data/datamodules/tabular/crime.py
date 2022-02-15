@@ -22,4 +22,6 @@ class CrimeDataModule(EthicMlDataModule):
 
     @property
     def em_dataset(self) -> em.Dataset:
-        return em.crime(split=self.sens_feat.value, discrete_only=self.disc_feats_only)
+        return em.crime(
+            split=self.sens_feat.value, discrete_only=self.disc_feats_only, invert_s=self.invert_s
+        )
