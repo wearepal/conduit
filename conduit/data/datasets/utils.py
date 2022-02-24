@@ -425,14 +425,16 @@ class cdt_collate:
                 elif len(collated_batch) == 3:
                     sample_cls = TernarySample
                 else:
-                    raise ValueError
-                if isinstance(collated_batch, dict):
-                    collated_batch = sample_cls(**collated_batch)
-                else:
-                    collated_batch = sample_cls(*collated_batch)
+                    raise ValueError(
+                        "Only items with 3 or fewer elements can be cast to 'Sample' instances."
+                    )
+
+                if not isinstance(collated_batch, dict):
+                    collated_batch = dict(zip(["x", "y", "s"], collated_batch))
+                collated_batch = sample_cls(**collated_batch)
             else:
                 raise ValueError(
-                    f"batch of type '{type(collated_batch)}' could not be automatically converted into a "
+                    f"batch of type '{type(collated_batch)}' could not be automatically cast to a "
                     "'Sample' instance. Batch must be of type 'dict', 'tuple', or 'list'."
                 )
         return collated_batch
