@@ -36,7 +36,7 @@ from torch.utils.data._utils.collate import (
 )
 from torch.utils.data.dataloader import DataLoader, _worker_init_fn_t
 from torch.utils.data.sampler import Sampler
-from torchvision.datasets.utils import download_url, extract_archive
+from torchvision.datasets.utils import _detect_file_type, download_url, extract_archive
 from torchvision.transforms import functional as TF
 from typing_extensions import Final, Literal, TypeAlias, get_args
 
@@ -511,9 +511,9 @@ def download_from_url(
     for info in file_info_ls:
         filepath = root / info.name
 
-        extracted_filepath = filepath
-        for _ in extracted_filepath.suffixes:
-            extracted_filepath = extracted_filepath.with_suffix("")
+        filepath_str = str(filepath)
+        suffix = _detect_file_type(filepath_str)[0]
+        extracted_filepath = Path(filepath_str.split(suffix)[0])
 
         if extracted_filepath.exists():
             logger.info(f"File '{info.name}' already downloaded and extracted.")

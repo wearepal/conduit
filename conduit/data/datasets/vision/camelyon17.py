@@ -4,7 +4,7 @@ from typing import ClassVar, Optional, Union, cast
 
 import numpy as np
 import pandas as pd
-from ranzen.decorators import enum_name_str
+from ranzen.decorators import enum_name_str, parsable
 from ranzen.misc import str_to_enum
 import torch
 
@@ -40,7 +40,7 @@ class Camelyon17Split(Enum):
 @enum_name_str
 class Camelyon17Attr(Enum):
     tumor = auto()
-    hospital = auto()
+    center = auto()
     slide = auto()
 
 
@@ -84,13 +84,14 @@ class Camelyon17(CdtVisionDataset):
     """
 
     _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
-        name="Camelyon17.tar.gz",
+        name="camelyon17_v1.0.tar.gz",
         url="https://worksheets.codalab.org/rest/bundles/0xe45e15f39fb54e9d9e919556af67aabe/contents/blob/",
         md5=None,
     )
     _TEST_CENTER: ClassVar[int] = 2
     _VAL_CENTER: ClassVar[int] = 1
 
+    @parsable
     def __init__(
         self,
         root: Union[str, Path],
@@ -100,7 +101,7 @@ class Camelyon17(CdtVisionDataset):
         split: Optional[Union[Camelyon17Split, str]] = None,
         split_scheme: Camelyon17SplitScheme = Camelyon17SplitScheme.official,
         superclass: Union[Camelyon17Attr, str] = Camelyon17Attr.tumor,
-        subclass: Union[Camelyon17Attr, str] = Camelyon17Attr.hospital,
+        subclass: Union[Camelyon17Attr, str] = Camelyon17Attr.center,
     ) -> None:
 
         self.superclass = str_to_enum(str_=superclass, enum=Camelyon17Attr)
@@ -115,7 +116,7 @@ class Camelyon17(CdtVisionDataset):
             else split_scheme
         )
         self.root = Path(root)
-        self._base_dir = self.root / self.__class__.__name__
+        self._base_dir = self.root / "camelyon17_v1.0"
         self.download = download
         if self.download:
             download_from_url(
@@ -138,14 +139,14 @@ class Camelyon17(CdtVisionDataset):
             # For the mixed-to-test setting,
             # we move slide 23 (corresponding to patient 042, node 3 in the original dataset)
             # from the test set to the training set
-            slide_mask = self.metadata['slide'] == 23
-            self.metadata.loc[slide_mask, 'split'] = Camelyon17Split.train.value
+            slide_mask = self.metadata["slide"] == 23
+            self.metadata.loc[slide_mask, "split"] = Camelyon17Split.train.value
         # Use an official split of the data, if 'split' is specified, else just use all
         # of the data
-        val_center_mask = self.metadata['center'] == self.VAL_CENTER
-        test_center_mask = self.metadata['center'] == self.TEST_CENTER
-        self.metadata.loc[val_center_mask, 'split'] = Camelyon17Split.val.value
-        self.metadata.loc[test_center_mask, 'split'] = Camelyon17Split.test.value
+        val_center_mask = self.metadata["center"] == self._VAL_CENTER
+        test_center_mask = self.metadata["center"] == self._TEST_CENTER
+        self.metadata.loc[val_center_mask, "split"] = Camelyon17Split.val.value
+        self.metadata.loc[test_center_mask, "split"] = Camelyon17Split.test.value
 
         if self.split is not None:
             split_indices = self.metadata["split"] == self.split.value
@@ -162,9 +163,9 @@ class Camelyon17(CdtVisionDataset):
                 )
             ]
         )
-        # Extract class (land- vs. water-bird) labels
+        # Extract superclass labels
         y = torch.as_tensor(self.metadata[str(self.superclass)].to_numpy(), dtype=torch.long)
-        # Extract place (land vs. water) labels
+        # Extract subclass labels
         s = torch.as_tensor(self.metadata[str(self.subclass)].to_numpy(), dtype=torch.long)
 
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._base_dir)
