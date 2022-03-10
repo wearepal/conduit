@@ -99,7 +99,7 @@ class Camelyon17(CdtVisionDataset):
         download: bool = True,
         transform: Optional[ImageTform] = None,
         split: Optional[Union[Camelyon17Split, str]] = None,
-        split_scheme: Camelyon17SplitScheme = Camelyon17SplitScheme.official,
+        split_scheme: Union[Camelyon17SplitScheme, str] = Camelyon17SplitScheme.official,
         superclass: Union[Camelyon17Attr, str] = Camelyon17Attr.tumor,
         subclass: Union[Camelyon17Attr, str] = Camelyon17Attr.center,
     ) -> None:
