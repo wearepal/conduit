@@ -152,16 +152,14 @@ class Camelyon17(CdtVisionDataset):
             split_indices = self.metadata["split"] == self.split.value
             self.metadata = cast(pd.DataFrame, self.metadata[split_indices])
 
-        # Extract filenames
-        x = np.array(
-            [
-                f'patches/patient_{patient}_node_{node}/patch_patient_{patient}_node_{node}_x_{x}_y_{y}.png'
-                for patient, node, x, y in self.metadata.loc[
-                    :, ['patient', 'node', 'x_coord', 'y_coord']
-                ].itertuples(
-                    index=False, name=None  # type: ignore
-                )
-            ]
+        # Construct filenames from metadata
+        build_fp = lambda row: (
+            "patches/patient_{0}_node_{1}/patch_patient_{0}_node_{1}_x_{2}_y_{3}.png".format(*row)
+        )
+        x = (
+            self.metadata[["patient", "node", "x_coord", "y_coord"]]
+            .apply(build_fp, axis=1)
+            .to_numpy()
         )
         # Extract superclass labels
         y = torch.as_tensor(self.metadata[str(self.superclass)].to_numpy(), dtype=torch.long)
