@@ -152,7 +152,7 @@ class Camelyon17(CdtVisionDataset):
             split_indices = self.metadata["split"] == self.split.value
             self.metadata = cast(pd.DataFrame, self.metadata[split_indices])
 
-        # Construct filenames from metadata
+        # Construct filepaths from metadata
         build_fp = lambda row: (
             "patches/patient_{0}_node_{1}/patch_patient_{0}_node_{1}_x_{2}_y_{3}.png".format(*row)
         )
