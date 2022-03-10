@@ -2,7 +2,6 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
 
-import numpy as np
 import pandas as pd
 from ranzen.decorators import enum_name_str, parsable
 from ranzen.misc import str_to_enum
