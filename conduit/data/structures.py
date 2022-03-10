@@ -132,7 +132,7 @@ class _SubgroupSampleMixin:
 
 
 @dataclass
-class BinarySample(NamedSample, _BinarySampleMixin):
+class BinarySample(SampleBase, _BinarySampleMixin):
     @overload
     def add_field(self, *, s: None = ..., iw: None = ...) -> "BinarySample":
         ...
@@ -166,7 +166,7 @@ class BinarySample(NamedSample, _BinarySampleMixin):
 
 
 @dataclass
-class SubgroupSample(NamedSample, _SubgroupSampleMixin):
+class SubgroupSample(SampleBase, _SubgroupSampleMixin):
     @overload
     def add_field(self, *, y: None = ..., iw: None = ...) -> "SubgroupSample":
         ...
