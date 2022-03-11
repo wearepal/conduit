@@ -21,7 +21,7 @@ __all__ = ["Camelyon17DataModule"]
 
 @attr.define(kw_only=True)
 class Camelyon17DataModule(CdtVisionDataModule):
-    """Data-module for the Waterbirds dataset."""
+    """Data-module for the Camelyon17 dataset."""
 
     image_size: int = 96
     superclass: Camelyon17Attr = Camelyon17Attr.tumor
