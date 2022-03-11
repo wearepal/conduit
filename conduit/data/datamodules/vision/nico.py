@@ -1,4 +1,4 @@
-"""Nico data-module."""
+"""NICO data-module."""
 from typing import Any, Optional
 
 import albumentations as A

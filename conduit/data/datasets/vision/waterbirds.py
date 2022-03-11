@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
 
 import pandas as pd
-from ranzen.misc import str_to_enum
+from ranzen import parsable, str_to_enum
 import torch
 
 from conduit.data.datasets.utils import ImageTform, UrlFileInfo, download_from_url
@@ -39,6 +39,7 @@ class Waterbirds(CdtVisionDataset):
         md5=None,
     )
 
+    @parsable
     def __init__(
         self,
         root: Union[str, Path],

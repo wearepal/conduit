@@ -1,10 +1,22 @@
 """Data structures."""
+from abc import abstractmethod
 from dataclasses import dataclass, field, fields, is_dataclass
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union, overload
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Union,
+    overload,
+)
 
 from PIL import Image
 import numpy as np
 import numpy.typing as npt
+from ranzen.decorators import implements
 from torch import Tensor
 from torch.utils.data import Dataset
 from typing_extensions import TypeAlias
@@ -64,6 +76,10 @@ class SampleBase:
     def __len__(self) -> int:
         return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
 
+    @abstractmethod
+    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+        ...
+
 
 @dataclass
 class NamedSample(SampleBase):
@@ -99,6 +115,10 @@ class NamedSample(SampleBase):
                 return BinarySampleIW(x=self.x, y=y, iw=iw)
             return BinarySample(x=self.x, y=y)
         return self
+
+    @implements(SampleBase)
+    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+        yield self.x
 
 
 @dataclass
@@ -140,6 +160,10 @@ class BinarySample(NamedSample, _BinarySampleMixin):
             return BinarySampleIW(x=self.x, y=self.y, iw=iw)
         return self
 
+    @implements(SampleBase)
+    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+        yield from (self.x, self.y)
+
 
 @dataclass
 class SubgroupSample(NamedSample, _SubgroupSampleMixin):
@@ -170,6 +194,10 @@ class SubgroupSample(NamedSample, _SubgroupSampleMixin):
             return SubgroupSampleIW(x=self.x, s=self.s, iw=iw)
         return self
 
+    @implements(SampleBase)
+    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+        yield from (self.x, self.s)
+
 
 @dataclass
 class _IwMixin:
@@ -191,6 +219,10 @@ class BinarySampleIW(SampleBase, _BinarySampleMixin, _IwMixin):
             return TernarySampleIW(x=self.x, s=s, y=self.y, iw=self.iw)
         return self
 
+    @implements(SampleBase)
+    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+        yield from (self.x, self.y, self.iw)
+
 
 @dataclass
 class SubgroupSampleIW(SubgroupSample, _IwMixin):
@@ -206,6 +238,10 @@ class SubgroupSampleIW(SubgroupSample, _IwMixin):
         if y is not None:
             return TernarySampleIW(x=self.x, s=self.s, y=y, iw=self.iw)
         return self
+
+    @implements(SampleBase)
+    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+        yield from (self.x, self.s, self.iw)
 
 
 @dataclass
@@ -223,11 +259,19 @@ class TernarySample(BinarySample, _SubgroupSampleMixin):
             return TernarySampleIW(x=self.x, s=self.s, y=self.y, iw=iw)
         return self
 
+    @implements(SampleBase)
+    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+        yield from (self.x, self.y, self.s)
+
 
 @dataclass
 class TernarySampleIW(TernarySample, _IwMixin):
     def add_field(self) -> "TernarySampleIW":
         return self
+
+    @implements(SampleBase)
+    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+        yield from (self.x, self.y, self.s, self.iw)
 
 
 def shallow_astuple(dataclass: object) -> Tuple[Any, ...]:
