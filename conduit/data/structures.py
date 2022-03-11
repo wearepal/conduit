@@ -4,7 +4,7 @@ from dataclasses import dataclass, field, fields, is_dataclass
 from typing import (
     Any,
     Dict,
-    Iterable,
+    Iterator,
     List,
     NamedTuple,
     Optional,
@@ -77,7 +77,7 @@ class SampleBase:
         return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
 
     @abstractmethod
-    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
         ...
 
 
@@ -117,7 +117,7 @@ class NamedSample(SampleBase):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
         yield self.x
 
 
@@ -161,7 +161,7 @@ class BinarySample(NamedSample, _BinarySampleMixin):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
         yield from (self.x, self.y)
 
 
@@ -195,7 +195,7 @@ class SubgroupSample(NamedSample, _SubgroupSampleMixin):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
         yield from (self.x, self.s)
 
 
@@ -220,7 +220,7 @@ class BinarySampleIW(SampleBase, _BinarySampleMixin, _IwMixin):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
         yield from (self.x, self.y, self.iw)
 
 
@@ -240,7 +240,7 @@ class SubgroupSampleIW(SubgroupSample, _IwMixin):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
         yield from (self.x, self.s, self.iw)
 
 
@@ -260,7 +260,7 @@ class TernarySample(BinarySample, _SubgroupSampleMixin):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
         yield from (self.x, self.y, self.s)
 
 
@@ -270,7 +270,7 @@ class TernarySampleIW(TernarySample, _IwMixin):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterable[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
         yield from (self.x, self.y, self.s, self.iw)
 
 
