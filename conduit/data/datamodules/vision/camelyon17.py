@@ -1,4 +1,4 @@
-"""Waterbirds data-module."""
+"""Camelyon17 data-module."""
 from typing import Any
 
 import albumentations as A
@@ -8,54 +8,70 @@ from ranzen import implements
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
-from conduit.data.datasets.vision.waterbirds import Waterbirds, WaterbirdsSplit
+from conduit.data.datasets.vision.camelyon17 import (
+    Camelyon17,
+    Camelyon17Attr,
+    Camelyon17Split,
+    Camelyon17SplitScheme,
+)
 from conduit.data.structures import TrainValTestSplit
 
-__all__ = ["WaterbirdsDataModule"]
+__all__ = ["Camelyon17DataModule"]
 
 
 @attr.define(kw_only=True)
-class WaterbirdsDataModule(CdtVisionDataModule):
+class Camelyon17DataModule(CdtVisionDataModule):
     """Data-module for the Waterbirds dataset."""
 
-    image_size: int = 224
+    image_size: int = 96
+    superclass: Camelyon17Attr = Camelyon17Attr.tumor
+    subclass: Camelyon17Attr = Camelyon17Attr.center
     use_predefined_splits: bool = False
+    split_scheme: Camelyon17SplitScheme = Camelyon17SplitScheme.official
 
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
-        Waterbirds(root=self.root, download=True)
+        Camelyon17(root=self.root, download=True)
 
     @property  # type: ignore[misc]
     @implements(CdtVisionDataModule)
     def _default_train_transforms(self) -> A.Compose:
-        # We use the transoform pipeline described in https://arxiv.org/abs/2008.06775
-        # rather than that described in the paper in which the dataset was first introduced
-        # (Sagawa et al); these differ in in the respect that the latter center-crops the images
-        # before resizing - not doing so makes the task more difficult due to the background
-        # (serving as a spurious attribute) being more prominent.
         base_transforms = A.Compose(
             [
                 A.Resize(self.image_size, self.image_size),
+                A.CenterCrop(self.image_size, self.image_size),
+                A.HorizontalFlip(),
+                A.RandomCrop(self.image_size, self.image_size),
             ]
         )
         normalization = super()._default_train_transforms
+
         return A.Compose([base_transforms, normalization])
 
     @property  # type: ignore[misc]
     @implements(CdtVisionDataModule)
     def _default_test_transforms(self) -> A.Compose:
-        return self._default_train_transforms
+        base_transforms = A.Compose(
+            [
+                A.Resize(self.image_size, self.image_size),
+                A.CenterCrop(self.image_size, self.image_size),
+            ]
+        )
+        normalization = super()._default_train_transforms
+
+        return A.Compose([base_transforms, normalization])
 
     @implements(CdtDataModule)
     def _get_splits(self) -> TrainValTestSplit:
         # Split the data according to the pre-defined split indices
         if self.use_predefined_splits:
             train_data, val_data, test_data = (
-                Waterbirds(root=self.root, split=split) for split in WaterbirdsSplit
+                Camelyon17(root=self.root, split=split, split_scheme=self.split_scheme)
+                for split in Camelyon17Split
             )
         # Split the data randomly according to test- and val-prop
         else:
-            all_data = Waterbirds(root=self.root, transform=None)
+            all_data = Camelyon17(root=self.root, transform=None, split_scheme=self.split_scheme)
             val_data, test_data, train_data = all_data.random_split(
                 props=(self.val_prop, self.test_prop)
             )

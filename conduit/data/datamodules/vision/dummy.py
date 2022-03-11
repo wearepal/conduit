@@ -1,3 +1,4 @@
+"""Dummy data-module."""
 import attr
 from ranzen import implements
 
