@@ -22,7 +22,7 @@ __all__ = ["EthicMlDataModule"]
 class EthicMlDataModule(CdtDataModule):
     """Base data-module for tabular datasets."""
 
-    scaler: ScalerType = StandardScaler()
+    scaler: ScalerType = attr.field(factory=StandardScaler)
     invert_s: bool = False
     _datatuple: Optional[DataTuple] = attr.field(default=None, init=False)
     _train_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
@@ -65,7 +65,7 @@ class EthicMlDataModule(CdtDataModule):
         self.make_feature_groups()
 
     @implements(CdtDataModule)
-    def _get_splits(self) -> TrainValTestSplit:
+    def _get_splits(self) -> TrainValTestSplit[DataTupleDataset]:
         self._datatuple = self.em_dataset.load(ordered=True)
 
         data_len = int(self._datatuple.x.shape[0])

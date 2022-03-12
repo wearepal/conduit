@@ -1,7 +1,7 @@
 """NICO Dataset."""
 from enum import Enum, auto
 from pathlib import Path
-from typing import ClassVar, Dict, List, NamedTuple, Optional, Union, cast
+from typing import ClassVar, Dict, List, Optional, Union, cast
 
 from PIL import Image, UnidentifiedImageError
 import numpy as np
@@ -12,13 +12,12 @@ import torch
 
 from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
 from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.structures import TrainTestSplit
 
-__all__ = ["NICO", "NicoSuperclass", "NICOTrainTestSplit"]
-
-
-class NICOTrainTestSplit(NamedTuple):
-    train: "NICO"
-    test: "NICO"
+__all__ = [
+    "NICO",
+    "NicoSuperclass",
+]
 
 
 @enum_name_str
@@ -131,8 +130,8 @@ class NICO(CdtVisionDataset):
         *,
         train_props: Optional[Dict[Union[str, int], Dict[Union[str, int], float]]] = None,
         seed: Optional[int] = None,
-    ) -> NICOTrainTestSplit:
-        """Split the data into train/test sets with the option to condition on concept/context."""
+    ) -> TrainTestSplit["NICO"]:
+        """Split the data into train/test sets with the option of conditioning on concept/context."""
         # Initialise the random-number generator
         rng = np.random.default_rng(seed)
         # List to store the indices of the samples apportioned to the train set
@@ -149,7 +148,7 @@ class NICO(CdtVisionDataset):
             _train_prop: float = default_train_prop,
         ) -> List[int]:
             if _context is not None and _concept is None:
-                raise ValueError("Concept must be specified if context is.")
+                raise ValueError("'Concept' must be specified if 'context' is.")
             if _context is not None:
                 # Allow the context to be speicifed either by its name or its label-encoding
                 _context = (
@@ -206,7 +205,7 @@ class NICO(CdtVisionDataset):
         test_inds = list(set(range(len(self))) - set(train_inds))
         test_data = self.make_subset(indices=test_inds)
 
-        return NICOTrainTestSplit(train=train_data, test=test_data)
+        return TrainTestSplit(train=train_data, test=test_data)
 
 
 def _gif_to_jpeg(image: Image.Image) -> Image.Image:

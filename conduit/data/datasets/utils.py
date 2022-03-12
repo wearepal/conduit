@@ -9,11 +9,13 @@ import subprocess
 from typing import (
     Any,
     Callable,
+    Dict,
     List,
     NamedTuple,
     Optional,
     Sequence,
     Tuple,
+    TypeVar,
     Union,
     cast,
     overload,
@@ -26,13 +28,14 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 from ranzen.misc import gcopy
+from ranzen.torch.data import prop_random_split
 import torch
 from torch import Tensor
+from torch._six import string_classes
 from torch.utils.data import ConcatDataset, Dataset, Subset
 from torch.utils.data._utils.collate import (
     default_collate_err_msg_format,
     np_str_obj_array_pattern,
-    string_classes,
 )
 from torch.utils.data.dataloader import DataLoader, _worker_init_fn_t
 from torch.utils.data.sampler import Sampler
@@ -40,8 +43,14 @@ from torchvision.datasets.utils import _detect_file_type, download_url, extract_
 from torchvision.transforms import functional as TF
 from typing_extensions import Final, Literal, TypeAlias, get_args
 
-from conduit.data.datasets.base import CdtDataset, D
-from conduit.data.structures import BinarySample, NamedSample, SampleBase, TernarySample
+from conduit.data.datasets.base import CdtDataset
+from conduit.data.structures import (
+    BinarySample,
+    NamedSample,
+    SampleBase,
+    TernarySample,
+    TrainTestSplit,
+)
 
 __all__ = [
     "AlbumentationsTform",
@@ -54,7 +63,9 @@ __all__ = [
     "RawImage",
     "UrlFileInfo",
     "apply_image_transform",
+    "cdt_collate",
     "check_integrity",
+    "conditional_random_split",
     "download_from_gdrive",
     "download_from_url",
     "extract_base_dataset",
@@ -65,13 +76,10 @@ __all__ = [
     "infer_il_backend",
     "load_image",
     "make_subset",
-    "cdt_collate",
 ]
 
 
 ImageLoadingBackend: TypeAlias = Literal["opencv", "pillow"]
-
-
 RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
 
 
@@ -234,7 +242,7 @@ def extract_labels_from_dataset(dataset: Dataset) -> Tuple[Optional[Tensor], Opt
         if getattr(dataset, "s", None) is not None:
             _s = dataset.s[indices]  # type: ignore
         if getattr(dataset, "y", None) is not None:
-            _s = dataset.s[indices]  # type: ignore
+            _y = dataset.y[indices]  # type: ignore
 
         _s = torch.from_numpy(_s) if isinstance(_s, np.ndarray) else _s
         _y = torch.from_numpy(_y) if isinstance(_y, np.ndarray) else _y
@@ -259,17 +267,17 @@ def extract_labels_from_dataset(dataset: Dataset) -> Tuple[Optional[Tensor], Opt
 
 def get_group_ids(dataset: Dataset) -> Tensor:
     s_all, y_all = extract_labels_from_dataset(dataset)
-    group_ids: Optional[Tensor] = None
+    # group_ids: Optional[Tensor] = None
     if s_all is None:
         if y_all is None:
             raise ValueError(
                 "Unable to compute group ids for dataset because no labels could be extracted."
             )
         group_ids = y_all
-    elif group_ids is None:
+    elif y_all is None:
         group_ids = s_all
     else:
-        group_ids = (group_ids * len(s_all.unique()) + s_all).squeeze()
+        group_ids = (y_all * len(s_all.unique()) + s_all).squeeze()
     return group_ids.long()
 
 
@@ -285,6 +293,9 @@ def compute_instance_weights(dataset: Dataset, upweight: bool = False) -> Tensor
     else:
         group_weights = 1 - (counts / len(group_ids))
     return group_weights[inv_indexes]
+
+
+D = TypeVar("D", bound=CdtDataset)
 
 
 @overload
@@ -590,3 +601,129 @@ def download_from_gdrive(
                 logger.info(f"Unzipping '{filepath.resolve()}'; this could take a while.")
                 with zipfile.ZipFile(filepath, "r") as fhandle:
                     fhandle.extractall(str(root))
+
+
+def random_split(dataset: D, props: Union[Sequence[float], float], deep: bool = False) -> List[D]:
+    """Randomly split the dataset into subsets according to the given proportions.
+
+    :param props: The fractional size of each subset into which to randomly split the data.
+    Elements must be non-negative and sum to 1 or less; if less then the size of the final
+    split will be computed by complement.
+
+    :param deep: Whether to create a copy of the underlying dataset as
+    a basis for the random subsets. If False then the data of the subsets will be
+    views of original dataset's data.
+
+    :returns: Random subsets of the data of the requested proportions.
+    """
+    splits = prop_random_split(dataset=dataset, props=props)
+    splits = cast(List[D], [make_subset(split, indices=None, deep=deep) for split in splits])
+    return splits
+
+
+def conditional_random_split(
+    dataset: D,
+    *,
+    default_train_prop: float,
+    train_props: Optional[Dict[int, Optional[Union[Dict[int, float], float]]]] = None,
+    seed: Optional[int] = None,
+) -> TrainTestSplit[D]:
+    """Splits the data into train/test sets conditional on super- and sub-class labels.
+
+    :param default_train_prop: Proportion of samples for a given to sample for
+    the training set for those y-s combinations not specified in ``train_props``.
+
+    :param train_props: Proportion of each superclass-subclass combination to sample for
+    the training set. Keys correspond to the superclass while values can be either a float,
+    in which case the proportion is applied to the superclass as a whole, or a dict, in which
+    case the sampling is applied only to the subclasses of the superclass given by the keys.
+    If ``None`` then the function reduces to a simple random split of the data.
+
+    :param seed: PRNG seed to use for sampling.
+
+    :raises ValueError: if ``train_props`` contains a y-s combination not present in the data
+    or ``train_props`` contains a dictionary value when :attr:`name` is ``None``.
+
+    """
+    assert dataset.y is not None
+    train_props = {} if train_props is None else train_props
+    # Initialise the random-number generator
+    generator = torch.default_generator if seed is None else torch.Generator().manual_seed(seed)
+    # List to store the indices of the samples apportioned to the train set
+    # - those for the test set will be computed by complement
+    train_inds: List[int] = []
+    # Track which indices have been sampled for either split
+    unvisited = torch.ones(len(dataset), dtype=torch.bool)
+
+    def _sample_train_inds(
+        _mask: Tensor,
+        *,
+        _superclass: Optional[int] = None,
+        _subclass: Optional[int] = None,
+        _train_prop: float = default_train_prop,
+    ) -> List[int]:
+        if _superclass is not None and _subclass is None:
+            raise ValueError("'superclass' must be specified if 'subclass' is.")
+        if _subclass is not None:
+
+            # Condition the mask on s
+            _mask = _mask & (dataset.s == _subclass)
+
+        # Compute the overall size of the y/s subset
+        _subset_size = int(_mask.count_nonzero().item())
+        if _subset_size == 0:
+            _subset_str_rep = f"y={_superclass}"
+            if _subclass is not None:
+                _subset_str_rep += f", s={_subclass}"
+            raise ValueError(f"No samples belonging to subset ({_subset_str_rep}) found in data.")
+        # Compute the size of the train split
+        _train_subset_size = round(_train_prop * _subset_size)
+        # Sample the train indices (without replacement)
+        _rel_inds = torch.randperm(_subset_size, generator=generator)[:_train_subset_size]
+        _train_inds = (
+            _mask.nonzero()
+            .squeeze()[_rel_inds]
+            .tolist()
+        )
+        # Mark the sampled indices as 'visited'
+        unvisited[_mask] = False
+
+        return _train_inds
+
+    if (dataset.s is None) and any(
+        isinstance(train_prop, Dict) for train_prop in train_props.values()
+    ):
+        raise ValueError(
+            "Training proportions specified for y/s combinations but "
+            f"'s' is 'None' for dataset of type '{dataset.__class__.__name__}'."
+        )
+    train_props = {**dict.fromkeys(dataset.y.unique().tolist(), None), **train_props}
+
+    for superclass, value in train_props.items():
+        superclass_mask = dataset.y == superclass
+        # Split the remainder of the dataset in a stratified fashion, using
+        # default_train_prop as the splitting proportion
+        if value is None:
+            subclasses = [None] if dataset.s is None else dataset.s[superclass_mask].unique()
+            value = zip(subclasses, (default_train_prop,) * len(subclasses))
+        # Specifying proportions at the superclass/subclass level, rather than superclass-wide
+        elif isinstance(value, float):
+            value = (None, value)
+        else:
+            value = tuple(value.items())
+        for subclass, train_prop in value: # type: ignore
+            train_inds.extend(
+                _sample_train_inds(
+                    _mask=superclass_mask,
+                    _subclass=subclass,
+                    _superclass=superclass,
+                    _train_prop=train_prop,
+                )
+            )
+
+    train_data = dataset.make_subset(indices=train_inds)
+    # Compute the test indices by complement of the train indices
+    test_inds = list(set(range(len(dataset))) - set(train_inds))
+    test_data = dataset.make_subset(indices=test_inds)
+
+    return TrainTestSplit(train=train_data, test=test_data)

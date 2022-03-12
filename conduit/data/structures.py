@@ -4,16 +4,19 @@ from dataclasses import dataclass, field, fields, is_dataclass
 from typing import (
     Any,
     Dict,
+    Generic,
     Iterator,
     List,
     NamedTuple,
     Optional,
     Tuple,
+    TypeVar,
     Union,
     overload,
 )
 
 from PIL import Image
+import attr
 import numpy as np
 import numpy.typing as npt
 from ranzen.decorators import implements
@@ -299,15 +302,27 @@ class MeanStd(NamedTuple):
     std: Union[Tuple[float, ...], List[float]]
 
 
-class TrainTestSplit(NamedTuple):
-    train: Dataset
-    test: Dataset
+D_co = TypeVar("D_co", bound=Dataset, covariant=True)
 
 
-class TrainValTestSplit(NamedTuple):
-    train: Dataset
-    val: Dataset
-    test: Dataset
+@attr.define(kw_only=True)
+class TrainTestSplit(Generic[D_co]):
+
+    train: D_co
+    test: D_co
+
+    def __iter__(self) -> Iterator:
+        yield from (self.train, self.test)
+
+
+@attr.define(kw_only=True)
+class TrainValTestSplit(Generic[D_co]):
+    train: D_co
+    val: D_co
+    test: D_co
+
+    def __iter__(self) -> Iterator:
+        yield from (self.train, self.val, self.test)
 
 
 InputData: TypeAlias = Union[

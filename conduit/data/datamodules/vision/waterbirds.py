@@ -47,7 +47,7 @@ class WaterbirdsDataModule(CdtVisionDataModule):
         return self._default_train_transforms
 
     @implements(CdtDataModule)
-    def _get_splits(self) -> TrainValTestSplit:
+    def _get_splits(self) -> TrainValTestSplit[Waterbirds]:
         # Split the data according to the pre-defined split indices
         if self.use_predefined_splits:
             train_data, val_data, test_data = (

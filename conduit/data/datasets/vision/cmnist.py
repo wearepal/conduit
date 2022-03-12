@@ -1,7 +1,7 @@
 """ColoredMNIST Dataset."""
 from enum import Enum
 from pathlib import Path
-from typing import ClassVar, Dict, List, Optional, Tuple, Union, cast, overload
+from typing import ClassVar, Dict, List, Optional, Tuple, Union, cast
 
 from PIL import Image
 import numpy as np
@@ -11,7 +11,6 @@ from ranzen.misc import str_to_enum
 import torch
 from torch.functional import Tensor
 from torchvision.datasets import MNIST
-from typing_extensions import Literal
 
 from conduit.data.datasets.utils import ImageTform, RawImage
 from conduit.data.datasets.vision.base import CdtVisionDataset
@@ -142,39 +141,18 @@ class MNISTColorizer:
         return images_colorized
 
 
-@overload
-def _filter_data_by_labels(
-    data: Tensor, *, targets: Tensor, label_map: Dict[str, int], inplace: Literal[True] = ...
-) -> None:
-    ...
-
-
-@overload
 def _filter_data_by_labels(
     data: Tensor,
     *,
     targets: Tensor,
     label_map: Dict[str, int],
-    inplace: Literal[False] = ...,
 ) -> Tuple[Tensor, Tensor]:
-    ...
-
-
-def _filter_data_by_labels(
-    data: Tensor, *, targets: Tensor, label_map: Dict[str, int], inplace: bool = True
-) -> Optional[Tuple[Tensor, Tensor]]:
-    if not inplace:
-        data, targets = data.clone(), targets.clone()
     final_mask = torch.zeros_like(targets).bool()
     for old_label, new_label in label_map.items():
         mask = targets == int(old_label)
         targets[mask] = new_label
         final_mask |= mask
-    data = data[final_mask]
-    targets = targets[final_mask]
-    if inplace:
-        return data, targets
-    return None
+    return data[final_mask], targets[final_mask]
 
 
 class ColoredMNISTSplit(Enum):
@@ -196,7 +174,7 @@ class ColoredMNIST(CdtVisionDataset):
         colors: Optional[List[int]] = None,
         num_colors: int = 10,
         scale: float = 0.2,
-        correlation: float = 1.0,
+        correlation: Optional[float] = None,
         binarize: bool = False,
         greyscale: bool = False,
         background: bool = False,
@@ -217,6 +195,8 @@ class ColoredMNIST(CdtVisionDataset):
         self.greyscale = greyscale
         self.seed = seed
 
+        if correlation is None:
+            correlation = 1.0 if split is ColoredMNISTSplit.train else 0.0
         if not 0 <= correlation <= 1:
             raise ValueError(
                 "Strength of correlation between colour and targets must be between 0 and 1."
@@ -241,7 +221,7 @@ class ColoredMNIST(CdtVisionDataset):
             y = base_dataset.targets
         # Convert the greyscale iamges of shape ( H, W ) into 'colour' images of shape ( C, H, W )
         if self.label_map is not None:
-            _filter_data_by_labels(data=x, targets=y, label_map=self.label_map, inplace=True)
+            x, y = _filter_data_by_labels(data=x, targets=y, label_map=self.label_map)
         s = y % self.num_colors
 
         # Special-case where every s-label needs to be randomly reassigned to a new value.

@@ -57,7 +57,7 @@ class ColoredMNISTDataModule(CdtVisionDataModule):
         MNIST(root=str(self.root), download=True, train=False)
 
     @implements(CdtDataModule)
-    def _get_splits(self) -> TrainValTestSplit:
+    def _get_splits(self) -> TrainValTestSplit[ColoredMNIST]:
         # TODO: Add more sophisticated (e.g. biased) splits
         fact_func = partial(
             ColoredMNIST,

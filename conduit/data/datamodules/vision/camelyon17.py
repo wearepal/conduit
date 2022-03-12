@@ -62,7 +62,7 @@ class Camelyon17DataModule(CdtVisionDataModule):
         return A.Compose([base_transforms, normalization])
 
     @implements(CdtDataModule)
-    def _get_splits(self) -> TrainValTestSplit:
+    def _get_splits(self) -> TrainValTestSplit[Camelyon17]:
         # Split the data according to the pre-defined split indices
         if self.use_predefined_splits:
             train_data, val_data, test_data = (

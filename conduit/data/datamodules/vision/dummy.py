@@ -19,7 +19,7 @@ class DummyVisionDataModule(CdtVisionDataModule):
     y_card: int = 2
 
     @implements(CdtDataModule)
-    def _get_splits(self) -> TrainValTestSplit:
+    def _get_splits(self) -> TrainValTestSplit[DummyVisionDataset]:
         # Split the data randomly according to val- and test-prop
         data = DummyVisionDataset(
             channels=self.channels,
