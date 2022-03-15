@@ -19,10 +19,7 @@ from conduit.data.structures import (
 )
 from conduit.logging import init_logger
 
-__all__ = [
-    "CdtDataset",
-    "D",
-]
+__all__ = ["CdtDataset"]
 
 
 D = TypeVar("D", bound="CdtDataset")
