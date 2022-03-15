@@ -5,7 +5,6 @@ from typing import Any, List, Union
 import attr
 from pytorch_lightning import LightningDataModule
 from ranzen import implements
-from ranzen.torch import prop_random_split
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
@@ -33,10 +32,10 @@ class EcoacousticsDataModule(CdtAudioDataModule):
         )
 
     @implements(CdtDataModule)
-    def _get_splits(self) -> TrainValTestSplit:
+    def _get_splits(self) -> TrainValTestSplit[Ecoacoustics]:
         all_data = Ecoacoustics(root=self.root, transform=None, segment_len=self.segment_len)
 
-        val_data, test_data, train_data = prop_random_split(
-            dataset=all_data, props=(self.val_prop, self.test_prop)
+        val_data, test_data, train_data = all_data.random_split(
+            props=(self.val_prop, self.test_prop)
         )
         return TrainValTestSplit(train=train_data, val=val_data, test=test_data)

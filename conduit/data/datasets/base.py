@@ -1,10 +1,9 @@
 import logging
-from typing import ClassVar, List, Optional, Sequence, TypeVar, Union, cast
+from typing import ClassVar, List, Optional, Sequence, TypeVar, Union
 
 import numpy as np
 import numpy.typing as npt
 from ranzen import implements
-from ranzen.torch.data import prop_random_split
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
@@ -20,7 +19,7 @@ from conduit.data.structures import (
 )
 from conduit.logging import init_logger
 
-__all__ = ["CdtDataset", "D"]
+__all__ = ["CdtDataset"]
 
 
 D = TypeVar("D", bound="CdtDataset")
@@ -200,9 +199,7 @@ class CdtDataset(Dataset):
 
         :returns: Random subsets of the data of the requested proportions.
         """
-        # lazily import make_subset to prevent it being a circular import
-        from conduit.data.datasets.utils import make_subset
+        # lazily import ``random_split`` to prevent it being a circular import
+        from conduit.data.datasets.utils import random_split
 
-        splits = prop_random_split(dataset=self, props=props)
-        splits = cast(List[D], [make_subset(split, indices=None, deep=deep) for split in splits])
-        return splits
+        return random_split(self, props=props, deep=deep)

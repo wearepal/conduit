@@ -4,16 +4,21 @@ from dataclasses import dataclass, field, fields, is_dataclass
 from typing import (
     Any,
     Dict,
+    Generic,
     Iterator,
     List,
     NamedTuple,
     Optional,
+    Protocol,
     Tuple,
+    TypeVar,
     Union,
     overload,
+    runtime_checkable,
 )
 
 from PIL import Image
+import attr
 import numpy as np
 import numpy.typing as npt
 from ranzen.decorators import implements
@@ -24,10 +29,12 @@ from typing_extensions import TypeAlias
 __all__ = [
     "BinarySample",
     "BinarySampleIW",
+    "DatasetProt",
     "ImageSize",
     "InputData",
     "MultiCropOutput",
     "NamedSample",
+    "PseudoCdtDataset",
     "SampleBase",
     "SubgroupSample",
     "SubgroupSampleIW",
@@ -39,6 +46,12 @@ __all__ = [
     "shallow_asdict",
     "shallow_astuple",
 ]
+
+
+InputData: TypeAlias = Union[
+    npt.NDArray[np.floating], npt.NDArray[np.integer], npt.NDArray[np.string_], Tensor
+]
+TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
 
 
 @dataclass
@@ -299,18 +312,38 @@ class MeanStd(NamedTuple):
     std: Union[Tuple[float, ...], List[float]]
 
 
-class TrainTestSplit(NamedTuple):
-    train: Dataset
-    test: Dataset
+@runtime_checkable
+class DatasetProt(Protocol):
+    def __getitem__(self, index: int) -> Any:
+        ...
 
 
-class TrainValTestSplit(NamedTuple):
-    train: Dataset
-    val: Dataset
-    test: Dataset
+@runtime_checkable
+class PseudoCdtDataset(Protocol):
+    x: InputData
+    y: Optional[Tensor]
+    s: Optional[Tensor]
+
+    def __getitem__(self, index: int) -> Any:
+        ...
 
 
-InputData: TypeAlias = Union[
-    npt.NDArray[np.floating], npt.NDArray[np.integer], npt.NDArray[np.string_], Tensor
-]
-TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
+D = TypeVar("D", bound=Dataset)
+
+
+@attr.define(kw_only=True)
+class TrainTestSplit(Generic[D]):
+
+    train: D
+    test: D
+
+    def __iter__(self) -> Iterator[D]:
+        yield from (self.train, self.test)
+
+
+@attr.define(kw_only=True)
+class TrainValTestSplit(TrainTestSplit[D]):
+    val: D
+
+    def __iter__(self) -> Iterator[D]:
+        yield from (self.train, self.val, self.test)

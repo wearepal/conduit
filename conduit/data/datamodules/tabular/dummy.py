@@ -17,7 +17,7 @@ class DummyTabularDataModule(CdtDataModule):
     y_card: Optional[int] = None
 
     @implements(CdtDataModule)
-    def _get_splits(self) -> TrainValTestSplit:
+    def _get_splits(self) -> TrainValTestSplit[RandomTabularDataset]:
         # Split the data randomly according to val- and test-prop
         data = RandomTabularDataset(
             num_cont_features=self.num_cont_features,

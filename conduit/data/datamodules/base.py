@@ -273,7 +273,7 @@ class CdtDataModule(pl.LightningDataModule):
         return self._train_data_base
 
     @abstractmethod
-    def _get_splits(self) -> TrainValTestSplit:
+    def _get_splits(self) -> TrainValTestSplit[Dataset]:
         ...
 
     @property

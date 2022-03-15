@@ -8,6 +8,7 @@ from ranzen import implements
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
+from conduit.data.datasets.utils import stratified_split
 from conduit.data.datasets.vision.nico import NICO, NicoSuperclass
 from conduit.data.structures import TrainValTestSplit
 
@@ -44,10 +45,11 @@ class NICODataModule(CdtVisionDataModule):
         NICO(root=self.root, download=True)
 
     @implements(CdtDataModule)
-    def _get_splits(self) -> TrainValTestSplit:
+    def _get_splits(self) -> TrainValTestSplit[NICO]:
         all_data = NICO(root=self.root, superclass=self.superclass, transform=None)
         train_val_prop = 1 - self.test_prop
-        train_val_data, test_data = all_data.train_test_split(
+        train_val_data, test_data = stratified_split(
+            all_data,
             default_train_prop=train_val_prop,
             train_props=self.class_train_props,
             seed=self.seed,

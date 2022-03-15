@@ -32,7 +32,9 @@ from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
 from conduit.data.datamodules.vision.dummy import DummyVisionDataModule
 from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
+from conduit.data.datasets.utils import get_group_ids, stratified_split
 from conduit.data.datasets.vision.cmnist import MNISTColorizer
+from conduit.fair.data.datasets.dummy import DummyDataset
 
 
 @pytest.mark.parametrize("greyscale", [True, False])
@@ -239,14 +241,14 @@ def test_vision_dummy_data(
     channels, transforms = channels_transforms
     dm = DummyVisionDataModule(
         train_batch_size=batch_size,
-        eval_batch_size=batch_size,
+        eval_batch_size=batch_size,  # type: ignore
         height=size,
         width=size,
         s_card=s_card,
         y_card=y_card,
         channels=channels,
-        train_transforms=transforms,
-        test_transforms=transforms,
+        train_transforms=transforms,  # type: ignore
+        test_transforms=transforms,  # type: ignore
     )
     dm.prepare_data()
     dm.setup()
@@ -260,4 +262,54 @@ def test_vision_dummy_data(
         if y_card is None:
             assert isinstance(sample, (NamedSample))
         else:
+            assert isinstance(sample, (BinarySample))
             assert sample.y.shape == (batch_size,)
+
+
+def test_stratified_split():
+    ds = DummyDataset((3, 28, 28), (1,), (1,), (1,), num_samples=117, seed=47)
+    train, test = stratified_split(dataset=ds, default_train_prop=0.5)
+    ids_train = get_group_ids(train)
+    ids_test = get_group_ids(test)
+    counts_train = ids_train.unique(return_counts=True)[1]
+    counts_test = ids_test.unique(return_counts=True)[1]
+    assert torch.isclose(counts_train, counts_test, atol=1).all()
+
+    train_props = {0: {0: 0.25, 1: 0.45}, 1: 0.3}
+    train, test = stratified_split(
+        dataset=ds,
+        default_train_prop=0.5,
+        train_props=train_props,
+    )
+    mask_train = train.y == 1
+    mask_test = test.y == 1
+    mask_all = ds.y == 1
+
+    n_train = mask_train.count_nonzero().item()
+    n_test = mask_test.count_nonzero().item()
+    n_all = mask_all.count_nonzero().item()
+
+    assert n_train == pytest.approx(0.30 * n_all, abs=1)
+    assert n_test == pytest.approx(0.70 * n_all, abs=1)
+
+    mask_train = (train.s == 0) & (train.y == 0)
+    mask_test = (test.s == 0) & (test.y == 0)
+    mask_all = (ds.s == 0) & (ds.y == 0)
+
+    n_train = mask_train.count_nonzero().item()
+    n_test = mask_test.count_nonzero().item()
+    n_all = mask_all.count_nonzero().item()
+
+    assert n_train == pytest.approx(0.25 * n_all, abs=1)
+    assert n_test == pytest.approx(0.75 * n_all, abs=1)
+
+    mask_train = (train.s == 1) & (train.y == 0)
+    mask_test = (test.s == 1) & (test.y == 0)
+    mask_all = (ds.s == 1) & (ds.y == 0)
+
+    n_train = mask_train.count_nonzero().item()
+    n_test = mask_test.count_nonzero().item()
+    n_all = mask_all.count_nonzero().item()
+
+    assert n_train == pytest.approx(0.45 * n_all, abs=1)
+    assert n_test == pytest.approx(0.55 * n_all, abs=1)
