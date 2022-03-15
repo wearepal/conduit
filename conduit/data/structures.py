@@ -328,7 +328,7 @@ class PseudoCdtDataset(Protocol):
         ...
 
 
-D = TypeVar("D", Dataset, PseudoCdtDataset, covariant=True)
+D = TypeVar("D", bound=Dataset)
 
 
 @attr.define(kw_only=True)

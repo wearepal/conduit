@@ -83,6 +83,7 @@ __all__ = [
 ImageLoadingBackend: TypeAlias = Literal["opencv", "pillow"]
 RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
 D = TypeVar("D", bound=Dataset)
+DC = TypeVar("DC", bound=CdtDataset)
 
 
 @overload
@@ -298,11 +299,11 @@ def compute_instance_weights(dataset: PseudoCdtDataset, upweight: bool = False) 
 
 
 def make_subset(
-    dataset: Union[PseudoCdtDataset, Subset[PseudoCdtDataset]],
+    dataset: Union[DC, Subset[DC]],
     *,
     indices: Optional[Union[List[int], npt.NDArray[np.uint64], Tensor, slice]],
     deep: bool = False,
-) -> PseudoCdtDataset:
+) -> DC:
     """Create a subset of the dataset from the given indices.
 
     :param indices: The sample-indices from which to create the subset.
@@ -323,20 +324,20 @@ def make_subset(
     current_indices = None
     if isinstance(dataset, Subset):
         base_dataset, current_indices = extract_base_dataset(dataset, return_subset_indices=True)
-        if not isinstance(base_dataset, PseudoCdtDataset):
+        if not isinstance(base_dataset, CdtDataset):
             raise TypeError(
-                f"Subsets can only be created from {CdtDataset.__name__}-like "
-                "instances or PyTorch Subsets of them."
+                f"Subsets can only be created from {CdtDataset.__name__} instances or PyTorch "
+                "Subsets of them."
             )
+        base_dataset = cast(DC, base_dataset)
+
         if isinstance(current_indices, Tensor):
             current_indices = current_indices.tolist()
     else:
         base_dataset = dataset
     subset = gcopy(base_dataset, deep=deep)
 
-    def _subset_from_indices(
-        _dataset: PseudoCdtDataset, _indices: Union[List[int], slice]
-    ) -> PseudoCdtDataset:
+    def _subset_from_indices(_dataset: DC, _indices: Union[List[int], slice]) -> DC:
         _dataset.x = _dataset.x[_indices]
         if _dataset.y is not None:
             _dataset.y = _dataset.y[_indices]
@@ -585,10 +586,10 @@ def download_from_gdrive(
 
 
 def random_split(
-    dataset: Union[D, Subset[D]],
+    dataset: Union[DC, Subset[DC]],
     props: Union[Sequence[float], float],
     deep: bool = False,
-) -> List[D]:
+) -> List[DC]:
     """Randomly split the dataset into subsets according to the given proportions.
 
     :param props: The fractional size of each subset into which to randomly split the data.
@@ -603,17 +604,17 @@ def random_split(
     """
     assert isinstance(dataset, Dataset)
     splits = prop_random_split(dataset=dataset, props=props)
-    splits = cast(List[D], [make_subset(split, indices=None, deep=deep) for split in splits])
+    splits = cast(List[DC], [make_subset(split, indices=None, deep=deep) for split in splits])
     return splits
 
 
 def stratified_split(
-    dataset: PseudoCdtDataset,
+    dataset: DC,
     *,
     default_train_prop: float,
     train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = None,
     seed: Optional[int] = None,
-) -> TrainTestSplit[PseudoCdtDataset]:
+) -> TrainTestSplit[DC]:
     """Splits the data into train/test sets conditional on super- and sub-class labels.
 
     :param default_train_prop: Proportion of samples for a given to sample for
@@ -629,34 +630,59 @@ def stratified_split(
 
     :returns: Train-test split.
     """
+    if dataset.y is None:
+        raise TypeError(
+            f"Dataset of type {dataset.__class__.__name__} has no superclass labels to use "
+            "for stratification."
+        )
     train_props = {} if train_props is None else train_props
     # Initialise the random-number generator
     generator = torch.default_generator if seed is None else torch.Generator().manual_seed(seed)
 
     group_ids = get_group_ids(dataset)
+    y_unique = dataset.y.unique()
     groups, id_counts = group_ids.unique(return_counts=True)
     card_s = None if dataset.s is None else len(dataset.s.unique())
     ncols = 1 if card_s is None else card_s
-    train_props_all = dict.fromkeys(groups.tolist(), default_train_prop)
+    group_train_props = dict.fromkeys(groups.tolist(), default_train_prop)
 
     if train_props is not None:
         for superclass, value in train_props.items():
             # Apply the same splitting proportion to the entire superclass
+            if superclass not in y_unique:
+                raise ValueError(
+                    f"No samples belonging to superclass 'y={superclass}' exist in the dataset of "
+                    f"type {dataset.__class__.__name__}."
+                )
             if isinstance(value, float):
-                if card_s is None:
-                    train_props[superclass] = value
-                else:
-                    train_props_all.update(
-                        dict.fromkeys(
-                            range(superclass * card_s, (superclass + 1) * card_s),
-                            default_train_prop,
-                        )
+                if not 0 <= value <= 1:
+                    raise ValueError(
+                        "All splitting proportions speicfied in 'train_props' must be in the "
+                        "range [0, 1]."
                     )
+                if card_s is None:
+                    group_train_props[superclass] = value
+                else:
+                    superclass_props = dict.fromkeys(
+                        range(superclass * card_s, (superclass + 1) * card_s),
+                        value,
+                    )
+                    group_train_props.update(superclass_props)
             # Specifying proportions at the superclass/subclass level, rather than superclass-wide
             else:
                 for subclass, train_prop in value.items():
+                    if not 0 <= train_prop <= 1:
+                        raise ValueError(
+                            "All splitting proportions specified in 'train_props' must be in the "
+                            "range [0, 1]."
+                        )
                     group_id = superclass * ncols + subclass
-                    train_props_all[group_id] = train_prop
+                    if group_id not in groups:
+                        raise ValueError(
+                            f"No samples belonging to the subset '(y={superclass}', s={subclass})' "
+                            f"exist in the dataset of type {dataset.__class__.__name__}."
+                        )
+                    group_train_props[group_id] = train_prop
 
     # Shuffle the samples before sampling
     perm_inds = torch.randperm(len(group_ids), generator=generator)
@@ -664,7 +690,7 @@ def stratified_split(
 
     sort_inds = group_ids_perm.sort(dim=0, stable=True).indices
     thresholds = cast(
-        Tensor, (torch.as_tensor(tuple(train_props_all.values())) * id_counts).round().long()
+        Tensor, (torch.as_tensor(tuple(group_train_props.values())) * id_counts).round().long()
     )
     thresholds = torch.stack([thresholds, id_counts], dim=-1)
     thresholds[1:] += id_counts.cumsum(0)[:-1].unsqueeze(-1)
