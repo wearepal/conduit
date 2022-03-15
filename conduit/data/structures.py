@@ -348,4 +348,3 @@ class TrainValTestSplit(TrainTestSplit[D]):
 
     def __iter__(self) -> Iterator[D]:
         yield from (self.train, self.val, self.test)
-
