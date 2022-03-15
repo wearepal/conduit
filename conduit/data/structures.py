@@ -35,7 +35,6 @@ __all__ = [
     "MultiCropOutput",
     "NamedSample",
     "PseudoCdtDataset",
-    "PseudoCdtDataset",
     "SampleBase",
     "SubgroupSample",
     "SubgroupSampleIW",
