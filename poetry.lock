@@ -1616,7 +1616,7 @@ fair = ["ethicml"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8.0"
-content-hash = "a0aecc812e3ec15d438faa3b9382e8edd654441f6e74af270969ec32ad4e4d31"
+content-hash = "cb7c780db9784e7ae2483a8f75c79a88031c7a2e13db952cadc5da33630ed26d"
 
 [metadata.files]
 absl-py = [
