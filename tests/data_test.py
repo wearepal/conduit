@@ -266,7 +266,7 @@ def test_vision_dummy_data(
 
 
 def test_stratified_split():
-    ds = DummyDataset(3 * (1,), num_samples=50)
+    ds = DummyDataset((3, 28, 28), (1,), (1,), (1,), num_samples=50)
     train, test = stratified_split(dataset=ds, default_train_prop=0.5)
     ids_train = get_group_ids(train)
     ids_test = get_group_ids(test)
