@@ -635,7 +635,7 @@ def stratified_split(
 
     group_ids = get_group_ids(dataset)
     groups, id_counts = group_ids.unique(return_counts=True)
-    card_s = None if dataset.s is None else dataset.s.unique()
+    card_s = None if dataset.s is None else len(dataset.s.unique())
     ncols = 1 if card_s is None else card_s
     train_props_all = dict.fromkeys(groups.tolist(), default_train_prop)
 
