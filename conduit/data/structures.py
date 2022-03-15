@@ -9,10 +9,12 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Protocol,
     Tuple,
     TypeVar,
     Union,
     overload,
+    runtime_checkable,
 )
 
 from PIL import Image
@@ -27,10 +29,13 @@ from typing_extensions import TypeAlias
 __all__ = [
     "BinarySample",
     "BinarySampleIW",
+    "DatasetProt",
     "ImageSize",
     "InputData",
     "MultiCropOutput",
     "NamedSample",
+    "PseudoCdtDataset",
+    "PseudoCdtDataset",
     "SampleBase",
     "SubgroupSample",
     "SubgroupSampleIW",
@@ -42,6 +47,12 @@ __all__ = [
     "shallow_asdict",
     "shallow_astuple",
 ]
+
+
+InputData: TypeAlias = Union[
+    npt.NDArray[np.floating], npt.NDArray[np.integer], npt.NDArray[np.string_], Tensor
+]
+TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
 
 
 @dataclass
@@ -302,30 +313,39 @@ class MeanStd(NamedTuple):
     std: Union[Tuple[float, ...], List[float]]
 
 
-D_co = TypeVar("D_co", bound=Dataset, covariant=True)
+@runtime_checkable
+class DatasetProt(Protocol):
+    def __getitem__(self, index: int) -> Any:
+        ...
+
+
+@runtime_checkable
+class PseudoCdtDataset(Protocol):
+    x: InputData
+    y: Optional[Tensor]
+    s: Optional[Tensor]
+
+    def __getitem__(self, index: int) -> Any:
+        ...
+
+
+D = TypeVar("D", Dataset, PseudoCdtDataset, covariant=True)
 
 
 @attr.define(kw_only=True)
-class TrainTestSplit(Generic[D_co]):
+class TrainTestSplit(Generic[D]):
 
-    train: D_co
-    test: D_co
+    train: D
+    test: D
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[D]:
         yield from (self.train, self.test)
 
 
 @attr.define(kw_only=True)
-class TrainValTestSplit(Generic[D_co]):
-    train: D_co
-    val: D_co
-    test: D_co
+class TrainValTestSplit(TrainTestSplit[D]):
+    val: D
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[D]:
         yield from (self.train, self.val, self.test)
 
-
-InputData: TypeAlias = Union[
-    npt.NDArray[np.floating], npt.NDArray[np.integer], npt.NDArray[np.string_], Tensor
-]
-TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]

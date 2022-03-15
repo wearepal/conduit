@@ -47,6 +47,7 @@ from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import (
     BinarySample,
     NamedSample,
+    PseudoCdtDataset,
     SampleBase,
     TernarySample,
     TrainTestSplit,
@@ -65,7 +66,6 @@ __all__ = [
     "apply_image_transform",
     "cdt_collate",
     "check_integrity",
-    "conditional_random_split",
     "download_from_gdrive",
     "download_from_url",
     "extract_base_dataset",
@@ -76,11 +76,13 @@ __all__ = [
     "infer_il_backend",
     "load_image",
     "make_subset",
+    "stratified_split",
 ]
 
 
 ImageLoadingBackend: TypeAlias = Literal["opencv", "pillow"]
 RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
+D = TypeVar("D", bound=Dataset)
 
 
 @overload
@@ -265,7 +267,7 @@ def extract_labels_from_dataset(dataset: Dataset) -> Tuple[Optional[Tensor], Opt
     return s_all, y_all
 
 
-def get_group_ids(dataset: Dataset) -> Tensor:
+def get_group_ids(dataset: PseudoCdtDataset) -> Tensor:
     s_all, y_all = extract_labels_from_dataset(dataset)
     # group_ids: Optional[Tensor] = None
     if s_all is None:
@@ -281,7 +283,7 @@ def get_group_ids(dataset: Dataset) -> Tensor:
     return group_ids.long()
 
 
-def compute_instance_weights(dataset: Dataset, upweight: bool = False) -> Tensor:
+def compute_instance_weights(dataset: PseudoCdtDataset, upweight: bool = False) -> Tensor:
     group_ids = get_group_ids(dataset)
     _, inv_indexes, counts = group_ids.unique(return_inverse=True, return_counts=True)
     # Upweight samples according to the cardinality of their intersectional group
@@ -295,35 +297,12 @@ def compute_instance_weights(dataset: Dataset, upweight: bool = False) -> Tensor
     return group_weights[inv_indexes]
 
 
-D = TypeVar("D", bound=CdtDataset)
-
-
-@overload
 def make_subset(
-    dataset: Subset,
-    *,
-    indices: Optional[Union[List[int], npt.NDArray[np.uint64], Tensor, slice]],
-    deep: bool = ...,
-) -> CdtDataset:
-    ...
-
-
-@overload
-def make_subset(
-    dataset: D,
-    *,
-    indices: Optional[Union[List[int], npt.NDArray[np.uint64], Tensor, slice]],
-    deep: bool = ...,
-) -> D:
-    ...
-
-
-def make_subset(
-    dataset: Union[D, Subset],
+    dataset: Union[PseudoCdtDataset, Subset[PseudoCdtDataset]],
     *,
     indices: Optional[Union[List[int], npt.NDArray[np.uint64], Tensor, slice]],
     deep: bool = False,
-) -> Union[D, CdtDataset]:
+) -> PseudoCdtDataset:
     """Create a subset of the dataset from the given indices.
 
     :param indices: The sample-indices from which to create the subset.
@@ -337,17 +316,17 @@ def make_subset(
     :returns: A subset of the dataset from the given indices.
     """
     if isinstance(indices, (np.ndarray, Tensor)):
-        if not indices.ndim > 1:
+        if indices.ndim > 1:
             raise ValueError("If 'indices' is an array it must be a 0- or 1-dimensional.")
         indices = cast(List[int], indices.tolist())
 
     current_indices = None
     if isinstance(dataset, Subset):
         base_dataset, current_indices = extract_base_dataset(dataset, return_subset_indices=True)
-        if not isinstance(base_dataset, CdtDataset):
+        if not isinstance(base_dataset, PseudoCdtDataset):
             raise TypeError(
-                f"Subsets can only be created with cdt_subset from {CdtDataset.__name__} instances "
-                f"or PyTorch Subsets of them."
+                f"Subsets can only be created from {CdtDataset.__name__}-like "
+                "instances or PyTorch Subsets of them."
             )
         if isinstance(current_indices, Tensor):
             current_indices = current_indices.tolist()
@@ -355,7 +334,9 @@ def make_subset(
         base_dataset = dataset
     subset = gcopy(base_dataset, deep=deep)
 
-    def _subset_from_indices(_dataset: CdtDataset, _indices: Union[List[int], slice]) -> CdtDataset:
+    def _subset_from_indices(
+        _dataset: PseudoCdtDataset, _indices: Union[List[int], slice]
+    ) -> PseudoCdtDataset:
         _dataset.x = _dataset.x[_indices]
         if _dataset.y is not None:
             _dataset.y = _dataset.y[_indices]
@@ -603,7 +584,11 @@ def download_from_gdrive(
                     fhandle.extractall(str(root))
 
 
-def random_split(dataset: D, props: Union[Sequence[float], float], deep: bool = False) -> List[D]:
+def random_split(
+    dataset: Union[D, Subset[D]],
+    props: Union[Sequence[float], float],
+    deep: bool = False,
+) -> List[D]:
     """Randomly split the dataset into subsets according to the given proportions.
 
     :param props: The fractional size of each subset into which to randomly split the data.
@@ -616,18 +601,19 @@ def random_split(dataset: D, props: Union[Sequence[float], float], deep: bool = 
 
     :returns: Random subsets of the data of the requested proportions.
     """
+    assert isinstance(dataset, Dataset)
     splits = prop_random_split(dataset=dataset, props=props)
     splits = cast(List[D], [make_subset(split, indices=None, deep=deep) for split in splits])
     return splits
 
 
-def conditional_random_split(
-    dataset: D,
+def stratified_split(
+    dataset: PseudoCdtDataset,
     *,
     default_train_prop: float,
-    train_props: Optional[Dict[int, Optional[Union[Dict[int, float], float]]]] = None,
+    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = None,
     seed: Optional[int] = None,
-) -> TrainTestSplit[D]:
+) -> TrainTestSplit[PseudoCdtDataset]:
     """Splits the data into train/test sets conditional on super- and sub-class labels.
 
     :param default_train_prop: Proportion of samples for a given to sample for
@@ -641,89 +627,53 @@ def conditional_random_split(
 
     :param seed: PRNG seed to use for sampling.
 
-    :raises ValueError: if ``train_props`` contains a y-s combination not present in the data
-    or ``train_props`` contains a dictionary value when :attr:`name` is ``None``.
-
+    :returns: Train-test split.
     """
-    assert dataset.y is not None
     train_props = {} if train_props is None else train_props
     # Initialise the random-number generator
     generator = torch.default_generator if seed is None else torch.Generator().manual_seed(seed)
-    # List to store the indices of the samples apportioned to the train set
-    # - those for the test set will be computed by complement
-    train_inds: List[int] = []
-    # Track which indices have been sampled for either split
-    unvisited = torch.ones(len(dataset), dtype=torch.bool)
 
-    def _sample_train_inds(
-        _mask: Tensor,
-        *,
-        _superclass: Optional[int] = None,
-        _subclass: Optional[int] = None,
-        _train_prop: float = default_train_prop,
-    ) -> List[int]:
-        if _superclass is not None and _subclass is None:
-            raise ValueError("'superclass' must be specified if 'subclass' is.")
-        if _subclass is not None:
+    group_ids = get_group_ids(dataset)
+    groups, id_counts = group_ids.unique(return_counts=True)
+    card_s = None if dataset.s is None else dataset.s.unique()
+    ncols = 1 if card_s is None else card_s
+    train_props_all = dict.fromkeys(groups.tolist(), default_train_prop)
 
-            # Condition the mask on s
-            _mask = _mask & (dataset.s == _subclass)
+    if train_props is not None:
+        for superclass, value in train_props.items():
+            # Apply the same splitting proportion to the entire superclass
+            if isinstance(value, float):
+                if card_s is None:
+                    train_props[superclass] = value
+                else:
+                    train_props_all.update(
+                        dict.fromkeys(
+                            range(superclass * card_s, (superclass + 1) * card_s),
+                            default_train_prop,
+                        )
+                    )
+            # Specifying proportions at the superclass/subclass level, rather than superclass-wide
+            else:
+                for subclass, train_prop in value.items():
+                    group_id = superclass * ncols + subclass
+                    train_props_all[group_id] = train_prop
 
-        # Compute the overall size of the y/s subset
-        _subset_size = int(_mask.count_nonzero().item())
-        if _subset_size == 0:
-            _subset_str_rep = f"y={_superclass}"
-            if _subclass is not None:
-                _subset_str_rep += f", s={_subclass}"
-            raise ValueError(f"No samples belonging to subset ({_subset_str_rep}) found in data.")
-        # Compute the size of the train split
-        _train_subset_size = round(_train_prop * _subset_size)
-        # Sample the train indices (without replacement)
-        _rel_inds = torch.randperm(_subset_size, generator=generator)[:_train_subset_size]
-        _train_inds = (
-            _mask.nonzero()
-            .squeeze()[_rel_inds]
-            .tolist()
-        )
-        # Mark the sampled indices as 'visited'
-        unvisited[_mask] = False
+    # Shuffle the samples before sampling
+    perm_inds = torch.randperm(len(group_ids), generator=generator)
+    group_ids_perm = group_ids[perm_inds]
 
-        return _train_inds
+    sort_inds = group_ids_perm.sort(dim=0, stable=True).indices
+    thresholds = cast(
+        Tensor, (torch.as_tensor(tuple(train_props_all.values())) * id_counts).round().long()
+    )
+    thresholds = torch.stack([thresholds, id_counts], dim=-1)
+    thresholds[1:] += id_counts.cumsum(0)[:-1].unsqueeze(-1)
 
-    if (dataset.s is None) and any(
-        isinstance(train_prop, Dict) for train_prop in train_props.values()
-    ):
-        raise ValueError(
-            "Training proportions specified for y/s combinations but "
-            f"'s' is 'None' for dataset of type '{dataset.__class__.__name__}'."
-        )
-    train_props = {**dict.fromkeys(dataset.y.unique().tolist(), None), **train_props}
+    train_test_inds = sort_inds.tensor_split(thresholds.flatten()[:-1], dim=0)
+    train_inds = perm_inds[torch.cat(train_test_inds[0::2])]
+    test_inds = perm_inds[torch.cat(train_test_inds[1::2])]
 
-    for superclass, value in train_props.items():
-        superclass_mask = dataset.y == superclass
-        # Split the remainder of the dataset in a stratified fashion, using
-        # default_train_prop as the splitting proportion
-        if value is None:
-            subclasses = [None] if dataset.s is None else dataset.s[superclass_mask].unique()
-            value = zip(subclasses, (default_train_prop,) * len(subclasses))
-        # Specifying proportions at the superclass/subclass level, rather than superclass-wide
-        elif isinstance(value, float):
-            value = (None, value)
-        else:
-            value = tuple(value.items())
-        for subclass, train_prop in value: # type: ignore
-            train_inds.extend(
-                _sample_train_inds(
-                    _mask=superclass_mask,
-                    _subclass=subclass,
-                    _superclass=superclass,
-                    _train_prop=train_prop,
-                )
-            )
-
-    train_data = dataset.make_subset(indices=train_inds)
-    # Compute the test indices by complement of the train indices
-    test_inds = list(set(range(len(dataset))) - set(train_inds))
-    test_data = dataset.make_subset(indices=test_inds)
+    train_data = make_subset(dataset=dataset, indices=train_inds)
+    test_data = make_subset(dataset=dataset, indices=test_inds)
 
     return TrainTestSplit(train=train_data, test=test_data)

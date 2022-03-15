@@ -194,6 +194,11 @@ class ColoredMNIST(CdtVisionDataset):
         self.black = black
         self.greyscale = greyscale
         self.seed = seed
+        self.generator = (
+            torch.default_generator
+            if self.seed is None
+            else torch.Generator().manual_seed(self.seed)
+        )
 
         if correlation is None:
             correlation = 1.0 if split is ColoredMNISTSplit.train else 0.0
@@ -226,10 +231,12 @@ class ColoredMNIST(CdtVisionDataset):
 
         # Special-case where every s-label needs to be randomly reassigned to a new value.
         if self.correlation == 0:
-            s = torch.randint_like(s, low=0, high=self.num_colors)
+            torch.randint(
+                low=0, high=self.num_colors, size=s.size(), dtype=s.dtype, generator=self.generator
+            )
         elif self.correlation < 1:
             # Change the values of randomly-selected labels to values other than their original ones
-            to_flip = torch.rand(s.size(0)) > self.correlation
+            to_flip = torch.rand(s.size(0), generator=self.generator) > self.correlation
             s[to_flip] += torch.randint(
                 low=1, high=self.num_colors, size=(int(to_flip.count_nonzero()),)
             )  # type: ignore
