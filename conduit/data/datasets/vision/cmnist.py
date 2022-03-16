@@ -179,7 +179,7 @@ class ColoredMNIST(CdtVisionDataset):
         greyscale: bool = False,
         background: bool = False,
         black: bool = True,
-        split: Optional[Union[ColoredMNISTSplit, str]] = None,
+        split: Optional[Union[ColoredMNISTSplit, str, List[int]]] = None,
         seed: Optional[int] = 42,
     ) -> None:
         self.split = (
@@ -208,7 +208,13 @@ class ColoredMNIST(CdtVisionDataset):
             )
         self.correlation = correlation
 
-        if self.split is None:
+        if isinstance(self.split, ColoredMNISTSplit):
+            base_dataset = MNIST(
+                root=str(root), download=download, train=self.split is ColoredMNISTSplit.train
+            )
+            x = base_dataset.data
+            y = base_dataset.targets
+        else:
             x_ls, y_ls = [], []
             for _split in ColoredMNISTSplit:
                 base_dataset = MNIST(
@@ -218,12 +224,11 @@ class ColoredMNIST(CdtVisionDataset):
                 y_ls.append(base_dataset.targets)
             x = torch.cat(x_ls, dim=0)
             y = torch.cat(y_ls, dim=0)
-        else:
-            base_dataset = MNIST(
-                root=str(root), download=download, train=self.split is ColoredMNISTSplit.train
-            )
-            x = base_dataset.data
-            y = base_dataset.targets
+            # custom split
+            if self.split is not None:
+                x = x[self.split]
+                y = y[self.split]
+
         # Convert the greyscale iamges of shape ( H, W ) into 'colour' images of shape ( C, H, W )
         if self.label_map is not None:
             x, y = _filter_data_by_labels(data=x, targets=y, label_map=self.label_map)
