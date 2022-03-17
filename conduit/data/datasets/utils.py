@@ -595,9 +595,7 @@ def download_from_gdrive(
 
 
 def random_split(
-    dataset: D,
-    props: Union[Sequence[float], float],
-    deep: bool = False,
+    dataset: D, props: Union[Sequence[float], float], deep: bool = False, seed: Optional[int] = None
 ) -> List[D]:
     """Randomly split the dataset into subsets according to the given proportions.
 
@@ -609,9 +607,11 @@ def random_split(
     a basis for the random subsets. If False then the data of the subsets will be
     views of original dataset's data.
 
+    :param seed: PRNG seed to use for sampling.
+
     :returns: Random subsets of the data of the requested proportions.
     """
-    split_indices = prop_random_split(dataset=dataset, props=props, as_indices=True)
+    split_indices = prop_random_split(dataset=dataset, props=props, as_indices=True, seed=seed)
     splits = [make_subset(dataset, indices=indices, deep=deep) for indices in split_indices]
     return splits
 

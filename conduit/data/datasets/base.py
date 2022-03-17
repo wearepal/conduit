@@ -184,7 +184,10 @@ class CdtDataset(Dataset):
         return make_subset(dataset=self, indices=indices, deep=deep)
 
     def random_split(
-        self: Self, props: Union[Sequence[float], float], deep: bool = False
+        self: Self,
+        props: Union[Sequence[float], float],
+        deep: bool = False,
+        seed: Optional[int] = None,
     ) -> List[Self]:
         """Randomly split the dataset into subsets according to the given proportions.
 
@@ -196,9 +199,11 @@ class CdtDataset(Dataset):
         a basis for the random subsets. If False then the data of the subsets will be
         views of original dataset's data.
 
+        :param seed: PRNG seed to use for sampling.
+
         :returns: Random subsets of the data of the requested proportions.
         """
         # lazily import ``random_split`` to prevent it being a circular import
         from conduit.data.datasets.utils import random_split
 
-        return random_split(self, props=props, deep=deep)
+        return random_split(self, props=props, deep=deep, seed=seed)
