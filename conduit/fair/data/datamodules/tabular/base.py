@@ -8,7 +8,7 @@ from ethicml import DataTuple
 from ethicml.preprocessing.scaling import ScalerType
 from pytorch_lightning import LightningDataModule
 from ranzen import implements
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler  # type: ignore
 from typing_extensions import final
 
 from conduit.data.datamodules import CdtDataModule

@@ -8,7 +8,7 @@ from ranzen.torch.data import TrainingMode
 import torch
 from torch import Tensor, nn, optim
 from torch.utils.data import DataLoader
-from torchvision.models.resnet import ResNet
+from torchvision.models.resnet import ResNet  # type: ignore
 
 from conduit.architectures import vit
 from conduit.data.datamodules.vision.base import CdtVisionDataModule

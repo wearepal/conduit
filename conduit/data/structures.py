@@ -23,13 +23,13 @@ import numpy as np
 import numpy.typing as npt
 from ranzen.decorators import implements
 from torch import Tensor
-from torch.utils.data import Dataset
 from typing_extensions import TypeAlias
 
 __all__ = [
     "BinarySample",
     "BinarySampleIW",
     "DatasetProt",
+    "DatasetWrapper",
     "ImageSize",
     "InputData",
     "MultiCropOutput",
@@ -312,23 +312,37 @@ class MeanStd(NamedTuple):
     std: Union[Tuple[float, ...], List[float]]
 
 
+R_co = TypeVar("R_co", covariant=True)
+
+
 @runtime_checkable
-class DatasetProt(Protocol):
-    def __getitem__(self, index: int) -> Any:
+class DatasetProt(Protocol[R_co]):
+    def __getitem__(self, index: int) -> R_co:
         ...
 
 
 @runtime_checkable
-class PseudoCdtDataset(Protocol):
+class PseudoCdtDataset(Protocol[R_co]):
     x: InputData
     y: Optional[Tensor]
     s: Optional[Tensor]
 
-    def __getitem__(self, index: int) -> Any:
+    def __getitem__(self, index: int) -> R_co:
+        ...
+
+    def __len__(self) -> int:
         ...
 
 
-D = TypeVar("D", bound=Dataset)
+D = TypeVar("D", bound=DatasetProt)
+
+
+@runtime_checkable
+class DatasetWrapper(Protocol[D]):
+    dataset: D
+
+    def __getitem__(self, index: int) -> D:
+        ...
 
 
 @attr.define(kw_only=True)

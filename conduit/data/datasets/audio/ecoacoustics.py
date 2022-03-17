@@ -6,7 +6,6 @@
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
 from enum import Enum, auto
-import logging
 import math
 from pathlib import Path
 import shutil
@@ -21,8 +20,8 @@ from ranzen.decorators import enum_name_str, implements
 from ranzen.misc import str_to_enum
 import torch
 from torch import Tensor
-import torchaudio
-from tqdm import tqdm
+import torchaudio  # type: ignore
+from tqdm import tqdm  # type: ignore
 
 from conduit.data.datasets.audio.base import CdtAudioDataset
 from conduit.data.datasets.utils import AudioTform, UrlFileInfo, download_from_url

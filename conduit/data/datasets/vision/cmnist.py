@@ -10,7 +10,7 @@ from ranzen.decorators import implements, parsable
 from ranzen.misc import str_to_enum
 import torch
 from torch.functional import Tensor
-from torchvision.datasets import MNIST
+from torchvision.datasets import MNIST  # type: ignore
 
 from conduit.data.datasets.utils import ImageTform, RawImage
 from conduit.data.datasets.vision.base import CdtVisionDataset

@@ -9,7 +9,6 @@ from typing import ClassVar, Iterable, Iterator, List, Optional, TypeVar, Union
 import zipfile
 
 from PIL import Image
-import numpy as np
 import pandas as pd
 from ranzen import flatten_dict
 from ranzen.decorators import enum_name_str, parsable
@@ -227,7 +226,7 @@ class ISIC(CdtVisionDataset):
                 image = image.resize((224, 224))  # Resize the images to be of size 224 x 224
                 if image.mode in ("RGBA", "P"):
                     image = image.convert("RGB")
-                image.save(image_path.rename(image_path.with_suffix(".jpg")))
+                image.save(str(image_path.rename(image_path.with_suffix(".jpg"))))
                 pbar.update()
 
     @staticmethod
@@ -236,13 +235,13 @@ class ISIC(CdtVisionDataset):
             metadata_df["meta.clinical.benign_malignant"].isin({"benign", "malignant"})
         ]  # throw out unknowns
         malignant_mask = labels_df["meta.clinical.benign_malignant"] == "malignant"
-        labels_df["malignant"] = malignant_mask.astype(np.uint8)
+        labels_df["malignant"] = malignant_mask.astype("uint8")
 
         labels_df["meta.clinical.diagnosis_confirm_type"].fillna(
             value="non-histopathology", inplace=True
         )
         histopathology_mask = labels_df["meta.clinical.diagnosis_confirm_type"] == "histopathology"
-        labels_df["histo"] = histopathology_mask.astype(np.uint8)  # type: ignore[arg-type]
+        labels_df["histo"] = histopathology_mask.astype("uint8")  # type: ignore[arg-type]
 
         return labels_df
 

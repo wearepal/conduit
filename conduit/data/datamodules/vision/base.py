@@ -2,8 +2,8 @@
 from pathlib import Path
 from typing import List, Optional, Union
 
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
+import albumentations as A  # type: ignore
+from albumentations.pytorch import ToTensorV2  # type: ignore
 import attr
 from ranzen import implements
 from typing_extensions import final

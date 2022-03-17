@@ -23,29 +23,34 @@ from typing import (
 from zipfile import BadZipFile
 
 from PIL import Image
-import albumentations as A
+import albumentations as A  # type: ignore
 import cv2
 import numpy as np
 import numpy.typing as npt
 from ranzen.misc import gcopy
-from ranzen.torch.data import prop_random_split
+from ranzen.torch.data import Subset, prop_random_split
 import torch
 from torch import Tensor
 from torch._six import string_classes
-from torch.utils.data import ConcatDataset, Dataset, Subset
+from torch.utils.data import ConcatDataset
 from torch.utils.data._utils.collate import (
     default_collate_err_msg_format,
     np_str_obj_array_pattern,
 )
 from torch.utils.data.dataloader import DataLoader, _worker_init_fn_t
 from torch.utils.data.sampler import Sampler
-from torchvision.datasets.utils import _detect_file_type, download_url, extract_archive
-from torchvision.transforms import functional as TF
+from torchvision.datasets.utils import (  # type: ignore
+    _detect_file_type,
+    download_url,
+    extract_archive,
+)
+from torchvision.transforms import functional as TF  # type: ignore
 from typing_extensions import Final, Literal, TypeAlias, get_args
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import (
     BinarySample,
+    DatasetProt,
     NamedSample,
     PseudoCdtDataset,
     SampleBase,
@@ -82,8 +87,6 @@ __all__ = [
 
 ImageLoadingBackend: TypeAlias = Literal["opencv", "pillow"]
 RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
-D = TypeVar("D", bound=Dataset)
-DC = TypeVar("DC", bound=CdtDataset)
 
 
 @overload
@@ -181,21 +184,21 @@ def apply_audio_transform(waveform: Tensor, *, transform: Optional[AudioTform]) 
 
 @overload
 def extract_base_dataset(
-    dataset: Dataset, *, return_subset_indices: Literal[True] = ...
-) -> Tuple[Dataset, Union[Tensor, slice]]:
+    dataset: DatasetProt, *, return_subset_indices: Literal[True] = ...
+) -> Tuple[DatasetProt, Union[Tensor, slice]]:
     ...
 
 
 @overload
 def extract_base_dataset(
-    dataset: Dataset, *, return_subset_indices: Literal[False] = ...
-) -> Dataset:
+    dataset: DatasetProt, *, return_subset_indices: Literal[False] = ...
+) -> DatasetProt:
     ...
 
 
 def extract_base_dataset(
-    dataset: Dataset, *, return_subset_indices: bool = True
-) -> Union[Dataset, Tuple[Dataset, Union[Tensor, slice]]]:
+    dataset: DatasetProt, *, return_subset_indices: bool = True
+) -> Union[DatasetProt, Tuple[DatasetProt, Union[Tensor, slice]]]:
     """Extract the innermost dataset of a nesting of datasets.
 
     Nested datasets are inferred based on the existence of a 'dataset'
@@ -213,8 +216,8 @@ def extract_base_dataset(
     """
 
     def _closure(
-        dataset: Dataset, rel_indices_ls: Optional[List[List[int]]] = None
-    ) -> Union[Dataset, Tuple[Dataset, Union[Tensor, slice]]]:
+        dataset: DatasetProt, rel_indices_ls: Optional[List[List[int]]] = None
+    ) -> Union[DatasetProt, Tuple[DatasetProt, Union[Tensor, slice]]]:
         if rel_indices_ls is None:
             rel_indices_ls = []
         if hasattr(dataset, "dataset"):
@@ -235,27 +238,30 @@ def extract_base_dataset(
 
 
 @lru_cache(typed=True)
-def extract_labels_from_dataset(dataset: Dataset) -> Tuple[Optional[Tensor], Optional[Tensor]]:
+def extract_labels_from_dataset(
+    dataset: PseudoCdtDataset,
+) -> Tuple[Optional[Tensor], Optional[Tensor]]:
     """Attempt to extract s/y labels from a dataset."""
+    base_dataset = dataset
 
-    def _closure(dataset: Dataset) -> Tuple[Optional[Tensor], Optional[Tensor]]:
-        dataset, indices = extract_base_dataset(dataset=dataset, return_subset_indices=True)
+    def _closure(dataset: DatasetProt) -> Tuple[Optional[Tensor], Optional[Tensor]]:
+        base_dataset, indices = extract_base_dataset(dataset=dataset, return_subset_indices=True)
         _s = None
         _y = None
-        if getattr(dataset, "s", None) is not None:
-            _s = dataset.s[indices]  # type: ignore
-        if getattr(dataset, "y", None) is not None:
-            _y = dataset.y[indices]  # type: ignore
+        if getattr(base_dataset, "s", None) is not None:
+            _s = base_dataset.s[indices]  # type: ignore
+        if getattr(base_dataset, "y", None) is not None:
+            _y = base_dataset.y[indices]  # type: ignore
 
         _s = torch.from_numpy(_s) if isinstance(_s, np.ndarray) else _s
         _y = torch.from_numpy(_y) if isinstance(_y, np.ndarray) else _y
 
         return _s, _y
 
-    if isinstance(dataset, (ConcatDataset)):
+    if isinstance(base_dataset, (ConcatDataset)):
         s_all_ls: List[Tensor] = []
         y_all_ls: List[Tensor] = []
-        for _dataset in dataset.datasets:
+        for _dataset in base_dataset.datasets:
             s, y = _closure(_dataset)
             if s is not None:
                 s_all_ls.append(s)
@@ -264,11 +270,11 @@ def extract_labels_from_dataset(dataset: Dataset) -> Tuple[Optional[Tensor], Opt
         s_all = torch.cat(s_all_ls, dim=0) if s_all_ls else None
         y_all = torch.cat(y_all_ls, dim=0) if y_all_ls else None
     else:
-        s_all, y_all = _closure(dataset)
+        s_all, y_all = _closure(base_dataset)
     return s_all, y_all
 
 
-def get_group_ids(dataset: PseudoCdtDataset) -> Tensor:
+def get_group_ids(dataset: DatasetProt) -> Tensor:
     s_all, y_all = extract_labels_from_dataset(dataset)
     # group_ids: Optional[Tensor] = None
     if s_all is None:
@@ -284,7 +290,7 @@ def get_group_ids(dataset: PseudoCdtDataset) -> Tensor:
     return group_ids.long()
 
 
-def compute_instance_weights(dataset: PseudoCdtDataset, upweight: bool = False) -> Tensor:
+def compute_instance_weights(dataset: DatasetProt, upweight: bool = False) -> Tensor:
     group_ids = get_group_ids(dataset)
     _, inv_indexes, counts = group_ids.unique(return_inverse=True, return_counts=True)
     # Upweight samples according to the cardinality of their intersectional group
@@ -298,12 +304,15 @@ def compute_instance_weights(dataset: PseudoCdtDataset, upweight: bool = False) 
     return group_weights[inv_indexes]
 
 
+D = TypeVar("D", bound=PseudoCdtDataset)
+
+
 def make_subset(
-    dataset: Union[DC, Subset[DC]],
+    dataset: Union[D, Subset[D]],
     *,
     indices: Optional[Union[List[int], npt.NDArray[np.uint64], Tensor, slice]],
     deep: bool = False,
-) -> DC:
+) -> D:
     """Create a subset of the dataset from the given indices.
 
     :param indices: The sample-indices from which to create the subset.
@@ -329,7 +338,7 @@ def make_subset(
                 f"Subsets can only be created from {CdtDataset.__name__} instances or PyTorch "
                 "Subsets of them."
             )
-        base_dataset = cast(DC, base_dataset)
+        base_dataset = cast(D, base_dataset)
 
         if isinstance(current_indices, Tensor):
             current_indices = current_indices.tolist()
@@ -337,7 +346,7 @@ def make_subset(
         base_dataset = dataset
     subset = gcopy(base_dataset, deep=deep)
 
-    def _subset_from_indices(_dataset: DC, _indices: Union[List[int], slice]) -> DC:
+    def _subset_from_indices(_dataset: D, _indices: Union[List[int], slice]) -> D:
         _dataset.x = _dataset.x[_indices]
         if _dataset.y is not None:
             _dataset.y = _dataset.y[_indices]
@@ -436,7 +445,7 @@ class cdt_collate:
 class CdtDataLoader(DataLoader):
     def __init__(
         self,
-        dataset: Dataset,
+        dataset: DatasetProt,
         *,
         batch_size: Optional[int],
         shuffle: bool = False,
@@ -454,7 +463,7 @@ class CdtDataLoader(DataLoader):
         cast_to_sample: bool = True,
     ) -> None:
         super().__init__(
-            dataset,
+            dataset,  # type: ignore
             batch_size=batch_size,
             shuffle=shuffle,
             sampler=sampler,
@@ -563,7 +572,7 @@ def download_from_gdrive(
         if filepath.exists():
             logger.info(f"File '{info.name}' already downloaded.")
         else:
-            import gdown
+            import gdown  # type: ignore
 
             logger.info(f"Downloading file '{info.name}' from Google Drive.")
             gdown.cached_download(
@@ -586,10 +595,10 @@ def download_from_gdrive(
 
 
 def random_split(
-    dataset: Union[DC, Subset[DC]],
+    dataset: D,
     props: Union[Sequence[float], float],
     deep: bool = False,
-) -> List[DC]:
+) -> List[D]:
     """Randomly split the dataset into subsets according to the given proportions.
 
     :param props: The fractional size of each subset into which to randomly split the data.
@@ -602,19 +611,18 @@ def random_split(
 
     :returns: Random subsets of the data of the requested proportions.
     """
-    assert isinstance(dataset, Dataset)
-    splits = prop_random_split(dataset=dataset, props=props)
-    splits = cast(List[DC], [make_subset(split, indices=None, deep=deep) for split in splits])
+    split_indices = prop_random_split(dataset=dataset, props=props, as_indices=True)
+    splits = [make_subset(dataset, indices=indices, deep=deep) for indices in split_indices]
     return splits
 
 
 def stratified_split(
-    dataset: DC,
+    dataset: D,
     *,
     default_train_prop: float,
     train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = None,
     seed: Optional[int] = None,
-) -> TrainTestSplit[DC]:
+) -> TrainTestSplit[D]:
     """Splits the data into train/test sets conditional on super- and sub-class labels.
 
     :param default_train_prop: Proportion of samples for a given to sample for

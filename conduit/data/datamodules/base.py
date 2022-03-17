@@ -10,7 +10,6 @@ from ranzen.torch import SequentialBatchSampler, StratifiedBatchSampler, Trainin
 from ranzen.torch.data import num_batches_per_epoch
 import torch
 from torch.utils.data import DataLoader, Sampler
-from torch.utils.data.dataset import Dataset
 from typing_extensions import final
 
 from conduit.data.datasets.base import CdtDataset
@@ -20,7 +19,7 @@ from conduit.data.datasets.utils import (
     get_group_ids,
 )
 from conduit.data.datasets.wrappers import InstanceWeightedDataset
-from conduit.data.structures import TrainValTestSplit
+from conduit.data.structures import DatasetProt, TrainValTestSplit
 from conduit.logging import init_logger
 from conduit.types import Stage
 
@@ -58,13 +57,13 @@ class CdtDataModule(pl.LightningDataModule):
 
     _logger: Optional[logging.Logger] = attr.field(default=None, init=False)
 
-    _train_data_base: Optional[Dataset] = attr.field(default=None, init=False)
-    _val_data_base: Optional[Dataset] = attr.field(default=None, init=False)
-    _test_data_base: Optional[Dataset] = attr.field(default=None, init=False)
+    _train_data_base: Optional[DatasetProt] = attr.field(default=None, init=False)
+    _val_data_base: Optional[DatasetProt] = attr.field(default=None, init=False)
+    _test_data_base: Optional[DatasetProt] = attr.field(default=None, init=False)
 
-    _train_data: Optional[Dataset] = attr.field(default=None, init=False)
-    _val_data: Optional[Dataset] = attr.field(default=None, init=False)
-    _test_data: Optional[Dataset] = attr.field(default=None, init=False)
+    _train_data: Optional[DatasetProt] = attr.field(default=None, init=False)
+    _val_data: Optional[DatasetProt] = attr.field(default=None, init=False)
+    _test_data: Optional[DatasetProt] = attr.field(default=None, init=False)
     _card_s: Optional[int] = attr.field(default=None, init=False)
     _card_y: Optional[int] = attr.field(default=None, init=False)
     _dim_s: Optional[torch.Size] = attr.field(default=None, init=False)
@@ -91,7 +90,7 @@ class CdtDataModule(pl.LightningDataModule):
 
     def make_dataloader(
         self,
-        ds: Dataset,
+        ds: DatasetProt,
         *,
         batch_size: int,
         shuffle: bool = False,
@@ -112,27 +111,27 @@ class CdtDataModule(pl.LightningDataModule):
 
     @property
     @final
-    def train_data_base(self) -> Dataset:
+    def train_data_base(self) -> DatasetProt:
         self._check_setup_called("train_data_base")
-        return cast(Dataset, self._train_data_base)
+        return cast(DatasetProt, self._train_data_base)
 
     @property
     @final
-    def train_data(self) -> Dataset:
+    def train_data(self) -> DatasetProt:
         self._check_setup_called()
-        return cast(Dataset, self._train_data)
+        return cast(DatasetProt, self._train_data)
 
     @property
     @final
-    def val_data(self) -> Dataset:
+    def val_data(self) -> DatasetProt:
         self._check_setup_called()
-        return cast(Dataset, self._val_data)
+        return cast(DatasetProt, self._val_data)
 
     @property
     @final
-    def test_data(self) -> Dataset:
+    def test_data(self) -> DatasetProt:
         self._check_setup_called()
-        return cast(Dataset, self._test_data)
+        return cast(DatasetProt, self._test_data)
 
     def train_dataloader(
         self, *, shuffle: bool = False, drop_last: bool = False, batch_size: Optional[int] = None
@@ -166,7 +165,7 @@ class CdtDataModule(pl.LightningDataModule):
                 drop_last=drop_last,
             )
         return self.make_dataloader(
-            batch_size=self.train_batch_size, ds=self.train_data, batch_sampler=batch_sampler
+            ds=self.train_data, batch_size=self.train_batch_size, batch_sampler=batch_sampler
         )
 
     @implements(pl.LightningDataModule)
@@ -188,7 +187,7 @@ class CdtDataModule(pl.LightningDataModule):
         return self._dims
 
     @final
-    def _num_samples(self, dataset: Dataset) -> int:
+    def _num_samples(self, dataset: DatasetProt) -> int:
         if hasattr(dataset, "__len__"):
             return len(dataset)  # type: ignore
         raise AttributeError(
@@ -273,20 +272,12 @@ class CdtDataModule(pl.LightningDataModule):
         return self._train_data_base
 
     @abstractmethod
-    def _get_splits(self) -> TrainValTestSplit[Dataset]:
+    def _get_splits(self) -> TrainValTestSplit[DatasetProt]:
         ...
 
     @property
     def is_set_up(self) -> bool:
         return self._train_data is not None
-
-    @implements(pl.LightningDataModule)
-    @final
-    def setup(self, stage: Optional[Stage] = None, force_reset: bool = False) -> None:
-        # Only perform the setup if it hasn't already been done
-        if force_reset or (not self.is_set_up):
-            self._setup(stage=stage)
-            self._post_setup()
 
     def _setup(self, stage: Optional[Stage] = None) -> None:
         train_data, self._val_data, self._test_data = self._get_splits()
@@ -305,3 +296,11 @@ class CdtDataModule(pl.LightningDataModule):
         self._test_data_base = extract_base_dataset(
             dataset=self.test_data, return_subset_indices=False
         )
+
+    @implements(pl.LightningDataModule)
+    @final
+    def setup(self, stage: Optional[Stage] = None, force_reset: bool = False) -> None:
+        # Only perform the setup if it hasn't already been done
+        if force_reset or (not self.is_set_up):
+            self._setup(stage=stage)
+            self._post_setup()

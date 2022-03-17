@@ -1,10 +1,11 @@
 from pathlib import Path
-from typing import Optional, Sequence, Union, cast
+from typing import List, Optional, Sequence, Union, cast
 
 import numpy as np
 import numpy.typing as npt
 from ranzen import implements
 from torch import Tensor
+from typing_extensions import Self
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.datasets.utils import (
@@ -73,3 +74,29 @@ class CdtVisionDataset(CdtDataset):
             else:
                 image = img_to_tensor(image)
         return image
+
+    @implements(CdtDataset)
+    def make_subset(
+        self: Self,
+        indices: Union[List[int], npt.NDArray[np.uint64], Tensor, slice],
+        deep: bool = False,
+        transform: Optional[ImageTform] = None,
+    ) -> Self:
+        """Create a subset of the dataset from the given indices.
+
+        :param indices: The sample-indices from which to create the subset.
+        In the case of being a numpy array or tensor, said array or tensor
+        must be 0- or 1-dimensional.
+
+        :param deep: Whether to create a copy of the underlying dataset as
+        a basis for the subset. If False then the data of the subset will be
+        a view of original dataset's data.
+
+        :param transform: Image transform to assign to the resulting subset.
+
+        :returns: A subset of the dataset from the given indices.
+        """
+        subset = super().make_subset(indices=indices, deep=deep)
+        if transform is not None:
+            subset.transform = transform
+        return subset

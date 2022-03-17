@@ -2,13 +2,13 @@
 from functools import partial
 from typing import Any, Dict, List, Optional
 
-import albumentations as A
-from albumentations.pytorch.transforms import ToTensorV2
+import albumentations as A  # type: ignore
+from albumentations.pytorch.transforms import ToTensorV2  # type: ignore
 import attr
 import numpy as np
 from pytorch_lightning import LightningDataModule
 from ranzen import implements
-from torchvision.datasets import MNIST
+from torchvision.datasets import MNIST  # type: ignore
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule

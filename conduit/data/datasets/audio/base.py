@@ -4,9 +4,8 @@ from typing import Optional, Union
 import numpy as np
 import numpy.typing as npt
 from ranzen import implements
-import torch
 from torch import Tensor
-import torchaudio
+import torchaudio  # type: ignore
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.datasets.utils import (

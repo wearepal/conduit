@@ -28,7 +28,7 @@ from torch.nn.init import trunc_normal_
 
 __all__ = ["VisionTransformer", "vit_small", "vit_tiny", "vit_base", "VitArch"]
 
-from typing_extensions import Type
+from typing_extensions import Required, Type
 
 
 def drop_path(x: Tensor, *, drop_prob: float = 0.0, training: bool = False) -> Tensor:
@@ -211,8 +211,8 @@ class VisionTransformer(nn.Module):
         )
         num_patches = self.patch_embed.num_patches
 
-        self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
-        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim))
+        self.cls_token = torch.zeros(1, 1, embed_dim, requires_grad=True))
+        self.pos_embed = torch.zeros(1, num_patches + 1, embed_dim, requires_grad=True)
         self.pos_drop = nn.Dropout(p=drop_rate)
 
         dpr = [

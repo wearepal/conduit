@@ -4,8 +4,8 @@ from typing import Sequence, Tuple, Union
 from PIL import Image, ImageFilter, ImageOps
 import torch
 from torch import Tensor
-import torchvision.transforms as T
-import torchvision.transforms.functional as TF
+import torchvision.transforms as T  # type: ignore
+import torchvision.transforms.functional as TF  # type: ignore
 
 from conduit.types import NDArrayR
 

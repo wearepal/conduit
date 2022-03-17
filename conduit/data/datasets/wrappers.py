@@ -6,7 +6,6 @@ from PIL import Image
 import numpy as np
 from ranzen.decorators import implements
 from torch import Tensor
-from torch.utils.data import Dataset
 
 from conduit.data.datasets.utils import (
     AudioTform,
@@ -20,6 +19,8 @@ from conduit.data.datasets.vision.base import CdtVisionDataset
 from conduit.data.structures import (
     BinarySample,
     BinarySampleIW,
+    DatasetProt,
+    DatasetWrapper,
     SampleBase,
     SubgroupSample,
     SubgroupSampleIW,
@@ -38,7 +39,7 @@ __all__ = [
 ]
 
 
-class ImageTransformer(Dataset):
+class ImageTransformer(DatasetWrapper):
     """
     Wrapper class for applying image transformations.
 
@@ -46,7 +47,7 @@ class ImageTransformer(Dataset):
     that share the same underlying dataset.
     """
 
-    def __init__(self, dataset: Dataset, *, transform: Optional[ImageTform]) -> None:
+    def __init__(self, dataset: DatasetProt, *, transform: Optional[ImageTform]) -> None:
         self.dataset = dataset
         self._transform: Optional[ImageTform] = None
         self.transform = transform
@@ -67,6 +68,7 @@ class ImageTransformer(Dataset):
             base_dataset.update_il_backend(transform)
         self._transform = transform
 
+    @implements(DatasetWrapper)
     def __getitem__(self, index: int) -> Any:
         sample = self.dataset[index]
         if self.transform is not None:
@@ -88,7 +90,7 @@ class ImageTransformer(Dataset):
         return sample
 
 
-class AudioTransformer(Dataset):
+class AudioTransformer(DatasetWrapper):
     """
     Wrapper class for applying image transformations.
 
@@ -96,7 +98,7 @@ class AudioTransformer(Dataset):
     that share the same underlying dataset.
     """
 
-    def __init__(self, dataset: Dataset, *, transform: Optional[AudioTform]) -> None:
+    def __init__(self, dataset: DatasetProt, *, transform: Optional[AudioTform]) -> None:
         self.dataset = dataset
         self._transform: Optional[ImageTform] = None
         self.transform = transform
@@ -106,7 +108,7 @@ class AudioTransformer(Dataset):
             return len(self.dataset)  # type: ignore
         return None
 
-    @implements(Dataset)
+    @implements(DatasetWrapper)
     def __getitem__(self, index: int) -> Any:
         sample = self.dataset[index]
         if self.transform is not None:
@@ -127,7 +129,7 @@ class AudioTransformer(Dataset):
         return sample
 
 
-class TabularTransformer(Dataset):
+class TabularTransformer(DatasetWrapper):
     """
     Wrapper class for applying transformations to tabular data.
 
@@ -137,7 +139,7 @@ class TabularTransformer(Dataset):
 
     def __init__(
         self,
-        dataset: Dataset,
+        dataset: DatasetProt,
         *,
         transform: Optional[TabularTransform],
         target_transform: Optional[TabularTransform],
@@ -151,7 +153,7 @@ class TabularTransformer(Dataset):
             return len(self.dataset)  # type: ignore
         return None
 
-    @implements(Dataset)
+    @implements(DatasetWrapper)
     def __getitem__(self, index: int) -> Any:
         sample = self.dataset[index]
         if self.transform is not None:
@@ -185,14 +187,14 @@ class TabularTransformer(Dataset):
         return sample
 
 
-class InstanceWeightedDataset(Dataset):
+class InstanceWeightedDataset(DatasetWrapper):
     """Wrapper endowing datasets with instance-weights."""
 
-    def __init__(self, dataset: Dataset) -> None:
+    def __init__(self, dataset: DatasetProt) -> None:
         self.dataset = dataset
         self.iw = compute_instance_weights(dataset)
 
-    @implements(Dataset)
+    @implements(DatasetWrapper)
     def __getitem__(self, index: int) -> Union[BinarySampleIW, SubgroupSampleIW, TernarySampleIW]:
         sample = self.dataset[index]
         iw = self.iw[index]

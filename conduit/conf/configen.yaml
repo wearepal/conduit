@@ -1,3 +1,4 @@
+---
 defaults:
   - configen_schema
 
@@ -28,12 +29,18 @@ configen:
         - NICO
         - SSRP
         - Waterbirds
+        - Camelyon17
+        - Ecoacoustics
+
     - name: conduit.data.datamodules
       classes:
         - CelebADataModule
         - ColoredMNISTDataModule
         - NICODataModule
         - WaterbirdsDataModule
+        - Camelyon17DataModule
+        - EcouacousticsDataModule
+
     - name: conduit.models
       classes:
         - ERMClassifier
@@ -49,6 +56,7 @@ configen:
         - HealthDataModule
         - LawDataModule
         - SqfDataModule
+
     - name: conduit.fair.models
       classes:
         - DANN

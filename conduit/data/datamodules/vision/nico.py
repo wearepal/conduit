@@ -1,7 +1,7 @@
 """NICO data-module."""
 from typing import Any, Optional
 
-import albumentations as A
+import albumentations as A  # type: ignore
 import attr
 from pytorch_lightning import LightningDataModule
 from ranzen import implements

@@ -1,10 +1,10 @@
-from typing import Optional
+from typing import Optional, cast
 
 import numpy as np
+import numpy.typing as npt
 from ranzen import implements
 import torch
 
-from conduit.data import RawImage
 from conduit.data.datasets.vision.base import CdtVisionDataset
 
 
@@ -27,7 +27,9 @@ class DummyVisionDataset(CdtVisionDataset):
         super().__init__(x=x, s=s, y=y, image_dir="")
 
     @implements(CdtVisionDataset)
-    def _load_image(self, index: int) -> RawImage:
-        return np.random.randint(
-            0, 256, size=(self.height, self.width, self.channels), dtype="uint8"
+    def _load_image(self, index: int) -> npt.NDArray[np.uint8]:
+
+        return cast(
+            npt.NDArray[np.uint8],
+            np.random.randint(0, 256, size=(self.height, self.width, self.channels), dtype="uint8"),
         )

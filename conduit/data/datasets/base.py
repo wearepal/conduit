@@ -1,5 +1,5 @@
 import logging
-from typing import ClassVar, List, Optional, Sequence, TypeVar, Union
+from typing import ClassVar, List, Optional, Sequence, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -7,7 +7,7 @@ from ranzen import implements
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
-from typing_extensions import final
+from typing_extensions import Self, final
 
 from conduit.data.structures import (
     BinarySample,
@@ -20,9 +20,6 @@ from conduit.data.structures import (
 from conduit.logging import init_logger
 
 __all__ = ["CdtDataset"]
-
-
-D = TypeVar("D", bound="CdtDataset")
 
 
 class CdtDataset(Dataset):
@@ -165,10 +162,10 @@ class CdtDataset(Dataset):
         return len(self.x)
 
     def make_subset(
-        self: D,
+        self: Self,
         indices: Union[List[int], npt.NDArray[np.uint64], Tensor, slice],
         deep: bool = False,
-    ) -> D:
+    ) -> Self:
         """Create a subset of the dataset from the given indices.
 
         :param indices: The sample-indices from which to create the subset.
@@ -186,7 +183,9 @@ class CdtDataset(Dataset):
 
         return make_subset(dataset=self, indices=indices, deep=deep)
 
-    def random_split(self: D, props: Union[Sequence[float], float], deep: bool = False) -> List[D]:
+    def random_split(
+        self: Self, props: Union[Sequence[float], float], deep: bool = False
+    ) -> List[Self]:
         """Randomly split the dataset into subsets according to the given proportions.
 
         :param props: The fractional size of each subset into which to randomly split the data.
