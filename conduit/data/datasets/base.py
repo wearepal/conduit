@@ -1,16 +1,17 @@
 import logging
-from typing import ClassVar, List, Optional, Sequence, Union
+from typing import ClassVar, List, Optional, Sequence, Union, cast, overload
 
 import numpy as np
 import numpy.typing as npt
 from ranzen import implements
+from ranzen.misc import gcopy
 import torch
 from torch import Tensor
-from torch.utils.data import Dataset
-from typing_extensions import Self, final
+from typing_extensions import Literal, Self, final
 
 from conduit.data.structures import (
     BinarySample,
+    DatasetProt,
     InputData,
     NamedSample,
     SubgroupSample,
@@ -22,7 +23,7 @@ from conduit.logging import init_logger
 __all__ = ["CdtDataset"]
 
 
-class CdtDataset(Dataset):
+class CdtDataset(DatasetProt[NamedSample]):
     _repr_indent: ClassVar[int] = 4
     _logger: Optional[logging.Logger] = None
 
@@ -141,11 +142,11 @@ class CdtDataset(Dataset):
             self._card_s = len(self.s.unique())
         return self._card_s
 
-    @implements(Dataset)
+    @implements(DatasetProt)
     @final
     def __getitem__(
         self, index: int
-    ) -> Union[NamedSample, BinarySample, SubgroupSample, TernarySample]:
+    ) -> Union[NamedSample, SubgroupSample, BinarySample, TernarySample]:
         x = self._sample_x(index)
         y = self._sample_y(index)
         s = self._sample_s(index)
@@ -207,3 +208,36 @@ class CdtDataset(Dataset):
         from conduit.data.datasets.utils import random_split
 
         return random_split(self, props=props, deep=deep, seed=seed)
+
+    @overload
+    def cat(self: Self, other: Self, *, inplace: Literal[True] = ..., deep: bool = False) -> None:
+        ...
+
+    @overload
+    def cat(self: Self, other: Self, *, inplace: Literal[False] = ..., deep: bool = False) -> Self:
+        ...
+
+    def cat(self: Self, other: Self, *, inplace: bool = True, deep: bool = False) -> Optional[Self]:
+        """
+        Concatenate this ``self`` with another dataset of the same type.
+
+        :parma other: Other dataset to concatenate with this instance
+        :param deep: Whether to create a deep copy of this dataset as the basis for the superset.
+
+        :returns: A concatenation of ``self`` with ``other``.
+
+        .. note::
+            All data-independent attributes will be inherited from ``self``.
+        """
+        superset = self if inplace else gcopy(self, deep=deep)
+        xs = [superset.x, other.x]
+        if isinstance(superset.x, np.ndarray):
+            superset.x = np.concatenate(xs, axis=0)
+        else:
+            superset.x = torch.cat(cast(List[Tensor], xs), dim=0)
+        if (superset.s is not None) and (other.s is not None):
+            superset.s = torch.cat([superset.s, other.s], dim=0)
+        if (superset.y is not None) and (other.y is not None):
+            superset.y = torch.cat([superset.y, other.y], dim=0)
+
+        return superset
