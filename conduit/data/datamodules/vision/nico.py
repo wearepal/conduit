@@ -9,7 +9,7 @@ from ranzen import implements
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.utils import stratified_split
-from conduit.data.datasets.vision.nico import NICO, NicoSuperclass
+from conduit.data.datasets.vision.nico import NICO
 from conduit.data.structures import TrainValTestSplit
 
 __all__ = ["NICODataModule"]
@@ -21,7 +21,7 @@ class NICODataModule(CdtVisionDataModule):
 
     image_size: int = 224
     class_train_props: Optional[dict] = None
-    superclass: NicoSuperclass = NicoSuperclass.animals
+    superclass: NICO.Superclass = NICO.Superclass.animals
 
     @property  # type: ignore[misc]
     @implements(CdtVisionDataModule)

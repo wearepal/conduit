@@ -9,7 +9,7 @@ from builtins import dict
 from conduit.data.datasets.vision.camelyon17 import Camelyon17Attr
 from conduit.data.datasets.vision.camelyon17 import Camelyon17SplitScheme
 from conduit.data.datasets.vision.celeba import CelebAttr
-from conduit.data.datasets.vision.nico import NicoSuperclass
+from conduit.data.datasets.vision.nico import NICO
 from omegaconf import MISSING
 from ranzen.torch.data import TrainingMode
 from typing import Any
@@ -90,7 +90,7 @@ class NICODataModuleConf:
     test_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     image_size: int = 224
     class_train_props: Optional[dict] = None
-    superclass: NicoSuperclass = NicoSuperclass.animals
+    superclass: NICO.Superclass = NICO.Superclass.animals
 
 
 @dataclass

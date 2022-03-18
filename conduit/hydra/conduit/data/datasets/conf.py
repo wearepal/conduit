@@ -10,7 +10,7 @@ from conduit.data.datasets.vision.camelyon17 import Camelyon17Attr
 from conduit.data.datasets.vision.camelyon17 import Camelyon17SplitScheme
 from conduit.data.datasets.vision.celeba import CelebAttr
 from conduit.data.datasets.vision.isic import IsicAttr
-from conduit.data.datasets.vision.nico import NicoSuperclass
+from conduit.data.datasets.vision.nico import NICO
 from conduit.data.datasets.vision.ssrp import SSRPSplit
 from omegaconf import MISSING
 from typing import Any
@@ -66,7 +66,7 @@ class NICOConf:
     root: Any = MISSING  # Union[str, Path]
     download: bool = True
     transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    superclass: Any = NicoSuperclass.animals  # Union[NicoSuperclass, str, NoneType]
+    superclass: Any = NICO.Superclass.animals  # Union[NICO.Superclass, str, NoneType]
 
 
 @dataclass

@@ -14,20 +14,18 @@ from conduit.data.datasets.vision.base import CdtVisionDataset
 
 __all__ = [
     "NICO",
-    "NicoSuperclass",
 ]
-
-
-@enum_name_str
-class NicoSuperclass(Enum):
-    animals = auto()
-    vehicles = auto()
 
 
 class NICO(CdtVisionDataset):
     """Datset for Non-I.I.D. image classification introduced in
     'Towards Non-I.I.D. Image Classification: A Dataset and Baselines'
     """
+
+    @enum_name_str
+    class Superclass(Enum):
+        animals = auto()
+        vehicles = auto()
 
     _FILE_INFO: ClassVar[GdriveFileInfo] = GdriveFileInfo(
         name="NICO.zip",
@@ -42,11 +40,11 @@ class NICO(CdtVisionDataset):
         *,
         download: bool = True,
         transform: Optional[ImageTform] = None,
-        superclass: Optional[Union[NicoSuperclass, str]] = NicoSuperclass.animals,
+        superclass: Optional[Union[Superclass, str]] = Superclass.animals,
     ) -> None:
 
         self.superclass = (
-            str_to_enum(str_=superclass, enum=NicoSuperclass)
+            str_to_enum(str_=superclass, enum=NICO.Superclass)
             if isinstance(superclass, str)
             else superclass
         )
@@ -90,7 +88,7 @@ class NICO(CdtVisionDataset):
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._base_dir)
 
     def _check_unzipped(self) -> bool:
-        return all((self._base_dir / sc.name).exists() for sc in NicoSuperclass)
+        return all((self._base_dir / sc.name).exists() for sc in NICO.Superclass)
 
     def _extract_metadata(self) -> None:
         """Extract concept/context/superclass information from the image filepaths and it save to csv."""
