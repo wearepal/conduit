@@ -2,6 +2,7 @@
 from enum import Enum, auto
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union, cast
+from typing_extensions import TypeAlias
 
 from PIL import Image, UnidentifiedImageError
 import pandas as pd
@@ -34,6 +35,7 @@ class NICO(CdtVisionDataset):
         id="1L6cHNhuwwvrolukBklFyhFu7Y8WUUIQ7",
         md5="78c686f84e31ad6b6c052f97ed5f532b",
     )
+    Superclass: TypeAlias = NicoSuperclass
 
     @parsable
     def __init__(
@@ -42,7 +44,7 @@ class NICO(CdtVisionDataset):
         *,
         download: bool = True,
         transform: Optional[ImageTform] = None,
-        superclass: Optional[Union[NicoSuperclass, str]] = NicoSuperclass.animals,
+        superclass: Optional[Union[Superclass, str]] = Superclass.animals,
     ) -> None:
 
         self.superclass = (
