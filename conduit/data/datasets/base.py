@@ -217,7 +217,9 @@ class CdtDataset(DatasetProt[NamedSample]):
     def cat(self: Self, other: Self, *, inplace: Literal[False] = ..., deep: bool = False) -> Self:
         ...
 
-    def cat(self: Self, other: Self, *, inplace: bool = True, deep: bool = False) -> Optional[Self]:
+    def cat(
+        self: Self, other: Self, *, inplace: bool = False, deep: bool = False
+    ) -> Optional[Self]:
         """
         Concatenate this ``self`` with another dataset of the same type.
 
@@ -240,4 +242,5 @@ class CdtDataset(DatasetProt[NamedSample]):
         if (superset.y is not None) and (other.y is not None):
             superset.y = torch.cat([superset.y, other.y], dim=0)
 
-        return superset
+        if not inplace:
+            return superset
