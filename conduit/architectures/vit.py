@@ -211,7 +211,7 @@ class VisionTransformer(nn.Module):
         )
         num_patches = self.patch_embed.num_patches
 
-        self.cls_token = torch.zeros(1, 1, embed_dim, requires_grad=True))
+        self.cls_token = torch.zeros(1, 1, embed_dim, requires_grad=True)
         self.pos_embed = torch.zeros(1, num_patches + 1, embed_dim, requires_grad=True)
         self.pos_drop = nn.Dropout(p=drop_rate)
 

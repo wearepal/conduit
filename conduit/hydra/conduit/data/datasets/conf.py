@@ -5,6 +5,9 @@
 # flake8: noqa
 
 from dataclasses import dataclass, field
+from conduit.data.datasets.audio.ecoacoustics import SoundscapeAttr
+from conduit.data.datasets.vision.camelyon17 import Camelyon17Attr
+from conduit.data.datasets.vision.camelyon17 import Camelyon17SplitScheme
 from conduit.data.datasets.vision.celeba import CelebAttr
 from conduit.data.datasets.vision.isic import IsicAttr
 from conduit.data.datasets.vision.nico import NicoSuperclass
@@ -37,7 +40,7 @@ class ColoredMNISTConf:
     colors: Optional[List[int]] = None
     num_colors: int = 10
     scale: float = 0.2
-    correlation: float = 1.0
+    correlation: Optional[float] = None
     binarize: bool = False
     greyscale: bool = False
     background: bool = False
@@ -82,3 +85,26 @@ class WaterbirdsConf:
     download: bool = True
     transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
     split: Any = None  # Union[WaterbirdsSplit, str, NoneType]
+
+
+@dataclass
+class Camelyon17Conf:
+    _target_: str = "conduit.data.datasets.Camelyon17"
+    root: Any = MISSING  # Union[str, Path]
+    download: bool = True
+    transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
+    split: Any = None  # Union[Camelyon17Split, str, NoneType]
+    split_scheme: Any = Camelyon17SplitScheme.official  # Union[Camelyon17SplitScheme, str]
+    superclass: Any = Camelyon17Attr.tumor  # Union[Camelyon17Attr, str]
+    subclass: Any = Camelyon17Attr.center  # Union[Camelyon17Attr, str]
+
+
+@dataclass
+class EcoacousticsConf:
+    _target_: str = "conduit.data.datasets.Ecoacoustics"
+    root: Any = MISSING  # Union[str, Path]
+    transform: Any = None  # Optional[Callable[[Tensor], Tensor]]
+    download: bool = True
+    target_attrs: Any = SoundscapeAttr.habitat  # Union[SoundscapeAttr, str, List[Union[SoundscapeAttr, str]]]
+    segment_len: Optional[float] = 15
+    preprocess: bool = False

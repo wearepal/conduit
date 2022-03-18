@@ -39,7 +39,7 @@ configen:
         - NICODataModule
         - WaterbirdsDataModule
         - Camelyon17DataModule
-        - EcouacousticsDataModule
+        - EcoacousticsDataModule
 
     - name: conduit.models
       classes:
