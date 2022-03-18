@@ -2,13 +2,13 @@
 from enum import Enum, auto
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union, cast
-from typing_extensions import TypeAlias
 
 from PIL import Image, UnidentifiedImageError
 import pandas as pd
 from ranzen import parsable, str_to_enum
 from ranzen.decorators import enum_name_str
 import torch
+from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
 from conduit.data.datasets.vision.base import CdtVisionDataset
