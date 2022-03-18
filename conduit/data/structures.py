@@ -7,7 +7,6 @@ from typing import (
     Generic,
     Iterator,
     List,
-    NamedTuple,
     Optional,
     Protocol,
     Tuple,
@@ -301,15 +300,23 @@ def shallow_asdict(dataclass: object) -> Dict[str, Any]:
     return {field.name: getattr(dataclass, field.name) for field in fields(dataclass)}
 
 
-class ImageSize(NamedTuple):
+@attr.define
+class ImageSize:
     C: int
     H: int
     W: int
 
+    def __iter__(self) -> Iterator[int]:
+        yield from (self.C, self.H, self.W)
 
-class MeanStd(NamedTuple):
+
+@attr.define(kw_only=True)
+class MeanStd:
     mean: Union[Tuple[float, ...], List[float]]
     std: Union[Tuple[float, ...], List[float]]
+
+    def __iter__(self) -> Iterator[Union[Tuple[float, ...], List[float]]]:
+        yield from (self.mean, self.mean)
 
 
 R_co = TypeVar("R_co", covariant=True)

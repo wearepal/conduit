@@ -8,7 +8,7 @@ import attr
 from ranzen import implements
 from typing_extensions import final
 
-from conduit.constants import IMAGENET_STATS
+from conduit.data.constants import IMAGENET_STATS
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.utils import AlbumentationsTform, ImageTform
 from conduit.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset

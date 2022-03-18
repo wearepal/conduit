@@ -304,15 +304,15 @@ def compute_instance_weights(dataset: DatasetProt, upweight: bool = False) -> Te
     return group_weights[inv_indexes]
 
 
-D = TypeVar("D", bound=PseudoCdtDataset)
+PCD = TypeVar("PCD", bound=PseudoCdtDataset)
 
 
 def make_subset(
-    dataset: Union[D, Subset[D]],
+    dataset: Union[PCD, Subset[PCD]],
     *,
     indices: Optional[Union[List[int], npt.NDArray[np.uint64], Tensor, slice]],
     deep: bool = False,
-) -> D:
+) -> PCD:
     """Create a subset of the dataset from the given indices.
 
     :param indices: The sample-indices from which to create the subset.
@@ -338,7 +338,7 @@ def make_subset(
                 f"Subsets can only be created from {CdtDataset.__name__} instances or PyTorch "
                 "Subsets of them."
             )
-        base_dataset = cast(D, base_dataset)
+        base_dataset = cast(PCD, base_dataset)
 
         if isinstance(current_indices, Tensor):
             current_indices = current_indices.tolist()
@@ -346,7 +346,7 @@ def make_subset(
         base_dataset = dataset
     subset = gcopy(base_dataset, deep=deep)
 
-    def _subset_from_indices(_dataset: D, _indices: Union[List[int], slice]) -> D:
+    def _subset_from_indices(_dataset: PCD, _indices: Union[List[int], slice]) -> PCD:
         _dataset.x = _dataset.x[_indices]
         if _dataset.y is not None:
             _dataset.y = _dataset.y[_indices]
@@ -442,10 +442,15 @@ class cdt_collate:
         return collated_batch
 
 
-class CdtDataLoader(DataLoader):
+DP = TypeVar("DP", bound=DatasetProt)
+
+
+class CdtDataLoader(DataLoader[DP]):
+    dataset: DP  # type: ignore
+
     def __init__(
         self,
-        dataset: DatasetProt,
+        dataset: DP,
         *,
         batch_size: Optional[int],
         shuffle: bool = False,
@@ -595,8 +600,11 @@ def download_from_gdrive(
 
 
 def random_split(
-    dataset: D, props: Union[Sequence[float], float], deep: bool = False, seed: Optional[int] = None
-) -> List[D]:
+    dataset: PCD,
+    props: Union[Sequence[float], float],
+    deep: bool = False,
+    seed: Optional[int] = None,
+) -> List[PCD]:
     """Randomly split the dataset into subsets according to the given proportions.
 
     :param props: The fractional size of each subset into which to randomly split the data.
@@ -617,12 +625,12 @@ def random_split(
 
 
 def stratified_split(
-    dataset: D,
+    dataset: PCD,
     *,
     default_train_prop: float,
     train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = None,
     seed: Optional[int] = None,
-) -> TrainTestSplit[D]:
+) -> TrainTestSplit[PCD]:
     """Splits the data into train/test sets conditional on super- and sub-class labels.
 
     :param default_train_prop: Proportion of samples for a given to sample for

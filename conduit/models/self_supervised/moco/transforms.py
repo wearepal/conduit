@@ -4,7 +4,7 @@ import numpy as np
 from torchvision import transforms as T
 from torchvision.transforms.functional import InterpolationMode
 
-from conduit.constants import IMAGENET_STATS
+from conduit.data.constants import IMAGENET_STATS
 from conduit.data.datasets.utils import PillowTform
 from conduit.data.structures import MeanStd
 from conduit.transforms import RandomGaussianBlur

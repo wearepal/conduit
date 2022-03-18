@@ -1,9 +1,9 @@
 from typing import List, Optional, Sequence, Tuple, Union
 
-from torchvision import transforms as T
-from torchvision.transforms.functional import InterpolationMode
+from torchvision import transforms as T  # type: ignore
+from torchvision.transforms.functional import InterpolationMode  # type: ignore
 
-from conduit.constants import IMAGENET_STATS
+from conduit.data.constants import IMAGENET_STATS
 from conduit.data.datasets.utils import PillowTform
 from conduit.data.structures import MeanStd
 from conduit.models.self_supervised.multicrop import MultiCropTransform

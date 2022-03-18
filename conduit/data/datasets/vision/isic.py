@@ -14,7 +14,7 @@ from ranzen import flatten_dict
 from ranzen.decorators import enum_name_str, parsable
 import requests
 import torch
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore
 
 from conduit.data.datasets.utils import ImageTform
 from conduit.data.datasets.vision.base import CdtVisionDataset

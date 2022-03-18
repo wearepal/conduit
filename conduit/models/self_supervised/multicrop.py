@@ -5,7 +5,7 @@ import torch
 from torch import Tensor, nn
 from typing_extensions import Type
 
-from conduit.constants import IMAGENET_STATS
+from conduit.data.constants import IMAGENET_STATS
 from conduit.data.datasets.utils import (
     ImageTform,
     RawImage,
