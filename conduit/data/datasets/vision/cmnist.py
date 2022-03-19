@@ -194,9 +194,11 @@ class ColoredMNIST(CdtVisionDataset):
         self.black = black
         self.greyscale = greyscale
         self.seed = seed
-
+        # Note: a correlation coefficient of '1' corresponds to perfect correlation between
+        # digit and class while a correlation coefficient of '-1' corresponds to perfect
+        # anti-correlation.
         if correlation is None:
-            correlation = 1.0 if split is ColoredMNISTSplit.train else 0.0
+            correlation = 1.0 if split is ColoredMNISTSplit.train else 0.5
         if not 0 <= correlation <= 1:
             raise ValueError(
                 "Strength of correlation between colour and targets must be between 0 and 1."
@@ -219,31 +221,29 @@ class ColoredMNIST(CdtVisionDataset):
             )
             x = base_dataset.data
             y = base_dataset.targets
-        # Convert the greyscale iamges of shape ( H, W ) into 'colour' images of shape ( C, H, W )
+
         if self.label_map is not None:
             x, y = _filter_data_by_labels(data=x, targets=y, label_map=self.label_map)
         s = y % self.num_colors
+        s_unique, s_unique_inv = s.unique(return_inverse=True)
 
         generator = (
             torch.default_generator
             if self.seed is None
             else torch.Generator().manual_seed(self.seed)
         )
-        # Special-case where every s-label needs to be randomly reassigned to a new value.
-        if self.correlation == 0:
-            torch.randint(
-                low=0, high=self.num_colors, size=s.size(), dtype=s.dtype, generator=generator
-            )
-        elif self.correlation < 1:
+        inv_card_s = 1 / len(s_unique)
+        if self.correlation < 1:
+            flip_prop =  self.correlation * (1.0 - inv_card_s) + inv_card_s
             # Change the values of randomly-selected labels to values other than their original ones
-            to_flip = torch.rand(s.size(0), generator=generator) > self.correlation
-            s[to_flip] += torch.randint(
-                low=1, high=self.num_colors, size=(int(to_flip.count_nonzero()),)
-            )  # type: ignore
+            num_to_flip = round((1 - flip_prop) * len(s))
+            to_flip = torch.randperm(len(s), generator=generator)[:num_to_flip]
+            s_unique_inv[to_flip] += torch.randint(low=1, high=len(s_unique), size=(num_to_flip,))
             # s labels live inside the Z/(num_colors * Z) ring
-            s[to_flip] %= self.num_colors
+            s_unique_inv[to_flip] %= len(s_unique)
+            s = s_unique[s_unique_inv]
 
-        # Colorize the greyscale images
+        # Convert the greyscale iamges of shape ( H, W ) into 'colour' images of shape ( C, H, W )
         colorizer = MNISTColorizer(
             scale=self.scale,
             background=self.background,
