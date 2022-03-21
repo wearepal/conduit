@@ -1,6 +1,6 @@
 """Data structures."""
 from abc import abstractmethod
-from dataclasses import dataclass, field, fields, is_dataclass
+from dataclasses import asdict, dataclass, field, fields, is_dataclass
 from typing import (
     Any,
     Dict,
@@ -152,6 +152,29 @@ class SampleBase:
             copy.x = copy.x + other.x  # type: ignore
 
         return copy
+
+    def to(
+        self, device: Union[torch.device, str], *, non_blocking: bool = False, copy: bool = False
+    ) -> Self:
+        for elem in shallow_astuple(self):
+            if isinstance(elem, Tensor):
+                elem.to(device)
+        return self
+
+    def astuple(
+        self, deep=False
+    ) -> Tuple[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput], ...]:
+        tuple_ = tuple(iter(self))
+        if deep:
+            tuple_ = gcopy(tuple_, deep=True)
+        return tuple_
+
+    def asdict(
+        self, deep=False
+    ) -> Dict[str, Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+        if deep:
+            asdict(self)
+        return shallow_asdict(self)
 
 
 @dataclass
