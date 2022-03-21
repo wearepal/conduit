@@ -110,7 +110,7 @@ TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.i
 IndexType: TypeAlias = Union[int, List[int], slice]
 
 
-X = TypeVar("X", RawImage, List[RawImage], MultiCropOutput, Tensor)
+X = TypeVar("X", bound=LoadedData)
 
 
 @dataclass

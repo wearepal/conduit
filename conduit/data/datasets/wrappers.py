@@ -22,10 +22,10 @@ from conduit.data.structures import (
     BinarySampleIW,
     DatasetProt,
     DatasetWrapper,
+    NamedSample,
     RawImage,
     SampleBase,
     SubgroupSample,
-    SubgroupSampleIW,
     TernarySample,
     TernarySampleIW,
     _BinarySampleMixin,
@@ -82,7 +82,7 @@ class ImageTransformer(DatasetWrapper[D]):
         ) -> Any:
             if self.transform is not None:
                 if isinstance(_sample, (Image.Image, np.ndarray)):
-                    out = apply_image_transform(image=_sample, transform=self.transform)
+                    _new_sample = apply_image_transform(image=_sample, transform=self.transform)
                 elif isinstance(_sample, SampleBase):
                     image = _sample.x
                     if isinstance(image, list):
@@ -99,12 +99,13 @@ class ImageTransformer(DatasetWrapper[D]):
                         )
                     else:
                         image = apply_image_transform(image=image, transform=self.transform)
-                    out = replace(_sample, x=image)
+                    _new_sample = replace(_sample, x=image)
                 else:
                     image = apply_image_transform(image=_sample[0], transform=self.transform)
                     data_type = type(_sample)
-                    out = data_type(image, *_sample[1:])  # type: ignore
-                return out
+                    _new_sample = data_type(image, *_sample[1:])  # type: ignore
+                return _new_sample
+            return _sample
 
         return _transform_sample(sample)
 
@@ -214,7 +215,7 @@ class InstanceWeightedDataset(DatasetWrapper[D]):
         self.iw = compute_instance_weights(dataset)
 
     @implements(DatasetWrapper)
-    def __getitem__(self, index: int) -> Union[BinarySampleIW, SubgroupSampleIW, TernarySampleIW]:
+    def __getitem__(self, index: int) -> Union[NamedSample, Tuple[Any, ...]]:
         sample = self.dataset[index]
         iw = self.iw[index]
         if isinstance(sample, (BinarySample, SubgroupSample, TernarySample)):
