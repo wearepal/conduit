@@ -154,7 +154,11 @@ class SampleBase:
         return copy
 
     def to(
-        self, device: Union[torch.device, str], *, non_blocking: bool = False, copy: bool = False
+        self,
+        device: Optional[Union[torch.device, str]],
+        *,
+        non_blocking: bool = False,
+        copy: bool = False,
     ) -> Self:
         for elem in shallow_astuple(self):
             if isinstance(elem, Tensor):
