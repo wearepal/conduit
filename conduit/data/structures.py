@@ -19,10 +19,10 @@ from typing import (
 
 from PIL import Image
 import attr
-from kit.misc import gcopy
 import numpy as np
 import numpy.typing as npt
 from ranzen.decorators import implements
+from ranzen.misc import gcopy
 import torch
 from torch import Tensor
 from typing_extensions import Self, TypeAlias
