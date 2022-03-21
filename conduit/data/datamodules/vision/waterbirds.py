@@ -8,14 +8,18 @@ from ranzen import implements
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
-from conduit.data.datasets.vision.waterbirds import Waterbirds, WaterbirdsSplit
+from conduit.data.datasets.vision.waterbirds import (
+    SampleType,
+    Waterbirds,
+    WaterbirdsSplit,
+)
 from conduit.data.structures import TrainValTestSplit
 
 __all__ = ["WaterbirdsDataModule"]
 
 
 @attr.define(kw_only=True)
-class WaterbirdsDataModule(CdtVisionDataModule[Waterbirds]):
+class WaterbirdsDataModule(CdtVisionDataModule[Waterbirds, SampleType]):
     """Data-module for the Waterbirds dataset."""
 
     image_size: int = 224

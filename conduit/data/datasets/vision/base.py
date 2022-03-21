@@ -7,7 +7,7 @@ from ranzen import implements
 from torch import Tensor
 from typing_extensions import Self, TypeAlias
 
-from conduit.data.datasets.base import CdtDataset
+from conduit.data.datasets.base import CdtDataset, S
 from conduit.data.datasets.utils import (
     ImageLoadingBackend,
     ImageTform,
@@ -24,7 +24,7 @@ __all__ = ["CdtVisionDataset"]
 ItemType: TypeAlias = Union[RawImage, Tensor, Sequence[RawImage], Sequence[Tensor]]
 
 
-class CdtVisionDataset(CdtDataset):
+class CdtVisionDataset(CdtDataset[S]):
     def __init__(
         self,
         *,

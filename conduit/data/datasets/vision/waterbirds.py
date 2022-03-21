@@ -5,9 +5,11 @@ from typing import ClassVar, Optional, Union, cast
 import pandas as pd
 from ranzen import parsable, str_to_enum
 import torch
+from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import ImageTform, UrlFileInfo, download_from_url
 from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.structures import TernarySample
 
 __all__ = ["Waterbirds", "WaterbirdsSplit"]
 
@@ -18,7 +20,10 @@ class WaterbirdsSplit(Enum):
     test = 2
 
 
-class Waterbirds(CdtVisionDataset):
+SampleType: TypeAlias = TernarySample
+
+
+class Waterbirds(CdtVisionDataset[TernarySample]):
     """The Waterbirds dataset.
 
     The dataset was constructed by cropping out birds from the Caltech-UCSD Birds-200-2011 (CUB) dataset

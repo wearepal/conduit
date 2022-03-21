@@ -180,9 +180,6 @@ class SampleBase(Generic[X]):
             asdict(self)
         return shallow_asdict(self)
 
-    def x_is_tensor(self) -> bool:
-        return isinstance(self.x, Tensor)
-
 
 @dataclass
 class NamedSample(SampleBase[X]):

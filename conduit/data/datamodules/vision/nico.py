@@ -9,14 +9,14 @@ from ranzen import implements
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.utils import stratified_split
-from conduit.data.datasets.vision.nico import NICO, NicoSuperclass
+from conduit.data.datasets.vision.nico import NICO, NicoSuperclass, SampleType
 from conduit.data.structures import TrainValTestSplit
 
 __all__ = ["NICODataModule"]
 
 
 @attr.define(kw_only=True)
-class NICODataModule(CdtVisionDataModule[NICO]):
+class NICODataModule(CdtVisionDataModule[NICO, SampleType]):
     """Data-module for the NICO dataset."""
 
     image_size: int = 224

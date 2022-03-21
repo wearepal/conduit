@@ -8,9 +8,11 @@ import pandas as pd
 from ranzen import parsable, str_to_enum
 from ranzen.decorators import enum_name_str
 import torch
+from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
 from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.structures import TernarySample
 
 __all__ = [
     "NICO",
@@ -24,7 +26,10 @@ class NicoSuperclass(Enum):
     vehicles = auto()
 
 
-class NICO(CdtVisionDataset):
+SampleType: TypeAlias = TernarySample
+
+
+class NICO(CdtVisionDataset[TernarySample]):
     """Datset for Non-I.I.D. image classification introduced in
     'Towards Non-I.I.D. Image Classification: A Dataset and Baselines'
     """

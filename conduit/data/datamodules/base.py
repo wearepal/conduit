@@ -9,7 +9,7 @@ from ranzen import implements
 from ranzen.torch import SequentialBatchSampler, StratifiedBatchSampler, TrainingMode
 from ranzen.torch.data import num_batches_per_epoch
 import torch
-from torch.utils.data import DataLoader, Sampler
+from torch.utils.data import Sampler
 from typing_extensions import final
 
 from conduit.data.datasets.base import CdtDataset
@@ -19,17 +19,18 @@ from conduit.data.datasets.utils import (
     get_group_ids,
 )
 from conduit.data.datasets.wrappers import InstanceWeightedDataset
-from conduit.data.structures import DatasetProt, TrainValTestSplit
+from conduit.data.structures import DatasetProt, NamedSample, TrainValTestSplit
 from conduit.logging import init_logger
 from conduit.types import Stage
 
 __all__ = ["CdtDataModule"]
 
 D = TypeVar("D", bound=DatasetProt)
+S = TypeVar("S", bound=NamedSample)
 
 
 @attr.define(kw_only=True)
-class CdtDataModule(pl.LightningDataModule, Generic[D]):
+class CdtDataModule(pl.LightningDataModule, Generic[D, S]):
     """Base DataModule for both Tabular and Vision data-modules.
 
     :param val_prop: Proprtion (float)  of samples to use for the validation split
@@ -98,7 +99,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D]):
         shuffle: bool = False,
         drop_last: bool = False,
         batch_sampler: Optional[Sampler[Sequence[int]]] = None,
-    ) -> DataLoader:
+    ) -> CdtDataLoader[S]:
         """Make DataLoader."""
         return CdtDataLoader(
             ds,
@@ -137,7 +138,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D]):
 
     def train_dataloader(
         self, *, shuffle: bool = False, drop_last: bool = False, batch_size: Optional[int] = None
-    ) -> DataLoader:
+    ) -> CdtDataLoader[S]:
         batch_size = self.train_batch_size if batch_size is None else batch_size
 
         if self.stratified_sampling:
@@ -171,11 +172,11 @@ class CdtDataModule(pl.LightningDataModule, Generic[D]):
         )
 
     @implements(pl.LightningDataModule)
-    def val_dataloader(self) -> DataLoader:
+    def val_dataloader(self) -> CdtDataLoader[S]:
         return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.val_data)
 
     @implements(pl.LightningDataModule)
-    def test_dataloader(self) -> DataLoader:
+    def test_dataloader(self) -> CdtDataLoader[S]:
         return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.test_data)
 
     @property

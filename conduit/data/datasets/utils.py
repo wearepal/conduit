@@ -10,6 +10,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterator,
     List,
     NamedTuple,
     Optional,
@@ -51,6 +52,7 @@ from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import (
     BinarySample,
     DatasetProt,
+    LoadedData,
     NamedSample,
     PseudoCdtDataset,
     RawImage,
@@ -443,15 +445,13 @@ class cdt_collate:
         return collated_batch
 
 
-DP = TypeVar("DP", bound=DatasetProt)
+S = TypeVar("S", bound=NamedSample[LoadedData])
 
 
-class CdtDataLoader(DataLoader[DP]):
-    dataset: DP  # type: ignore
-
+class CdtDataLoader(DataLoader[S]):
     def __init__(
         self,
-        dataset: DP,
+        dataset: DatasetProt[S],
         *,
         batch_size: Optional[int],
         shuffle: bool = False,
@@ -466,7 +466,6 @@ class CdtDataLoader(DataLoader[DP]):
         generator: Optional[torch.Generator] = None,
         prefetch_factor: int = 2,
         persistent_workers: bool = False,
-        cast_to_sample: bool = True,
     ) -> None:
         super().__init__(
             dataset,  # type: ignore
@@ -475,7 +474,7 @@ class CdtDataLoader(DataLoader[DP]):
             sampler=sampler,
             batch_sampler=batch_sampler,
             num_workers=num_workers,
-            collate_fn=cdt_collate(cast_to_sample=cast_to_sample),
+            collate_fn=cdt_collate(cast_to_sample=True),
             pin_memory=pin_memory,
             drop_last=drop_last,
             timeout=timeout,
@@ -485,6 +484,9 @@ class CdtDataLoader(DataLoader[DP]):
             prefetch_factor=prefetch_factor,
             persistent_workers=persistent_workers,
         )
+
+    def __iter__(self) -> Iterator[S]:
+        return super().__iter__()
 
 
 def check_integrity(*, filepath: Path, md5: Optional[str]) -> None:

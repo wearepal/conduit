@@ -12,14 +12,18 @@ from torchvision.datasets import MNIST  # type: ignore
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
-from conduit.data.datasets.vision.cmnist import ColoredMNIST, ColoredMNISTSplit
+from conduit.data.datasets.vision.cmnist import (
+    ColoredMNIST,
+    ColoredMNISTSplit,
+    SampleType,
+)
 from conduit.data.structures import MeanStd, TrainValTestSplit
 
 __all__ = ["ColoredMNISTDataModule"]
 
 
 @attr.define(kw_only=True)
-class ColoredMNISTDataModule(CdtVisionDataModule[ColoredMNIST]):
+class ColoredMNISTDataModule(CdtVisionDataModule[ColoredMNIST, SampleType]):
     """Data-module for the ColoredMNIST dataset."""
 
     image_size: int = 32

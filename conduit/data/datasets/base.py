@@ -1,5 +1,5 @@
 import logging
-from typing import ClassVar, List, Optional, Sequence, Union, cast, overload
+from typing import ClassVar, List, Optional, Sequence, TypeVar, Union, cast, overload
 
 import numpy as np
 import numpy.typing as npt
@@ -13,6 +13,7 @@ from conduit.data.structures import (
     BinarySample,
     DatasetProt,
     IndexType,
+    LoadedData,
     NamedSample,
     SubgroupSample,
     TargetData,
@@ -21,10 +22,19 @@ from conduit.data.structures import (
 )
 from conduit.logging import init_logger
 
-__all__ = ["CdtDataset"]
+__all__ = ["CdtDataset", "S"]
 
 
-class CdtDataset(DatasetProt[NamedSample]):
+S = TypeVar(
+    "S",
+    NamedSample[LoadedData],
+    BinarySample[LoadedData],
+    SubgroupSample[LoadedData],
+    TernarySample[LoadedData],
+)
+
+
+class CdtDataset(DatasetProt[S]):
     _repr_indent: ClassVar[int] = 4
     _logger: Optional[logging.Logger] = None
 
@@ -62,21 +72,28 @@ class CdtDataset(DatasetProt[NamedSample]):
             self._logger = init_logger(self.__class__.__name__)
         return self._logger
 
+    @overload
+    def _sample_x(self, index: IndexType, *, coerce_to_tensor: Literal[True] = ...) -> Tensor:
+        ...
+
+    @overload
+    def _sample_x(self, index: IndexType, *, coerce_to_tensor: Literal[False] = ...) -> LoadedData:
+        ...
+
     def _sample_x(
-        self, index: Union[int, List[int], slice], *, coerce_to_tensor: bool = False
-    ) -> Tensor:
-        self.x
+        self, index: IndexType, *, coerce_to_tensor: bool = False
+    ) -> Union[LoadedData, Tensor]:
         x = self.x[index]
         if coerce_to_tensor and (not isinstance(x, Tensor)):
             x = torch.as_tensor(x)
         return x
 
-    def _sample_s(self, index: Union[int, List[int], slice]) -> Optional[Tensor]:
+    def _sample_s(self, index: IndexType) -> Optional[Tensor]:
         if self.s is None:
             return None
         return self.s[index]
 
-    def _sample_y(self, index: Union[int, List[int], slice]) -> Optional[Tensor]:
+    def _sample_y(self, index: IndexType) -> Optional[Tensor]:
         if self.y is None:
             return None
         return self.y[index]
@@ -233,18 +250,21 @@ class CdtDataset(DatasetProt[NamedSample]):
 
     @implements(DatasetProt)
     @final
-    def __getitem__(self, index: IndexType) -> NamedSample:
-        x = self._sample_x(index)
+    def __getitem__(self, index: IndexType) -> S:
+        x = self._sample_x(index, coerce_to_tensor=False)
         y = self._sample_y(index)
         s = self._sample_s(index)
         # Fetch the appropriate 'Sample' class
         if y is None:
             if s is None:
-                return NamedSample(x=x)
-            return SubgroupSample(x=x, s=s)
-        if s is None:
-            return BinarySample(x=x, y=y)
-        return TernarySample(x=x, y=y, s=s)
+                sample = NamedSample(x=x)
+            else:
+                sample = SubgroupSample(x=x, s=s)
+        elif s is None:
+            sample = BinarySample(x=x, y=y)
+        else:
+            sample = TernarySample(x=x, y=y, s=s)
+        return sample  # type: ignore
 
     def __len__(self) -> int:
         return len(self.x)

@@ -4,11 +4,15 @@ import numpy as np
 import numpy.typing as npt
 from ranzen import implements
 import torch
+from typing_extensions import TypeAlias
 
 from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.structures import TernarySample
+
+SampleType: TypeAlias = TernarySample
 
 
-class DummyVisionDataset(CdtVisionDataset):
+class DummyVisionDataset(CdtVisionDataset[SampleType]):
     def __init__(
         self,
         channels: int,

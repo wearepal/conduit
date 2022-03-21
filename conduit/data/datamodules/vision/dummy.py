@@ -3,11 +3,11 @@ import attr
 from ranzen import implements
 
 from conduit.data import CdtDataModule, CdtVisionDataModule, TrainValTestSplit
-from conduit.data.datasets.vision.dummy import DummyVisionDataset
+from conduit.data.datasets.vision.dummy import DummyVisionDataset, SampleType
 
 
 @attr.define(kw_only=True)
-class DummyVisionDataModule(CdtVisionDataModule[DummyVisionDataset]):
+class DummyVisionDataModule(CdtVisionDataModule[DummyVisionDataset, SampleType]):
     num_samples: int = 1_000
     seed: int = 8
     root: str = ""

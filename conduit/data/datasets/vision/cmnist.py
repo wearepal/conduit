@@ -11,9 +11,11 @@ from ranzen.misc import str_to_enum
 import torch
 from torch.functional import Tensor
 from torchvision.datasets import MNIST  # type: ignore
+from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import ImageTform, RawImage
 from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.structures import TernarySample
 from conduit.types import NDArrayR
 
 __all__ = [
@@ -160,7 +162,10 @@ class ColoredMNISTSplit(Enum):
     test = 0
 
 
-class ColoredMNIST(CdtVisionDataset):
+SampleType: TypeAlias = TernarySample
+
+
+class ColoredMNIST(CdtVisionDataset[SampleType]):
     x: npt.NDArray[np.floating]
 
     @parsable
