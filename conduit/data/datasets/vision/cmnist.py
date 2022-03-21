@@ -234,7 +234,7 @@ class ColoredMNIST(CdtVisionDataset):
         )
         inv_card_s = 1 / len(s_unique)
         if self.correlation < 1:
-            flip_prop =  self.correlation * (1.0 - inv_card_s) + inv_card_s
+            flip_prop = self.correlation * (1.0 - inv_card_s) + inv_card_s
             # Change the values of randomly-selected labels to values other than their original ones
             num_to_flip = round((1 - flip_prop) * len(s))
             to_flip = torch.randperm(len(s), generator=generator)[:num_to_flip]
