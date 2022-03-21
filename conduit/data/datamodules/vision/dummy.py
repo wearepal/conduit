@@ -7,7 +7,7 @@ from conduit.data.datasets.vision.dummy import DummyVisionDataset
 
 
 @attr.define(kw_only=True)
-class DummyVisionDataModule(CdtVisionDataModule):
+class DummyVisionDataModule(CdtVisionDataModule[DummyVisionDataset]):
     num_samples: int = 1_000
     seed: int = 8
     root: str = ""

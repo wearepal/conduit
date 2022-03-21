@@ -53,6 +53,7 @@ from conduit.data.structures import (
     DatasetProt,
     NamedSample,
     PseudoCdtDataset,
+    RawImage,
     SampleBase,
     TernarySample,
     TrainTestSplit,
@@ -66,7 +67,6 @@ __all__ = [
     "ImageLoadingBackend",
     "ImageTform",
     "PillowTform",
-    "RawImage",
     "UrlFileInfo",
     "apply_image_transform",
     "cdt_collate",
@@ -86,11 +86,12 @@ __all__ = [
 
 
 ImageLoadingBackend: TypeAlias = Literal["opencv", "pillow"]
-RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
 
 
 @overload
-def load_image(filepath: Union[Path, str], *, backend: Literal["opencv"] = ...) -> np.ndarray:
+def load_image(
+    filepath: Union[Path, str], *, backend: Literal["opencv"] = ...
+) -> npt.NDArray[np.integer]:
     ...
 
 
@@ -143,7 +144,7 @@ def infer_il_backend(transform: Optional[ImageTform]) -> ImageLoadingBackend:
 
 def apply_image_transform(
     image: RawImage, *, transform: Optional[ImageTform]
-) -> Union[RawImage, Image.Image, Tensor]:
+) -> Union[RawImage, Tensor]:
     image_ = image
     if transform is not None:
         if isinstance(transform, (A.Compose, A.BasicTransform)):
@@ -290,7 +291,7 @@ def get_group_ids(dataset: DatasetProt) -> Tensor:
     return group_ids.long()
 
 
-def compute_instance_weights(dataset: DatasetProt, upweight: bool = False) -> Tensor:
+def compute_instance_weights(dataset: DatasetProt, *, upweight: bool = False) -> Tensor:
     group_ids = get_group_ids(dataset)
     _, inv_indexes, counts = group_ids.unique(return_inverse=True, return_counts=True)
     # Upweight samples according to the cardinality of their intersectional group

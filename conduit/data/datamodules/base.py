@@ -1,7 +1,7 @@
 """Base class from which all data-modules in conduit inherit."""
 from abc import abstractmethod
 import logging
-from typing import Optional, Sequence, Tuple, cast
+from typing import Generic, Optional, Sequence, Tuple, TypeVar, cast
 
 import attr
 import pytorch_lightning as pl
@@ -25,9 +25,11 @@ from conduit.types import Stage
 
 __all__ = ["CdtDataModule"]
 
+D = TypeVar("D", bound=DatasetProt)
+
 
 @attr.define(kw_only=True)
-class CdtDataModule(pl.LightningDataModule):
+class CdtDataModule(pl.LightningDataModule, Generic[D]):
     """Base DataModule for both Tabular and Vision data-modules.
 
     :param val_prop: Proprtion (float)  of samples to use for the validation split
@@ -57,13 +59,13 @@ class CdtDataModule(pl.LightningDataModule):
 
     _logger: Optional[logging.Logger] = attr.field(default=None, init=False)
 
-    _train_data_base: Optional[DatasetProt] = attr.field(default=None, init=False)
-    _val_data_base: Optional[DatasetProt] = attr.field(default=None, init=False)
-    _test_data_base: Optional[DatasetProt] = attr.field(default=None, init=False)
+    _train_data_base: Optional[D] = attr.field(default=None, init=False)
+    _val_data_base: Optional[D] = attr.field(default=None, init=False)
+    _test_data_base: Optional[D] = attr.field(default=None, init=False)
 
-    _train_data: Optional[DatasetProt] = attr.field(default=None, init=False)
-    _val_data: Optional[DatasetProt] = attr.field(default=None, init=False)
-    _test_data: Optional[DatasetProt] = attr.field(default=None, init=False)
+    _train_data: Optional[D] = attr.field(default=None, init=False)
+    _val_data: Optional[D] = attr.field(default=None, init=False)
+    _test_data: Optional[D] = attr.field(default=None, init=False)
     _card_s: Optional[int] = attr.field(default=None, init=False)
     _card_y: Optional[int] = attr.field(default=None, init=False)
     _dim_s: Optional[torch.Size] = attr.field(default=None, init=False)
@@ -90,7 +92,7 @@ class CdtDataModule(pl.LightningDataModule):
 
     def make_dataloader(
         self,
-        ds: DatasetProt,
+        ds: D,
         *,
         batch_size: int,
         shuffle: bool = False,
@@ -111,27 +113,27 @@ class CdtDataModule(pl.LightningDataModule):
 
     @property
     @final
-    def train_data_base(self) -> DatasetProt:
+    def train_data_base(self) -> D:
         self._check_setup_called("train_data_base")
-        return cast(DatasetProt, self._train_data_base)
+        return cast(D, self._train_data_base)
 
     @property
     @final
-    def train_data(self) -> DatasetProt:
+    def train_data(self) -> D:
         self._check_setup_called()
-        return cast(DatasetProt, self._train_data)
+        return cast(D, self._train_data)
 
     @property
     @final
-    def val_data(self) -> DatasetProt:
+    def val_data(self) -> D:
         self._check_setup_called()
-        return cast(DatasetProt, self._val_data)
+        return cast(D, self._val_data)
 
     @property
     @final
-    def test_data(self) -> DatasetProt:
+    def test_data(self) -> D:
         self._check_setup_called()
-        return cast(DatasetProt, self._test_data)
+        return cast(D, self._test_data)
 
     def train_dataloader(
         self, *, shuffle: bool = False, drop_last: bool = False, batch_size: Optional[int] = None
@@ -187,7 +189,7 @@ class CdtDataModule(pl.LightningDataModule):
         return self._dims
 
     @final
-    def _num_samples(self, dataset: DatasetProt) -> int:
+    def _num_samples(self, dataset: D) -> int:
         if hasattr(dataset, "__len__"):
             return len(dataset)  # type: ignore
         raise AttributeError(
@@ -272,7 +274,7 @@ class CdtDataModule(pl.LightningDataModule):
         return self._train_data_base
 
     @abstractmethod
-    def _get_splits(self) -> TrainValTestSplit[DatasetProt]:
+    def _get_splits(self) -> TrainValTestSplit[D]:
         ...
 
     @property

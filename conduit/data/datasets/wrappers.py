@@ -1,10 +1,11 @@
 """Dataset wrappers."""
 from dataclasses import is_dataclass, replace
-from typing import Any, Optional, Union
+from typing import Any, Optional, Tuple, TypeVar, Union
 
 from PIL import Image
 import numpy as np
 from ranzen.decorators import implements
+import torch
 from torch import Tensor
 
 from conduit.data.datasets.utils import (
@@ -21,6 +22,7 @@ from conduit.data.structures import (
     BinarySampleIW,
     DatasetProt,
     DatasetWrapper,
+    RawImage,
     SampleBase,
     SubgroupSample,
     SubgroupSampleIW,
@@ -39,7 +41,10 @@ __all__ = [
 ]
 
 
-class ImageTransformer(DatasetWrapper):
+D = TypeVar("D", bound=DatasetProt)
+
+
+class ImageTransformer(DatasetWrapper[D]):
     """
     Wrapper class for applying image transformations.
 
@@ -47,7 +52,7 @@ class ImageTransformer(DatasetWrapper):
     that share the same underlying dataset.
     """
 
-    def __init__(self, dataset: DatasetProt, *, transform: Optional[ImageTform]) -> None:
+    def __init__(self, dataset: D, *, transform: Optional[ImageTform]) -> None:
         self.dataset = dataset
         self._transform: Optional[ImageTform] = None
         self.transform = transform
@@ -71,26 +76,40 @@ class ImageTransformer(DatasetWrapper):
     @implements(DatasetWrapper)
     def __getitem__(self, index: int) -> Any:
         sample = self.dataset[index]
-        if self.transform is not None:
-            if isinstance(sample, (Image.Image, np.ndarray)):
-                sample = apply_image_transform(image=sample, transform=self.transform)
-            elif isinstance(sample, SampleBase):
-                image = sample.x
-                if not isinstance(image, (Image.Image, np.ndarray)):
-                    raise TypeError(
-                        f"Image transform cannot be applied to input of type '{type(image)}'"
-                        "(must be a PIL Image or a numpy array)."
-                    )
-                image = apply_image_transform(image=image, transform=self.transform)
-                sample = replace(sample, x=image)
-            else:
-                image = apply_image_transform(image=sample[0], transform=self.transform)
-                data_type = type(sample)
-                sample = data_type(image, *sample[1:])
-        return sample
+
+        def _transform_sample(
+            _sample: Union[RawImage, SampleBase, Tuple[Union[RawImage, Image.Image], ...]]
+        ) -> Any:
+            if self.transform is not None:
+                if isinstance(_sample, (Image.Image, np.ndarray)):
+                    out = apply_image_transform(image=_sample, transform=self.transform)
+                elif isinstance(_sample, SampleBase):
+                    image = _sample.x
+                    if isinstance(image, list):
+                        image = [_transform_sample(elem) for elem in image]
+                        if isinstance(image[0], Tensor):
+                            image = torch.stack(image, dim=0)
+                        elif isinstance(image[0], np.ndarray):
+                            image = np.stack(image, axis=0)
+
+                    elif not isinstance(image, (Image.Image, np.ndarray)):
+                        raise TypeError(
+                            f"Image transform cannot be applied to input of type '{type(image)}'"
+                            "(must be a PIL Image or a numpy array)."
+                        )
+                    else:
+                        image = apply_image_transform(image=image, transform=self.transform)
+                    out = replace(_sample, x=image)
+                else:
+                    image = apply_image_transform(image=_sample[0], transform=self.transform)
+                    data_type = type(_sample)
+                    out = data_type(image, *_sample[1:])  # type: ignore
+                return out
+
+        return _transform_sample(sample)
 
 
-class AudioTransformer(DatasetWrapper):
+class AudioTransformer(DatasetWrapper[D]):
     """
     Wrapper class for applying image transformations.
 
@@ -98,7 +117,7 @@ class AudioTransformer(DatasetWrapper):
     that share the same underlying dataset.
     """
 
-    def __init__(self, dataset: DatasetProt, *, transform: Optional[AudioTform]) -> None:
+    def __init__(self, dataset: D, *, transform: Optional[AudioTform]) -> None:
         self.dataset = dataset
         self._transform: Optional[ImageTform] = None
         self.transform = transform
@@ -129,7 +148,7 @@ class AudioTransformer(DatasetWrapper):
         return sample
 
 
-class TabularTransformer(DatasetWrapper):
+class TabularTransformer(DatasetWrapper[D]):
     """
     Wrapper class for applying transformations to tabular data.
 
@@ -139,7 +158,7 @@ class TabularTransformer(DatasetWrapper):
 
     def __init__(
         self,
-        dataset: DatasetProt,
+        dataset: D,
         *,
         transform: Optional[TabularTransform],
         target_transform: Optional[TabularTransform],
@@ -187,10 +206,10 @@ class TabularTransformer(DatasetWrapper):
         return sample
 
 
-class InstanceWeightedDataset(DatasetWrapper):
+class InstanceWeightedDataset(DatasetWrapper[D]):
     """Wrapper endowing datasets with instance-weights."""
 
-    def __init__(self, dataset: DatasetProt) -> None:
+    def __init__(self, dataset: D) -> None:
         self.dataset = dataset
         self.iw = compute_instance_weights(dataset)
 

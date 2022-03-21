@@ -15,7 +15,7 @@ __all__ = ["CelebADataModule"]
 
 
 @attr.define(kw_only=True)
-class CelebADataModule(CdtVisionDataModule):
+class CelebADataModule(CdtVisionDataModule[CelebA]):
     """Data-module for the CelebA dataset."""
 
     image_size: int = 224
