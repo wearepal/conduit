@@ -16,7 +16,7 @@ __all__ = ["NICODataModule"]
 
 
 @attr.define(kw_only=True)
-class NICODataModule(CdtVisionDataModule):
+class NICODataModule(CdtVisionDataModule[NICO]):
     """Data-module for the NICO dataset."""
 
     image_size: int = 224

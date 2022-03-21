@@ -1,9 +1,10 @@
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union, overload
 
 import numpy as np
 import numpy.typing as npt
 from ranzen import implements
+import torch
 from torch import Tensor
 import torchaudio  # type: ignore
 
@@ -14,7 +15,7 @@ from conduit.data.datasets.utils import (
     apply_audio_transform,
     infer_al_backend,
 )
-from conduit.data.structures import TargetData
+from conduit.data.structures import IndexType, TargetData
 
 __all__ = ["CdtAudioDataset"]
 
@@ -59,11 +60,25 @@ class CdtAudioDataset(CdtDataset):
         lines = [head] + [" " * self._repr_indent + line for line in body]
         return '\n'.join(lines)
 
-    def load_sample(self, index: int) -> Tensor:
-        path = self.audio_dir / self.x[index]
-        return torchaudio.load(path)[0]  # type: ignore
+    def load_sample(self, index: IndexType) -> Tensor:
+        def _load(_filename: Path) -> Tensor:
+            return torchaudio.load(self.audio_dir / _filename)[0]  # type: ignore
+
+        if isinstance(index, int):
+            return _load(self.audio_dir / self.x[index])
+        return torch.cat([_load(filepath) for filepath in self.x[index]], dim=0)
+
+    @overload
+    def _sample_x(self, index: int, *, coerce_to_tensor: bool = ...) -> Tensor:
+        ...
+
+    @overload
+    def _sample_x(self, index: List[int], *, coerce_to_tensor: bool = ...) -> List[Tensor]:
+        ...
 
     @implements(CdtDataset)
-    def _sample_x(self, index: int, *, coerce_to_tensor: bool = False) -> Tensor:
+    def _sample_x(
+        self, index: IndexType, *, coerce_to_tensor: bool = False
+    ) -> Union[Tensor, List[Tensor]]:
         waveform = self.load_sample(index)
         return apply_audio_transform(waveform, transform=None)

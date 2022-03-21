@@ -20,7 +20,7 @@ __all__ = ["Camelyon17DataModule"]
 
 
 @attr.define(kw_only=True)
-class Camelyon17DataModule(CdtVisionDataModule):
+class Camelyon17DataModule(CdtVisionDataModule[Camelyon17]):
     """Data-module for the Camelyon17 dataset."""
 
     image_size: int = 96

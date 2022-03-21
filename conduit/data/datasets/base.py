@@ -12,11 +12,12 @@ from typing_extensions import Literal, Self, final
 from conduit.data.structures import (
     BinarySample,
     DatasetProt,
-    InputData,
+    IndexType,
     NamedSample,
     SubgroupSample,
     TargetData,
     TernarySample,
+    UnloadedData,
 )
 from conduit.logging import init_logger
 
@@ -28,7 +29,7 @@ class CdtDataset(DatasetProt[NamedSample]):
     _logger: Optional[logging.Logger] = None
 
     def __init__(
-        self, *, x: InputData, y: Optional[TargetData] = None, s: Optional[TargetData] = None
+        self, *, x: UnloadedData, y: Optional[TargetData] = None, s: Optional[TargetData] = None
     ) -> None:
         self.x = x
         if isinstance(y, np.ndarray):
@@ -61,18 +62,21 @@ class CdtDataset(DatasetProt[NamedSample]):
             self._logger = init_logger(self.__class__.__name__)
         return self._logger
 
-    def _sample_x(self, index: int, *, coerce_to_tensor: bool = False) -> Tensor:
+    def _sample_x(
+        self, index: Union[int, List[int], slice], *, coerce_to_tensor: bool = False
+    ) -> Tensor:
+        self.x
         x = self.x[index]
         if coerce_to_tensor and (not isinstance(x, Tensor)):
             x = torch.as_tensor(x)
         return x
 
-    def _sample_s(self, index: int) -> Optional[Tensor]:
+    def _sample_s(self, index: Union[int, List[int], slice]) -> Optional[Tensor]:
         if self.s is None:
             return None
         return self.s[index]
 
-    def _sample_y(self, index: int) -> Optional[Tensor]:
+    def _sample_y(self, index: Union[int, List[int], slice]) -> Optional[Tensor]:
         if self.y is None:
             return None
         return self.y[index]
@@ -142,29 +146,10 @@ class CdtDataset(DatasetProt[NamedSample]):
             self._card_s = len(self.s.unique())
         return self._card_s
 
-    @implements(DatasetProt)
-    @final
-    def __getitem__(
-        self, index: int
-    ) -> Union[NamedSample, SubgroupSample, BinarySample, TernarySample]:
-        x = self._sample_x(index)
-        y = self._sample_y(index)
-        s = self._sample_s(index)
-        # Fetch the appropriate 'Sample' class
-        if y is None:
-            if s is None:
-                return NamedSample(x=x)
-            return SubgroupSample(x=x, s=s)
-        if s is None:
-            return BinarySample(x=x, y=y)
-        return TernarySample(x=x, y=y, s=s)
-
-    def __len__(self) -> int:
-        return len(self.x)
-
-    def make_subset(
+    def subset(
         self: Self,
         indices: Union[List[int], npt.NDArray[np.uint64], Tensor, slice],
+        *,
         deep: bool = False,
     ) -> Self:
         """Create a subset of the dataset from the given indices.
@@ -187,6 +172,7 @@ class CdtDataset(DatasetProt[NamedSample]):
     def random_split(
         self: Self,
         props: Union[Sequence[float], float],
+        *,
         deep: bool = False,
         seed: Optional[int] = None,
     ) -> List[Self]:
@@ -244,3 +230,28 @@ class CdtDataset(DatasetProt[NamedSample]):
 
         if not inplace:
             return superset
+
+    @implements(DatasetProt)
+    @final
+    def __getitem__(self, index: IndexType) -> NamedSample:
+        x = self._sample_x(index)
+        y = self._sample_y(index)
+        s = self._sample_s(index)
+        # Fetch the appropriate 'Sample' class
+        if y is None:
+            if s is None:
+                return NamedSample(x=x)
+            return SubgroupSample(x=x, s=s)
+        if s is None:
+            return BinarySample(x=x, y=y)
+        return TernarySample(x=x, y=y, s=s)
+
+    def __len__(self) -> int:
+        return len(self.x)
+
+    def __iadd__(self, other: Self) -> Self:
+        self.cat(other, inplace=True, deep=False)
+        return self
+
+    def __add__(self, other: Self) -> Self:
+        return self.cat(other, inplace=False, deep=False)

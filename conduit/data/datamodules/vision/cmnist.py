@@ -19,7 +19,7 @@ __all__ = ["ColoredMNISTDataModule"]
 
 
 @attr.define(kw_only=True)
-class ColoredMNISTDataModule(CdtVisionDataModule):
+class ColoredMNISTDataModule(CdtVisionDataModule[ColoredMNIST]):
     """Data-module for the ColoredMNIST dataset."""
 
     image_size: int = 32

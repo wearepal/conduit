@@ -2,7 +2,7 @@
 from typing import Any
 
 import torch
-from torchmetrics import Accuracy
+from torchmetrics.classification.accuracy import Accuracy
 
 __all__ = ["AccuracyPerSens"]
 

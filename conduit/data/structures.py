@@ -12,17 +12,20 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
     overload,
     runtime_checkable,
 )
 
 from PIL import Image
 import attr
+from kit.misc import gcopy
 import numpy as np
 import numpy.typing as npt
 from ranzen.decorators import implements
+import torch
 from torch import Tensor
-from typing_extensions import TypeAlias
+from typing_extensions import Self, TypeAlias
 
 __all__ = [
     "BinarySample",
@@ -30,10 +33,12 @@ __all__ = [
     "DatasetProt",
     "DatasetWrapper",
     "ImageSize",
-    "InputData",
+    "IndexType",
+    "LoadedData",
     "MultiCropOutput",
     "NamedSample",
     "PseudoCdtDataset",
+    "RawImage",
     "SampleBase",
     "SubgroupSample",
     "SubgroupSampleIW",
@@ -42,15 +47,10 @@ __all__ = [
     "TernarySampleIW",
     "TrainTestSplit",
     "TrainValTestSplit",
+    "UnloadedData",
     "shallow_asdict",
     "shallow_astuple",
 ]
-
-
-InputData: TypeAlias = Union[
-    npt.NDArray[np.floating], npt.NDArray[np.integer], npt.NDArray[np.string_], Tensor
-]
-TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
 
 
 @dataclass
@@ -79,11 +79,40 @@ class MultiCropOutput:
         """Total number of crops."""
         return len(self.global_crops) + len(self.local_crops)
 
+    def __iadd__(self, other: Self) -> Self:
+        copy = gcopy(self, deep=False)
+        copy.global_crops += other.global_crops
+        copy.local_crops += other.local_crops
+        return copy
+
+    def __add__(self, other: Self) -> Self:
+        copy = gcopy(self, deep=False)
+        copy.global_crops = copy.global_crops + other.global_crops
+        copy.local_crops += copy.local_crops + other.local_crops
+        return copy
+
+
+RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
+UnloadedData: TypeAlias = Union[
+    npt.NDArray[np.floating],
+    npt.NDArray[np.string_],
+    Tensor,
+]
+LoadedData: TypeAlias = Union[
+    Tensor,
+    RawImage,
+    List[RawImage],
+    MultiCropOutput,
+]
+TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
+
+IndexType: TypeAlias = Union[int, List[int], slice]
+
 
 @dataclass
 class SampleBase:
     # Instantiate as NamedSample
-    x: Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]
+    x: LoadedData
 
     def __len__(self) -> int:
         return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
@@ -91,6 +120,38 @@ class SampleBase:
     @abstractmethod
     def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
         ...
+
+    def __add__(self, other: Self) -> Self:
+        if type(self.x) != type(other.x) or (
+            isinstance(self.x, list) and type(self.x[0]) != type(cast(List, other.x)[0])
+        ):
+            raise AttributeError(
+                f"Only {self.__class__.__name__} instances with 'x' attributes of "
+                "the same type can be concatenated (added) together."
+            )
+        copy = gcopy(self, deep=False)
+        if isinstance(self.x, (Tensor, np.ndarray)):
+            other.x = cast(Union[Tensor, np.ndarray], other.x)
+            if self.x.shape != other.x.shape:
+                raise AttributeError(
+                    f"Only {self.__class__.__name__} instances with 'x' attributes of "
+                    "the same shape can be concatenated (added) together: the lhs variable has "
+                    f"'x' of shape '{self.x.shape}', the rhs variable 'x' of shape "
+                    f"'{other.x.shape}.'"
+                )
+        if isinstance(copy.x, Tensor):
+            other.x = cast(Tensor, other.x)
+            copy.x = torch.cat([copy.x, other.x], dim=0)
+        elif isinstance(copy.x, np.ndarray):
+            other.x = cast(np.ndarray, other.x)
+            copy.x = np.concatenate([copy.x, other.x], axis=0)
+        elif isinstance(copy.x, Image.Image):
+            other.x = cast(Image.Image, other.x)
+            copy.x = [copy.x, other.x]
+        else:
+            copy.x = copy.x + other.x  # type: ignore
+
+        return copy
 
 
 @dataclass
@@ -129,7 +190,7 @@ class NamedSample(SampleBase):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[LoadedData]:
         yield self.x
 
 
@@ -173,8 +234,17 @@ class BinarySample(NamedSample, _BinarySampleMixin):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.y)
+
+    @implements(NamedSample)
+    def __add__(self, other: Self) -> Self:
+        copy = super().__add__(other)
+        copy.y = torch.cat(
+            [torch.atleast_1d(copy.y), torch.atleast_1d(other.y)],
+            dim=0,
+        )
+        return copy
 
 
 @dataclass
@@ -207,8 +277,17 @@ class SubgroupSample(NamedSample, _SubgroupSampleMixin):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.s)
+
+    @implements(NamedSample)
+    def __add__(self, other: Self) -> Self:
+        copy = super().__add__(other)
+        copy.s = torch.cat(
+            [torch.atleast_1d(copy.s), torch.atleast_1d(other.s)],
+            dim=0,
+        )
+        return copy
 
 
 @dataclass
@@ -217,7 +296,7 @@ class _IwMixin:
 
 
 @dataclass
-class BinarySampleIW(SampleBase, _BinarySampleMixin, _IwMixin):
+class BinarySampleIW(BinarySample, _BinarySampleMixin, _IwMixin):
     @overload
     def add_field(self, s: None = ...) -> "BinarySampleIW":
         ...
@@ -232,8 +311,17 @@ class BinarySampleIW(SampleBase, _BinarySampleMixin, _IwMixin):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.y, self.iw)
+
+    @implements(BinarySample)
+    def __add__(self, other: Self) -> Self:
+        copy = super().__add__(other)
+        copy.y = torch.cat(
+            [torch.atleast_1d(copy.y), torch.atleast_1d(other.y)],
+            dim=0,
+        )
+        return copy
 
 
 @dataclass
@@ -252,8 +340,17 @@ class SubgroupSampleIW(SubgroupSample, _IwMixin):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.s, self.iw)
+
+    @implements(SubgroupSample)
+    def __add__(self, other: Self) -> Self:
+        copy = super().__add__(other)
+        copy.iw = torch.cat(
+            [torch.atleast_1d(copy.iw), torch.atleast_1d(other.iw)],
+            dim=0,
+        )
+        return copy
 
 
 @dataclass
@@ -272,8 +369,17 @@ class TernarySample(BinarySample, _SubgroupSampleMixin):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.y, self.s)
+
+    @implements(BinarySample)
+    def __add__(self, other: Self) -> Self:
+        copy = super().__add__(other)
+        copy.s = torch.cat(
+            [torch.atleast_1d(copy.s), torch.atleast_1d(other.s)],
+            dim=0,
+        )
+        return copy
 
 
 @dataclass
@@ -282,8 +388,17 @@ class TernarySampleIW(TernarySample, _IwMixin):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.y, self.s, self.iw)
+
+    @implements(TernarySample)
+    def __add__(self, other: Self) -> Self:
+        copy = super().__add__(other)
+        copy.iw = torch.cat(
+            [torch.atleast_1d(copy.iw), torch.atleast_1d(other.iw)],
+            dim=0,
+        )
+        return copy
 
 
 def shallow_astuple(dataclass: object) -> Tuple[Any, ...]:
@@ -302,12 +417,16 @@ def shallow_asdict(dataclass: object) -> Dict[str, Any]:
 
 @attr.define
 class ImageSize:
-    C: int
-    H: int
-    W: int
+    c: int
+    h: int
+    w: int
 
     def __iter__(self) -> Iterator[int]:
-        yield from (self.C, self.H, self.W)
+        yield from (self.c, self.h, self.w)
+
+    @property
+    def numel(self) -> int:
+        return sum(iter(self))
 
 
 @attr.define(kw_only=True)
@@ -317,6 +436,25 @@ class MeanStd:
 
     def __iter__(self) -> Iterator[Union[Tuple[float, ...], List[float]]]:
         yield from (self.mean, self.mean)
+
+    def __imul__(self, value: float) -> Self:
+        self.mean = [value * elem for elem in self.mean]
+        self.std = [value * elem for elem in self.std]
+        return self
+
+    def __mul__(self, value: float) -> Self:
+        copy = gcopy(self, deep=True)
+        copy *= value
+        return copy
+
+    def __idiv__(self, value: float) -> Self:
+        self *= 1 / value
+        return self
+
+    def __div__(self, value: float) -> Self:
+        copy = gcopy(self, deep=True)
+        copy *= 1 / value
+        return copy
 
 
 R_co = TypeVar("R_co", covariant=True)
@@ -330,7 +468,7 @@ class DatasetProt(Protocol[R_co]):
 
 @runtime_checkable
 class PseudoCdtDataset(Protocol[R_co]):
-    x: InputData
+    x: UnloadedData
     y: Optional[Tensor]
     s: Optional[Tensor]
 
@@ -348,7 +486,7 @@ D = TypeVar("D", bound=DatasetProt)
 class DatasetWrapper(Protocol[D]):
     dataset: D
 
-    def __getitem__(self, index: int) -> D:
+    def __getitem__(self, index: int) -> Any:
         ...
 
 

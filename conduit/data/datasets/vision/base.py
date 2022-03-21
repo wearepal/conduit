@@ -1,11 +1,11 @@
 from pathlib import Path
-from typing import List, Optional, Sequence, Union, cast
+from typing import List, Optional, Sequence, Union, cast, overload
 
 import numpy as np
 import numpy.typing as npt
 from ranzen import implements
 from torch import Tensor
-from typing_extensions import Self
+from typing_extensions import Self, TypeAlias
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.datasets.utils import (
@@ -17,9 +17,11 @@ from conduit.data.datasets.utils import (
     infer_il_backend,
     load_image,
 )
-from conduit.data.structures import TargetData
+from conduit.data.structures import IndexType, TargetData
 
 __all__ = ["CdtVisionDataset"]
+
+ItemType: TypeAlias = Union[RawImage, Tensor, Sequence[RawImage], Sequence[Tensor]]
 
 
 class CdtVisionDataset(CdtDataset):
@@ -58,14 +60,27 @@ class CdtVisionDataset(CdtDataset):
         lines = [head] + [" " * self._repr_indent + line for line in body]
         return '\n'.join(lines)
 
-    def _load_image(self, index: int) -> RawImage:
+    def _load_image(self, index: IndexType) -> RawImage:
         filepath = cast(str, self.x[index])
         return load_image(self.image_dir / filepath, backend=self._il_backend)
 
+    @overload
+    def _sample_x(self, index: int, *, coerce_to_tensor: bool = ...) -> ItemType:
+        ...
+
+    @overload
+    def _sample_x(self, index: List[int], *, coerce_to_tensor: bool = ...) -> List[ItemType]:
+        ...
+
     @implements(CdtDataset)
     def _sample_x(
-        self, index: int, *, coerce_to_tensor: bool = False
-    ) -> Union[RawImage, Tensor, Sequence[RawImage], Sequence[Tensor]]:
+        self, index: IndexType, *, coerce_to_tensor: bool = False
+    ) -> Union[ItemType, List[ItemType]]:
+        if isinstance(index, slice):
+            index = list(range(len(self)))[index]
+        if isinstance(index, list):
+            return [self._sample_x(index=i, coerce_to_tensor=coerce_to_tensor) for i in index]
+
         image = self._load_image(index)
         image = apply_image_transform(image=image, transform=self.transform)
         if coerce_to_tensor and (not isinstance(image, Tensor)):
@@ -76,7 +91,7 @@ class CdtVisionDataset(CdtDataset):
         return image
 
     @implements(CdtDataset)
-    def make_subset(
+    def subset(
         self: Self,
         indices: Union[List[int], npt.NDArray[np.uint64], Tensor, slice],
         deep: bool = False,
@@ -96,7 +111,7 @@ class CdtVisionDataset(CdtDataset):
 
         :returns: A subset of the dataset from the given indices.
         """
-        subset = super().make_subset(indices=indices, deep=deep)
+        subset = super().subset(indices=indices, deep=deep)
         if transform is not None:
             subset.transform = transform
         return subset
