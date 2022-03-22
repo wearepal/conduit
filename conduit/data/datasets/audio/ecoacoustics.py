@@ -22,9 +22,11 @@ import torch
 from torch import Tensor
 import torchaudio  # type: ignore
 from tqdm import tqdm  # type: ignore
+from typing_extensions import TypeAlias
 
 from conduit.data.datasets.audio.base import CdtAudioDataset
 from conduit.data.datasets.utils import AudioTform, UrlFileInfo, download_from_url
+from conduit.data.structures import TernarySample
 
 __all__ = [
     "Ecoacoustics",
@@ -41,7 +43,10 @@ class SoundscapeAttr(Enum):
     N0 = auto()
 
 
-class Ecoacoustics(CdtAudioDataset):
+SampleType: TypeAlias = TernarySample
+
+
+class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
     """Dataset for audio data collected in various geographic locations."""
 
     INDICES_DIR: ClassVar[str] = "AvianID_AcousticIndices"

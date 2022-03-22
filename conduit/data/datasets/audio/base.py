@@ -8,7 +8,7 @@ import torch
 from torch import Tensor
 import torchaudio  # type: ignore
 
-from conduit.data.datasets.base import CdtDataset
+from conduit.data.datasets.base import CdtDataset, I, S, Y
 from conduit.data.datasets.utils import (
     AudioLoadingBackend,
     AudioTform,
@@ -20,7 +20,7 @@ from conduit.data.structures import IndexType, TargetData
 __all__ = ["CdtAudioDataset"]
 
 
-class CdtAudioDataset(CdtDataset):
+class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
     """Base dataset for audio data."""
 
     x: npt.NDArray[np.string_]

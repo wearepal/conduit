@@ -5,6 +5,7 @@ from typing import ClassVar, Optional, Union, cast
 import pandas as pd
 from ranzen import parsable, str_to_enum
 import torch
+from torch import Tensor
 from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import ImageTform, UrlFileInfo, download_from_url
@@ -23,7 +24,7 @@ class WaterbirdsSplit(Enum):
 SampleType: TypeAlias = TernarySample
 
 
-class Waterbirds(CdtVisionDataset[TernarySample]):
+class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     """The Waterbirds dataset.
 
     The dataset was constructed by cropping out birds from the Caltech-UCSD Birds-200-2011 (CUB) dataset

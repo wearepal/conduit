@@ -9,7 +9,7 @@ import numpy.typing as npt
 from ranzen.decorators import implements, parsable
 from ranzen.misc import str_to_enum
 import torch
-from torch.functional import Tensor
+from torch import Tensor
 from torchvision.datasets import MNIST  # type: ignore
 from typing_extensions import TypeAlias
 
@@ -165,7 +165,7 @@ class ColoredMNISTSplit(Enum):
 SampleType: TypeAlias = TernarySample
 
 
-class ColoredMNIST(CdtVisionDataset[SampleType]):
+class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
     x: npt.NDArray[np.floating]
 
     @parsable

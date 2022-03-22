@@ -6,6 +6,7 @@ from typing import ClassVar, List, Optional, Union, cast
 import pandas as pd
 from ranzen import parsable, str_to_enum
 import torch
+from torch import Tensor
 
 from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
 from conduit.data.datasets.vision.base import CdtVisionDataset
@@ -19,7 +20,7 @@ class SSRPSplit(Enum):
     pretrain = "Pre_Train"
 
 
-class SSRP(CdtVisionDataset[TernarySample]):
+class SSRP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     _FILE_INFO: ClassVar[GdriveFileInfo] = GdriveFileInfo(
         name="ghaziabad.zip", id="1RE4srtC63VnyU0e1qx16QNdjyyQXg2hj"
     )

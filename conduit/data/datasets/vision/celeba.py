@@ -8,6 +8,7 @@ import pandas as pd
 from ranzen import parsable, str_to_enum
 from ranzen.decorators import enum_name_str
 import torch
+from torch import Tensor
 from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
@@ -70,7 +71,7 @@ class CelebASplit(Enum):
 SampleType: TypeAlias = TernarySample
 
 
-class CelebA(CdtVisionDataset[SampleType]):
+class CelebA(CdtVisionDataset[SampleType, Tensor, Tensor]):
     """CelebA dataset."""
 
     # The data is downloaded to `download_dir` / `CelebA` / `_IMAGE_DIR`.

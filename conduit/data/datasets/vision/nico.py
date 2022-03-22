@@ -8,6 +8,7 @@ import pandas as pd
 from ranzen import parsable, str_to_enum
 from ranzen.decorators import enum_name_str
 import torch
+from torch import Tensor
 from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
@@ -29,7 +30,7 @@ class NicoSuperclass(Enum):
 SampleType: TypeAlias = TernarySample
 
 
-class NICO(CdtVisionDataset[TernarySample]):
+class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     """Datset for Non-I.I.D. image classification introduced in
     'Towards Non-I.I.D. Image Classification: A Dataset and Baselines'
     """

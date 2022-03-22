@@ -1,5 +1,15 @@
 import logging
-from typing import ClassVar, List, Optional, Sequence, TypeVar, Union, cast, overload
+from typing import (
+    ClassVar,
+    Generic,
+    List,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
 import numpy as np
 import numpy.typing as npt
@@ -22,32 +32,42 @@ from conduit.data.structures import (
 )
 from conduit.logging import init_logger
 
-__all__ = ["CdtDataset", "S"]
-
-
-S = TypeVar(
+__all__ = [
+    "CdtDataset",
+    "I",
     "S",
+    "X",
+    "Y",
+]
+
+
+I = TypeVar(
+    "I",
     NamedSample[LoadedData],
     BinarySample[LoadedData],
     SubgroupSample[LoadedData],
     TernarySample[LoadedData],
 )
 
+X = TypeVar("X", bound=UnloadedData)
+S = TypeVar("S", bound=Optional[Tensor])
+Y = TypeVar("Y", bound=Optional[Tensor])
 
-class CdtDataset(DatasetProt[S]):
+
+class CdtDataset(DatasetProt[I], Generic[I, X, Y, S]):
     _repr_indent: ClassVar[int] = 4
     _logger: Optional[logging.Logger] = None
 
     def __init__(
-        self, *, x: UnloadedData, y: Optional[TargetData] = None, s: Optional[TargetData] = None
+        self, *, x: X, y: Optional[TargetData] = None, s: Optional[TargetData] = None
     ) -> None:
         self.x = x
-        if isinstance(y, np.ndarray):
+        if not isinstance(y, Tensor):
             y = torch.as_tensor(y)
-        if isinstance(s, np.ndarray):
+        if not isinstance(s, Tensor):
             s = torch.as_tensor(s)
-        self.y = y if y is None else y.squeeze()
-        self.s = s if s is None else s.squeeze()
+        self.y: S = y if y is None else y.squeeze()
+        self.s: S = s if s is None else s.squeeze()
 
         self._dim_x: Optional[torch.Size] = None
         self._dim_s: Optional[torch.Size] = None
@@ -250,7 +270,7 @@ class CdtDataset(DatasetProt[S]):
 
     @implements(DatasetProt)
     @final
-    def __getitem__(self, index: IndexType) -> S:
+    def __getitem__(self, index: IndexType) -> I:
         x = self._sample_x(index, coerce_to_tensor=False)
         y = self._sample_y(index)
         s = self._sample_s(index)
