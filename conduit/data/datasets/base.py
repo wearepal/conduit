@@ -62,9 +62,9 @@ class CdtDataset(DatasetProt[I], Generic[I, X, Y, S]):
         self, *, x: X, y: Optional[TargetData] = None, s: Optional[TargetData] = None
     ) -> None:
         self.x = x
-        if not isinstance(y, Tensor):
+        if isinstance(y, np.ndarray):
             y = torch.as_tensor(y)
-        if not isinstance(s, Tensor):
+        if isinstance(s, np.ndarray):
             s = torch.as_tensor(s)
         self.y: S = y if y is None else y.squeeze()
         self.s: S = s if s is None else s.squeeze()
