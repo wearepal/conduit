@@ -66,7 +66,7 @@ class CdtDataset(DatasetProt[I], Generic[I, X, Y, S]):
             y = torch.as_tensor(y)
         if isinstance(s, np.ndarray):
             s = torch.as_tensor(s)
-        self.y: S = y if y is None else y.squeeze()
+        self.y: Y = y if y is None else y.squeeze()
         self.s: S = s if s is None else s.squeeze()
 
         self._dim_x: Optional[torch.Size] = None
