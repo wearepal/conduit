@@ -1,5 +1,15 @@
 import logging
-from typing import ClassVar, List, Literal, Optional, Sequence, Union, cast, final, overload
+from typing import (
+    ClassVar,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+    final,
+    overload,
+)
 
 import numpy as np
 import numpy.typing as npt
