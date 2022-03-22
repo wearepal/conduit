@@ -1,5 +1,15 @@
 import logging
-from typing import ClassVar, List, Optional, Sequence, Union, cast, overload
+from typing import (
+    ClassVar,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+    final,
+    overload,
+)
 
 import numpy as np
 import numpy.typing as npt
@@ -7,7 +17,7 @@ from ranzen import implements
 from ranzen.misc import gcopy
 import torch
 from torch import Tensor
-from typing_extensions import Literal, Self, final
+from typing_extensions import Self
 
 from conduit.data.structures import (
     BinarySample,
