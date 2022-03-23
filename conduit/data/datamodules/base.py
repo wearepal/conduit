@@ -26,11 +26,11 @@ from conduit.types import Stage
 __all__ = ["CdtDataModule"]
 
 D = TypeVar("D", bound=DatasetProt)
-S = TypeVar("S", bound=NamedSample)
+I = TypeVar("I", bound=NamedSample)
 
 
 @attr.define(kw_only=True)
-class CdtDataModule(pl.LightningDataModule, Generic[D, S]):
+class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     """Base DataModule for both Tabular and Vision data-modules.
 
     :param val_prop: Proprtion (float)  of samples to use for the validation split
@@ -99,7 +99,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, S]):
         shuffle: bool = False,
         drop_last: bool = False,
         batch_sampler: Optional[Sampler[Sequence[int]]] = None,
-    ) -> CdtDataLoader[S]:
+    ) -> CdtDataLoader[I]:
         """Make DataLoader."""
         return CdtDataLoader(
             ds,
@@ -138,7 +138,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, S]):
 
     def train_dataloader(
         self, *, shuffle: bool = False, drop_last: bool = False, batch_size: Optional[int] = None
-    ) -> CdtDataLoader[S]:
+    ) -> CdtDataLoader[I]:
         batch_size = self.train_batch_size if batch_size is None else batch_size
 
         if self.stratified_sampling:
@@ -172,11 +172,11 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, S]):
         )
 
     @implements(pl.LightningDataModule)
-    def val_dataloader(self) -> CdtDataLoader[S]:
+    def val_dataloader(self) -> CdtDataLoader[I]:
         return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.val_data)
 
     @implements(pl.LightningDataModule)
-    def test_dataloader(self) -> CdtDataLoader[S]:
+    def test_dataloader(self) -> CdtDataLoader[I]:
         return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.test_data)
 
     @property

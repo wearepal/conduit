@@ -1,21 +1,25 @@
 """Base class for audio datasets."""
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, TypeVar, Union
 
 import attr
 from ranzen.decorators import implements
 from typing_extensions import final
 
 from conduit.data.datamodules.base import CdtDataModule
+from conduit.data.datasets.base import I
 from conduit.data.datasets.utils import AudioTform
 from conduit.data.datasets.wrappers import AudioTransformer, InstanceWeightedDataset
+from conduit.data.structures import DatasetProt
 from conduit.types import Stage
 
 __all__ = ["CdtAudioDataModule"]
 
+D = TypeVar("D", bound=DatasetProt)
+
 
 @attr.define(kw_only=True)
-class CdtAudioDataModule(CdtDataModule):
+class CdtAudioDataModule(CdtDataModule[D, I]):
 
     root: Union[str, Path] = attr.field(kw_only=False)
     _train_transforms: Optional[AudioTform] = None
