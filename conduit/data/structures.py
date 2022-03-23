@@ -1,6 +1,7 @@
 """Data structures."""
+from __future__ import annotations
 from abc import abstractmethod
-from dataclasses import dataclass, field, fields, is_dataclass
+from dataclasses import asdict, dataclass, field, fields, is_dataclass
 from typing import (
     Any,
     Dict,
@@ -95,12 +96,16 @@ class MultiCropOutput:
 RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
 UnloadedData: TypeAlias = Union[
     npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
     npt.NDArray[np.string_],
     Tensor,
 ]
 LoadedData: TypeAlias = Union[
     Tensor,
     RawImage,
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    npt.NDArray[np.string_],
     List[RawImage],
     MultiCropOutput,
 ]
@@ -109,16 +114,19 @@ TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.i
 IndexType: TypeAlias = Union[int, List[int], slice]
 
 
+X = TypeVar("X", bound=LoadedData)
+
+
 @dataclass
-class SampleBase:
+class SampleBase(Generic[X]):
     # Instantiate as NamedSample
-    x: LoadedData
+    x: X
 
     def __len__(self) -> int:
         return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
 
     @abstractmethod
-    def __iter__(self) -> Iterator[Union[Tensor, np.ndarray, Image.Image, MultiCropOutput]]:
+    def __iter__(self) -> Iterator[X]:
         ...
 
     def __add__(self, other: Self) -> Self:
@@ -153,11 +161,34 @@ class SampleBase:
 
         return copy
 
+    def to(
+        self,
+        device: Optional[Union[torch.device, str]],
+        *,
+        non_blocking: bool = False,
+        copy: bool = False,
+    ) -> Self:
+        for elem in shallow_astuple(self):
+            if isinstance(elem, Tensor):
+                elem.to(device, non_blocking=non_blocking, copy=copy)
+        return self
+
+    def astuple(self, deep=False) -> Tuple[X]:
+        tuple_ = tuple(iter(self))
+        if deep:
+            tuple_ = gcopy(tuple_, deep=True)
+        return tuple_
+
+    def asdict(self, deep=False) -> Dict[str, X]:
+        if deep:
+            asdict(self)
+        return shallow_asdict(self)
+
 
 @dataclass
-class NamedSample(SampleBase):
+class NamedSample(SampleBase[X]):
     @overload
-    def add_field(self, *, y: None = ..., s: None = ..., iw: None = ...) -> "NamedSample":
+    def add_field(self, *, y: None = ..., s: None = ..., iw: None = ...) -> Self:
         ...
 
     @overload
@@ -178,7 +209,7 @@ class NamedSample(SampleBase):
 
     def add_field(
         self, y: Optional[Tensor] = None, s: Optional[Tensor] = None, iw: Optional[Tensor] = None
-    ) -> Union["NamedSample", "BinarySample", "BinarySampleIW", "TernarySample", "TernarySampleIW"]:
+    ) -> Union[Self, "BinarySample", "BinarySampleIW", "TernarySample", "TernarySampleIW"]:
         if y is not None:
             if s is not None:
                 if iw is not None:
@@ -190,7 +221,7 @@ class NamedSample(SampleBase):
         return self
 
     @implements(SampleBase)
-    def __iter__(self) -> Iterator[LoadedData]:
+    def __iter__(self) -> Iterator[X]:
         yield self.x
 
 
@@ -205,9 +236,9 @@ class _SubgroupSampleMixin:
 
 
 @dataclass
-class BinarySample(NamedSample, _BinarySampleMixin):
+class BinarySample(NamedSample[X], _BinarySampleMixin):
     @overload
-    def add_field(self, *, s: None = ..., iw: None = ...) -> "BinarySample":
+    def add_field(self, *, s: None = ..., iw: None = ...) -> Self:
         ...
 
     @overload
@@ -224,7 +255,7 @@ class BinarySample(NamedSample, _BinarySampleMixin):
 
     def add_field(
         self, *, s: Optional[Tensor] = None, iw: Optional[Tensor] = None
-    ) -> Union["BinarySample", "BinarySampleIW", "TernarySample", "TernarySampleIW"]:
+    ) -> Union[Self, "BinarySampleIW", "TernarySample", "TernarySampleIW"]:
         if s is not None:
             if iw is not None:
                 return TernarySampleIW(x=self.x, s=s, y=self.y, iw=iw)
@@ -248,9 +279,9 @@ class BinarySample(NamedSample, _BinarySampleMixin):
 
 
 @dataclass
-class SubgroupSample(NamedSample, _SubgroupSampleMixin):
+class SubgroupSample(NamedSample[X], _SubgroupSampleMixin):
     @overload
-    def add_field(self, *, y: None = ..., iw: None = ...) -> "SubgroupSample":
+    def add_field(self, *, y: None = ..., iw: None = ...) -> Self:
         ...
 
     @overload
@@ -267,7 +298,7 @@ class SubgroupSample(NamedSample, _SubgroupSampleMixin):
 
     def add_field(
         self, *, y: Optional[Tensor] = None, iw: Optional[Tensor] = None
-    ) -> Union["SubgroupSample", "SubgroupSampleIW", "TernarySample", "TernarySampleIW"]:
+    ) -> Union[Self, "SubgroupSampleIW", "TernarySample", "TernarySampleIW"]:
         if y is not None:
             if iw is not None:
                 return TernarySampleIW(x=self.x, s=self.s, y=y, iw=iw)
@@ -296,16 +327,16 @@ class _IwMixin:
 
 
 @dataclass
-class BinarySampleIW(BinarySample, _BinarySampleMixin, _IwMixin):
+class BinarySampleIW(BinarySample[X], _BinarySampleMixin, _IwMixin):
     @overload
-    def add_field(self, s: None = ...) -> "BinarySampleIW":
+    def add_field(self, s: None = ...) -> Self:
         ...
 
     @overload
     def add_field(self, s: Tensor = ...) -> "TernarySampleIW":
         ...
 
-    def add_field(self, s: Optional[Tensor] = None) -> Union["BinarySampleIW", "TernarySampleIW"]:
+    def add_field(self, s: Optional[Tensor] = None) -> Union[Self, "TernarySampleIW"]:
         if s is not None:
             return TernarySampleIW(x=self.x, s=s, y=self.y, iw=self.iw)
         return self
@@ -325,16 +356,16 @@ class BinarySampleIW(BinarySample, _BinarySampleMixin, _IwMixin):
 
 
 @dataclass
-class SubgroupSampleIW(SubgroupSample, _IwMixin):
+class SubgroupSampleIW(SubgroupSample[X], _IwMixin):
     @overload
-    def add_field(self, y: None = ...) -> "SubgroupSampleIW":
+    def add_field(self, y: None = ...) -> Self:
         ...
 
     @overload
     def add_field(self, y: Tensor = ...) -> "TernarySampleIW":
         ...
 
-    def add_field(self, y: Optional[Tensor] = None) -> Union["SubgroupSampleIW", "TernarySampleIW"]:
+    def add_field(self, y: Optional[Tensor] = None) -> Union[Self, "TernarySampleIW"]:
         if y is not None:
             return TernarySampleIW(x=self.x, s=self.s, y=y, iw=self.iw)
         return self
@@ -354,16 +385,16 @@ class SubgroupSampleIW(SubgroupSample, _IwMixin):
 
 
 @dataclass
-class TernarySample(BinarySample, _SubgroupSampleMixin):
+class TernarySample(BinarySample[X], _SubgroupSampleMixin):
     @overload
-    def add_field(self, iw: None = ...) -> "TernarySample":
+    def add_field(self, iw: None = ...) -> Self:
         ...
 
     @overload
-    def add_field(self, iw: Tensor) -> "TernarySampleIW":
+    def add_field(self, iw: Tensor) -> Self:
         ...
 
-    def add_field(self, iw: Optional[Tensor] = None) -> Union["TernarySample", "TernarySampleIW"]:
+    def add_field(self, iw: Optional[Tensor] = None) -> Union[Self, "TernarySampleIW"]:
         if iw is not None:
             return TernarySampleIW(x=self.x, s=self.s, y=self.y, iw=iw)
         return self
@@ -383,8 +414,8 @@ class TernarySample(BinarySample, _SubgroupSampleMixin):
 
 
 @dataclass
-class TernarySampleIW(TernarySample, _IwMixin):
-    def add_field(self) -> "TernarySampleIW":
+class TernarySampleIW(TernarySample[X], _IwMixin):
+    def add_field(self) -> Self:
         return self
 
     @implements(SampleBase)

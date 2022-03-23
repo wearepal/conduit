@@ -8,7 +8,7 @@ from ranzen import implements
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
-from conduit.data.structures import TrainValTestSplit
+from conduit.data.structures import TernarySample, TrainValTestSplit
 
 from .base import CdtAudioDataModule
 
@@ -16,7 +16,7 @@ __all__ = ["EcoacousticsDataModule"]
 
 
 @attr.define(kw_only=True)
-class EcoacousticsDataModule(CdtAudioDataModule):
+class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
     """Data-module for the Ecoacoustics dataset."""
 
     segment_len: float = 15

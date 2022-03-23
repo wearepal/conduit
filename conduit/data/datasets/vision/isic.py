@@ -14,10 +14,13 @@ from ranzen import flatten_dict
 from ranzen.decorators import enum_name_str, parsable
 import requests
 import torch
+from torch import Tensor
 from tqdm import tqdm  # type: ignore
+from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import ImageTform
 from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.structures import TernarySample
 
 __all__ = ["IsicAttr", "ISIC"]
 
@@ -30,9 +33,10 @@ class IsicAttr(Enum):
 
 
 T = TypeVar("T")
+SampleType: TypeAlias = TernarySample
 
 
-class ISIC(CdtVisionDataset):
+class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
     """PyTorch Dataset for the ISIC 2018 dataset from
     'Skin Lesion Analysis Toward Melanoma Detection 2018: A Challenge Hosted by the International
     Skin Imaging Collaboration (ISIC)',"""

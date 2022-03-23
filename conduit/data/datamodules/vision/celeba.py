@@ -8,14 +8,19 @@ from ranzen import implements
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
-from conduit.data.datasets.vision.celeba import CelebA, CelebASplit, CelebAttr
+from conduit.data.datasets.vision.celeba import (
+    CelebA,
+    CelebASplit,
+    CelebAttr,
+    SampleType,
+)
 from conduit.data.structures import TrainValTestSplit
 
 __all__ = ["CelebADataModule"]
 
 
 @attr.define(kw_only=True)
-class CelebADataModule(CdtVisionDataModule[CelebA]):
+class CelebADataModule(CdtVisionDataModule[CelebA, SampleType]):
     """Data-module for the CelebA dataset."""
 
     image_size: int = 224

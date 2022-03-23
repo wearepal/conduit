@@ -6,9 +6,12 @@ import pandas as pd
 from ranzen.decorators import enum_name_str, parsable
 from ranzen.misc import str_to_enum
 import torch
+from torch import Tensor
+from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import ImageTform, UrlFileInfo, download_from_url
 from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.structures import TernarySample
 
 __all__ = [
     "Camelyon17",
@@ -43,7 +46,10 @@ class Camelyon17Attr(Enum):
     slide = auto()
 
 
-class Camelyon17(CdtVisionDataset):
+SampleType: TypeAlias = TernarySample
+
+
+class Camelyon17(CdtVisionDataset[SampleType, Tensor, Tensor]):
     """
     The CAMELYON17-WILDS histopathology dataset.
     This is a modified version of the original CAMELYON17 dataset.

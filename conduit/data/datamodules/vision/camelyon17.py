@@ -13,6 +13,7 @@ from conduit.data.datasets.vision.camelyon17 import (
     Camelyon17Attr,
     Camelyon17Split,
     Camelyon17SplitScheme,
+    SampleType,
 )
 from conduit.data.structures import TrainValTestSplit
 
@@ -20,7 +21,7 @@ __all__ = ["Camelyon17DataModule"]
 
 
 @attr.define(kw_only=True)
-class Camelyon17DataModule(CdtVisionDataModule[Camelyon17]):
+class Camelyon17DataModule(CdtVisionDataModule[Camelyon17, SampleType]):
     """Data-module for the Camelyon17 dataset."""
 
     image_size: int = 96

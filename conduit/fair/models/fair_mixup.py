@@ -15,7 +15,7 @@ from torch import Tensor, nn
 from torch.distributions import Beta
 import torchmetrics
 
-from conduit.data import TernarySample
+from conduit.data.structures import TernarySample
 from conduit.fair.misc import FairnessType
 from conduit.models.base import CdtModel
 from conduit.models.utils import aggregate_over_epoch
