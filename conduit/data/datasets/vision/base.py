@@ -4,6 +4,7 @@ from typing import List, Optional, Sequence, Union, cast, overload
 import numpy as np
 import numpy.typing as npt
 from ranzen import implements
+import torch
 from torch import Tensor
 from typing_extensions import Self, TypeAlias
 
@@ -15,6 +16,7 @@ from conduit.data.datasets.utils import (
     apply_image_transform,
     img_to_tensor,
     infer_il_backend,
+    is_tensor_list,
     load_image,
 )
 from conduit.data.structures import IndexType, TargetData
@@ -79,7 +81,13 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
         if isinstance(index, slice):
             index = list(range(len(self)))[index]
         if isinstance(index, list):
-            return [self._sample_x(index=i, coerce_to_tensor=coerce_to_tensor) for i in index]
+            sample_ls = [self._sample_x(index=i, coerce_to_tensor=coerce_to_tensor) for i in index]
+
+            if is_tensor_list(sample_ls):
+                return torch.stack(sample_ls, dim=0)
+            elif isinstance(sample_ls[0], np.ndarray):
+                return np.stack(sample_ls, axis=0)
+            return sample_ls
 
         image = self._load_image(index)
         image = apply_image_transform(image=image, transform=self.transform)

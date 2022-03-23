@@ -49,7 +49,7 @@ from torchvision.datasets.utils import (  # type: ignore
     extract_archive,
 )
 from torchvision.transforms import functional as TF  # type: ignore
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias, TypeGuard
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import (
@@ -84,6 +84,7 @@ __all__ = [
     "img_to_tensor",
     "infer_al_backend",
     "infer_il_backend",
+    "is_tensor_list",
     "load_image",
     "make_subset",
     "stratified_split",
@@ -456,7 +457,7 @@ class CdtDataLoader(DataLoader[S]):
         self,
         dataset: DatasetProt[S],
         *,
-        batch_size: Optional[int],
+        batch_size: Optional[int] = 1,
         shuffle: bool = False,
         sampler: Optional[Sampler[int]] = None,
         batch_sampler: Optional[Sampler[Sequence[int]]] = None,
@@ -725,3 +726,7 @@ def stratified_split(
     test_data = make_subset(dataset=dataset, indices=test_inds)
 
     return TrainTestSplit(train=train_data, test=test_data)
+
+
+def is_tensor_list(ls: List[Any]) -> TypeGuard[List[Tensor]]:
+    return isinstance(ls[0], Tensor)
