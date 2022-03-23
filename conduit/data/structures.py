@@ -96,12 +96,16 @@ class MultiCropOutput:
 RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
 UnloadedData: TypeAlias = Union[
     npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
     npt.NDArray[np.string_],
     Tensor,
 ]
 LoadedData: TypeAlias = Union[
     Tensor,
     RawImage,
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    npt.NDArray[np.string_],
     List[RawImage],
     MultiCropOutput,
 ]
@@ -166,7 +170,7 @@ class SampleBase(Generic[X]):
     ) -> Self:
         for elem in shallow_astuple(self):
             if isinstance(elem, Tensor):
-                elem.to(device)
+                elem.to(device, non_blocking=non_blocking, copy=copy)
         return self
 
     def astuple(self, deep=False) -> Tuple[X]:

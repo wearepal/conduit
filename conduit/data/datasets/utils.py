@@ -10,8 +10,10 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Final,
     Iterator,
     List,
+    Literal,
     NamedTuple,
     Optional,
     Sequence,
@@ -19,6 +21,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    get_args,
     overload,
 )
 from zipfile import BadZipFile
@@ -46,7 +49,7 @@ from torchvision.datasets.utils import (  # type: ignore
     extract_archive,
 )
 from torchvision.transforms import functional as TF  # type: ignore
-from typing_extensions import Final, Literal, TypeAlias, get_args
+from typing_extensions import TypeAlias
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import (

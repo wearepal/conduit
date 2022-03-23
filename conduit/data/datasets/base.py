@@ -3,11 +3,13 @@ from typing import (
     ClassVar,
     Generic,
     List,
+    Literal,
     Optional,
     Sequence,
     TypeVar,
     Union,
     cast,
+    final,
     overload,
 )
 
@@ -17,7 +19,7 @@ from ranzen import implements
 from ranzen.misc import gcopy
 import torch
 from torch import Tensor
-from typing_extensions import Literal, Self, final
+from typing_extensions import Self
 
 from conduit.data.structures import (
     BinarySample,
@@ -32,13 +34,7 @@ from conduit.data.structures import (
 )
 from conduit.logging import init_logger
 
-__all__ = [
-    "CdtDataset",
-    "I",
-    "S",
-    "X",
-    "Y",
-]
+__all__ = ["CdtDataset", "I", "S", "X", "Y"]
 
 
 I = TypeVar(
