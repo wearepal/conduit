@@ -38,7 +38,7 @@ def prediction(logits: Tensor) -> Tensor:
 
 @torch.no_grad()
 def accuracy(logits: Tensor, targets: Tensor) -> Tensor:
-    logits = torch.atleast_1d(logits.squeeze())
+    logits = torch.atleast_2d(logits.squeeze())
     targets = torch.atleast_1d(targets.squeeze()).long()
     if len(logits) != len(targets):
         raise ValueError("'logits' and 'targets' must match in size at dimension 0.")
