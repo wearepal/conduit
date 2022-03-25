@@ -168,9 +168,9 @@ class SampleBase(Generic[X]):
         non_blocking: bool = False,
         copy: bool = False,
     ) -> Self:
-        for elem in shallow_astuple(self):
-            if isinstance(elem, Tensor):
-                elem.to(device, non_blocking=non_blocking, copy=copy)
+        for name, value in shallow_asdict(self).items():
+            if isinstance(value, Tensor):
+                setattr(self, name, value.to(device, non_blocking=non_blocking))
         return self
 
     def astuple(self, deep=False) -> Tuple[X]:
