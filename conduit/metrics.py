@@ -89,7 +89,7 @@ class per_subclass_metric(Generic[C]):
         """
         Computes a subclass-wise metric determined by a given comparator function.
 
-        :param comparator: Function used to assess the correctness of the ``y_pred`` with respect
+        :param comparator: Function used to assess the correctness of ``y_pred`` with respect
         to ``y_true``.
 
         :param aggregator: Function with which to aggregate over the per-subclass scores.
