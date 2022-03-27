@@ -150,7 +150,7 @@ class per_subclass_metric(Generic[C]):
         comps, mask = self.comparator(y_pred=y_pred, y_true=y_true)
         mask = slice(None) if mask is None else mask
         s_unique, s_counts = s.unique(return_counts=True)
-        s_m = s[mask].flatten()[:, None] == s_unique[None]
+        s_m = s[mask][:, None] == s_unique[None]
         scores = (comps[:, None] * s_m).sum(0) / s_counts
 
         if self.aggregator is not None:
