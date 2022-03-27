@@ -15,8 +15,9 @@ import torchmetrics
 
 from conduit.data.structures import TernarySample
 from conduit.fair.misc import FairnessType
+from conduit.metrics import accuracy, hard_prediction
 from conduit.models.base import CdtModel
-from conduit.models.utils import accuracy, aggregate_over_epoch, prediction, prefix_keys
+from conduit.models.utils import aggregate_over_epoch, prefix_keys
 from conduit.types import LRScheduler, Stage
 
 __all__ = ["LAFTR"]
@@ -105,7 +106,7 @@ class LAFTR(CdtModel):
         subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
         logits_y_all = aggregate_over_epoch(outputs=outputs, metric="logits_y")
 
-        preds_y_all = prediction(logits_y_all)
+        preds_y_all = hard_prediction(logits_y_all)
 
         dt = em.DataTuple(
             x=pd.DataFrame(
