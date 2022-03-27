@@ -216,7 +216,7 @@ class LAFTR(CdtModel):
             model_out = self.forward(x=batch.x, s=batch.s)
             laftr_loss = self._loss_laftr(y_pred=model_out.y, recon=model_out.x, batch=batch)
             adv_loss = self._loss_adv(s_pred=model_out.s, batch=batch)
-            _acc = accuracy(logits=model_out.y, targets=batch.y)
+            _acc = accuracy(y_pred=model_out.y, y_true=batch.y)
             logging_dict = {
                 "loss": (laftr_loss + adv_loss).item(),
                 "model_loss": laftr_loss.item(),

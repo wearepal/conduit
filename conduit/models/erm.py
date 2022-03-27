@@ -10,14 +10,9 @@ import torch
 from torch import Tensor, nn
 
 from conduit.data import BinarySample
+from conduit.metrics import accuracy
 from conduit.models.base import CdtModel
-from conduit.models.utils import (
-    accuracy,
-    aggregate_over_epoch,
-    make_no_grad,
-    precision_at_k,
-    prefix_keys,
-)
+from conduit.models.utils import aggregate_over_epoch, make_no_grad, prefix_keys
 from conduit.types import Loss, MetricDict, Stage
 
 __all__ = ["ERMClassifier", "FineTuner"]
@@ -59,7 +54,7 @@ class ERMClassifier(CdtModel):
         loss = self._get_loss(logits=logits, batch=batch)
         results_dict = {
             "loss": loss.item(),
-            "acc": accuracy(logits=logits, targets=batch.y),
+            "acc": accuracy(y_pred=logits, y_true=batch.y),
         }
         results_dict = prefix_keys(dict_=results_dict, prefix=str(Stage.fit), sep="/")
         self.log_dict(results_dict)
@@ -85,7 +80,7 @@ class ERMClassifier(CdtModel):
             acc1, acc5 = precision_at_k(logits=logits_all, targets=targets_all, top_k=(1, 5))
             results_dict["acc5"] = acc5
         else:
-            acc1 = accuracy(logits=logits_all, targets=targets_all)
+            acc1 = accuracy(y_pred=logits_all, y_true=targets_all)
         results_dict["acc1"] = acc1
 
         return results_dict

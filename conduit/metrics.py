@@ -27,26 +27,26 @@ def hard_prediction(logits: Tensor) -> Tensor:
 
 
 @torch.no_grad()
-def accuracy(logits: Tensor, *, targets: Tensor) -> Tensor:
-    logits = torch.atleast_2d(logits.squeeze())
-    if len(logits) != len(targets):
+def accuracy(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
+    y_pred = torch.atleast_2d(y_pred.squeeze())
+    if len(y_pred) != len(y_true):
         raise ValueError("'logits' and 'targets' must match in size at dimension 0.")
-    preds = hard_prediction(logits)
-    return (preds == targets).float().mean()
+    preds = hard_prediction(y_pred)
+    return (preds == y_true).float().mean()
 
 
 @torch.no_grad()
 def precision_at_k(
-    logits: Tensor, targets: Tensor, top_k: Union[int, Tuple[int, ...]] = (1,)
+    y_pred: Tensor, *, y_true: Tensor, top_k: Union[int, Tuple[int, ...]] = (1,)
 ) -> List[Tensor]:
     """Computes the accuracy over the k top predictions for the specified values of k"""
     if isinstance(top_k, int):
         top_k = (top_k,)
     maxk = max(top_k)
-    batch_size = targets.size(0)
-    _, pred = logits.topk(k=maxk, dim=1, largest=True, sorted=True)
+    batch_size = y_true.size(0)
+    _, pred = y_pred.topk(k=maxk, dim=1, largest=True, sorted=True)
     pred = pred.t()
-    correct = pred.eq(targets.view(1, -1).expand_as(pred))
+    correct = pred.eq(y_true.view(1, -1).expand_as(pred))
 
     res: List[Tensor] = []
     for k in top_k:
