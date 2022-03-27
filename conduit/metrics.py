@@ -87,7 +87,7 @@ C = TypeVar("C", bound=Comparator, covariant=True)
 class per_subclass_metric(Generic[C]):
     def __init__(self, comparator: C, aggregator: Optional[Union[Aggregator, str]] = None) -> None:
         """
-        Computes a subclass-wise metric determined by a given comparator function.
+        Computes a subclass-wise metric based on :attr:`comparator`.
 
         :param comparator: Function used to assess the correctness of ``y_pred`` with respect
         to ``y_true``.
