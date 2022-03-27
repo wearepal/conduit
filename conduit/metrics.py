@@ -14,9 +14,11 @@ __all__ = [
     "per_subclass_metric",
     "precision_at_k",
     "robust_accuracy",
+    "robust_gap",
     "subclass_balanced_accuracy",
     "tnr_per_subclass",
     "tpr_per_subclass",
+    "tpr_differences",
 ]
 
 
@@ -70,6 +72,14 @@ class Comparator(Protocol):
         ...
 
 
+def _pdist_1d(x: Tensor) -> Tensor:
+    return torch.pdist(x.view(-1, 1)).squeeze()
+
+
+def _max_diff_1d(x: Tensor) -> Tensor:
+    return _pdist_1d(x)
+
+
 class Aggregator(Enum):
     MIN = min
     "Aggregate by taking the minimum."
@@ -79,6 +89,10 @@ class Aggregator(Enum):
     "Aggregate by taking the mean."
     MEADIAN = torch.median
     "Aggregate by taking the median."
+    DIFF = partial(_pdist_1d)
+    "Aggregate by taking the pairwise (absolute) differences."
+    MAX_DIFF = partial(_max_diff_1d)
+    "Aggregate by taking the maximum of the pairwise (absolute) differences."
 
 
 C = TypeVar("C", bound=Comparator, covariant=True)
@@ -138,8 +152,10 @@ class per_subclass_metric(Generic[C]):
         s_unique, s_counts = s.unique(return_counts=True)
         s_m = s[mask].flatten()[:, None] == s_unique[None]
         scores = (comps[:, None] * s_m).sum(0) / s_counts
+
         if self.aggregator is not None:
             return self.aggregator.value(scores)
+
         return scores
 
 
@@ -169,11 +185,18 @@ def conditional_equal(
 
 
 robust_accuracy = per_subclass_metric(comparator=equal, aggregator=Aggregator.MIN)
+robust_gap = per_subclass_metric(comparator=equal, aggregator=Aggregator.MAX_DIFF)
 subclass_balanced_accuracy = per_subclass_metric(comparator=equal, aggregator=Aggregator.MEAN)
 accuracy_per_subclass = per_subclass_metric(comparator=equal, aggregator=None)
 tpr_per_subclass = per_subclass_metric(
     comparator=partial(conditional_equal, y_true_cond=1), aggregator=None
 )
+tpr_differences = per_subclass_metric(
+    comparator=partial(conditional_equal, y_true_cond=1), aggregator=Aggregator.DIFF
+)
 tnr_per_subclass = per_subclass_metric(
     comparator=partial(conditional_equal, y_true_cond=0), aggregator=None
+)
+tnr_differences = per_subclass_metric(
+    comparator=partial(conditional_equal, y_true_cond=0), aggregator=Aggregator.DIFF
 )
