@@ -10,7 +10,7 @@ import torch
 from torch import Tensor, nn
 
 from conduit.data import BinarySample
-from conduit.metrics import accuracy
+from conduit.metrics import accuracy, precision_at_k
 from conduit.models.base import CdtModel
 from conduit.models.utils import aggregate_over_epoch, make_no_grad, prefix_keys
 from conduit.types import Loss, MetricDict, Stage
