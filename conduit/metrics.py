@@ -101,6 +101,7 @@ class Aggregator(Enum):
     "Aggregate by taking the maximum of the pairwise (absolute) differences."
 
 
+@torch.no_grad()
 def _apply_groupwise_metric(
     *group_ids: Tensor,
     comparator: Comparator,
