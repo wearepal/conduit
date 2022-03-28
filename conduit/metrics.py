@@ -4,7 +4,6 @@ from typing import List, Optional, Protocol, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
-from typing_extensions import runtime_checkable
 
 __all__ = [
     "Comparator",
@@ -62,7 +61,6 @@ def precision_at_k(
 R = TypeVar("R", Tensor, Tuple[Tensor, Union[Tensor, slice]], covariant=True)
 
 
-@runtime_checkable
 class Comparator(Protocol[R]):
     def __call__(self, y_pred: Tensor, *, y_true: Tensor) -> R:
         """
@@ -85,7 +83,7 @@ def _pdist_1d(x: Tensor) -> Tensor:
 
 
 def max_difference_1d(x: Tensor) -> Tensor:
-    return _pdist_1d(x)
+    return _pdist_1d(x).max()
 
 
 class Aggregator(Enum):
@@ -157,8 +155,10 @@ def _apply_groupwise_metric(
         groups, group_counts = index_set.unique(return_counts=True)
         group_mask = index_set[comp_mask][:, None] == groups[None]
         scores = (comps[:, None] * group_mask).sum(0) / group_counts
+
         if aggregator is not None:
-            return aggregator.value(scores)
+            scores = aggregator.value(scores)
+        return scores
 
     return comps.mean()
 
@@ -238,12 +238,36 @@ def equal(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
     return (y_pred == y_true).float()
 
 
+def conditional_equal(
+    y_pred: Tensor,
+    *,
+    y_true: Tensor,
+    y_pred_cond: Optional[int] = None,
+    y_true_cond: Optional[int] = None,
+) -> Tuple[Tensor, Tensor]:
+    mask = torch.ones_like(y_pred, dtype=torch.bool)
+    if y_pred_cond is not None:
+        mask &= y_pred == y_pred_cond
+    if y_true_cond is not None:
+        mask &= y_true == y_true_cond
+    comps = equal(y_pred=y_pred[mask], y_true=y_true[mask])
+    return comps, mask
+
+
 robust_accuracy = subclasswise_metric(comparator=equal, aggregator=Aggregator.MIN)
 robust_gap = subclasswise_metric(comparator=equal, aggregator=Aggregator.MAX_DIFF)
 subclass_balanced_accuracy = subclasswise_metric(comparator=equal, aggregator=Aggregator.MEAN)
 group_balanced_accuracy = groupwise_metric(comparator=equal, aggregator=Aggregator.MEAN)
 accuracy_per_subclass = subclasswise_metric(comparator=equal, aggregator=None)
-tpr_per_subclass = subclasswise_metric(comparator=equal, aggregator=None)
-tpr_differences = groupwise_metric(comparator=equal, aggregator=Aggregator.DIFF)
-tnr_per_subclass = groupwise_metric(comparator=equal, aggregator=None)
-tnr_differences = groupwise_metric(comparator=equal, aggregator=Aggregator.DIFF)
+tpr_per_subclass = subclasswise_metric(
+    comparator=partial(conditional_equal, y_true_cond=1), aggregator=None
+)
+tnr_per_subclass = subclasswise_metric(
+    comparator=partial(conditional_equal, y_true_cond=0), aggregator=None
+)
+tpr_differences = subclasswise_metric(
+    comparator=partial(conditional_equal, y_true_cond=1), aggregator=Aggregator.DIFF
+)
+tnr_differences = subclasswise_metric(
+    comparator=partial(conditional_equal, y_true_cond=0), aggregator=Aggregator.DIFF
+)
