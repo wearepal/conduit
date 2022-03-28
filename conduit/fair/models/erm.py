@@ -11,9 +11,10 @@ import torch
 from torch import nn
 
 from conduit.data.structures import TernarySample
+from conduit.metrics import hard_prediction
 from conduit.models import CdtModel
 from conduit.models.erm import ERMClassifier
-from conduit.models.utils import aggregate_over_epoch, prediction
+from conduit.models.utils import aggregate_over_epoch
 from conduit.types import Loss, Stage
 
 __all__ = ["ERMClassifierF"]
@@ -64,7 +65,7 @@ class ERMClassifierF(ERMClassifier):
         targets_all = aggregate_over_epoch(outputs=outputs, metric="targets")
         subgroup_inf_all = aggregate_over_epoch(outputs=outputs, metric="subgroup_inf")
 
-        preds_all = prediction(logits_all)
+        preds_all = hard_prediction(logits_all)
 
         dt = em.DataTuple(
             x=pd.DataFrame(
