@@ -84,7 +84,6 @@ class CdtVisionDataModule(CdtDataModule[D, I]):
         return A.Compose(transform_ls)
 
     @implements(CdtDataModule)
-    @final
     def _setup(self, stage: Optional[Stage] = None) -> None:
         train, val, test = self._get_splits()
         train = ImageTransformer(train, transform=self.train_transforms)
