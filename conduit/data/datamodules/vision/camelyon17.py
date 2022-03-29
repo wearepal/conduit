@@ -74,6 +74,6 @@ class Camelyon17DataModule(CdtVisionDataModule[Camelyon17, SampleType]):
         else:
             all_data = Camelyon17(root=self.root, transform=None, split_scheme=self.split_scheme)
             val_data, test_data, train_data = all_data.random_split(
-                props=(self.val_prop, self.test_prop)
+                props=(self.val_prop, self.test_prop), seed=self.seed
             )
         return TrainValTestSplit(train=train_data, val=val_data, test=test_data)

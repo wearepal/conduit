@@ -33,17 +33,31 @@ I = TypeVar("I", bound=NamedSample)
 class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     """Base DataModule for both Tabular and Vision data-modules.
 
-    :param val_prop: Proprtion (float)  of samples to use for the validation split
-    :param test_prop: Proportion (float) of samples to use for the test split
-    :param num_workers: How many workers to use for loading data
-    :param train_batch_size: How many samples per batch to load
-    :param eval_batch_size: How many samples per batch to load
-    :param seed: RNG Seed
-    :param persist_workers: Use persistent workers in dataloader?
-    :param pin_memory: Should the memory be pinned?
-    :param stratified_sampling: Use startified sampling?
-    :param stratified_sampling: Use instance-weighting?
-    :param training_mode: Which training mode to use ('epoch' vs. 'step').
+    :param val_prop: Proportion of samples to designate as the validation split.
+    :param test_prop: Proportion of samples to designate as the test split.
+
+    :param num_workers: how many subprocesses to use for data-loading.
+        ``0`` means that the data will be loaded in the main process.
+
+    :param train_batch_size: Batch size to use for the training data.
+    :param eval_batch_size: Batch size to use for the validationa and test data.
+    :param seed: PRNG seed to use for splitting the data.
+    :param persist_workers: Whether to persistent workers in dataloader.
+
+    :param pin_memory: If ``True``, the data loader will copy Tensors
+        into CUDA pinned memory before returning them.  If your data elements
+        are a custom type, or your :attr:`collate_fn` returns a batch that is a custom type,
+        see the example below.
+
+    :param stratified_sampling: Whether to draw class-balanced batches of data with the
+        train-dataloader (only applicable to classification datasets with discrete ``y`` values).
+
+    :param instance_weighting: Whether to instance-weight samples of the dataset (only applicable to
+        classification datasets with discrete ``y`` values).
+
+    :param training_mode: Which mode to use for sampling with the train-dataloader. If `epoch` then
+        the train-dataloader will be exhausted after a complete pass though the data. If `step` then
+        samples will be drawn ad infinitum by the dataloader.
     """
 
     train_batch_size: int = 64

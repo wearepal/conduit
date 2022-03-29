@@ -84,7 +84,7 @@ class ColoredMNISTDataModule(CdtVisionDataModule[ColoredMNIST, SampleType]):
             # Split the data randomly according to val- and test-prop
             train_data = fact_func(split=None)
             val_data, test_data, train_data = train_data.random_split(
-                props=(self.val_prop, self.test_prop)
+                props=(self.val_prop, self.test_prop), seed=self.seed
             )
         # Compute the channel-wise first and second moments
         channel_means = np.mean(train_data.x, axis=(0, 1, 2)) / 255.0

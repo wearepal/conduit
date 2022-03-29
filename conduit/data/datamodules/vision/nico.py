@@ -54,6 +54,8 @@ class NICODataModule(CdtVisionDataModule[NICO, SampleType]):
             train_props=self.class_train_props,
             seed=self.seed,
         )
-        val_data, train_data = train_val_data.random_split(props=self.val_prop / train_val_prop)
+        val_data, train_data = train_val_data.random_split(
+            props=self.val_prop / train_val_prop, seed=self.seed
+        )
 
         return TrainValTestSplit(train=train_data, val=val_data, test=test_data)

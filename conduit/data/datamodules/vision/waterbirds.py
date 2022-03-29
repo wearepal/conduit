@@ -61,6 +61,6 @@ class WaterbirdsDataModule(CdtVisionDataModule[Waterbirds, SampleType]):
         else:
             all_data = Waterbirds(root=self.root, transform=None)
             val_data, test_data, train_data = all_data.random_split(
-                props=(self.val_prop, self.test_prop)
+                props=(self.val_prop, self.test_prop), seed=self.seed
             )
         return TrainValTestSplit(train=train_data, val=val_data, test=test_data)
