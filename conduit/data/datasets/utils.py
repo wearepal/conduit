@@ -449,13 +449,13 @@ class cdt_collate:
         return collated_batch
 
 
-S = TypeVar("S", bound=NamedSample[LoadedData])
+I = TypeVar("I", bound=NamedSample[LoadedData])
 
 
-class CdtDataLoader(DataLoader[S]):
+class CdtDataLoader(DataLoader[I]):
     def __init__(
         self,
-        dataset: DatasetProt[S],
+        dataset: DatasetProt[I],
         *,
         batch_size: Optional[int] = 1,
         shuffle: bool = False,
@@ -489,7 +489,7 @@ class CdtDataLoader(DataLoader[S]):
             persistent_workers=persistent_workers,
         )
 
-    def __iter__(self) -> Iterator[S]:
+    def __iter__(self) -> Iterator[I]:
         return super().__iter__()
 
 

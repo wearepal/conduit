@@ -35,6 +35,7 @@ __all__ = [
     "DatasetWrapper",
     "ImageSize",
     "IndexType",
+    "InputContainer",
     "LoadedData",
     "MultiCropOutput",
     "NamedSample",
@@ -53,9 +54,43 @@ __all__ = [
     "shallow_astuple",
 ]
 
+IndexType: TypeAlias = Union[int, List[int], slice]
+RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
+UnloadedData: TypeAlias = Union[
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    npt.NDArray[np.string_],
+    Tensor,
+]
+LoadedData: TypeAlias = Union[
+    Tensor,
+    Image.Image,
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    npt.NDArray[np.string_],
+    "InputContainer",
+    Dict[str, Tensor],
+    Dict[str, Image.Image],
+    Dict[str, npt.NDArray[np.floating]],
+    Dict[str, npt.NDArray[np.integer]],
+    Dict[str, npt.NDArray[np.string_]],
+]
+X = TypeVar("X", bound=LoadedData)
+
+TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
+
+
+class InputContainer(Protocol):
+    def __len__(self) -> int:
+        """Total number of samples in the container."""
+        ...
+
+    def __add__(self, other: Self) -> Self:
+        ...
+
 
 @dataclass
-class MultiCropOutput:
+class MultiCropOutput(InputContainer):
     global_crops: List[Tensor]
     local_crops: List[Tensor] = field(default_factory=list)
 
@@ -76,52 +111,29 @@ class MultiCropOutput:
         """Shape of the global crops - for compatibility with DMs."""
         return self.global_crops[0].shape
 
+    @implements(InputContainer)
     def __len__(self) -> int:
         """Total number of crops."""
         return len(self.global_crops) + len(self.local_crops)
 
     def __iadd__(self, other: Self) -> Self:
-        copy = gcopy(self, deep=False)
-        copy.global_crops += other.global_crops
-        copy.local_crops += other.local_crops
-        return copy
+        self.global_crops += other.global_crops
+        self.local_crops += other.local_crops
+        return self
 
+    @implements(InputContainer)
     def __add__(self, other: Self) -> Self:
         copy = gcopy(self, deep=False)
         copy.global_crops = copy.global_crops + other.global_crops
-        copy.local_crops += copy.local_crops + other.local_crops
+        copy.local_crops = copy.local_crops + other.local_crops
         return copy
 
 
-RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
-UnloadedData: TypeAlias = Union[
-    npt.NDArray[np.floating],
-    npt.NDArray[np.integer],
-    npt.NDArray[np.string_],
-    Tensor,
-]
-LoadedData: TypeAlias = Union[
-    Tensor,
-    RawImage,
-    npt.NDArray[np.floating],
-    npt.NDArray[np.integer],
-    npt.NDArray[np.string_],
-    List[RawImage],
-    MultiCropOutput,
-]
-TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
-
-IndexType: TypeAlias = Union[int, List[int], slice]
-
-
-X = TypeVar("X", bound=LoadedData)
-
-
-@dataclass
+@dataclass(init=False)
 class SampleBase(Generic[X]):
-    # Instantiate as NamedSample
     x: X
 
+    @implements(InputContainer)
     def __len__(self) -> int:
         return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
 
@@ -129,36 +141,41 @@ class SampleBase(Generic[X]):
     def __iter__(self) -> Iterator[X]:
         ...
 
-    def __add__(self, other: Self) -> Self:
-        if type(self.x) != type(other.x) or (
-            isinstance(self.x, list) and type(self.x[0]) != type(cast(List, other.x)[0])
+    def _add_xs(self, x1: X, x2: X) -> X:
+        if type(x1) != type(x2) or (
+            isinstance(x1, list) and type(x1[0]) != type(cast(List, x2)[0])  # type: ignore
         ):
             raise AttributeError(
                 f"Only {self.__class__.__name__} instances with 'x' attributes of "
                 "the same type can be concatenated (added) together."
             )
-        copy = gcopy(self, deep=False)
-        if isinstance(self.x, (Tensor, np.ndarray)):
-            other.x = cast(Union[Tensor, np.ndarray], other.x)
-            if self.x.shape != other.x.shape:
+        if isinstance(x1, (Tensor, np.ndarray)):
+            if x1.shape[1:] != x2.shape[1:]:  # type: ignore
                 raise AttributeError(
                     f"Only {self.__class__.__name__} instances with 'x' attributes of "
                     "the same shape can be concatenated (added) together: the lhs variable has "
-                    f"'x' of shape '{self.x.shape}', the rhs variable 'x' of shape "
-                    f"'{other.x.shape}.'"
+                    f"'x' of shape '{x1.shape}', the rhs variable 'x' of shape "
+                    f"'{x2.shape}.'"  # type: ignore
                 )
-        if isinstance(copy.x, Tensor):
-            other.x = cast(Tensor, other.x)
-            copy.x = torch.cat([copy.x, other.x], dim=0)
-        elif isinstance(copy.x, np.ndarray):
-            other.x = cast(np.ndarray, other.x)
-            copy.x = np.concatenate([copy.x, other.x], axis=0)
-        elif isinstance(copy.x, Image.Image):
-            other.x = cast(Image.Image, other.x)
-            copy.x = [copy.x, other.x]
-        else:
-            copy.x = copy.x + other.x  # type: ignore
+        if isinstance(x1, Tensor):
+            return torch.cat([x1, x2], dim=0)  # type: ignore
+        elif isinstance(x1, np.ndarray):
+            return np.concatenate([x1, x2], axis=0)  # type: ignore
+        elif isinstance(x1, Image.Image):
+            return [x1, x2]  # type: ignore
+        elif isinstance(x1, dict):
+            for key, value in x2.items():  # type: ignore
+                if key in x1:
+                    x1[key] = self._add_xs(x1[key], value)  # type: ignore
+                else:
+                    x1[key] = value  # type: ignore
+                return x1
+        return x1 + x2  # type: ignore
 
+    @implements(InputContainer)
+    def __add__(self, other: Self) -> Self:
+        copy = gcopy(self, deep=False)
+        copy.x = self._add_xs(copy.x, other.x)
         return copy
 
     def to(
@@ -166,7 +183,6 @@ class SampleBase(Generic[X]):
         device: Optional[Union[torch.device, str]],
         *,
         non_blocking: bool = False,
-        copy: bool = False,
     ) -> Self:
         for name, value in shallow_asdict(self).items():
             if isinstance(value, Tensor):
