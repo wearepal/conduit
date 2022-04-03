@@ -15,7 +15,6 @@ from typing import (
     Union,
     cast,
     overload,
-    runtime_checkable,
 )
 
 from PIL import Image
@@ -26,7 +25,9 @@ from ranzen.decorators import implements
 from ranzen.misc import gcopy
 import torch
 from torch import Tensor
-from typing_extensions import Self, TypeAlias
+from typing_extensions import Self, TypeAlias, runtime_checkable
+
+from conduit.types import Addable, Sized
 
 __all__ = [
     "BinarySample",
@@ -50,6 +51,7 @@ __all__ = [
     "TrainTestSplit",
     "TrainValTestSplit",
     "UnloadedData",
+    "concatenate_inputs",
     "shallow_asdict",
     "shallow_astuple",
 ]
@@ -74,23 +76,65 @@ LoadedData: TypeAlias = Union[
     Dict[str, npt.NDArray[np.floating]],
     Dict[str, npt.NDArray[np.integer]],
     Dict[str, npt.NDArray[np.string_]],
+    List[Image.Image],
 ]
 X = TypeVar("X", bound=LoadedData)
+X_co = TypeVar("X_co", bound=LoadedData, covariant=True)
 
 TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
 
 
-class InputContainer(Protocol):
+def concatenate_inputs(x1: X, x2: X, *, is_batched: bool) -> X:
+    if type(x1) != type(x2) or (
+        isinstance(x1, list) and type(x1[0]) != type(cast(List, x2)[0])  # type: ignore
+    ):
+        raise AttributeError("Only data of the same type can be concatenated (added) together.")
+    if isinstance(x1, Tensor):
+        # if the number of dimensions is different by 1, append a batch dimension.
+        ndim_diff = x1.ndim - x2.ndim  # type: ignore
+        if ndim_diff == 1:
+            x2 = x2.unsqueeze(0)  # type: ignore
+        elif ndim_diff == -1:
+            x1 = x1.unsqueeze(0)
+        if is_batched:
+            return torch.cat([x1, x2], dim=0)  # type: ignore
+        return torch.stack([x1, x2], dim=0)  # type: ignore
+
+    elif isinstance(x1, np.ndarray):
+        # if the number of dimensions is different by 1, append a batch dimension.
+        ndim_diff = x1.ndim - x2.ndim  # type: ignore
+        if ndim_diff == 1:
+            x2 = np.expand_dims(x2, axis=0)  # type: ignore
+        elif ndim_diff == -1:
+            x1 = np.expand_dims(x1, axis=0)  # type: ignore
+        if is_batched:
+            return np.concatenate([x1, x2], axis=0)  # type: ignore
+        return np.stack([x1, x2], axis=0)  # type: ignore
+    elif isinstance(x1, Image.Image):
+        return [x1, x2]  # type: ignore
+    elif isinstance(x1, dict):
+        for key, value in x2.items():  # type: ignore
+            if key in x1:
+                x1[key] = concatenate_inputs(x1[key], value, is_batched=is_batched)  # type: ignore
+            else:
+                x1[key] = value  # type: ignore
+            return x1
+    return x1 + x2  # type: ignore
+
+
+class InputContainer(Sized[X_co], Addable):
+    @implements(Sized)
     def __len__(self) -> int:
         """Total number of samples in the container."""
         ...
 
+    @implements(Addable)
     def __add__(self, other: Self) -> Self:
         ...
 
 
 @dataclass
-class MultiCropOutput(InputContainer):
+class MultiCropOutput(InputContainer[Tensor]):
     global_crops: List[Tensor]
     local_crops: List[Tensor] = field(default_factory=list)
 
@@ -141,41 +185,10 @@ class SampleBase(Generic[X]):
     def __iter__(self) -> Iterator[X]:
         ...
 
-    def _add_xs(self, x1: X, x2: X) -> X:
-        if type(x1) != type(x2) or (
-            isinstance(x1, list) and type(x1[0]) != type(cast(List, x2)[0])  # type: ignore
-        ):
-            raise AttributeError(
-                f"Only {self.__class__.__name__} instances with 'x' attributes of "
-                "the same type can be concatenated (added) together."
-            )
-        if isinstance(x1, (Tensor, np.ndarray)):
-            if x1.shape[1:] != x2.shape[1:]:  # type: ignore
-                raise AttributeError(
-                    f"Only {self.__class__.__name__} instances with 'x' attributes of "
-                    "the same shape can be concatenated (added) together: the lhs variable has "
-                    f"'x' of shape '{x1.shape}', the rhs variable 'x' of shape "
-                    f"'{x2.shape}.'"  # type: ignore
-                )
-        if isinstance(x1, Tensor):
-            return torch.cat([x1, x2], dim=0)  # type: ignore
-        elif isinstance(x1, np.ndarray):
-            return np.concatenate([x1, x2], axis=0)  # type: ignore
-        elif isinstance(x1, Image.Image):
-            return [x1, x2]  # type: ignore
-        elif isinstance(x1, dict):
-            for key, value in x2.items():  # type: ignore
-                if key in x1:
-                    x1[key] = self._add_xs(x1[key], value)  # type: ignore
-                else:
-                    x1[key] = value  # type: ignore
-                return x1
-        return x1 + x2  # type: ignore
-
     @implements(InputContainer)
     def __add__(self, other: Self) -> Self:
         copy = gcopy(self, deep=False)
-        copy.x = self._add_xs(copy.x, other.x)
+        copy.x = concatenate_inputs(copy.x, other.x, is_batched=True)
         return copy
 
     def to(
@@ -286,11 +299,12 @@ class BinarySample(NamedSample[X], _BinarySampleMixin):
 
     @implements(NamedSample)
     def __add__(self, other: Self) -> Self:
-        copy = super().__add__(other)
+        copy = gcopy(self, deep=False)
         copy.y = torch.cat(
             [torch.atleast_1d(copy.y), torch.atleast_1d(other.y)],
             dim=0,
         )
+        copy.x = concatenate_inputs(copy.x, other.x, is_batched=len(copy.y) > 1)
         return copy
 
 
@@ -329,11 +343,12 @@ class SubgroupSample(NamedSample[X], _SubgroupSampleMixin):
 
     @implements(NamedSample)
     def __add__(self, other: Self) -> Self:
-        copy = super().__add__(other)
+        copy = gcopy(self, deep=False)
         copy.s = torch.cat(
             [torch.atleast_1d(copy.s), torch.atleast_1d(other.s)],
             dim=0,
         )
+        copy.x = concatenate_inputs(copy.x, other.x, is_batched=len(copy.s) > 1)
         return copy
 
 
@@ -364,8 +379,8 @@ class BinarySampleIW(BinarySample[X], _BinarySampleMixin, _IwMixin):
     @implements(BinarySample)
     def __add__(self, other: Self) -> Self:
         copy = super().__add__(other)
-        copy.y = torch.cat(
-            [torch.atleast_1d(copy.y), torch.atleast_1d(other.y)],
+        copy.iw = torch.cat(
+            [torch.atleast_1d(copy.iw), torch.atleast_1d(other.iw)],
             dim=0,
         )
         return copy
