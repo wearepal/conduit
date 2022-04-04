@@ -122,7 +122,8 @@ def concatenate_inputs(x1: X, x2: X, *, is_batched: bool) -> X:
     return x1 + x2  # type: ignore
 
 
-class InputContainer(Sized[X_co], Addable):
+@runtime_checkable
+class InputContainer(Sized[X_co], Addable, Protocol):
     @implements(Sized)
     def __len__(self) -> int:
         """Total number of samples in the container."""
@@ -173,7 +174,7 @@ class MultiCropOutput(InputContainer[Tensor]):
         return copy
 
 
-@dataclass(init=False)
+@dataclass
 class SampleBase(Generic[X]):
     x: X
 
