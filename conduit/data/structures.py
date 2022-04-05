@@ -133,6 +133,17 @@ class InputContainer(Sized[X_co], Addable, Protocol):
     def __add__(self, other: Self) -> Self:
         ...
 
+    def to(
+        self,
+        device: Optional[Union[torch.device, str]],
+        *,
+        non_blocking: bool = False,
+    ) -> Self:
+        for name, value in shallow_asdict(self).items():
+            if isinstance(value, (Tensor, InputContainer)):
+                setattr(self, name, value.to(device, non_blocking=non_blocking))
+        return self
+
 
 @dataclass
 class MultiCropOutput(InputContainer[Tensor]):
@@ -175,7 +186,7 @@ class MultiCropOutput(InputContainer[Tensor]):
 
 
 @dataclass
-class SampleBase(Generic[X]):
+class SampleBase(InputContainer[X]):
     x: X
 
     @implements(InputContainer)
@@ -191,17 +202,6 @@ class SampleBase(Generic[X]):
         copy = gcopy(self, deep=False)
         copy.x = concatenate_inputs(copy.x, other.x, is_batched=True)
         return copy
-
-    def to(
-        self,
-        device: Optional[Union[torch.device, str]],
-        *,
-        non_blocking: bool = False,
-    ) -> Self:
-        for name, value in shallow_asdict(self).items():
-            if isinstance(value, Tensor):
-                setattr(self, name, value.to(device, non_blocking=non_blocking))
-        return self
 
     def astuple(self, deep=False) -> Tuple[X]:
         tuple_ = tuple(iter(self))
