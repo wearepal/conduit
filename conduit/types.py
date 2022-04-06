@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, Protocol, TypeVar, Union
+from typing import Any, Dict, List, Protocol, TypeVar, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -12,6 +12,8 @@ from typing_extensions import Protocol, Self, TypeAlias, runtime_checkable
 
 __all__ = [
     "Addable",
+    "IndexType",
+    "Indexable",
     "LRScheduler",
     "Loss",
     "MetricDict",
@@ -44,6 +46,7 @@ class Stage(Enum):
 LRScheduler: TypeAlias = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
 MetricDict: TypeAlias = Dict[str, _METRIC_COLLECTION]
 NDArrayR: TypeAlias = Union[npt.NDArray[np.floating], npt.NDArray[np.integer]]
+IndexType: TypeAlias = Union[int, List[int], slice]
 
 T_co = TypeVar("T_co", covariant=True)
 
@@ -57,4 +60,10 @@ class Sized(Protocol[T_co]):
 @runtime_checkable
 class Addable(Protocol[T_co]):
     def __add__(self, other: Self) -> Self:
+        ...
+
+
+@runtime_checkable
+class Indexable(Protocol[T_co]):
+    def __getitem__(self, index: IndexType) -> Any:
         ...
