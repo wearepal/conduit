@@ -27,7 +27,7 @@ import torch
 from torch import Tensor
 from typing_extensions import Self, TypeAlias, runtime_checkable
 
-from conduit.types import Addable, Sized
+from conduit.types import Addable, IndexType, Sized
 
 __all__ = [
     "BinarySample",
@@ -35,7 +35,6 @@ __all__ = [
     "DatasetProt",
     "DatasetWrapper",
     "ImageSize",
-    "IndexType",
     "InputContainer",
     "LoadedData",
     "MultiCropOutput",
@@ -56,7 +55,6 @@ __all__ = [
     "shallow_astuple",
 ]
 
-IndexType: TypeAlias = Union[int, List[int], slice]
 RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
 UnloadedData: TypeAlias = Union[
     npt.NDArray[np.floating],
@@ -78,7 +76,15 @@ LoadedData: TypeAlias = Union[
     Dict[str, npt.NDArray[np.string_]],
     List[Image.Image],
 ]
+IndexabledData: TypeAlias = Union[
+    Tensor,
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    npt.NDArray[np.string_],
+]
+
 X = TypeVar("X", bound=LoadedData)
+XI = TypeVar("XI", bound=IndexabledData)
 X_co = TypeVar("X_co", bound=LoadedData, covariant=True)
 
 TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
@@ -174,6 +180,9 @@ class MultiCropOutput(InputContainer[Tensor]):
         return copy
 
 
+IS = TypeVar("IS", bound="SampleBase[IndexabledData]")
+
+
 @dataclass
 class SampleBase(Generic[X]):
     x: X
@@ -214,6 +223,9 @@ class SampleBase(Generic[X]):
             asdict(self)
         return shallow_asdict(self)
 
+    def __getitem__(self: "SampleBase[XI]", index: IndexType) -> "SampleBase[XI]":
+        return gcopy(self, deep=False, x=self.x[index])
+
 
 @dataclass
 class NamedSample(SampleBase[X]):
@@ -253,6 +265,10 @@ class NamedSample(SampleBase[X]):
     @implements(SampleBase)
     def __iter__(self) -> Iterator[X]:
         yield self.x
+
+    @implements(SampleBase)
+    def __getitem__(self: "NamedSample[XI]", index: IndexType) -> "NamedSample[XI]":
+        return gcopy(self, deep=False, x=self.x[index])
 
 
 @dataclass
@@ -302,11 +318,15 @@ class BinarySample(NamedSample[X], _BinarySampleMixin):
     def __add__(self, other: Self) -> Self:
         copy = gcopy(self, deep=False)
         copy.y = torch.cat(
-            [torch.atleast_1d(copy.y), torch.atleast_1d(other.y)],
+            [torch.atleast_2d(copy.y), torch.atleast_2d(other.y)],
             dim=0,
         )
         copy.x = concatenate_inputs(copy.x, other.x, is_batched=len(copy.y) > 1)
         return copy
+
+    @implements(SampleBase)
+    def __getitem__(self: "BinarySample[XI]", index: IndexType) -> "BinarySample[XI]":
+        return gcopy(self, deep=False, x=self.x[index], y=self.y[index])
 
 
 @dataclass
@@ -338,7 +358,7 @@ class SubgroupSample(NamedSample[X], _SubgroupSampleMixin):
             return SubgroupSampleIW(x=self.x, s=self.s, iw=iw)
         return self
 
-    @implements(SampleBase)
+    @implements(BinarySample)
     def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.s)
 
@@ -346,11 +366,15 @@ class SubgroupSample(NamedSample[X], _SubgroupSampleMixin):
     def __add__(self, other: Self) -> Self:
         copy = gcopy(self, deep=False)
         copy.s = torch.cat(
-            [torch.atleast_1d(copy.s), torch.atleast_1d(other.s)],
+            [torch.atleast_2d(copy.s), torch.atleast_2d(other.s)],
             dim=0,
         )
         copy.x = concatenate_inputs(copy.x, other.x, is_batched=len(copy.s) > 1)
         return copy
+
+    @implements(SampleBase)
+    def __getitem__(self: "SubgroupSample[XI]", index: IndexType) -> "SubgroupSample[XI]":
+        return gcopy(self, deep=False, x=self.x[index], s=self.s[index])
 
 
 @dataclass
@@ -381,10 +405,14 @@ class BinarySampleIW(BinarySample[X], _BinarySampleMixin, _IwMixin):
     def __add__(self, other: Self) -> Self:
         copy = super().__add__(other)
         copy.iw = torch.cat(
-            [torch.atleast_1d(copy.iw), torch.atleast_1d(other.iw)],
+            [torch.atleast_2d(copy.iw), torch.atleast_2d(other.iw)],
             dim=0,
         )
         return copy
+
+    @implements(SampleBase)
+    def __getitem__(self: "BinarySampleIW[XI]", index: IndexType) -> "BinarySampleIW[XI]":
+        return gcopy(self, deep=False, x=self.x[index], y=self.y[index], iw=self.iw[index])
 
 
 @dataclass
@@ -410,10 +438,14 @@ class SubgroupSampleIW(SubgroupSample[X], _IwMixin):
     def __add__(self, other: Self) -> Self:
         copy = super().__add__(other)
         copy.iw = torch.cat(
-            [torch.atleast_1d(copy.iw), torch.atleast_1d(other.iw)],
+            [torch.atleast_2d(copy.iw), torch.atleast_2d(other.iw)],
             dim=0,
         )
         return copy
+
+    @implements(SampleBase)
+    def __getitem__(self: "SubgroupSampleIW[XI]", index: IndexType) -> "SubgroupSampleIW[XI]":
+        return gcopy(self, deep=False, x=self.x[index], s=self.s[index], iw=self.iw[index])
 
 
 @dataclass
@@ -439,10 +471,14 @@ class TernarySample(BinarySample[X], _SubgroupSampleMixin):
     def __add__(self, other: Self) -> Self:
         copy = super().__add__(other)
         copy.s = torch.cat(
-            [torch.atleast_1d(copy.s), torch.atleast_1d(other.s)],
+            [torch.atleast_2d(copy.s), torch.atleast_2d(other.s)],
             dim=0,
         )
         return copy
+
+    @implements(SampleBase)
+    def __getitem__(self: "TernarySample[XI]", index: IndexType) -> "TernarySample[XI]":
+        return gcopy(self, deep=False, x=self.x[index], y=self.y[index], s=self.s[index])
 
 
 @dataclass
@@ -458,10 +494,16 @@ class TernarySampleIW(TernarySample[X], _IwMixin):
     def __add__(self, other: Self) -> Self:
         copy = super().__add__(other)
         copy.iw = torch.cat(
-            [torch.atleast_1d(copy.iw), torch.atleast_1d(other.iw)],
+            [torch.atleast_2d(copy.iw), torch.atleast_2d(other.iw)],
             dim=0,
         )
         return copy
+
+    @implements(SampleBase)
+    def __getitem__(self: "TernarySampleIW[XI]", index: IndexType) -> "TernarySampleIW[XI]":
+        return gcopy(
+            self, deep=False, x=self.x[index], y=self.y[index], s=self.s[index], iw=self.iw[index]
+        )
 
 
 def shallow_astuple(dataclass: object) -> Tuple[Any, ...]:

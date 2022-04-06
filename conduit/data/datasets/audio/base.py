@@ -15,7 +15,8 @@ from conduit.data.datasets.utils import (
     apply_audio_transform,
     infer_al_backend,
 )
-from conduit.data.structures import IndexType, TargetData
+from conduit.data.structures import TargetData
+from conduit.types import IndexType
 
 __all__ = ["CdtAudioDataset"]
 

@@ -24,7 +24,6 @@ from typing_extensions import Self
 from conduit.data.structures import (
     BinarySample,
     DatasetProt,
-    IndexType,
     LoadedData,
     NamedSample,
     SubgroupSample,
@@ -33,6 +32,7 @@ from conduit.data.structures import (
     UnloadedData,
 )
 from conduit.logging import init_logger
+from conduit.types import IndexType
 
 __all__ = ["CdtDataset", "I", "S", "X", "Y"]
 

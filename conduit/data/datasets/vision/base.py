@@ -20,8 +20,8 @@ from conduit.data.datasets.utils import (
     infer_il_backend,
     load_image,
 )
-from conduit.data.structures import IndexType, TargetData
-from conduit.types import Addable
+from conduit.data.structures import TargetData
+from conduit.types import Addable, IndexType
 
 __all__ = ["CdtVisionDataset"]
 
