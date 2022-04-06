@@ -12,6 +12,8 @@ from typing_extensions import Protocol, Self, TypeAlias, runtime_checkable
 
 __all__ = [
     "Addable",
+    "IndexType",
+    "Indexable",
     "LRScheduler",
     "Loss",
     "MetricDict",
