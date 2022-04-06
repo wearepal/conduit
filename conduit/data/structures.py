@@ -358,7 +358,7 @@ class SubgroupSample(NamedSample[X], _SubgroupSampleMixin):
             return SubgroupSampleIW(x=self.x, s=self.s, iw=iw)
         return self
 
-    @implements(BinarySample)
+    @implements(SampleBase)
     def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.s)
 
