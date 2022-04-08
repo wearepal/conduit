@@ -17,7 +17,7 @@ class MemoryBank(nn.Module):
 
     @torch.no_grad()
     def _init_memory(self, dim: int) -> Tensor:
-        return F.normalize(torch.randn(self.capacity, dim), dim=0)
+        return F.normalize(torch.randn(self.capacity, dim), dim=1)
 
     @torch.no_grad()
     def push(self, values: Tensor) -> None:
