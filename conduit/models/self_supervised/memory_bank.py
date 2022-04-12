@@ -26,7 +26,7 @@ class MemoryBank(nn.Module):
         residual = self.capacity - self._ptr_pos
         new_ptr_pos = (self._ptr_pos + num_values) % self.capacity  # move pointer
 
-        if residual < num_values:
+        if residual <= num_values:
             self.memory[self._ptr_pos :] = values[:residual]
             self.memory[:new_ptr_pos] = values[residual:]
         else:
