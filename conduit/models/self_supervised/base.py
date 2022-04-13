@@ -116,9 +116,11 @@ class SelfSupervisedModel(CdtModel):
 
     def validation_step(self, batch: NamedSample, batch_idx: int) -> STEP_OUTPUT:
         """Validation is handled entirely within on_validation_start/on_validation_end."""
+        ...
 
     def test_step(self, batch: NamedSample, batch_idx: int) -> STEP_OUTPUT:
         """Testing is handled entirely within on_test_start/on_test_end."""
+        ...
 
     @implements(pl.LightningModule)
     @torch.no_grad()

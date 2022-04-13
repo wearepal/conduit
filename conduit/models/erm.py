@@ -77,7 +77,7 @@ class ERMClassifier(CdtModel):
 
         results_dict: MetricDict = {"loss": loss}
         if logits_all.size(1) > 5:
-            acc1, acc5 = precision_at_k(logits=logits_all, targets=targets_all, top_k=(1, 5))
+            acc1, acc5 = precision_at_k(y_pred=logits_all, y_true=targets_all, top_k=(1, 5))
             results_dict["acc5"] = acc5
         else:
             acc1 = accuracy(y_pred=logits_all, y_true=targets_all)

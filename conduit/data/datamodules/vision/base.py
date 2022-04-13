@@ -13,12 +13,12 @@ from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.base import I
 from conduit.data.datasets.utils import AlbumentationsTform, ImageTform
 from conduit.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
-from conduit.data.structures import DatasetProt, ImageSize, MeanStd
+from conduit.data.structures import ImageSize, MeanStd, SizedDataset
 from conduit.types import Stage
 
 __all__ = ["CdtVisionDataModule"]
 
-D = TypeVar("D", bound=DatasetProt)
+D = TypeVar("D", bound=SizedDataset)
 
 
 @attr.define(kw_only=True)

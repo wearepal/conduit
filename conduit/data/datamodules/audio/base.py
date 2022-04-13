@@ -10,12 +10,12 @@ from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.base import I
 from conduit.data.datasets.utils import AudioTform
 from conduit.data.datasets.wrappers import AudioTransformer, InstanceWeightedDataset
-from conduit.data.structures import DatasetProt
+from conduit.data.structures import SizedDataset
 from conduit.types import Stage
 
 __all__ = ["CdtAudioDataModule"]
 
-D = TypeVar("D", bound=DatasetProt)
+D = TypeVar("D", bound=SizedDataset)
 
 
 @attr.define(kw_only=True)

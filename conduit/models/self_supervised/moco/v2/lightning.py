@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.utils import ImageTform
 from conduit.data.structures import NamedSample
+from conduit.metrics import precision_at_k
 from conduit.models.base import CdtModel
 from conduit.models.erm import FineTuner
 from conduit.models.self_supervised.base import (
@@ -29,7 +30,7 @@ from conduit.models.self_supervised.multicrop import (
     MultiCropWrapper,
 )
 from conduit.models.self_supervised.utils import ResNetArch
-from conduit.models.utils import precision_at_k, prefix_keys
+from conduit.models.utils import prefix_keys
 from conduit.types import MetricDict
 
 __all__ = ["MoCoV2"]
@@ -291,7 +292,7 @@ class MoCoV2(MomentumTeacherModel):
         logits /= self.temp
         targets = logits.new_zeros(size=(logits.size(0),))
         loss = self._loss_fn(input=logits, target=targets)
-        acc1, acc5 = precision_at_k(logits, targets, top_k=(1, 5))
+        acc1, acc5 = precision_at_k(y_pred=logits, y_true=targets, top_k=(1, 5))
 
         return loss, {'loss': loss.detach(), 'acc1': acc1, 'acc5': acc5}
 
