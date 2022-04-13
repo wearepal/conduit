@@ -23,9 +23,9 @@ from typing_extensions import Self
 
 from conduit.data.structures import (
     BinarySample,
-    DatasetProt,
     LoadedData,
     NamedSample,
+    SizedDataset,
     SubgroupSample,
     TargetData,
     TernarySample,
@@ -39,10 +39,10 @@ __all__ = ["CdtDataset", "I", "S", "X", "Y"]
 
 I = TypeVar(
     "I",
-    NamedSample[LoadedData],
-    BinarySample[LoadedData],
-    SubgroupSample[LoadedData],
-    TernarySample[LoadedData],
+    NamedSample,
+    BinarySample,
+    SubgroupSample,
+    TernarySample,
 )
 
 X = TypeVar("X", bound=UnloadedData)
@@ -50,7 +50,7 @@ S = TypeVar("S", bound=Optional[Tensor])
 Y = TypeVar("Y", bound=Optional[Tensor])
 
 
-class CdtDataset(DatasetProt[I], Generic[I, X, Y, S]):
+class CdtDataset(SizedDataset[I], Generic[I, X, Y, S]):
     _repr_indent: ClassVar[int] = 4
     _logger: Optional[logging.Logger] = None
 
@@ -264,7 +264,7 @@ class CdtDataset(DatasetProt[I], Generic[I, X, Y, S]):
         if not inplace:
             return superset
 
-    @implements(DatasetProt)
+    @implements(SizedDataset)
     @final
     def __getitem__(self, index: IndexType) -> I:
         x = self._sample_x(index, coerce_to_tensor=False)
@@ -282,6 +282,7 @@ class CdtDataset(DatasetProt[I], Generic[I, X, Y, S]):
             sample = TernarySample(x=x, y=y, s=s)
         return sample  # type: ignore
 
+    @implements(SizedDataset)
     def __len__(self) -> int:
         return len(self.x)
 

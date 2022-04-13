@@ -32,7 +32,7 @@ from conduit.types import Addable, IndexType, Sized
 __all__ = [
     "BinarySample",
     "BinarySampleIW",
-    "DatasetProt",
+    "Dataset",
     "DatasetWrapper",
     "ImageSize",
     "InputContainer",
@@ -42,6 +42,7 @@ __all__ = [
     "PseudoCdtDataset",
     "RawImage",
     "SampleBase",
+    "SizedDataset",
     "SubgroupSample",
     "SubgroupSampleIW",
     "TargetData",
@@ -129,7 +130,7 @@ def concatenate_inputs(x1: X, x2: X, *, is_batched: bool) -> X:
 
 
 @runtime_checkable
-class InputContainer(Sized[X_co], Addable, Protocol):
+class InputContainer(Sized, Addable, Protocol[X_co]):
     @implements(Sized)
     def __len__(self) -> int:
         """Total number of samples in the container."""
@@ -526,6 +527,18 @@ class ImageSize:
     h: int
     w: int
 
+    def __mul__(self, other: Union[Self, float]) -> Self:
+        copy = gcopy(self, deep=False)
+        if isinstance(other, float):
+            copy.c = round(copy.c * other)
+            copy.h = round(copy.h * other)
+            copy.w = round(copy.w * other)
+        else:
+            copy.c *= other.c
+            copy.h *= other.h
+            copy.w *= other.w
+        return copy
+
     def __iter__(self) -> Iterator[int]:
         yield from (self.c, self.h, self.w)
 
@@ -566,8 +579,19 @@ R_co = TypeVar("R_co", covariant=True)
 
 
 @runtime_checkable
-class DatasetProt(Protocol[R_co]):
+class Dataset(Protocol[R_co]):
     def __getitem__(self, index: int) -> R_co:
+        ...
+
+
+@runtime_checkable
+class SizedDataset(Dataset, Sized, Protocol[R_co]):
+    @implements(Dataset)
+    def __getitem__(self, index: int) -> R_co:
+        ...
+
+    @implements(Sized)
+    def __len__(self) -> int:
         ...
 
 
@@ -584,14 +608,19 @@ class PseudoCdtDataset(Protocol[R_co]):
         ...
 
 
-D = TypeVar("D", bound=DatasetProt)
+D = TypeVar("D", bound=Dataset)
 
 
 @runtime_checkable
-class DatasetWrapper(Protocol[D]):
+class DatasetWrapper(SizedDataset[R_co], Protocol[D]):
     dataset: D
 
-    def __getitem__(self, index: int) -> Any:
+    @implements(SizedDataset)
+    def __getitem__(self, index: int) -> R_co:
+        ...
+
+    @implements(SizedDataset)
+    def __len__(self) -> int:
         ...
 
 

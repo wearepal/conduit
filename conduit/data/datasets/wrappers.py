@@ -5,6 +5,7 @@ from typing import Any, Optional, Tuple, TypeVar, Union
 from PIL import Image
 import numpy as np
 from ranzen.decorators import implements
+from ranzen.torch.data import SizedDataset
 import torch
 from torch import Tensor
 
@@ -20,7 +21,7 @@ from conduit.data.datasets.vision.base import CdtVisionDataset
 from conduit.data.structures import (
     BinarySample,
     BinarySampleIW,
-    DatasetProt,
+    Dataset,
     DatasetWrapper,
     NamedSample,
     RawImage,
@@ -41,10 +42,10 @@ __all__ = [
 ]
 
 
-D = TypeVar("D", bound=DatasetProt)
+D = TypeVar("D", bound=Dataset)
 
 
-class ImageTransformer(DatasetWrapper[D]):
+class ImageTransformer(DatasetWrapper[D, Any]):
     """
     Wrapper class for applying image transformations.
 
@@ -57,9 +58,10 @@ class ImageTransformer(DatasetWrapper[D]):
         self._transform: Optional[ImageTform] = None
         self.transform = transform
 
+    @implements(SizedDataset)
     def __len__(self) -> Optional[int]:
-        if hasattr(self.dataset, "__len__"):
-            return len(self.dataset)  # type: ignore
+        if isinstance(self.dataset, SizedDataset):
+            return len(self.dataset)
         return None
 
     @property
@@ -110,7 +112,7 @@ class ImageTransformer(DatasetWrapper[D]):
         return _transform_sample(sample)
 
 
-class AudioTransformer(DatasetWrapper[D]):
+class AudioTransformer(DatasetWrapper[D, Any]):
     """
     Wrapper class for applying image transformations.
 
@@ -149,7 +151,7 @@ class AudioTransformer(DatasetWrapper[D]):
         return sample
 
 
-class TabularTransformer(DatasetWrapper[D]):
+class TabularTransformer(DatasetWrapper[D, Any]):
     """
     Wrapper class for applying transformations to tabular data.
 
@@ -207,7 +209,7 @@ class TabularTransformer(DatasetWrapper[D]):
         return sample
 
 
-class InstanceWeightedDataset(DatasetWrapper[D]):
+class InstanceWeightedDataset(DatasetWrapper[D, Any]):
     """Wrapper endowing datasets with instance-weights."""
 
     def __init__(self, dataset: D) -> None:

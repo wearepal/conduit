@@ -28,7 +28,7 @@ from torch.nn.init import trunc_normal_
 
 __all__ = ["VisionTransformer", "vit_small", "vit_tiny", "vit_base", "VitArch"]
 
-from typing_extensions import Required, Type
+from typing_extensions import Type
 
 
 def drop_path(x: Tensor, *, drop_prob: float = 0.0, training: bool = False) -> Tensor:

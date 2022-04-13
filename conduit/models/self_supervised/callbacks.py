@@ -3,8 +3,7 @@ from typing import TYPE_CHECKING, Callable, Sequence, Union
 
 import numpy as np
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.progress import TQDMProgressBar
-from pytorch_lightning.callbacks.progress.tqdm_progress import reset
+from pytorch_lightning.callbacks.progress.tqdm_progress import TQDMProgressBar, reset
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from ranzen import implements
 from torch import Tensor, nn

@@ -18,6 +18,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    Type,
     TypeVar,
     Union,
     cast,
@@ -54,12 +55,13 @@ from typing_extensions import TypeAlias, TypeGuard
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import (
     BinarySample,
-    DatasetProt,
+    Dataset,
     LoadedData,
     NamedSample,
     PseudoCdtDataset,
     RawImage,
     SampleBase,
+    SizedDataset,
     TernarySample,
     TrainTestSplit,
 )
@@ -84,6 +86,7 @@ __all__ = [
     "img_to_tensor",
     "infer_al_backend",
     "infer_il_backend",
+    "infer_sample_cls",
     "is_tensor_list",
     "load_image",
     "make_subset",
@@ -191,21 +194,21 @@ def apply_audio_transform(waveform: Tensor, *, transform: Optional[AudioTform]) 
 
 @overload
 def extract_base_dataset(
-    dataset: DatasetProt, *, return_subset_indices: Literal[True] = ...
-) -> Tuple[DatasetProt, Union[Tensor, slice]]:
+    dataset: Dataset, *, return_subset_indices: Literal[True] = ...
+) -> Tuple[Dataset, Union[Tensor, slice]]:
     ...
 
 
 @overload
 def extract_base_dataset(
-    dataset: DatasetProt, *, return_subset_indices: Literal[False] = ...
-) -> DatasetProt:
+    dataset: Dataset, *, return_subset_indices: Literal[False] = ...
+) -> Dataset:
     ...
 
 
 def extract_base_dataset(
-    dataset: DatasetProt, *, return_subset_indices: bool = True
-) -> Union[DatasetProt, Tuple[DatasetProt, Union[Tensor, slice]]]:
+    dataset: Dataset, *, return_subset_indices: bool = True
+) -> Union[Dataset, Tuple[Dataset, Union[Tensor, slice]]]:
     """Extract the innermost dataset of a nesting of datasets.
 
     Nested datasets are inferred based on the existence of a 'dataset'
@@ -223,8 +226,8 @@ def extract_base_dataset(
     """
 
     def _closure(
-        dataset: DatasetProt, rel_indices_ls: Optional[List[List[int]]] = None
-    ) -> Union[DatasetProt, Tuple[DatasetProt, Union[Tensor, slice]]]:
+        dataset: Dataset, rel_indices_ls: Optional[List[List[int]]] = None
+    ) -> Union[Dataset, Tuple[Dataset, Union[Tensor, slice]]]:
         if rel_indices_ls is None:
             rel_indices_ls = []
         if hasattr(dataset, "dataset"):
@@ -251,7 +254,7 @@ def extract_labels_from_dataset(
     """Attempt to extract s/y labels from a dataset."""
     base_dataset = dataset
 
-    def _closure(dataset: DatasetProt) -> Tuple[Optional[Tensor], Optional[Tensor]]:
+    def _closure(dataset: Dataset) -> Tuple[Optional[Tensor], Optional[Tensor]]:
         base_dataset, indices = extract_base_dataset(dataset=dataset, return_subset_indices=True)
         _s = None
         _y = None
@@ -281,7 +284,7 @@ def extract_labels_from_dataset(
     return s_all, y_all
 
 
-def get_group_ids(dataset: DatasetProt) -> Tensor:
+def get_group_ids(dataset: Dataset) -> Tensor:
     s_all, y_all = extract_labels_from_dataset(dataset)
     # group_ids: Optional[Tensor] = None
     if s_all is None:
@@ -297,7 +300,7 @@ def get_group_ids(dataset: DatasetProt) -> Tensor:
     return group_ids.long()
 
 
-def compute_instance_weights(dataset: DatasetProt, *, upweight: bool = False) -> Tensor:
+def compute_instance_weights(dataset: Dataset, *, upweight: bool = False) -> Tensor:
     group_ids = get_group_ids(dataset)
     _, inv_indexes, counts = group_ids.unique(return_inverse=True, return_counts=True)
     # Upweight samples according to the cardinality of their intersectional group
@@ -369,11 +372,28 @@ def make_subset(
     return subset
 
 
-class cdt_collate:
-    def __init__(self, cast_to_sample: bool = True) -> None:
-        self.cast_to_sample = cast_to_sample
+def infer_sample_cls(
+    sample: Union[List[LoadedData], Tuple[LoadedData, ...], Dict[str, LoadedData], LoadedData]
+) -> Type[NamedSample]:
+    """ "Attempt to infer the appropriate sample class based on the length of the input."""
+    if not isinstance(sample, (list, tuple, dict)) or (len(sample) == 1):
+        return NamedSample
+    elif len(sample) == 2:
+        return BinarySample
+    elif len(sample) == 3:
+        return TernarySample
+    else:
+        raise ValueError("Only items with 3 or fewer elements can be cast to 'Sample' instances.")
 
-    def _collate(self, batch: Sequence[Any]) -> Any:
+
+class cdt_collate:
+    def __init__(
+        self, cast_to_sample: bool = True, *, converter: Optional[Union[Type[Any], Callable]] = None
+    ) -> None:
+        self.cast_to_sample = cast_to_sample
+        self.converter = converter
+
+    def _collate(self, batch: Any) -> Any:
         elem = batch[0]
         elem_type = type(elem)
         if isinstance(elem, Tensor):
@@ -421,23 +441,15 @@ class cdt_collate:
             return [self._collate(samples) for samples in transposed]
         raise TypeError(default_collate_err_msg_format.format(elem_type))
 
-    def __call__(self, batch: Sequence[Any]) -> Any:
+    def __call__(self, batch: Any) -> Any:
         collated_batch = self._collate(batch=batch)
+        if self.converter is not None:
+            collated_batch = self.converter(collated_batch)
         if self.cast_to_sample and (not isinstance(collated_batch, SampleBase)):
             if isinstance(collated_batch, Tensor):
                 collated_batch = NamedSample(x=collated_batch)
             elif isinstance(collated_batch, (tuple, list, dict)):
-                if len(collated_batch) == 1:
-                    sample_cls = NamedSample
-                elif len(collated_batch) == 2:
-                    sample_cls = BinarySample
-                elif len(collated_batch) == 3:
-                    sample_cls = TernarySample
-                else:
-                    raise ValueError(
-                        "Only items with 3 or fewer elements can be cast to 'Sample' instances."
-                    )
-
+                sample_cls = infer_sample_cls(collated_batch)
                 if not isinstance(collated_batch, dict):
                     collated_batch = dict(zip(["x", "y", "s"], collated_batch))
                 collated_batch = sample_cls(**collated_batch)
@@ -449,13 +461,13 @@ class cdt_collate:
         return collated_batch
 
 
-I = TypeVar("I", bound=NamedSample[LoadedData])
+I = TypeVar("I", bound=NamedSample)
 
 
 class CdtDataLoader(DataLoader[I]):
     def __init__(
         self,
-        dataset: DatasetProt[I],
+        dataset: SizedDataset[I],
         *,
         batch_size: Optional[int] = 1,
         shuffle: bool = False,
@@ -470,6 +482,8 @@ class CdtDataLoader(DataLoader[I]):
         generator: Optional[torch.Generator] = None,
         prefetch_factor: int = 2,
         persistent_workers: bool = False,
+        cast_to_sample: bool = True,
+        converter: Optional[Union[Type[Any], Callable]] = None,
     ) -> None:
         super().__init__(
             dataset,  # type: ignore
@@ -478,7 +492,7 @@ class CdtDataLoader(DataLoader[I]):
             sampler=sampler,
             batch_sampler=batch_sampler,
             num_workers=num_workers,
-            collate_fn=cdt_collate(cast_to_sample=True),
+            collate_fn=cdt_collate(cast_to_sample=cast_to_sample, converter=converter),
             pin_memory=pin_memory,
             drop_last=drop_last,
             timeout=timeout,
