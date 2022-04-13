@@ -74,9 +74,9 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         ),
     ]
 
-    SAMPLE_RATE: ClassVar[int] = 48_000
-    AUDIO_LEN: ClassVar[int] = 60
-    NUM_FRAMES_TOTAL: ClassVar[int] = SAMPLE_RATE * AUDIO_LEN
+    _SAMPLE_RATE: ClassVar[int] = 48_000
+    _AUDIO_LEN: ClassVar[int] = 60
+    _NUM_FRAMES_TOTAL: ClassVar[int] = _SAMPLE_RATE * _AUDIO_LEN
     _num_frames_in_segment: Optional[int]
 
     @parsable
@@ -144,7 +144,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
     def segment_len(self, value: Optional[float]) -> None:
         self._segment_len = value
         self._num_frames_in_segment = (
-            None if self.segment_len is None else int(self.segment_len * self.SAMPLE_RATE)
+            None if self.segment_len is None else int(self.segment_len * self._SAMPLE_RATE)
         )
 
     @property
@@ -281,7 +281,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         if (not self.preprocess) and (self.num_frames_in_segment is not None):
             #  Randomly sample a segment of length 'segment_len' from the waveform
             frame_offset = torch.randint(
-                low=0, high=self.NUM_FRAMES_TOTAL - self.num_frames_in_segment, size=(1,)
+                low=0, high=self._NUM_FRAMES_TOTAL - self.num_frames_in_segment, size=(1,)
             )
             # Slicing the tensor while decoding is more efficient than loading the full tensor
             # and then slicing.

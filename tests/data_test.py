@@ -152,7 +152,7 @@ def test_ecoacoustics_labels(root: Path):
 @pytest.mark.slow
 def test_ecoacoustics_dm(root: Path):
     dm = EcoacousticsDataModule(
-        root=root, segment_len=30.0, target_attrs="habitat", train_transforms=AT.Spectrogram()
+        root=root, segment_len=30.0, target_attrs="habitat", train_transforms=AT.Spectrogram(), preprocess=False
     )
     dm.prepare_data()
     dm.setup()
