@@ -36,11 +36,11 @@ __all__ = [
 
 @enum_name_str
 class SoundscapeAttr(Enum):
-    habitat = auto()
-    site = auto()
-    time = auto()
-    NN = auto()
-    N0 = auto()
+    HABITAT = "HABITAT"
+    SITE = "SITE"
+    TIME = "TIME"
+    NN = "NN"
+    N0 = "N0"
 
 
 SampleType: TypeAlias = TernarySample
@@ -49,8 +49,8 @@ SampleType: TypeAlias = TernarySample
 class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
     """Dataset for audio data collected in various geographic locations."""
 
-    INDICES_DIR: ClassVar[str] = "AvianID_AcousticIndices"
-    METADATA_FILENAME: ClassVar[str] = "metadata.csv"
+    _INDICES_DIR: ClassVar[str] = "AvianID_AcousticIndices"
+    _METADATA_FILENAME: ClassVar[str] = "metadata.csv"
     _PBAR_COL: ClassVar[str] = "#00FF00"
 
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
@@ -88,7 +88,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         download: bool = True,
         target_attrs: Union[
             Union[SoundscapeAttr, str], List[Union[SoundscapeAttr, str]]
-        ] = SoundscapeAttr.habitat,
+        ] = SoundscapeAttr.HABITAT,
         segment_len: Optional[float] = 15,
         preprocess: bool = False,
     ) -> None:
@@ -96,17 +96,17 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         self.root = Path(root).expanduser()
         self.download = download
         self.base_dir = self.root / self.__class__.__name__
-        self.labels_dir = self.base_dir / self.INDICES_DIR
+        self.labels_dir = self.base_dir / self._INDICES_DIR
         self.segment_len = segment_len
         self.preprocess = preprocess
-        self._metadata_path = self.base_dir / self.METADATA_FILENAME
+        self._metadata_path = self.base_dir / self._METADATA_FILENAME
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
 
         if not isinstance(target_attrs, list):
             target_attrs = [target_attrs]
         self.target_attrs = [
-            str(str_to_enum(str_=elem, enum=SoundscapeAttr)) for elem in target_attrs
+            str(str_to_enum(str_=elem.upper(), enum=SoundscapeAttr)) for elem in target_attrs
         ]
 
         if self.download:
@@ -117,7 +117,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         if not self._metadata_path.exists():
             self._extract_metadata()
 
-        self.metadata = pd.read_csv(self.base_dir / self.METADATA_FILENAME)
+        self.metadata = pd.read_csv(self.base_dir / self._METADATA_FILENAME)
 
         if self.preprocess and (self.num_frames_in_segment is not None):
             # data directory depends on the segment length

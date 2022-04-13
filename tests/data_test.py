@@ -26,12 +26,13 @@ from conduit.data import (
     TernarySample,
     TernarySampleIW,
     Waterbirds,
-    WaterbirdsDataModule,
+    WaterbirdsDataModule, CdtDataset,
 )
 from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
 from conduit.data.datamodules.vision.dummy import DummyVisionDataModule
 from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
+from conduit.data.datasets.audio.base import CdtAudioDataset
 from conduit.data.datasets.utils import get_group_ids, stratified_split
 from conduit.data.datasets.vision.cmnist import MNISTColorizer
 from conduit.fair.data.datasets.dummy import DummyDataset
@@ -100,7 +101,7 @@ def test_vision_datasets(
 @pytest.mark.parametrize("segment_len", [None, 15, 30])
 def test_audio_dataset(root: Path, preprocess: bool, segment_len: float) -> None:
 
-    ds = Ecoacoustics(
+    ds: CdtAudioDataset = Ecoacoustics(
         root=root,
         download=True,
         target_attrs=["habitat", "site"],
@@ -110,23 +111,23 @@ def test_audio_dataset(root: Path, preprocess: bool, segment_len: float) -> None
     )
 
     if preprocess:
-        assert (ds.base_dir / f"segment_len={segment_len}" / "filepaths.csv").exists()
+        assert (ds.audio_dir / f"segment_len={segment_len}" / "filepaths.csv").exists()
     assert len(ds) == len(ds.x) == len(ds.metadata)
     assert ds.y is not None
     assert ds.y.shape == (len(ds), 2)
     assert ds.y.dtype == torch.long
+    num_frames = (
+        ds.AUDIO_LEN * ds.SAMPLE_RATE if segment_len is None else segment_len * ds.SAMPLE_RATE
+    )
     for idx in (0, -1):
         sample = ds[idx]
         assert isinstance(sample, BinarySample)
         assert isinstance(sample.x, Tensor)
-        num_frames = (
-            ds.AUDIO_LEN * ds.SAMPLE_RATE if segment_len is None else segment_len * ds.SAMPLE_RATE
-        )
         assert sample.x.shape == (1, num_frames)
 
 
 @pytest.mark.slow
-def test_ecouacoustics_labels(root: Path):
+def test_ecoacoustics_labels(root: Path):
     target_attr = "habitat"
     ds = Ecoacoustics(
         root=root,

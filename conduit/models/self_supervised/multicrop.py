@@ -88,8 +88,11 @@ class MultiCropTransform:
         ]
         local_crops: List[Tensor] = []
         if self.local_transform is not None:
-            for _ in range(self.local_crops_number):
-                local_crops.append(self._apply_transform(image, transform=self.local_transform))
+            local_crops.extend(
+                self._apply_transform(image, transform=self.local_transform)
+                for _ in range(self.local_crops_number)
+            )
+
         return MultiCropOutput(global_crops=global_crops, local_crops=local_crops)
 
 
