@@ -39,8 +39,8 @@ class SoundscapeAttr(Enum):
     habitat = auto()
     site = auto()
     time = auto()
-    NN = auto()
-    N0 = auto()
+    nn = auto()
+    n0 = auto()
 
 
 SampleType: TypeAlias = TernarySample
@@ -49,8 +49,8 @@ SampleType: TypeAlias = TernarySample
 class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
     """Dataset for audio data collected in various geographic locations."""
 
-    INDICES_DIR: ClassVar[str] = "AvianID_AcousticIndices"
-    METADATA_FILENAME: ClassVar[str] = "metadata.csv"
+    _INDICES_DIR: ClassVar[str] = "AvianID_AcousticIndices"
+    _METADATA_FILENAME: ClassVar[str] = "metadata.csv"
     _PBAR_COL: ClassVar[str] = "#00FF00"
 
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
@@ -74,10 +74,8 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         ),
     ]
 
-    SAMPLE_RATE: ClassVar[int] = 48_000
-    AUDIO_LEN: ClassVar[int] = 60
-    NUM_FRAMES_TOTAL: ClassVar[int] = SAMPLE_RATE * AUDIO_LEN
     _num_frames_in_segment: Optional[int]
+    _MAX_AUDIO_LEN = 60
 
     @parsable
     def __init__(
@@ -86,25 +84,23 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         *,
         transform: Optional[AudioTform] = None,
         download: bool = True,
-        target_attrs: Union[
-            Union[SoundscapeAttr, str], List[Union[SoundscapeAttr, str]]
-        ] = SoundscapeAttr.habitat,
-        segment_len: Optional[float] = 15,
-        preprocess: bool = False,
+        target_attrs: Union[SoundscapeAttr, List[SoundscapeAttr]] = SoundscapeAttr.habitat,
+        segment_len: float = 15,
+        sample_rate: int = 48_000,  # This is the value that is present in the dataset
     ) -> None:
-
         self.root = Path(root).expanduser()
         self.download = download
         self.base_dir = self.root / self.__class__.__name__
-        self.labels_dir = self.base_dir / self.INDICES_DIR
+        self.labels_dir = self.base_dir / self._INDICES_DIR / self._INDICES_DIR
+        self.sample_rate = sample_rate  # set prior to segment length
         self.segment_len = segment_len
-        self.preprocess = preprocess
-        self._metadata_path = self.base_dir / self.METADATA_FILENAME
+        self._metadata_path = self.base_dir / self._METADATA_FILENAME
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
 
         if not isinstance(target_attrs, list):
             target_attrs = [target_attrs]
+        target_attrs = [elem.upper() if isinstance(elem, str) else elem for elem in target_attrs]
         self.target_attrs = [
             str(str_to_enum(str_=elem, enum=SoundscapeAttr)) for elem in target_attrs
         ]
@@ -117,17 +113,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         if not self._metadata_path.exists():
             self._extract_metadata()
 
-        self.metadata = pd.read_csv(self.base_dir / self.METADATA_FILENAME)
-
-        if self.preprocess and (self.num_frames_in_segment is not None):
-            # data directory depends on the segment length
-            processed_audio_dir = self.base_dir / f"segment_len={self.segment_len}"
-            if not (processed_audio_dir / "filepaths.csv").exists():
-                self._preprocess_files()
-
-            filepaths = pd.read_csv(processed_audio_dir / "filepaths.csv")
-            self.metadata.drop("filePath", inplace=True, axis=1)
-            self.metadata = filepaths.merge(self.metadata, how='left', on='fileName')
+        self.metadata = pd.read_csv(self.base_dir / self._METADATA_FILENAME)
 
         x = self.metadata["filePath"].to_numpy()
         y = torch.as_tensor(
@@ -137,15 +123,17 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         super().__init__(x=x, y=y, transform=transform, audio_dir=self.base_dir)
 
     @property
-    def segment_len(self) -> Optional[float]:
+    def segment_len(self) -> float:
         return self._segment_len
 
     @segment_len.setter
-    def segment_len(self, value: Optional[float]) -> None:
+    def segment_len(self, value: float) -> None:
+        if value <= 0:
+            raise ValueError("Segment length must be positive.")
+        if value > self._MAX_AUDIO_LEN:
+            value = self._MAX_AUDIO_LEN
         self._segment_len = value
-        self._num_frames_in_segment = (
-            None if self.segment_len is None else int(self.segment_len * self.SAMPLE_RATE)
-        )
+        self._num_frames_in_segment = int(self.segment_len * self.sample_rate)
 
     @property
     def num_frames_in_segment(self) -> Optional[int]:
@@ -277,18 +265,29 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
     @implements(CdtAudioDataset)
     def load_sample(self, index: int) -> Tensor:
         path = self.audio_dir / self.x[index]
-        # Segmentation is being done dynamically.
-        if (not self.preprocess) and (self.num_frames_in_segment is not None):
-            #  Randomly sample a segment of length 'segment_len' from the waveform
-            frame_offset = torch.randint(
-                low=0, high=self.NUM_FRAMES_TOTAL - self.num_frames_in_segment, size=(1,)
-            )
-            # Slicing the tensor while decoding is more efficient than loading the full tensor
-            # and then slicing.
-            waveform, _ = torchaudio.load(  # type: ignore
-                path, frame_offset=frame_offset, num_frames=self.num_frames_in_segment
-            )
-        else:
-            waveform, _ = torchaudio.load(path)  # type: ignore
+
+        # get metadata first
+        metadata = torchaudio.info(path)
+
+        # compute number of frames to take with the real sample rate
+        num_frames_segment = int(
+            self.num_frames_in_segment / self.sample_rate * metadata.sample_rate
+        )
+
+        # compute offset
+        high = max(1, metadata.num_frames - self.num_frames_in_segment)
+        frame_offset = torch.randint(low=0, high=high, size=(1,))
+
+        # load segment
+        waveform, _ = torchaudio.load(
+            path, num_frames=num_frames_segment, frame_offset=frame_offset
+        )
+
+        # resample to correct sample rate
+        waveform = torchaudio.functional.resample(
+            waveform,
+            orig_freq=metadata.sample_rate,
+            new_freq=self.sample_rate,
+        )
 
         return waveform

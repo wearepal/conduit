@@ -23,6 +23,7 @@ from conduit.data import (
     NamedSample,
     NICODataModule,
     SampleBase,
+    SoundscapeAttr,
     TernarySample,
     TernarySampleIW,
     Waterbirds,
@@ -96,62 +97,61 @@ def test_vision_datasets(
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("preprocess", [False, True])
-@pytest.mark.parametrize("segment_len", [None, 15, 30])
-def test_audio_dataset(root: Path, preprocess: bool, segment_len: float) -> None:
+@pytest.mark.parametrize("segment_len", [1, 15, 30])
+def test_audio_dataset(root: Path, segment_len: float) -> None:
 
     ds = Ecoacoustics(
         root=root,
         download=True,
-        target_attrs=["habitat", "site"],
+        target_attrs=[SoundscapeAttr.habitat, SoundscapeAttr.site],
         transform=None,
         segment_len=segment_len,
-        preprocess=preprocess,
     )
 
-    if preprocess:
-        assert (ds.base_dir / f"segment_len={segment_len}" / "filepaths.csv").exists()
     assert len(ds) == len(ds.x) == len(ds.metadata)
     assert ds.y is not None
     assert ds.y.shape == (len(ds), 2)
     assert ds.y.dtype == torch.long
+    num_frames = (
+        ds._MAX_AUDIO_LEN * ds.sample_rate if segment_len is None else segment_len * ds.sample_rate
+    )
     for idx in (0, -1):
         sample = ds[idx]
         assert isinstance(sample, BinarySample)
         assert isinstance(sample.x, Tensor)
-        num_frames = (
-            ds.AUDIO_LEN * ds.SAMPLE_RATE if segment_len is None else segment_len * ds.SAMPLE_RATE
-        )
         assert sample.x.shape == (1, num_frames)
 
 
 @pytest.mark.slow
-def test_ecouacoustics_labels(root: Path):
-    target_attr = "habitat"
+def test_ecoacoustics_labels(root: Path):
+    target_attr = SoundscapeAttr.habitat
     ds = Ecoacoustics(
         root=root,
         download=True,
         target_attrs=target_attr,
-        segment_len=None,
+        segment_len=1,
         transform=None,
     )
     # Test metadata aligns with labels file.
     audio_samples_to_check = [
-        "FS-08_0_20150802_0625=0.pt",
-        "PL-10_0_20150604_0445=0.pt",
-        "KNEPP-02_0_20150510_0730=0.pt",
+        "FS-08_0_20150802_0625.wav",
+        "PL-10_0_20150604_0445.wav",
+        "KNEPP-02_0_20150510_0730.wav",
     ]
     habitat_target_attributes = ["EC2", "UK1", np.nan]
     for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
         matched_row = ds.metadata.loc[ds.metadata["fileName"] == sample]
-        if type(label) == str:
-            assert matched_row.iloc[0][target_attr] == label
+        if isinstance(label, str):
+            assert matched_row.iloc[0][str(target_attr)] == label
 
 
 @pytest.mark.slow
 def test_ecoacoustics_dm(root: Path):
     dm = EcoacousticsDataModule(
-        root=root, segment_len=30.0, target_attrs="habitat", train_transforms=AT.Spectrogram()
+        root=root,
+        segment_len=30.0,
+        target_attrs=SoundscapeAttr.habitat,
+        train_transforms=AT.Spectrogram(),
     )
     dm.prepare_data()
     dm.setup()

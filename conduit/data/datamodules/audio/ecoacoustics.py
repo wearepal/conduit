@@ -19,7 +19,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
     """Data-module for the Ecoacoustics dataset."""
 
     segment_len: float = 15
-    target_attrs: Union[Union[SoundscapeAttr, str], List[Union[SoundscapeAttr, str]]]
+    target_attrs: Union[SoundscapeAttr, List[SoundscapeAttr]]
 
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:

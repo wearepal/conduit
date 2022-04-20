@@ -121,6 +121,7 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 show_error_codes = true
 warn_unused_ignores = false
+exclude = ["conf.py"]
 
 [[tool.mypy.overrides]]
 module = [

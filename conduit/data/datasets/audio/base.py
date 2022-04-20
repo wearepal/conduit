@@ -28,9 +28,9 @@ class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
 
     def __init__(
         self,
+        audio_dir: Union[Path, str],
         *,
         x: npt.NDArray[np.string_],
-        audio_dir: Union[Path, str],
         y: Optional[TargetData] = None,
         s: Optional[TargetData] = None,
         transform: Optional[AudioTform] = None,
@@ -50,7 +50,7 @@ class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
         torchaudio.set_audio_backend(self.al_backend)
 
     def __repr__(self) -> str:
-        head = "Dataset " + self.__class__.__name__
+        head = f"Dataset {self.__class__.__name__}"
         body = [
             f"Number of datapoints: {len(self)}",
             f"Base audio-directory location: {self.audio_dir.resolve()}",

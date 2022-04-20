@@ -101,6 +101,4 @@ class RandomSolarize:
         self.p = p
 
     def __call__(self, img: Image.Image) -> Image.Image:
-        if random.random() < self.p:
-            return ImageOps.solarize(img)
-        return img
+        return ImageOps.solarize(img) if random.random() < self.p else img
