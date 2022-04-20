@@ -75,7 +75,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
     ]
 
     _num_frames_in_segment: Optional[int]
-    MAX_AUDIO_LEN = 60
+    _MAX_AUDIO_LEN = 60
 
     @parsable
     def __init__(
@@ -88,7 +88,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         segment_len: float = 15,
         sample_rate: int = 48_000,  # This is the value that is present in the dataset
     ) -> None:
-
+        assert 0 < segment_len <= self._MAX_AUDIO_LEN
         self.root = Path(root).expanduser()
         self.download = download
         self.base_dir = self.root / self.__class__.__name__
@@ -124,17 +124,13 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         super().__init__(x=x, y=y, transform=transform, audio_dir=self.base_dir)
 
     @property
-    def segment_len(self) -> Optional[float]:
+    def segment_len(self) -> float:
         return self._segment_len
 
     @segment_len.setter
-    def segment_len(self, value: Optional[float]) -> None:
+    def segment_len(self, value: float) -> None:
         self._segment_len = value
-        self._num_frames_in_segment = (
-            int(self.MAX_AUDIO_LEN * self.sample_rate)
-            if self.segment_len is None
-            else int(self.segment_len * self.sample_rate)
-        )
+        self._num_frames_in_segment = int(self.segment_len * self.sample_rate)
 
     @property
     def num_frames_in_segment(self) -> Optional[int]:

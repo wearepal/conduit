@@ -113,7 +113,7 @@ def test_audio_dataset(root: Path, segment_len: float) -> None:
     assert ds.y.shape == (len(ds), 2)
     assert ds.y.dtype == torch.long
     num_frames = (
-        ds.MAX_AUDIO_LEN * ds.sample_rate if segment_len is None else segment_len * ds.sample_rate
+        ds._MAX_AUDIO_LEN * ds.sample_rate if segment_len is None else segment_len * ds.sample_rate
     )
     for idx in (0, -1):
         sample = ds[idx]
