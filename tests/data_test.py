@@ -23,11 +23,11 @@ from conduit.data import (
     NamedSample,
     NICODataModule,
     SampleBase,
+    SoundscapeAttr,
     TernarySample,
     TernarySampleIW,
     Waterbirds,
     WaterbirdsDataModule,
-    SoundscapeAttr,
 )
 from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
