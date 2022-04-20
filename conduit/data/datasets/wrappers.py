@@ -82,32 +82,31 @@ class ImageTransformer(DatasetWrapper[D, Any]):
         def _transform_sample(
             _sample: Union[RawImage, SampleBase, Tuple[Union[RawImage, Image.Image], ...]]
         ) -> Any:
-            if self.transform is not None:
-                if isinstance(_sample, (Image.Image, np.ndarray)):
-                    _new_sample = apply_image_transform(image=_sample, transform=self.transform)
-                elif isinstance(_sample, SampleBase):
-                    image = _sample.x
-                    if isinstance(image, list):
-                        image = [_transform_sample(elem) for elem in image]
-                        if isinstance(image[0], Tensor):
-                            image = torch.stack(image, dim=0)
-                        elif isinstance(image[0], np.ndarray):
-                            image = np.stack(image, axis=0)
+            if self.transform is None:
+                return _sample
+            if isinstance(_sample, (Image.Image, np.ndarray)):
+                return apply_image_transform(image=_sample, transform=self.transform)
+            elif isinstance(_sample, SampleBase):
+                image = _sample.x
+                if isinstance(image, list):
+                    image = [_transform_sample(elem) for elem in image]
+                    if isinstance(image[0], Tensor):
+                        image = torch.stack(image, dim=0)
+                    elif isinstance(image[0], np.ndarray):
+                        image = np.stack(image, axis=0)
 
-                    elif not isinstance(image, (Image.Image, np.ndarray)):
-                        raise TypeError(
-                            f"Image transform cannot be applied to input of type '{type(image)}'"
-                            "(must be a PIL Image or a numpy array)."
-                        )
-                    else:
-                        image = apply_image_transform(image=image, transform=self.transform)
-                    _new_sample = replace(_sample, x=image)
+                elif not isinstance(image, (Image.Image, np.ndarray)):
+                    raise TypeError(
+                        f"Image transform cannot be applied to input of type '{type(image)}'"
+                        "(must be a PIL Image or a numpy array)."
+                    )
                 else:
-                    image = apply_image_transform(image=_sample[0], transform=self.transform)
-                    data_type = type(_sample)
-                    _new_sample = data_type(image, *_sample[1:])  # type: ignore
-                return _new_sample
-            return _sample
+                    image = apply_image_transform(image=image, transform=self.transform)
+                return replace(_sample, x=image)
+            else:
+                image = apply_image_transform(image=_sample[0], transform=self.transform)
+                data_type = type(_sample)
+                return data_type(image, *_sample[1:])
 
         return _transform_sample(sample)
 
@@ -126,9 +125,7 @@ class AudioTransformer(DatasetWrapper[D, Any]):
         self.transform = transform
 
     def __len__(self) -> Optional[int]:
-        if hasattr(self.dataset, "__len__"):
-            return len(self.dataset)  # type: ignore
-        return None
+        return len(self.dataset) if hasattr(self.dataset, "__len__") else None
 
     @implements(DatasetWrapper)
     def __getitem__(self, index: int) -> Any:
@@ -171,9 +168,7 @@ class TabularTransformer(DatasetWrapper[D, Any]):
         self.target_transform = target_transform
 
     def __len__(self) -> Optional[int]:
-        if hasattr(self.dataset, "__len__"):
-            return len(self.dataset)  # type: ignore
-        return None
+        return len(self.dataset) if hasattr(self.dataset, "__len__") else None
 
     @implements(DatasetWrapper)
     def __getitem__(self, index: int) -> Any:

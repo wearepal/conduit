@@ -72,7 +72,7 @@ class CdtDataset(SizedDataset[I], Generic[I, X, Y, S]):
         self._card_s: Optional[int] = None
 
     def __repr__(self) -> str:
-        head = "Dataset " + self.__class__.__name__
+        head = f"Dataset {self.__class__.__name__}"
         body = [f"Number of datapoints: {len(self)}"]
         body += self.extra_repr().splitlines()
         lines = [head] + [" " * self._repr_indent + line for line in body]
@@ -105,14 +105,10 @@ class CdtDataset(SizedDataset[I], Generic[I, X, Y, S]):
         return x
 
     def _sample_s(self, index: IndexType) -> Optional[Tensor]:
-        if self.s is None:
-            return None
-        return self.s[index]
+        return None if self.s is None else self.s[index]
 
     def _sample_y(self, index: IndexType) -> Optional[Tensor]:
-        if self.y is None:
-            return None
-        return self.y[index]
+        return None if self.y is None else self.y[index]
 
     @property
     @final
@@ -272,15 +268,11 @@ class CdtDataset(SizedDataset[I], Generic[I, X, Y, S]):
         s = self._sample_s(index)
         # Fetch the appropriate 'Sample' class
         if y is None:
-            if s is None:
-                sample = NamedSample(x=x)
-            else:
-                sample = SubgroupSample(x=x, s=s)
+            return NamedSample(x=x) if s is None else SubgroupSample(x=x, s=s)
         elif s is None:
-            sample = BinarySample(x=x, y=y)
+            return BinarySample(x=x, y=y)
         else:
-            sample = TernarySample(x=x, y=y, s=s)
-        return sample  # type: ignore
+            return TernarySample(x=x, y=y, s=s)
 
     @implements(SizedDataset)
     def __len__(self) -> int:
