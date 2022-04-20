@@ -128,9 +128,10 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
 
     @segment_len.setter
     def segment_len(self, value: float) -> None:
-        assert (
-            0 < value <= self._MAX_AUDIO_LEN
-        ), f"Segment length must be between 0 and {self._MAX_AUDIO_LEN} seconds"
+        if value <= 0:
+            raise ValueError("Segment length must be positive.")
+        if value > self._MAX_AUDIO_LEN:
+            value = self._MAX_AUDIO_LEN
         self._segment_len = value
         self._num_frames_in_segment = int(self.segment_len * self.sample_rate)
 
