@@ -101,7 +101,7 @@ def test_vision_datasets(
 def test_audio_dataset(root: Path, segment_len: float) -> None:
 
     ds = Ecoacoustics(
-        root=root,
+        root=str(root),
         download=True,
         target_attrs=[SoundscapeAttr.habitat, SoundscapeAttr.site],
         transform=None,
@@ -124,9 +124,9 @@ def test_audio_dataset(root: Path, segment_len: float) -> None:
 
 @pytest.mark.slow
 def test_ecoacoustics_labels(root: Path):
-    target_attr = SoundscapeAttr.habitat
+    target_attr = [SoundscapeAttr.habitat]
     ds = Ecoacoustics(
-        root=root,
+        root=str(root),
         download=True,
         target_attrs=target_attr,
         segment_len=1,
@@ -142,15 +142,15 @@ def test_ecoacoustics_labels(root: Path):
     for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
         matched_row = ds.metadata.loc[ds.metadata["fileName"] == sample]
         if isinstance(label, str):
-            assert matched_row.iloc[0][str(target_attr)] == label
+            assert matched_row.iloc[0][str(target_attr[0])] == label
 
 
 @pytest.mark.slow
 def test_ecoacoustics_dm(root: Path):
     dm = EcoacousticsDataModule(
-        root=root,
+        root=str(root),
         segment_len=30.0,
-        target_attrs=SoundscapeAttr.habitat,
+        target_attrs=[SoundscapeAttr.habitat],
         train_transforms=AT.Spectrogram(),
     )
     dm.prepare_data()

@@ -1,6 +1,5 @@
 """Base class for audio datasets."""
-from pathlib import Path
-from typing import Optional, TypeVar, Union
+from typing import Optional, TypeVar
 
 import attr
 from ranzen.decorators import implements
@@ -21,7 +20,7 @@ D = TypeVar("D", bound=SizedDataset)
 @attr.define(kw_only=True)
 class CdtAudioDataModule(CdtDataModule[D, I]):
 
-    root: Union[str, Path] = attr.field(kw_only=False)
+    root: str = attr.field(kw_only=False)
     _train_transforms: Optional[AudioTform] = None
     _test_transforms: Optional[AudioTform] = None
 
