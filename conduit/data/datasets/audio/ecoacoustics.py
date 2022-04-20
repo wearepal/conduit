@@ -36,11 +36,11 @@ __all__ = [
 
 @enum_name_str
 class SoundscapeAttr(Enum):
-    HABITAT = "HABITAT"
-    SITE = "SITE"
-    TIME = "TIME"
-    NN = "NN"
-    N0 = "N0"
+    habitat = auto()
+    site = auto()
+    time = auto()
+    nn = auto()
+    n0 = auto()
 
 
 SampleType: TypeAlias = TernarySample
@@ -84,10 +84,8 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         *,
         transform: Optional[AudioTform] = None,
         download: bool = True,
-        target_attrs: Union[
-            Union[SoundscapeAttr, str], List[Union[SoundscapeAttr, str]]
-        ] = SoundscapeAttr.HABITAT,
-        segment_len: Optional[float] = 15,
+        target_attrs: Union[SoundscapeAttr, List[SoundscapeAttr]] = SoundscapeAttr.habitat,
+        segment_len: float = 15,
         sample_rate: int = 48_000,  # This is the value that is present in the dataset
     ) -> None:
 

@@ -27,13 +27,12 @@ from conduit.data import (
     TernarySampleIW,
     Waterbirds,
     WaterbirdsDataModule,
-    CdtDataset,
+    SoundscapeAttr,
 )
 from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
 from conduit.data.datamodules.vision.dummy import DummyVisionDataModule
 from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
-from conduit.data.datasets.audio.base import CdtAudioDataset
 from conduit.data.datasets.utils import get_group_ids, stratified_split
 from conduit.data.datasets.vision.cmnist import MNISTColorizer
 from conduit.fair.data.datasets.dummy import DummyDataset
@@ -98,13 +97,13 @@ def test_vision_datasets(
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("segment_len", [None, 15, 30])
+@pytest.mark.parametrize("segment_len", [1, 15, 30])
 def test_audio_dataset(root: Path, segment_len: float) -> None:
 
     ds = Ecoacoustics(
         root=root,
         download=True,
-        target_attrs=["habitat", "site"],
+        target_attrs=[SoundscapeAttr.habitat, SoundscapeAttr.site],
         transform=None,
         segment_len=segment_len,
     )
@@ -125,12 +124,12 @@ def test_audio_dataset(root: Path, segment_len: float) -> None:
 
 @pytest.mark.slow
 def test_ecoacoustics_labels(root: Path):
-    target_attr = "habitat"
+    target_attr = SoundscapeAttr.habitat
     ds = Ecoacoustics(
         root=root,
         download=True,
         target_attrs=target_attr,
-        segment_len=None,
+        segment_len=1,
         transform=None,
     )
     # Test metadata aligns with labels file.
@@ -142,14 +141,17 @@ def test_ecoacoustics_labels(root: Path):
     habitat_target_attributes = ["EC2", "UK1", np.nan]
     for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
         matched_row = ds.metadata.loc[ds.metadata["fileName"] == sample]
-        if type(label) == str:
-            assert matched_row.iloc[0][target_attr] == label
+        if isinstance(label, str):
+            assert matched_row.iloc[0][str(target_attr)] == label
 
 
 @pytest.mark.slow
 def test_ecoacoustics_dm(root: Path):
     dm = EcoacousticsDataModule(
-        root=root, segment_len=30.0, target_attrs="habitat", train_transforms=AT.Spectrogram()
+        root=root,
+        segment_len=30.0,
+        target_attrs=SoundscapeAttr.habitat,
+        train_transforms=AT.Spectrogram(),
     )
     dm.prepare_data()
     dm.setup()
