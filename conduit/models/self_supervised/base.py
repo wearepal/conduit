@@ -19,10 +19,7 @@ from conduit.data.datasets.utils import ImageTform
 from conduit.data.structures import BinarySample, MultiCropOutput, NamedSample
 from conduit.models.base import CdtModel
 from conduit.models.erm import ERMClassifier
-from conduit.models.self_supervised.callbacks import (
-    MeanTeacherWeightUpdate,
-    PostHocProgressBar,
-)
+from conduit.models.self_supervised.callbacks import MeanTeacherWeightUpdate
 from conduit.models.self_supervised.multicrop import (
     MultiCropTransform,
     MultiCropWrapper,
@@ -76,9 +73,6 @@ class SelfSupervisedModel(CdtModel):
             self._finetuner.fit_loop.max_epochs = self.eval_epochs
             self._finetuner.fit_loop.max_steps = None  # type: ignore
             self._finetuner.logger = None  # type: ignore
-            bar = PostHocProgressBar()
-            bar._trainer = self._finetuner
-            self._finetuner.callbacks = [bar]
         return self._finetuner
 
     @ft_trainer.setter

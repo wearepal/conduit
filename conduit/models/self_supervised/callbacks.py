@@ -1,21 +1,15 @@
-import sys
 from typing import TYPE_CHECKING, Callable, Sequence, Union
 
 import numpy as np
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.progress.tqdm_progress import TQDMProgressBar, reset
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from ranzen import implements
 from torch import Tensor, nn
-from tqdm import tqdm
 
 if TYPE_CHECKING:
     from conduit.models.self_supervised.base import MomentumTeacherModel
 
-__all__ = [
-    "MeanTeacherWeightUpdate",
-    "PostHocProgressBar",
-]
+__all__ = ["MeanTeacherWeightUpdate"]
 
 
 class MeanTeacherWeightUpdate(pl.Callback):
@@ -56,46 +50,3 @@ class MeanTeacherWeightUpdate(pl.Callback):
             em = self.momentum_schedule
         for param_s, param_t in zip(student.parameters(), teacher.parameters()):
             param_t.data = param_t.data * em + param_s.data * (1.0 - em)
-
-
-class PostHocProgressBar(TQDMProgressBar):
-    """Progress bar with descriptions tailored for post-hoc evaluation."""
-
-    _train_batch_idx: int
-
-    @implements(TQDMProgressBar)
-    def init_train_tqdm(self) -> tqdm:
-        return tqdm(
-            desc="Training (Post-Hoc)",
-            initial=self.train_batch_idx,
-            position=(2 * self.process_position),
-            disable=self.is_disabled,
-            leave=True,
-            dynamic_ncols=True,
-            file=sys.stdout,
-            smoothing=0,
-        )
-
-    @implements(TQDMProgressBar)
-    def init_validation_tqdm(self) -> tqdm:
-        has_main_bar = self.main_progress_bar is not None
-        return tqdm(
-            desc="Validating (Post-Hoc)",
-            position=(2 * self.process_position + has_main_bar),
-            disable=self.is_disabled,
-            leave=True,
-            dynamic_ncols=True,
-            file=sys.stdout,
-        )
-
-    @implements(TQDMProgressBar)
-    def on_train_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
-        self._train_batch_idx = 0
-        total_train_batches = self.total_train_batches
-        total_val_batches = self.total_val_batches
-        if total_train_batches != float("inf") and total_val_batches != float("inf"):
-            val_checks_per_epoch = total_train_batches // trainer.val_check_batch
-            total_val_batches = total_val_batches * val_checks_per_epoch
-        total_batches = total_train_batches + total_val_batches
-        reset(self.main_progress_bar, total=int(total_batches))
-        self.main_progress_bar.set_description(f"Epoch {trainer.current_epoch} (Post-Hoc Training)")
