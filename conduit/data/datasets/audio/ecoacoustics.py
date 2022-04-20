@@ -22,7 +22,7 @@ import torch
 from torch import Tensor
 import torchaudio  # type: ignore
 from tqdm import tqdm  # type: ignore
-from typing_extensions import TypeAlias
+from typing_extensions import Final, TypeAlias
 
 from conduit.data.datasets.audio.base import CdtAudioDataset
 from conduit.data.datasets.utils import AudioTform, UrlFileInfo, download_from_url
@@ -75,12 +75,12 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
     ]
 
     _num_frames_in_segment: Optional[int]
-    _MAX_AUDIO_LEN = 60
+    _MAX_AUDIO_LEN: Final[int] = 60
 
     @parsable
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str,
         *,
         transform: Optional[AudioTform] = None,
         download: bool = True,
@@ -130,8 +130,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
     def segment_len(self, value: float) -> None:
         if value <= 0:
             raise ValueError("Segment length must be positive.")
-        if value > self._MAX_AUDIO_LEN:
-            value = self._MAX_AUDIO_LEN
+        value = min(value, self._MAX_AUDIO_LEN)
         self._segment_len = value
         self._num_frames_in_segment = int(self.segment_len * self.sample_rate)
 

@@ -101,16 +101,16 @@ def test_vision_datasets(
 def test_audio_dataset(root: Path, segment_len: float) -> None:
 
     ds = Ecoacoustics(
-        root=root,
+        root=str(root),
         download=True,
-        target_attrs=[SoundscapeAttr.habitat, SoundscapeAttr.site],
+        target_attrs=SoundscapeAttr.site,
         transform=None,
         segment_len=segment_len,
     )
 
     assert len(ds) == len(ds.x) == len(ds.metadata)
     assert ds.y is not None
-    assert ds.y.shape == (len(ds), 2)
+    assert ds.y.shape == (len(ds),)
     assert ds.y.dtype == torch.long
     num_frames = (
         ds._MAX_AUDIO_LEN * ds.sample_rate if segment_len is None else segment_len * ds.sample_rate
@@ -126,7 +126,7 @@ def test_audio_dataset(root: Path, segment_len: float) -> None:
 def test_ecoacoustics_labels(root: Path):
     target_attr = SoundscapeAttr.habitat
     ds = Ecoacoustics(
-        root=root,
+        root=str(root),
         download=True,
         target_attrs=target_attr,
         segment_len=1,
@@ -148,7 +148,7 @@ def test_ecoacoustics_labels(root: Path):
 @pytest.mark.slow
 def test_ecoacoustics_dm(root: Path):
     dm = EcoacousticsDataModule(
-        root=root,
+        root=str(root),
         segment_len=30.0,
         target_attrs=SoundscapeAttr.habitat,
         train_transforms=AT.Spectrogram(),
