@@ -103,14 +103,14 @@ def test_audio_dataset(root: Path, segment_len: float) -> None:
     ds = Ecoacoustics(
         root=str(root),
         download=True,
-        target_attrs=SoundscapeAttr.site,
+        target_attrs=[SoundscapeAttr.habitat, SoundscapeAttr.site],
         transform=None,
         segment_len=segment_len,
     )
 
     assert len(ds) == len(ds.x) == len(ds.metadata)
     assert ds.y is not None
-    assert ds.y.shape == (len(ds),)
+    assert ds.y.shape == (len(ds), 2)
     assert ds.y.dtype == torch.long
     num_frames = (
         ds._MAX_AUDIO_LEN * ds.sample_rate if segment_len is None else segment_len * ds.sample_rate
@@ -124,7 +124,7 @@ def test_audio_dataset(root: Path, segment_len: float) -> None:
 
 @pytest.mark.slow
 def test_ecoacoustics_labels(root: Path):
-    target_attr = SoundscapeAttr.habitat
+    target_attr = [SoundscapeAttr.habitat]
     ds = Ecoacoustics(
         root=str(root),
         download=True,
@@ -142,7 +142,7 @@ def test_ecoacoustics_labels(root: Path):
     for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
         matched_row = ds.metadata.loc[ds.metadata["fileName"] == sample]
         if isinstance(label, str):
-            assert matched_row.iloc[0][str(target_attr)] == label
+            assert matched_row.iloc[0][str(target_attr[0])] == label
 
 
 @pytest.mark.slow
@@ -150,7 +150,7 @@ def test_ecoacoustics_dm(root: Path):
     dm = EcoacousticsDataModule(
         root=str(root),
         segment_len=30.0,
-        target_attrs=SoundscapeAttr.habitat,
+        target_attrs=[SoundscapeAttr.habitat],
         train_transforms=AT.Spectrogram(),
     )
     dm.prepare_data()

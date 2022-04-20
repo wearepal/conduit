@@ -1,5 +1,5 @@
 """Ecoacoustics data-module."""
-from typing import Any
+from typing import Any, List
 
 import attr
 from pytorch_lightning import LightningDataModule
@@ -19,7 +19,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
     """Data-module for the Ecoacoustics dataset."""
 
     segment_len: float = 15
-    target_attrs: SoundscapeAttr
+    target_attrs: List[SoundscapeAttr]
 
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
