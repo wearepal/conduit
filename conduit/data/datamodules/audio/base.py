@@ -1,8 +1,10 @@
 """Base class for audio datasets."""
 from typing import Optional, TypeVar
 
+import albumentations as A  # type: ignore
 import attr
 from ranzen.decorators import implements
+import torchaudio.transforms
 from typing_extensions import final
 
 from conduit.data.datamodules.base import CdtDataModule
@@ -26,28 +28,46 @@ class CdtAudioDataModule(CdtDataModule[D, I]):
 
     @property
     @final
-    def train_transforms(self) -> Optional[AudioTform]:
-        return self._train_transforms
+    def train_transforms(self) -> AudioTform:
+        return (
+            self._default_train_transforms
+            if self._train_transforms is None
+            else self._train_transforms
+        )
 
     @train_transforms.setter
-    def train_transforms(self, transform: Optional[AudioTform]) -> None:
+    def train_transforms(self, transform: Optional[AudioTform]) -> None:  # type: ignore
         self._train_transforms = transform
         if isinstance(self._train_data, AudioTransformer):
             self._train_data.transform = transform
 
     @property
     @final
-    def test_transforms(self) -> Optional[AudioTform]:
-        return self._test_transforms
+    def test_transforms(self) -> AudioTform:
+        return (
+            self._default_test_transforms
+            if self._test_transforms is None
+            else self._test_transforms
+        )
 
     @test_transforms.setter
     @final
-    def test_transforms(self, transform: Optional[AudioTform]) -> None:
+    def test_transforms(self, transform: Optional[AudioTform]) -> None:  # type: ignore
         self._test_transforms = transform
         if isinstance(self._val_data, AudioTransformer):
             self._val_data.transform = transform
         if isinstance(self._test_data, AudioTransformer):
             self._test_data.transform = transform
+
+    @property
+    def _default_train_transforms(self) -> A.Compose:
+        transform_ls: List[AlbumentationsTform] = [torchaudio.transforms.Spectrogram()]
+        return A.Compose(transform_ls)
+
+    @property
+    def _default_test_transforms(self) -> A.Compose:
+        transform_ls: List[AlbumentationsTform] = [torchaudio.transforms.Spectrogram()]
+        return A.Compose(transform_ls)
 
     @implements(CdtDataModule)
     @final

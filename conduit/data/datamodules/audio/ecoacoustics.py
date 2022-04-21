@@ -1,6 +1,7 @@
 """Ecoacoustics data-module."""
 from typing import Any, List
 
+import albumentations as A  # type: ignore
 import attr
 from pytorch_lightning import LightningDataModule
 from ranzen import implements
@@ -8,6 +9,7 @@ from ranzen import implements
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
 from conduit.data.structures import TernarySample, TrainValTestSplit
+from conduit.transforms.audio import Framing, LogMelSpectrogram
 
 from .base import CdtAudioDataModule
 
@@ -30,6 +32,25 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
             segment_len=self.segment_len,
             target_attrs=self.target_attrs,
         )
+
+    @property
+    def _default_transform(self) -> A.Compose:
+        return A.Compose(
+            [
+                LogMelSpectrogram(),
+                Framing(),
+            ]
+        )
+
+    @property  # type: ignore[misc]
+    @implements(CdtAudioDataModule)
+    def _default_train_transforms(self) -> A.Compose:
+        return self._default_transform
+
+    @property  # type: ignore[misc]
+    @implements(CdtAudioDataModule)
+    def _default_test_transforms(self) -> A.Compose:
+        return self._default_transform
 
     @implements(CdtDataModule)
     def _get_splits(self) -> TrainValTestSplit[Ecoacoustics]:
