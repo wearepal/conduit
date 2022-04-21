@@ -35,8 +35,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
     def _get_splits(self) -> TrainValTestSplit[Ecoacoustics]:
         all_data = Ecoacoustics(
             root=self.root,
-            train_transform=self.train_transforms,
-            test_transform=self.test_transforms,
+            transform=None,  # Transform is applied in `CdtAudioDataModule._setup`
             segment_len=self.segment_len,
             target_attrs=self.target_attrs,
             sample_rate=self.sample_rate,

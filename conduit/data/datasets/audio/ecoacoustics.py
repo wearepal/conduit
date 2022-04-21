@@ -83,8 +83,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         root: str,
         *,
         target_attrs: List[SoundscapeAttr],
-        train_transform: Optional[AudioTform] = None,
-        test_transform: Optional[AudioTform] = None,
+        transform: Optional[AudioTform] = None,
         download: bool = True,
         segment_len: float = 15,
         sample_rate: int = 48_000,  # This is the value that is present in the dataset
@@ -118,7 +117,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
             self._label_encode(self.metadata[self.target_attrs], inplace=True).to_numpy()
         )
 
-        super().__init__(x=x, y=y, train_transform=train_transform, audio_dir=self.base_dir)
+        super().__init__(x=x, y=y, transform=transform, audio_dir=self.base_dir)
 
     @property
     def segment_len(self) -> float:
