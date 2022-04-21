@@ -104,7 +104,7 @@ def test_audio_dataset(root: Path, segment_len: float) -> None:
         root=str(root),
         download=True,
         target_attrs=[SoundscapeAttr.habitat, SoundscapeAttr.site],
-        transform=None,
+        train_transform=None,
         segment_len=segment_len,
     )
 
@@ -130,7 +130,7 @@ def test_ecoacoustics_labels(root: Path):
         download=True,
         target_attrs=target_attr,
         segment_len=1,
-        transform=None,
+        train_transform=None,
     )
     # Test metadata aligns with labels file.
     audio_samples_to_check = [

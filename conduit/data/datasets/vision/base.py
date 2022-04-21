@@ -127,5 +127,5 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
         """
         subset = super().subset(indices=indices, deep=deep)
         if transform is not None:
-            subset.transform = transform
+            subset.train_transform = transform
         return subset

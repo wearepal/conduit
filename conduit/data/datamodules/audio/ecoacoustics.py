@@ -19,6 +19,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
     """Data-module for the Ecoacoustics dataset."""
 
     segment_len: float = 15
+    sample_rate: int = 48_000
     target_attrs: List[SoundscapeAttr]
 
     @implements(LightningDataModule)
@@ -32,7 +33,15 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
 
     @implements(CdtDataModule)
     def _get_splits(self) -> TrainValTestSplit[Ecoacoustics]:
-        all_data = Ecoacoustics(root=self.root, transform=None, segment_len=self.segment_len)
+        all_data = Ecoacoustics(
+            root=self.root,
+            train_transform=self.train_transforms,
+            test_transform=self.test_transforms,
+            segment_len=self.segment_len,
+            target_attrs=self.target_attrs,
+            sample_rate=self.sample_rate,
+            download=False,
+        )
 
         val_data, test_data, train_data = all_data.random_split(
             props=(self.val_prop, self.test_prop), seed=self.seed

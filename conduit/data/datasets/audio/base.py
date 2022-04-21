@@ -33,7 +33,8 @@ class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
         x: npt.NDArray[np.string_],
         y: Optional[TargetData] = None,
         s: Optional[TargetData] = None,
-        transform: Optional[AudioTform] = None,
+        train_transform: Optional[AudioTform] = None,
+        test_transform: Optional[AudioTform] = None,
     ) -> None:
         super().__init__(x=x, y=y, s=s)
 
@@ -42,7 +43,8 @@ class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
             audio_dir = Path(audio_dir)
 
         self.audio_dir = audio_dir
-        self.transform = transform
+        self.train_transform = train_transform
+        self.test_transform = test_transform
 
         # Infer the appropriate audio-loading backend based on the operating system.
         self.al_backend: AudioLoadingBackend = infer_al_backend()
@@ -56,8 +58,8 @@ class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
             f"Base audio-directory location: {self.audio_dir.resolve()}",
             *self.extra_repr().splitlines(),
         ]
-        if hasattr(self, "transform") and self.transform is not None:
-            body += [repr(self.transform)]
+        if hasattr(self, "transform") and self.train_transform is not None:
+            body += [repr(self.train_transform)]
         lines = [head] + [" " * self._repr_indent + line for line in body]
         return '\n'.join(lines)
 
