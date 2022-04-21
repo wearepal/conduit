@@ -5,7 +5,7 @@ from albumentations.pytorch import ToTensorV2
 import numpy as np
 import pytest
 import torch
-from torch import Tensor
+from torch import Tensor, nn
 import torchaudio.transforms as AT
 from torchvision import transforms as T
 from typing_extensions import Type
@@ -36,6 +36,8 @@ from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 from conduit.data.datasets.utils import get_group_ids, stratified_split
 from conduit.data.datasets.vision.cmnist import MNISTColorizer
 from conduit.fair.data.datasets.dummy import DummyDataset
+from conduit.transforms import Framing, LogMelSpectrogram, LogMelSpectrogramNp
+from conduit.transforms.audio import FramingNp
 
 
 @pytest.mark.parametrize("greyscale", [True, False])
@@ -164,6 +166,68 @@ def test_ecoacoustics_dm(root: Path):
     assert test_sample.x.size()[1] == dm.dims[0]
     assert test_sample.x.size()[2] == dm.dims[1]
     assert test_sample.x.size()[3] == dm.dims[2]
+
+
+@pytest.mark.slow
+def test_spectrogram_transform(root: Path):
+    dm = EcoacousticsDataModule(
+        root=str(root),
+        segment_len=30.0,
+        target_attrs=[SoundscapeAttr.habitat],
+        train_transforms=T.Compose([nn.Identity()]),
+        test_transforms=T.Compose([nn.Identity()]),
+        train_batch_size=1,
+    )
+    dm.prepare_data()
+    dm.setup()
+
+    # Test loading a sample.
+    train_dl = dm.train_dataloader()
+    sample = next(iter(train_dl))
+
+    lms = LogMelSpectrogram(
+        sample_rate=16_000,
+        n_fft=400,
+        win_length=400,
+        hop_length=160,
+        f_min=125.0,
+        f_max=7_500.0,
+        pad=0,
+        n_mels=64,
+        window_fn=None,
+        power=2.0,
+        normalized=False,
+        wkwargs=None,
+        center=True,
+        pad_mode="reflect",
+        onesided=True,
+        norm=None,
+        mel_scale="htk",
+        log_offset=0.01,
+    )
+
+    lmsnp = LogMelSpectrogramNp(
+        sample_rate=16_000,
+        stft_window_length_seconds=0.025,
+        stft_hop_length_seconds=0.010,
+        log_offset=0.01,  # Offset used for stabilized log of input mel-spectrogram.
+        num_mel_bins=64,  # Frequency bands in input mel-spectrogram patch.
+        mel_min_hz=125,
+        mel_max_hz=7_500,
+        mel_break_freq_hertz=700.0,
+        mel_high_freq_q=1_127.0,
+    )
+
+    a = lms(sample.x.clone())
+    b = lmsnp(sample.x.clone())
+
+    fr = Framing()
+    frnp = FramingNp()
+
+    c = fr(a)
+    d = frnp(b)
+
+    assert c.shape == d.shape
 
 
 def test_add_field() -> None:

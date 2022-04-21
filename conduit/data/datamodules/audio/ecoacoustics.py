@@ -9,7 +9,7 @@ from ranzen import implements
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
 from conduit.data.structures import TernarySample, TrainValTestSplit
-from conduit.transforms.audio import Framing, LogMelSpectrogram
+from conduit.transforms.audio import Framing, LogMelSpectrogramNp
 
 from .base import CdtAudioDataModule
 
@@ -37,7 +37,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
     def _default_transform(self) -> A.Compose:
         return A.Compose(
             [
-                LogMelSpectrogram(),
+                LogMelSpectrogramNp(),
                 Framing(),
             ]
         )

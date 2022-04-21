@@ -1,16 +1,69 @@
-from typing import Union
+from typing import Callable, Optional, Union
 
 import numpy as np
+from ranzen import parsable
 import torch
 from torch import nn
 import torchaudio.transforms
 
 Mels = torchaudio.transforms.MelSpectrogram
 
-__all__ = ["LogMelSpectrogram", "Framing"]
+__all__ = ["LogMelSpectrogram", "LogMelSpectrogramNp", "Framing"]
 
 
-class LogMelSpectrogram(nn.Module):
+class LogMelSpectrogram(torchaudio.transforms.MelSpectrogram):
+    @parsable
+    def __init__(
+        self,
+        sample_rate: int = 16000,
+        n_fft: int = 400,
+        win_length: Optional[int] = None,
+        hop_length: Optional[int] = None,
+        f_min: float = 0.0,
+        f_max: Optional[float] = None,
+        pad: int = 0,
+        n_mels: int = 128,
+        window_fn: Optional[Callable] = None,
+        power: float = 2.0,
+        normalized: bool = False,
+        wkwargs: Optional[dict] = None,
+        center: bool = True,
+        pad_mode: str = "reflect",
+        onesided: bool = True,
+        norm: Optional[str] = None,
+        mel_scale: str = "htk",
+        log_offset: float = 0.0,
+    ):
+        if window_fn is None:
+            window_fn = torch.hann_window
+
+        super().__init__(
+            sample_rate=sample_rate,
+            n_fft=n_fft,
+            win_length=win_length,
+            hop_length=hop_length,
+            f_min=f_min,
+            f_max=f_max,
+            pad=pad,
+            n_mels=n_mels,
+            window_fn=window_fn,
+            power=power,
+            normalized=normalized,
+            wkwargs=wkwargs,
+            center=center,
+            pad_mode=pad_mode,
+            onesided=onesided,
+            norm=norm,
+            mel_scale=mel_scale,
+        )
+        self.log_offset = log_offset
+
+    def forward(self, waveform: torch.Tensor) -> torch.Tensor:
+        x = super().forward(waveform)
+        return torch.log(x + self.log_offset)
+
+
+class LogMelSpectrogramNp(nn.Module):
     # Mel spectrum constants and functions.
 
     def __init__(
@@ -236,6 +289,36 @@ class Framing(nn.Module):
 
     def forward(self, data: torch.Tensor) -> torch.Tensor:
         # Frame features into examples.
+        features_sample_rate = 1.0 / self.stft_hop_length_seconds
+        window_length = int(round(self.example_window_seconds * features_sample_rate))
+        hop_length = int(round(self.example_hop_seconds * features_sample_rate))
+
+        _, _, num_samples = data.shape
+        num_frames = 1 + int(np.floor((num_samples - window_length) / hop_length))
+        strides = (1, 1, hop_length)
+
+        return (
+            data.unsqueeze(1)
+            .as_strided(size=(num_frames, 64, window_length), stride=strides)
+            .unsqueeze(1)
+            .permute(0, 1, 3, 2)
+        )
+
+
+class FramingNp(nn.Module):
+    def __init__(
+        self,
+        stft_hop_length_seconds: float = 0.010,
+        example_window_seconds: float = 0.96,  # Each example contains 96 10ms frames
+        example_hop_seconds: float = 0.96,  # with zero overlap.
+    ):
+        super().__init__()
+        self.stft_hop_length_seconds = stft_hop_length_seconds
+        self.example_window_seconds = example_window_seconds
+        self.example_hop_seconds = example_hop_seconds
+
+    def forward(self, data: torch.Tensor) -> torch.Tensor:
+        # Frame features into examples
         np_data = data.numpy()
         features_sample_rate = 1.0 / self.stft_hop_length_seconds
         example_window_length = int(round(self.example_window_seconds * features_sample_rate))
@@ -244,8 +327,7 @@ class Framing(nn.Module):
             np_data, window_length=example_window_length, hop_length=example_hop_length
         )
 
-        samples = torch.Tensor(log_mel_examples, device=data.device).unsqueeze(1)
-        return samples[torch.randint(0, samples.shape[0], (1,))]
+        return torch.Tensor(log_mel_examples, device=data.device).unsqueeze(1)
 
     def frame(self, data: np.ndarray, window_length: int, hop_length: int) -> np.ndarray:
         """Convert array into a sequence of successive possibly overlapping frames.
