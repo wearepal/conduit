@@ -1,19 +1,21 @@
 """Ecoacoustics data-module."""
-from typing import Any, List
+from typing import Any, List, Optional, Sequence
 
 import albumentations as A  # type: ignore
 import attr
 from pytorch_lightning import LightningDataModule
 from ranzen import implements
+from torch.utils.data import Sampler
 
-from conduit.data.datamodules.base import CdtDataModule
+from conduit.data.datamodules.base import CdtDataModule, I
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
-from conduit.data.structures import TernarySample, TrainValTestSplit
+from conduit.data.structures import BinarySample, D, TernarySample, TrainValTestSplit
 from conduit.transforms.audio import Framing, LogMelSpectrogramNp
 
 from .base import CdtAudioDataModule
 
 __all__ = ["EcoacousticsDataModule"]
+from conduit.data.datasets.utils import CdtDataLoader
 
 
 @attr.define(kw_only=True)
@@ -23,6 +25,32 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
     segment_len: float = 15
     sample_rate: int = 48_000
     target_attrs: List[SoundscapeAttr]
+
+    @staticmethod
+    def converter(batch: BinarySample) -> BinarySample:
+        return BinarySample(x=batch.x, y=batch.y.expand(batch.x.shape[0]))
+
+    def make_dataloader(
+        self,
+        ds: D,
+        *,
+        batch_size: int,
+        shuffle: bool = False,
+        drop_last: bool = False,
+        batch_sampler: Optional[Sampler[Sequence[int]]] = None,
+    ) -> CdtDataLoader[I]:
+        """Make DataLoader."""
+        return CdtDataLoader(
+            ds,
+            batch_size=batch_size if batch_sampler is None else 1,
+            shuffle=shuffle,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            drop_last=drop_last,
+            persistent_workers=self.persist_workers,
+            batch_sampler=batch_sampler,
+            converter=self.converter,
+        )
 
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
