@@ -217,21 +217,22 @@ python-versions = "*"
 
 [[package]]
 name = "ethicml"
-version = "0.3.5"
+version = "0.5.0"
 description = "EthicML is a library for performing and assessing algorithmic fairness. Unlike other libraries, EthicML isn't an education tool, but rather a researcher's toolkit."
 category = "main"
 optional = true
-python-versions = ">=3.7,<4.0"
+python-versions = ">=3.7.1,<4.0"
 
 [package.dependencies]
+folktables = ">=0.0.11,<0.0.12"
 gitdb2 = "4.0.2"
 GitPython = ">=3.1.20,<4.0.0"
 matplotlib = ">=3.0.2"
 numpy = ">=1.20.1"
-palkit = ">=0.1.10"
 pandas = ">=1.0,<2.0"
 Pillow = ">=8.1.2,<9.0.0"
 pipenv = ">=2018.11.26"
+ranzen = ">=1.1.1,<2.0.0"
 scikit-learn = ">=0.20.1"
 seaborn = ">=0.9.0"
 smmap2 = "3.0.1"
@@ -241,8 +242,8 @@ typed-argument-parser = "1.4"
 typing-extensions = ">=3.7.2"
 
 [package.extras]
-ci = ["fairlearn (==0.4.6)", "pytest (>=6.0.0,<7.0.0)", "pytest-cov (>=2.6.0,<3.0.0)", "torch (>=1.8,<2.0)", "torchvision (>=0.9.0,<0.10.0)"]
-all = ["fairlearn (==0.4.6)"]
+ci = ["fairlearn (==0.4.6)", "cloudpickle (>=2.0.0,<3.0.0)", "pytest (>=6.0.0,<7.0.0)", "pytest-cov (>=2.6.0,<3.0.0)", "torch (>=1.8,<2.0)", "torchvision (>=0.9.0,<0.10.0)"]
+all = ["fairlearn (==0.4.6)", "cloudpickle (>=2.0.0,<3.0.0)"]
 
 [[package]]
 name = "filelock"
@@ -255,6 +256,20 @@ python-versions = ">=3.7"
 [package.extras]
 docs = ["furo (>=2021.8.17b43)", "sphinx (>=4.1)", "sphinx-autodoc-typehints (>=1.12)"]
 testing = ["covdefaults (>=1.2.0)", "coverage (>=4)", "pytest (>=4)", "pytest-cov", "pytest-timeout (>=1.4.2)"]
+
+[[package]]
+name = "folktables"
+version = "0.0.11"
+description = "New machine learning benchmarks from tabular datasets."
+category = "main"
+optional = true
+python-versions = ">=3.7"
+
+[package.dependencies]
+numpy = "*"
+pandas = "*"
+requests = "*"
+sklearn = "*"
 
 [[package]]
 name = "fonttools"
@@ -287,7 +302,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "fsspec"
-version = "2022.2.0"
+version = "2022.3.0"
 description = "File-system specification"
 category = "main"
 optional = false
@@ -318,6 +333,7 @@ s3 = ["s3fs"]
 sftp = ["paramiko"]
 smb = ["smbprotocol"]
 ssh = ["paramiko"]
+tqdm = ["tqdm"]
 
 [[package]]
 name = "future"
@@ -788,21 +804,6 @@ python-versions = ">=3.6"
 pyparsing = ">=2.0.2,<3.0.5 || >3.0.5"
 
 [[package]]
-name = "palkit"
-version = "0.4.2"
-description = "Useful functions."
-category = "main"
-optional = true
-python-versions = ">=3.7.1,<4.0.0"
-
-[package.extras]
-torch = ["torch (>=1.8,<2.0)", "numpy (>=1.20.3,<2.0.0)"]
-all = ["pytorch-lightning (>=1.4.2,<2.0.0)", "hydra-core (>=1.1.0,<2.0.0)", "neoconfigen (>=2.0.0,<3.0.0)", "pandas (>=1.3.1,<2.0.0)", "wandb (>=0.12.0,<0.13.0)"]
-pl = ["pytorch-lightning (>=1.4.2,<2.0.0)", "tqdm (>=4.62.0,<5.0.0)"]
-hydra = ["hydra-core (>=1.1.0,<2.0.0)", "neoconfigen (>=2.0.0,<3.0.0)"]
-wandb = ["pandas (>=1.3.1,<2.0.0)", "wandb (>=0.12.0,<0.13.0)"]
-
-[[package]]
 name = "pandas"
 version = "1.4.1"
 description = "Powerful data structures for data analysis, time series, and statistics"
@@ -1031,18 +1032,18 @@ six = ">=1.5"
 
 [[package]]
 name = "python-type-stubs"
-version = "0.1.1.dev0"
+version = "0.1.2.dev0"
 description = "A set of type stubs for popular Python packages."
 category = "dev"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 develop = false
 
 [package.source]
 type = "git"
 url = "https://github.com/predictive-analytics-lab/python-type-stubs.git"
 reference = "main"
-resolved_reference = "53dead42521a5c45d1f7c953fe6dec4047173a83"
+resolved_reference = "61e12d18017c07477e5c02545ef94162cbb06cc3"
 
 [[package]]
 name = "pytorch-lightning"
@@ -1272,6 +1273,17 @@ description = "Python 2 and 3 compatibility utilities"
 category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
+
+[[package]]
+name = "sklearn"
+version = "0.0"
+description = "A set of python modules for machine learning and data mining"
+category = "main"
+optional = true
+python-versions = "*"
+
+[package.dependencies]
+scikit-learn = "*"
 
 [[package]]
 name = "smmap"
@@ -1616,7 +1628,7 @@ fair = ["ethicml"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8.0"
-content-hash = "9bab540b0a777c26b3badf8e2252962096246ac1dbb8d6e47ff9de5a370fb249"
+content-hash = "eefa6fe981f73d34b33cff184faeae917e8b73d2cb98999f3f6f1d3f3d842959"
 
 [metadata.files]
 absl-py = [
@@ -1834,12 +1846,15 @@ distlib = [
     {file = "distlib-0.3.4.zip", hash = "sha256:e4b58818180336dc9c529bfb9a0b58728ffc09ad92027a3f30b7cd91e3458579"},
 ]
 ethicml = [
-    {file = "EthicML-0.3.5-py3-none-any.whl", hash = "sha256:906209207bbbab21959a33798a3c591af1acc311995991fccdf107c3b7850e97"},
-    {file = "EthicML-0.3.5.tar.gz", hash = "sha256:2eb4c11e7413bb8271db6239ddccea8be771c3a487a91ca913627e2ffa6a8922"},
+    {file = "EthicML-0.5.0-py3-none-any.whl", hash = "sha256:8a54ba077b50341759aeb72e05a5e81812da3db6f8d1e0988c58ed06e9d7f43e"},
+    {file = "EthicML-0.5.0.tar.gz", hash = "sha256:09e7a34b5e53ff6098277da5d40c488dc8d730f28023f11af3298cf58e66c825"},
 ]
 filelock = [
     {file = "filelock-3.6.0-py3-none-any.whl", hash = "sha256:f8314284bfffbdcfa0ff3d7992b023d4c628ced6feb957351d4c48d059f56bc0"},
     {file = "filelock-3.6.0.tar.gz", hash = "sha256:9cd540a9352e432c7246a48fe4e8712b10acb1df2ad1f30e8c070b82ae1fed85"},
+]
+folktables = [
+    {file = "folktables-0.0.11.tar.gz", hash = "sha256:e8e133e08975d9c28800fee0385a45fe123d26dad6b887bef7177360217f279d"},
 ]
 fonttools = [
     {file = "fonttools-4.31.2-py3-none-any.whl", hash = "sha256:2df636a3f402ef14593c6811dac0609563b8c374bd7850e76919eb51ea205426"},
@@ -1907,8 +1922,8 @@ frozenlist = [
     {file = "frozenlist-1.3.0.tar.gz", hash = "sha256:ce6f2ba0edb7b0c1d8976565298ad2deba6f8064d2bebb6ffce2ca896eb35b0b"},
 ]
 fsspec = [
-    {file = "fsspec-2022.2.0-py3-none-any.whl", hash = "sha256:eb9c9d9aee49d23028deefffe53e87c55d3515512c63f57e893710301001449a"},
-    {file = "fsspec-2022.2.0.tar.gz", hash = "sha256:20322c659538501f52f6caa73b08b2ff570b7e8ea30a86559721d090e473ad5c"},
+    {file = "fsspec-2022.3.0-py3-none-any.whl", hash = "sha256:a53491b003210fce6911dd8f2d37e20c41a27ce52a655eef11b885d1578ed4cf"},
+    {file = "fsspec-2022.3.0.tar.gz", hash = "sha256:fd582cc4aa0db5968bad9317cae513450eddd08b2193c4428d9349265a995523"},
 ]
 future = [
     {file = "future-0.18.2.tar.gz", hash = "sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d"},
@@ -2343,6 +2358,7 @@ numpy = [
     {file = "numpy-1.22.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:8251ed96f38b47b4295b1ae51631de7ffa8260b5b087808ef09a39a9d66c97ab"},
     {file = "numpy-1.22.3-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:48a3aecd3b997bf452a2dedb11f4e79bc5bfd21a1d4cc760e703c31d57c84b3e"},
     {file = "numpy-1.22.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a3bae1a2ed00e90b3ba5f7bd0a7c7999b55d609e0c54ceb2b076a25e345fa9f4"},
+    {file = "numpy-1.22.3-cp310-cp310-win32.whl", hash = "sha256:f950f8845b480cffe522913d35567e29dd381b0dc7e4ce6a4a9f9156417d2430"},
     {file = "numpy-1.22.3-cp310-cp310-win_amd64.whl", hash = "sha256:08d9b008d0156c70dc392bb3ab3abb6e7a711383c3247b410b39962263576cd4"},
     {file = "numpy-1.22.3-cp38-cp38-macosx_10_14_x86_64.whl", hash = "sha256:201b4d0552831f7250a08d3b38de0d989d6f6e4658b709a02a73c524ccc6ffce"},
     {file = "numpy-1.22.3-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:f8c1f39caad2c896bc0018f699882b345b2a63708008be29b1f355ebf6f933fe"},
@@ -2388,10 +2404,6 @@ opencv-python-headless = [
 packaging = [
     {file = "packaging-21.3-py3-none-any.whl", hash = "sha256:ef103e05f519cdc783ae24ea4e2e0f508a9c99b2d4969652eed6a2e1ea5bd522"},
     {file = "packaging-21.3.tar.gz", hash = "sha256:dd47c42927d89ab911e606518907cc2d3a1f38bbd026385970643f9c5b8ecfeb"},
-]
-palkit = [
-    {file = "palkit-0.4.2-py3-none-any.whl", hash = "sha256:08f904164e851ca02a1b65a48c57b6f467162d69f039f86a922f5e3b5591f531"},
-    {file = "palkit-0.4.2.tar.gz", hash = "sha256:ad67915a0bb110f110fbe87a553d377eb2d03aa4ca476e71d152817342ed3981"},
 ]
 pandas = [
     {file = "pandas-1.4.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:3dfb32ed50122fe8c5e7f2b8d97387edd742cc78f9ec36f007ee126cd3720907"},
@@ -2613,6 +2625,7 @@ pywavelets = [
     {file = "PyWavelets-1.3.0-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:f6e7d969a6ef64ae8be1766b0b0e32debb13424543d331911b8d7e967d60dd42"},
     {file = "PyWavelets-1.3.0-cp39-cp39-win32.whl", hash = "sha256:de67deb275474094e160900ab7e07f2a721b9cd351cf3826c4a3ab89bb71d4b3"},
     {file = "PyWavelets-1.3.0-cp39-cp39-win_amd64.whl", hash = "sha256:a354979e2ee8cd71a8952ded381f3d9f981692b73c6842bcc6c9f64047e0a5be"},
+    {file = "PyWavelets-1.3.0.tar.gz", hash = "sha256:cbaa9d62052d9daf8da765fc8e7c30c38ea2b8e9e1c18841913dfb4aec671ee5"},
 ]
 pyyaml = [
     {file = "PyYAML-6.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:d4db7c7aef085872ef65a8fd7d6d09a14ae91f691dec3e87ee5ee0539d516f53"},
@@ -2763,6 +2776,9 @@ setuptools-scm = [
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
+]
+sklearn = [
+    {file = "sklearn-0.0.tar.gz", hash = "sha256:e23001573aa194b834122d2b9562459bf5ae494a2d59ca6b8aa22c85a44c0e31"},
 ]
 smmap = [
     {file = "smmap-5.0.0-py3-none-any.whl", hash = "sha256:2aba19d6a040e78d8b09de5c57e96207b09ed71d8e55ce0959eeee6c8e190d94"},
