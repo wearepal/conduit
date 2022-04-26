@@ -8,7 +8,7 @@ import torchaudio.transforms
 
 Mels = torchaudio.transforms.MelSpectrogram
 
-__all__ = ["LogMelSpectrogram", "LogMelSpectrogramNp", "Framing", "FramingNp"]
+__all__ = ["LogMelSpectrogram", "Framing"]
 
 
 class LogMelSpectrogram(torchaudio.transforms.MelSpectrogram):
