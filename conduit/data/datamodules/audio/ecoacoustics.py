@@ -10,7 +10,7 @@ from torch.utils.data import Sampler
 from conduit.data.datamodules.base import CdtDataModule, I
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
 from conduit.data.structures import BinarySample, D, TernarySample, TrainValTestSplit
-from conduit.transforms.audio import Framing, LogMelSpectrogramNp
+from conduit.transforms.audio import Framing
 
 from .base import CdtAudioDataModule
 
