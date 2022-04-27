@@ -1,7 +1,7 @@
 """Accuracy per sensitive group."""
 from typing import Any
 
-import torch
+from torch import Tensor
 from torchmetrics.classification.accuracy import Accuracy
 
 __all__ = ["AccuracyPerSens"]
@@ -18,7 +18,7 @@ class AccuracyPerSens(Accuracy):
     def __name__(self) -> str:
         return f"Accuracy_s{self.sens}"
 
-    def update(self, preds: torch.Tensor, sens: torch.Tensor, target: torch.Tensor) -> None:
+    def update(self, preds: Tensor, sens: Tensor, target: Tensor) -> None:
         """Update state with predictions and targets.
 
         :param preds: Predictions from model

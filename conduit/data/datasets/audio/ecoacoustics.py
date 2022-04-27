@@ -82,9 +82,9 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         self,
         root: str,
         *,
+        target_attrs: List[SoundscapeAttr],
         transform: Optional[AudioTform] = None,
         download: bool = True,
-        target_attrs: Union[SoundscapeAttr, List[SoundscapeAttr]] = SoundscapeAttr.habitat,
         segment_len: float = 15,
         sample_rate: int = 48_000,  # This is the value that is present in the dataset
     ) -> None:
@@ -98,9 +98,6 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
 
-        if not isinstance(target_attrs, list):
-            target_attrs = [target_attrs]
-        target_attrs = [elem.upper() if isinstance(elem, str) else elem for elem in target_attrs]
         self.target_attrs = [
             str(str_to_enum(str_=elem, enum=SoundscapeAttr)) for elem in target_attrs
         ]
