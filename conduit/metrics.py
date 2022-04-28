@@ -25,13 +25,14 @@ __all__ = [
 
 @torch.no_grad()
 def hard_prediction(logits: Tensor) -> Tensor:
-    logits = torch.atleast_2d(logits.squeeze())
+    logits = torch.atleast_1d(logits.squeeze())
     return (logits > 0).long() if logits.ndim == 1 else logits.argmax(dim=1)
 
 
 @torch.no_grad()
 def accuracy(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
-    y_pred = torch.atleast_2d(y_pred.squeeze())
+    y_pred = torch.atleast_1d(y_pred.squeeze())
+    y_true = torch.atleast_1d(y_true.squeeze())
     if len(y_pred) != len(y_true):
         raise ValueError("'logits' and 'targets' must match in size at dimension 0.")
     preds = hard_prediction(y_pred)
