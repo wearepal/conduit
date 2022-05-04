@@ -599,7 +599,7 @@ D = TypeVar("D", bound=Dataset)
 
 
 @runtime_checkable
-class DatasetWrapper(SizedDataset[R_co]):
+class DatasetWrapper(SizedDataset[R_co], Protocol):
     dataset: Dataset
 
     @implements(SizedDataset)

@@ -129,7 +129,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
             raise ValueError("Segment length must be positive.")
         value = min(value, self._MAX_AUDIO_LEN)
         self._segment_len = value
-        self._num_frames_in_segment = int(self.segment_len * self.sample_rate)
+        self.num_frames_in_segment = int(self.segment_len * self.sample_rate)
 
     def _check_files(self) -> None:
         """Check necessary files are present and unzipped."""
