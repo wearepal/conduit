@@ -1,13 +1,14 @@
 """Ecoacoustics data-module."""
-from typing import Any, List
+from typing import Any, List, Optional, Sequence
 
 import attr
 from pytorch_lightning import LightningDataModule
 from ranzen import implements
+from torch.utils.data import Sampler
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
-from conduit.data.datasets.utils import AudioTform
+from conduit.data.datasets.utils import AudioTform, CdtDataLoader
 from conduit.data.structures import BinarySample, TernarySample, TrainValTestSplit
 from conduit.transforms.audio import Compose, Framing, LogMelSpectrogram
 
@@ -25,8 +26,30 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
     target_attrs: List[SoundscapeAttr]
 
     @staticmethod
-    def converter(batch: BinarySample) -> BinarySample:
-        return BinarySample(x=batch.x, y=batch.y.expand(batch.x.size(0)))
+    def _batch_converter(batch: BinarySample) -> BinarySample:
+        return BinarySample(x=batch.x, y=batch.y.expand(batch.x.shape[0]))
+
+    def make_dataloader(
+        self,
+        ds: Ecoacoustics,
+        *,
+        batch_size: int,
+        shuffle: bool = False,
+        drop_last: bool = False,
+        batch_sampler: Optional[Sampler[Sequence[int]]] = None,
+    ) -> CdtDataLoader[BinarySample]:
+        """Make DataLoader."""
+        return CdtDataLoader(
+            ds,
+            batch_size=batch_size if batch_sampler is None else 1,
+            shuffle=shuffle,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            drop_last=drop_last,
+            persistent_workers=self.persist_workers,
+            batch_sampler=batch_sampler,
+            converter=self._batch_converter,
+        )
 
     @implements(LightningDataModule)
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
