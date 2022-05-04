@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 import torch
 from torch import Tensor
-import torchaudio.transforms as AT
 from torchvision import transforms as T
 from typing_extensions import Type
 
@@ -148,10 +147,7 @@ def test_ecoacoustics_labels(root: Path):
 @pytest.mark.slow
 def test_ecoacoustics_dm(root: Path):
     dm = EcoacousticsDataModule(
-        root=str(root),
-        segment_len=30.0,
-        target_attrs=[SoundscapeAttr.habitat],
-        train_transforms=AT.Spectrogram(),
+        root=str(root), segment_len=30.0, target_attrs=[SoundscapeAttr.habitat]
     )
     dm.prepare_data()
     dm.setup()
