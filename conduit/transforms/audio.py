@@ -1,17 +1,17 @@
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 import numpy as np
 from ranzen import parsable
 import torch
 from torch import Tensor, nn
-import torchaudio.transforms
+import torchaudio.transforms as T  # type: ignore
 
-Mels = torchaudio.transforms.MelSpectrogram
+from conduit.data.datasets.utils import AudioTform
 
-__all__ = ["LogMelSpectrogram", "Framing"]
+__all__ = ["LogMelSpectrogram", "Framing", "Compose"]
 
 
-class LogMelSpectrogram(torchaudio.transforms.MelSpectrogram):
+class LogMelSpectrogram(T.MelSpectrogram):
     @parsable
     def __init__(
         self,
@@ -91,3 +91,14 @@ class Framing(nn.Module):
             .unsqueeze(1)
             .permute(0, 1, 3, 2)
         )
+
+
+class Compose(nn.Module):
+    def __init__(self, transforms: List[AudioTform]) -> None:
+        super().__init__()
+        self.transforms = transforms
+
+    def forward(self, audio: Tensor) -> Tensor:
+        for tform in self.transforms:
+            audio = tform(audio)
+        return audio

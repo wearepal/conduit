@@ -19,13 +19,18 @@ from conduit.data.datasets.utils import (
     get_group_ids,
 )
 from conduit.data.datasets.wrappers import InstanceWeightedDataset
-from conduit.data.structures import Dataset, NamedSample, TrainValTestSplit
+from conduit.data.structures import (
+    Dataset,
+    NamedSample,
+    SizedDataset,
+    TrainValTestSplit,
+)
 from conduit.logging import init_logger
 from conduit.types import Stage
 
 __all__ = ["CdtDataModule"]
 
-D = TypeVar("D", bound=Dataset)
+D = TypeVar("D", bound=SizedDataset)
 I = TypeVar("I", bound=NamedSample)
 
 
@@ -74,9 +79,9 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
 
     _logger: Optional[logging.Logger] = attr.field(default=None, init=False)
 
-    _train_data_base: Optional[D] = attr.field(default=None, init=False)
-    _val_data_base: Optional[D] = attr.field(default=None, init=False)
-    _test_data_base: Optional[D] = attr.field(default=None, init=False)
+    _train_data_base: Optional[Dataset] = attr.field(default=None, init=False)
+    _val_data_base: Optional[Dataset] = attr.field(default=None, init=False)
+    _test_data_base: Optional[Dataset] = attr.field(default=None, init=False)
 
     _train_data: Optional[D] = attr.field(default=None, init=False)
     _val_data: Optional[D] = attr.field(default=None, init=False)

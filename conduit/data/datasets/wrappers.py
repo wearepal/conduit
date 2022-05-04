@@ -1,11 +1,10 @@
 """Dataset wrappers."""
 from dataclasses import is_dataclass, replace
-from typing import Any, Optional, Tuple, TypeVar, Union
+from typing import Any, Optional, Tuple, Union
 
 from PIL import Image
 import numpy as np
 from ranzen.decorators import implements
-from ranzen.torch.data import SizedDataset
 import torch
 from torch import Tensor
 
@@ -42,10 +41,7 @@ __all__ = [
 ]
 
 
-D = TypeVar("D", bound=Dataset)
-
-
-class ImageTransformer(DatasetWrapper[D, Any]):
+class ImageTransformer(DatasetWrapper[Any]):
     """
     Wrapper class for applying image transformations.
 
@@ -53,16 +49,10 @@ class ImageTransformer(DatasetWrapper[D, Any]):
     that share the same underlying dataset.
     """
 
-    def __init__(self, dataset: D, *, transform: Optional[ImageTform]) -> None:
+    def __init__(self, dataset: Dataset, *, transform: Optional[ImageTform]) -> None:
         self.dataset = dataset
         self._transform: Optional[ImageTform] = None
         self.transform = transform
-
-    @implements(SizedDataset)
-    def __len__(self) -> Optional[int]:
-        if isinstance(self.dataset, SizedDataset):
-            return len(self.dataset)
-        return None
 
     @property
     def transform(self) -> Optional[ImageTform]:
@@ -106,12 +96,12 @@ class ImageTransformer(DatasetWrapper[D, Any]):
             else:
                 image = apply_image_transform(image=_sample[0], transform=self.transform)
                 data_type = type(_sample)
-                return data_type(image, *_sample[1:])
+                return data_type(image, *_sample[1:])  # type: ignore
 
         return _transform_sample(sample)
 
 
-class AudioTransformer(DatasetWrapper[D, Any]):
+class AudioTransformer(DatasetWrapper[Any]):
     """
     Wrapper class for applying image transformations.
 
@@ -119,13 +109,10 @@ class AudioTransformer(DatasetWrapper[D, Any]):
     that share the same underlying dataset.
     """
 
-    def __init__(self, dataset: D, *, transform: Optional[AudioTform]) -> None:
+    def __init__(self, dataset: Dataset, *, transform: Optional[AudioTform]) -> None:
         self.dataset = dataset
         self._transform: Optional[ImageTform] = None
         self.transform = transform
-
-    def __len__(self) -> Optional[int]:
-        return len(self.dataset) if hasattr(self.dataset, "__len__") else None
 
     @implements(DatasetWrapper)
     def __getitem__(self, index: int) -> Any:
@@ -148,7 +135,7 @@ class AudioTransformer(DatasetWrapper[D, Any]):
         return sample
 
 
-class TabularTransformer(DatasetWrapper[D, Any]):
+class TabularTransformer(DatasetWrapper[Any]):
     """
     Wrapper class for applying transformations to tabular data.
 
@@ -158,7 +145,7 @@ class TabularTransformer(DatasetWrapper[D, Any]):
 
     def __init__(
         self,
-        dataset: D,
+        dataset: Dataset,
         *,
         transform: Optional[TabularTransform],
         target_transform: Optional[TabularTransform],
@@ -166,9 +153,6 @@ class TabularTransformer(DatasetWrapper[D, Any]):
         self.dataset = dataset
         self.transform = transform
         self.target_transform = target_transform
-
-    def __len__(self) -> Optional[int]:
-        return len(self.dataset) if hasattr(self.dataset, "__len__") else None
 
     @implements(DatasetWrapper)
     def __getitem__(self, index: int) -> Any:
@@ -204,10 +188,10 @@ class TabularTransformer(DatasetWrapper[D, Any]):
         return sample
 
 
-class InstanceWeightedDataset(DatasetWrapper[D, Any]):
+class InstanceWeightedDataset(DatasetWrapper[Any]):
     """Wrapper endowing datasets with instance-weights."""
 
-    def __init__(self, dataset: D) -> None:
+    def __init__(self, dataset: Dataset) -> None:
         self.dataset = dataset
         self.iw = compute_instance_weights(dataset)
 

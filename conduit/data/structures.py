@@ -69,13 +69,13 @@ LoadedData: TypeAlias = Union[
     npt.NDArray[np.floating],
     npt.NDArray[np.integer],
     npt.NDArray[np.string_],
-    "InputContainer",
     Dict[str, Tensor],
     Dict[str, Image.Image],
     Dict[str, npt.NDArray[np.floating]],
     Dict[str, npt.NDArray[np.integer]],
     Dict[str, npt.NDArray[np.string_]],
     List[Image.Image],
+    "InputContainer[X_co]",
 ]
 IndexabledData: TypeAlias = Union[
     Tensor,
@@ -85,8 +85,8 @@ IndexabledData: TypeAlias = Union[
 ]
 
 X = TypeVar("X", bound=LoadedData)
-XI = TypeVar("XI", bound=IndexabledData)
 X_co = TypeVar("X_co", bound=LoadedData, covariant=True)
+XI = TypeVar("XI", bound=IndexabledData)
 
 TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
 
@@ -318,10 +318,7 @@ class BinarySample(NamedSample[X], _BinarySampleMixin):
     @implements(NamedSample)
     def __add__(self, other: Self) -> Self:
         copy = gcopy(self, deep=False)
-        copy.y = torch.cat(
-            [torch.atleast_2d(copy.y), torch.atleast_2d(other.y)],
-            dim=0,
-        )
+        copy.y = torch.cat([copy.y, other.y], dim=0)
         copy.x = concatenate_inputs(copy.x, other.x, is_batched=len(copy.y) > 1)
         return copy
 
@@ -366,10 +363,7 @@ class SubgroupSample(NamedSample[X], _SubgroupSampleMixin):
     @implements(NamedSample)
     def __add__(self, other: Self) -> Self:
         copy = gcopy(self, deep=False)
-        copy.s = torch.cat(
-            [torch.atleast_2d(copy.s), torch.atleast_2d(other.s)],
-            dim=0,
-        )
+        copy.s = torch.cat([copy.s, other.s], dim=0)
         copy.x = concatenate_inputs(copy.x, other.x, is_batched=len(copy.s) > 1)
         return copy
 
@@ -405,10 +399,7 @@ class BinarySampleIW(BinarySample[X], _BinarySampleMixin, _IwMixin):
     @implements(BinarySample)
     def __add__(self, other: Self) -> Self:
         copy = super().__add__(other)
-        copy.iw = torch.cat(
-            [torch.atleast_2d(copy.iw), torch.atleast_2d(other.iw)],
-            dim=0,
-        )
+        copy.iw = torch.cat([copy.iw, other.iw], dim=0)
         return copy
 
     @implements(SampleBase)
@@ -438,10 +429,7 @@ class SubgroupSampleIW(SubgroupSample[X], _IwMixin):
     @implements(SubgroupSample)
     def __add__(self, other: Self) -> Self:
         copy = super().__add__(other)
-        copy.iw = torch.cat(
-            [torch.atleast_2d(copy.iw), torch.atleast_2d(other.iw)],
-            dim=0,
-        )
+        copy.iw = torch.cat([copy.iw, other.iw], dim=0)
         return copy
 
     @implements(SampleBase)
@@ -471,10 +459,7 @@ class TernarySample(BinarySample[X], _SubgroupSampleMixin):
     @implements(BinarySample)
     def __add__(self, other: Self) -> Self:
         copy = super().__add__(other)
-        copy.s = torch.cat(
-            [torch.atleast_2d(copy.s), torch.atleast_2d(other.s)],
-            dim=0,
-        )
+        copy.s = torch.cat([copy.s, other.s], dim=0)
         return copy
 
     @implements(SampleBase)
@@ -494,10 +479,7 @@ class TernarySampleIW(TernarySample[X], _IwMixin):
     @implements(TernarySample)
     def __add__(self, other: Self) -> Self:
         copy = super().__add__(other)
-        copy.iw = torch.cat(
-            [torch.atleast_2d(copy.iw), torch.atleast_2d(other.iw)],
-            dim=0,
-        )
+        copy.iw = torch.cat([copy.iw, other.iw], dim=0)
         return copy
 
     @implements(SampleBase)
@@ -585,7 +567,7 @@ class Dataset(Protocol[R_co]):
 
 
 @runtime_checkable
-class SizedDataset(Dataset, Sized, Protocol[R_co]):
+class SizedDataset(Dataset[R_co], Sized, Protocol):
     @implements(Dataset)
     def __getitem__(self, index: int) -> R_co:
         ...
@@ -595,11 +577,16 @@ class SizedDataset(Dataset, Sized, Protocol[R_co]):
         ...
 
 
+X2 = TypeVar("X2", bound=UnloadedData)
+Y = TypeVar("Y", Tensor, None)
+S = TypeVar("S", Tensor, None)
+
+
 @runtime_checkable
-class PseudoCdtDataset(Protocol[R_co]):
-    x: UnloadedData
-    y: Optional[Tensor]
-    s: Optional[Tensor]
+class PseudoCdtDataset(Protocol[R_co, X2, Y, S]):
+    x: X2
+    y: Y
+    s: S
 
     def __getitem__(self, index: int) -> R_co:
         ...
@@ -612,16 +599,18 @@ D = TypeVar("D", bound=Dataset)
 
 
 @runtime_checkable
-class DatasetWrapper(SizedDataset[R_co], Protocol[D]):
-    dataset: D
+class DatasetWrapper(SizedDataset[R_co]):
+    dataset: Dataset
 
     @implements(SizedDataset)
     def __getitem__(self, index: int) -> R_co:
         ...
 
     @implements(SizedDataset)
-    def __len__(self) -> int:
-        ...
+    def __len__(self) -> Optional[int]:
+        if isinstance(self.dataset, SizedDataset):
+            return len(self.dataset)
+        return None
 
 
 @attr.define(kw_only=True)
