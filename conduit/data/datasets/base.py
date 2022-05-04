@@ -36,21 +36,13 @@ from conduit.types import IndexType
 
 __all__ = ["CdtDataset", "I", "S", "X", "Y"]
 
-
-I = TypeVar(
-    "I",
-    NamedSample,
-    BinarySample,
-    SubgroupSample,
-    TernarySample,
-)
-
 X = TypeVar("X", bound=UnloadedData)
 S = TypeVar("S", bound=Optional[Tensor])
 Y = TypeVar("Y", bound=Optional[Tensor])
+I = TypeVar("I", bound=NamedSample)
 
 
-class CdtDataset(SizedDataset[I], Generic[I, X, Y, S]):
+class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
     _repr_indent: ClassVar[int] = 4
     _logger: Optional[logging.Logger] = None
 
@@ -262,17 +254,18 @@ class CdtDataset(SizedDataset[I], Generic[I, X, Y, S]):
 
     @implements(SizedDataset)
     @final
-    def __getitem__(self, index: IndexType) -> I:
+    def __getitem__(self: Self, index: IndexType) -> I:
         x = self._sample_x(index, coerce_to_tensor=False)
         y = self._sample_y(index)
         s = self._sample_s(index)
         # Fetch the appropriate 'Sample' class
         if y is None:
-            return NamedSample(x=x) if s is None else SubgroupSample(x=x, s=s)
+            sample = NamedSample(x=x) if s is None else SubgroupSample(x=x, s=s)
         elif s is None:
-            return BinarySample(x=x, y=y)
+            sample = BinarySample(x=x, y=y)
         else:
-            return TernarySample(x=x, y=y, s=s)
+            sample = TernarySample(x=x, y=y, s=s)
+        return sample  # type: ignore
 
     @implements(SizedDataset)
     def __len__(self) -> int:

@@ -74,7 +74,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         ),
     ]
 
-    _num_frames_in_segment: Optional[int]
+    num_frames_in_segment: int
     _MAX_AUDIO_LEN: Final[int] = 60
 
     @parsable
@@ -129,11 +129,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
             raise ValueError("Segment length must be positive.")
         value = min(value, self._MAX_AUDIO_LEN)
         self._segment_len = value
-        self._num_frames_in_segment = int(self.segment_len * self.sample_rate)
-
-    @property
-    def num_frames_in_segment(self) -> Optional[int]:
-        return self._num_frames_in_segment
+        self.num_frames_in_segment = int(self.segment_len * self.sample_rate)
 
     def _check_files(self) -> None:
         """Check necessary files are present and unzipped."""
@@ -263,7 +259,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         path = self.audio_dir / self.x[index]
 
         # get metadata first
-        metadata = torchaudio.info(path)
+        metadata = torchaudio.info(path)  # type: ignore
 
         # compute number of frames to take with the real sample rate
         num_frames_segment = int(
@@ -275,7 +271,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         frame_offset = torch.randint(low=0, high=high, size=(1,))
 
         # load segment
-        waveform, _ = torchaudio.load(
+        waveform, _ = torchaudio.load(  # type: ignore
             path, num_frames=num_frames_segment, frame_offset=frame_offset
         )
 

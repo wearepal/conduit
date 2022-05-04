@@ -1,21 +1,20 @@
 """Ecoacoustics data-module."""
 from typing import Any, List, Optional, Sequence
 
-import albumentations as A  # type: ignore
 import attr
 from pytorch_lightning import LightningDataModule
 from ranzen import implements
 from torch.utils.data import Sampler
 
-from conduit.data.datamodules.base import CdtDataModule, I
+from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
-from conduit.data.structures import BinarySample, D, TernarySample, TrainValTestSplit
-from conduit.transforms.audio import Framing
+from conduit.data.datasets.utils import AudioTform, CdtDataLoader
+from conduit.data.structures import BinarySample, TernarySample, TrainValTestSplit
+from conduit.transforms.audio import Compose, Framing, LogMelSpectrogram
 
 from .base import CdtAudioDataModule
 
 __all__ = ["EcoacousticsDataModule"]
-from conduit.data.datasets.utils import CdtDataLoader
 
 
 @attr.define(kw_only=True)
@@ -27,18 +26,18 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
     target_attrs: List[SoundscapeAttr]
 
     @staticmethod
-    def converter(batch: BinarySample) -> BinarySample:
+    def _batch_converter(batch: BinarySample) -> BinarySample:
         return BinarySample(x=batch.x, y=batch.y.expand(batch.x.shape[0]))
 
     def make_dataloader(
         self,
-        ds: D,
+        ds: Ecoacoustics,
         *,
         batch_size: int,
         shuffle: bool = False,
         drop_last: bool = False,
         batch_sampler: Optional[Sampler[Sequence[int]]] = None,
-    ) -> CdtDataLoader[I]:
+    ) -> CdtDataLoader[BinarySample]:
         """Make DataLoader."""
         return CdtDataLoader(
             ds,
@@ -49,7 +48,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
             drop_last=drop_last,
             persistent_workers=self.persist_workers,
             batch_sampler=batch_sampler,
-            converter=self.converter,
+            converter=self._batch_converter,
         )
 
     @implements(LightningDataModule)
@@ -62,22 +61,17 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
         )
 
     @property
-    def _default_transform(self) -> A.Compose:
-        return A.Compose(
-            [
-                LogMelSpectrogramNp(),
-                Framing(),
-            ]
-        )
+    def _default_transform(self) -> Compose:
+        return Compose([LogMelSpectrogram(), Framing()])
 
     @property  # type: ignore[misc]
     @implements(CdtAudioDataModule)
-    def _default_train_transforms(self) -> A.Compose:
+    def _default_train_transforms(self) -> AudioTform:
         return self._default_transform
 
     @property  # type: ignore[misc]
     @implements(CdtAudioDataModule)
-    def _default_test_transforms(self) -> A.Compose:
+    def _default_test_transforms(self) -> AudioTform:
         return self._default_transform
 
     @implements(CdtDataModule)

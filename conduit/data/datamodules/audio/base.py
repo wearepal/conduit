@@ -4,7 +4,7 @@ from typing import Optional, TypeVar
 import albumentations as A  # type: ignore
 import attr
 from ranzen.decorators import implements
-import torchaudio.transforms
+import torchaudio.transforms as T  # type: ignore
 from typing_extensions import final
 
 from conduit.data.datamodules.base import CdtDataModule
@@ -60,14 +60,12 @@ class CdtAudioDataModule(CdtDataModule[D, I]):
             self._test_data.transform = transform
 
     @property
-    def _default_train_transforms(self) -> A.Compose:
-        transform_ls: List[AlbumentationsTform] = [torchaudio.transforms.Spectrogram()]
-        return A.Compose(transform_ls)
+    def _default_train_transforms(self) -> T.Spectrogram:
+        return T.Spectrogram()
 
     @property
-    def _default_test_transforms(self) -> A.Compose:
-        transform_ls: List[AlbumentationsTform] = [torchaudio.transforms.Spectrogram()]
-        return A.Compose(transform_ls)
+    def _default_test_transforms(self) -> T.Spectrogram:
+        return T.Spectrogram()
 
     @implements(CdtDataModule)
     @final
