@@ -144,8 +144,9 @@ def _apply_groupwise_metric(
                     "'y_pred', 'y_true', and all elements of 'group_ids' must match in size at dimension 0."
                 )
             elem = elem.squeeze()
-            index_set *= len(elem.unique())
-            index_set += elem
+            unique_vals, inv_indices = elem.unique(return_inverse=True)
+            index_set *= len(unique_vals)
+            index_set += inv_indices
 
     res = comparator(y_pred=y_pred, y_true=y_true)
     if isinstance(res, tuple):
@@ -154,10 +155,7 @@ def _apply_groupwise_metric(
         comps, comp_mask = res, slice(None)
 
     if index_set is not None:
-        groups, group_counts = index_set.unique(return_counts=True)
-        group_mask = index_set[comp_mask][:, None] == groups[None]
-        scores = (comps[:, None] * group_mask).sum(0) / group_counts
-
+        scores = torch.scatter_reduce(comps, dim=0, index=index_set[comp_mask], reduce="mean")
         if aggregator is not None:
             scores = aggregator.value(scores)
         return scores
