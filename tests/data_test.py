@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import torch
 from torch import Tensor
-import torchaudio.transforms as AT
+import torchaudio.transforms as AT # type: ignore
 from torchvision import transforms as T
 from typing_extensions import Type
 
@@ -32,6 +32,7 @@ from conduit.data import (
 from conduit.data.datamodules import EcoacousticsDataModule
 from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
 from conduit.data.datamodules.vision.dummy import DummyVisionDataModule
+from conduit.transforms.audio import Framing
 from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
 from conduit.data.datasets.utils import get_group_ids, stratified_split
 from conduit.data.datasets.vision.cmnist import MNISTColorizer
@@ -123,7 +124,7 @@ def test_audio_dataset(root: Path, segment_len: float) -> None:
 
 
 @pytest.mark.slow
-def test_ecoacoustics_labels(root: Path):
+def test_ecoacoustics_metadata_labels(root: Path):
     target_attr = [SoundscapeAttr.habitat]
     ds = Ecoacoustics(
         root=str(root),
@@ -143,7 +144,6 @@ def test_ecoacoustics_labels(root: Path):
         matched_row = ds.metadata.loc[ds.metadata["fileName"] == sample]
         if isinstance(label, str):
             assert matched_row.iloc[0][str(target_attr[0])] == label
-
 
 @pytest.mark.slow
 def test_ecoacoustics_dm(root: Path):
@@ -165,6 +165,35 @@ def test_ecoacoustics_dm(root: Path):
     assert test_sample.x.size()[2] == dm.dims[1]
     assert test_sample.x.size()[3] == dm.dims[2]
 
+@pytest.mark.slow
+def test_ecoacoustics_dm_batch_multi_label(root: Path) -> None:
+    target_attrs = [SoundscapeAttr.habitat, SoundscapeAttr.site]
+    data_module = EcoacousticsDataModule(root=str(root),
+                                         segment_len=30.0,
+                                         target_attrs=target_attrs,
+                                         train_transforms=AT.Spectrogram())
+    data_module.prepare_data()
+    data_module.setup()
+
+    train_dl = data_module.train_dataloader()
+    sample = next(iter(train_dl))
+
+    assert sample.y.size(1) == len(target_attrs)
+
+@pytest.mark.slow
+def test_ecoacoustics_dm_batch_multi_label_framed(root: Path) -> None:
+    target_attrs = [SoundscapeAttr.habitat, SoundscapeAttr.site]
+    data_module = EcoacousticsDataModule(root=str(root),
+                                         segment_len=30.0,
+                                         target_attrs=target_attrs,
+                                         train_transforms=torch.nn.Sequential(AT.Spectrogram(), Framing()))
+    data_module.prepare_data()
+    data_module.setup()
+
+    train_dl = data_module.train_dataloader()
+    sample = next(iter(train_dl))
+
+    assert sample.y.size(1) == len(target_attrs)
 
 def test_add_field() -> None:
     x = torch.rand(3, 2)

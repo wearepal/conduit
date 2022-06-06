@@ -27,7 +27,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
 
     @staticmethod
     def _batch_converter(batch: BinarySample) -> BinarySample:
-        return BinarySample(x=batch.x, y=batch.y.expand(batch.x.shape[0]))
+        return BinarySample(x=batch.x, y=batch.y)
 
     def make_dataloader(
         self,
