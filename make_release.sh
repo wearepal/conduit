@@ -96,13 +96,13 @@ echo "#     create PR for version bump      #"
 echo "#######################################"
 gh pr create --title "Bump version for new release" --base "main"
 
+echo "#######################################"
+echo "#           create release            #"
+echo "#######################################"
+gh release create $new_tag --generate-notes
+
 # clean up
 echo "#######################################"
 echo "#      go back to main branch         #"
 echo "#######################################"
 git checkout main
-
-echo "#######################################"
-echo "#           create release            #"
-echo "#######################################"
-gh release create $new_tag --generate-notes
