@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "conduit"
-version = "0.0.1.dev0"
+name = "torch-conduit"
+version = "0.0.0"
 description = "Lightweight framework for channeling the power of PyTorch Lightning"
 authors = ["PAL <info@predictive-analytics-lab.com>"]
 license = "Apache License 2.0"
