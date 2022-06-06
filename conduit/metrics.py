@@ -144,8 +144,9 @@ def _apply_groupwise_metric(
                     "'y_pred', 'y_true', and all elements of 'group_ids' must match in size at dimension 0."
                 )
             elem = elem.squeeze()
-            index_set *= len(elem.unique())
-            index_set += elem
+            unique_vals, inv_indices = elem.unique(return_inverse=True)
+            index_set *= len(unique_vals)
+            index_set += inv_indices
 
     res = comparator(y_pred=y_pred, y_true=y_true)
     if isinstance(res, tuple):
