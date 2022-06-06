@@ -38,76 +38,63 @@ echo "# ensure main branch is up-to-date  #"
 echo "######################################"
 git pull
 
+echo "#######################################"
+echo "#            bump version             #"
+echo "#######################################"
+poetry version $version_bump
+new_version=$(poetry version -s)
+
+echo "#######################################"
+echo "#            do new build             #"
+echo "#######################################"
+poetry build
+
 echo ""
-echo "######################################"
-echo "#       checkout release branch      #"
-echo "######################################"
-git checkout release
-
-echo ""
 echo "#######################################"
-echo "# ensure release branch is up-to-date #"
+echo "#          publish package            #"
 echo "#######################################"
-git pull
+# to use this, set up an API token with
+#  `poetry config pypi-token.pypi <api token>`
+poetry publish
 
-echo ""
 echo "#######################################"
-echo "#   merge main into release branch  #"
+echo "#         create new branch           #"
 echo "#######################################"
-git merge --no-ff main --no-edit
+branch_name=release-$new_version
+git checkout -b $branch_name
 
-bump_build_publish() {
-  echo "#######################################"
-  echo "#          switching to $1            #"
-  echo "#######################################"
-  pushd $1
-
-  echo "#######################################"
-  echo "#            bump version             #"
-  echo "#######################################"
-  poetry version $version_bump
-  git add pyproject.toml
-
-  # clean previous build and build
-  echo "#######################################"
-  echo "#        clean up old builds          #"
-  echo "#######################################"
-  rm -rf build dist
-
-  echo "#######################################"
-  echo "#            do new build             #"
-  echo "#######################################"
-  poetry build
-
-  echo ""
-  echo "#######################################"
-  echo "#          publish package            #"
-  echo "#######################################"
-  # to use this, set up an API token with
-  #  `poetry config pypi-token.pypi <api token>`
-  poetry publish
-
-  popd  # switch back to previous directory
-}
-
-# go through all project directories
-bump_build_publish "."
-# (it's currently only one)
-
-# commit changes
+echo "#######################################"
+echo "#       commit version change         #"
+echo "#######################################"
+git add pyproject.toml
 git commit -m "Bump version"
 
-# get the version from conduit
-# pushd conduit
-new_tag=v$(poetry version -s)
-# popd
-
-# create tag and push
 echo "#######################################"
 echo "#          new tag: $new_tag          #"
 echo "#######################################"
+new_tag=v${new_version}
 git tag $new_tag
-git push origin release $new_tag
+
+echo "#######################################"
+echo "#      bump prerelease version        #"
+echo "#######################################"
+poetry version prerelease
+
+echo "#######################################"
+echo "#       commit version change         #"
+echo "#######################################"
+git add pyproject.toml
+git commit -m "Bump version to prerelease"
+
+echo "#######################################"
+echo "#       commit version change         #"
+echo "#######################################"
+git push origin $branch_name $new_tag
+
+echo "#######################################"
+echo "#     create PR for version bump      #"
+echo "#######################################"
+gh pr create --title "Bump version for new release" --base "main"
 
 # clean up
 echo "#######################################"
@@ -115,8 +102,7 @@ echo "#      go back to main branch         #"
 echo "#######################################"
 git checkout main
 
-echo "#####################################################"
-echo "#               all done! now go to                 #"
-echo "# https://github.com/wearepal/conduit/releases/tag/$new_tag"
-echo "# and click on the \"edit icon\" to write release notes  #"
-echo "#####################################################"
+echo "#######################################"
+echo "#           create release            #"
+echo "#######################################"
+gh release create $new_tag --generate-notes
