@@ -266,8 +266,8 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
             self.num_frames_in_segment / self.sample_rate * metadata.sample_rate
         )
 
-        # compute offset
-        high = max(1, metadata.num_frames - self.num_frames_in_segment)
+        # get random sub-sample
+        high = max(1, metadata.num_frames - num_frames_segment)
         frame_offset = torch.randint(low=0, high=high, size=(1,))
 
         # load segment
