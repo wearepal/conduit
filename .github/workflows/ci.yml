@@ -56,8 +56,11 @@ jobs:
     # - name: Run type checking
     #   run: |
     #    npm install -g pyright
-    #    pyright src
+    #    pyright conduit
     #    pyright tests
     - name: Test with pytest
       run: |
         poetry run python -m pytest -vv tests/
+    # - name: Run configen
+    #   run: |
+    #     poetry run sh generate_confs.sh
