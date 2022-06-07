@@ -95,6 +95,7 @@ echo "#######################################"
 echo "#     create PR for version bump      #"
 echo "#######################################"
 gh pr create --fill --base "main"
+gh pr merge $branch_name --merge --auto
 
 echo "#######################################"
 echo "#           create release            #"
