@@ -39,8 +39,8 @@ class SoundscapeAttr(Enum):
     habitat = auto()
     site = auto()
     time = auto()
-    nn = auto()
-    n0 = auto()
+    NN = auto()
+    N0 = auto()
 
 
 SampleType: TypeAlias = TernarySample
