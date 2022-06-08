@@ -39,8 +39,8 @@ class SoundscapeAttr(Enum):
     habitat = auto()
     site = auto()
     time = auto()
-    nn = auto()
-    n0 = auto()
+    NN = auto()
+    N0 = auto()
 
 
 SampleType: TypeAlias = TernarySample
@@ -97,9 +97,9 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         self._metadata_path = self.base_dir / self._METADATA_FILENAME
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
-
+        # map provided attributes (as string or enum) to permitted attributes (as strings)
         self.target_attrs = [
-            str(str_to_enum(str_=elem, enum=SoundscapeAttr)) for elem in target_attrs
+            str_to_enum(str_=elem, enum=SoundscapeAttr).name for elem in target_attrs
         ]
 
         if self.download:
