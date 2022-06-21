@@ -37,6 +37,7 @@ __all__ = [
     "ImageSize",
     "InputContainer",
     "LoadedData",
+    "MeanStd",
     "MultiCropOutput",
     "NamedSample",
     "PseudoCdtDataset",
