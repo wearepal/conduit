@@ -31,6 +31,7 @@ from conduit.data.structures import TernarySample
 __all__ = [
     "Ecoacoustics",
     "SoundscapeAttr",
+    "MDAttr",
 ]
 
 
@@ -41,6 +42,12 @@ class SoundscapeAttr(Enum):
     time = auto()
     NN = auto()
     N0 = auto()
+    A_Den = auto()
+
+
+@enum_name_str
+class MDAttr(Enum):
+    fileName = auto()
 
 
 SampleType: TypeAlias = TernarySample
@@ -83,6 +90,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         root: str,
         *,
         target_attrs: List[SoundscapeAttr],
+        md_attrs: List[MDAttr] = list(MDAttr),
         transform: Optional[AudioTform] = None,
         download: bool = True,
         segment_len: float = 15,
@@ -101,6 +109,9 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         self.target_attrs = [
             str_to_enum(str_=elem, enum=SoundscapeAttr).name for elem in target_attrs
         ]
+        self.md_attrs = [
+            str_to_enum(str_=elem, enum=MDAttr).name for elem in md_attrs
+        ]
 
         if self.download:
             self._download_files()
@@ -111,13 +122,18 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
             self._extract_metadata()
 
         self.metadata = pd.read_csv(self.base_dir / self._METADATA_FILENAME)
+        # map numerical indices to target attributes
+        self.concept_label_decoder = self.metadata[self.md_attrs].to_dict()
 
         x = self.metadata["filePath"].to_numpy()
         y = torch.as_tensor(
             self._label_encode(self.metadata[self.target_attrs], inplace=True).to_numpy()
         )
+        s = torch.as_tensor(
+            self._label_encode(self.metadata[self.md_attrs], inplace=True).to_numpy()
+        )
 
-        super().__init__(x=x, y=y, transform=transform, audio_dir=self.base_dir)
+        super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self.base_dir)
 
     @property
     def segment_len(self) -> float:

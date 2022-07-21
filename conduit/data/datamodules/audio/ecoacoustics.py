@@ -7,9 +7,13 @@ from ranzen import implements
 from torch.utils.data import Sampler
 
 from conduit.data.datamodules.base import CdtDataModule
-from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
+from conduit.data.datasets.audio.ecoacoustics import (
+    Ecoacoustics,
+    MDAttr,
+    SoundscapeAttr,
+)
 from conduit.data.datasets.utils import AudioTform, CdtDataLoader
-from conduit.data.structures import BinarySample, TernarySample, TrainValTestSplit
+from conduit.data.structures import TernarySample, TrainValTestSplit
 from conduit.transforms.audio import Compose, Framing, LogMelSpectrogram
 
 from .base import CdtAudioDataModule
@@ -24,10 +28,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
     segment_len: float = 15
     sample_rate: int = 48_000
     target_attrs: List[SoundscapeAttr]
-
-    @staticmethod
-    def _batch_converter(batch: BinarySample) -> BinarySample:
-        return BinarySample(x=batch.x, y=batch.y)
+    md_attrs: List[MDAttr] = list(MDAttr)
 
     def make_dataloader(
         self,
@@ -37,7 +38,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
         shuffle: bool = False,
         drop_last: bool = False,
         batch_sampler: Optional[Sampler[Sequence[int]]] = None,
-    ) -> CdtDataLoader[BinarySample]:
+    ) -> CdtDataLoader[TernarySample]:
         """Make DataLoader."""
         return CdtDataLoader(
             ds,
@@ -48,7 +49,6 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
             drop_last=drop_last,
             persistent_workers=self.persist_workers,
             batch_sampler=batch_sampler,
-            converter=self._batch_converter,
         )
 
     @implements(LightningDataModule)
@@ -58,6 +58,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
             download=True,
             segment_len=self.segment_len,
             target_attrs=self.target_attrs,
+            md_attrs=self.md_attrs,
         )
 
     @property
@@ -81,6 +82,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
             transform=None,  # Transform is applied in `CdtAudioDataModule._setup`
             segment_len=self.segment_len,
             target_attrs=self.target_attrs,
+            md_attrs=self.md_attrs,
             sample_rate=self.sample_rate,
             download=False,
         )
