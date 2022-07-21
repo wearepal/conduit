@@ -6,6 +6,7 @@ from typing import List, Optional, Sequence, Union, cast, overload
 import numpy as np
 import numpy.typing as npt
 from ranzen import implements
+from ranzen.types import Addable
 import torch
 from torch import Tensor
 from typing_extensions import Self, TypeAlias
@@ -21,7 +22,7 @@ from conduit.data.datasets.utils import (
     load_image,
 )
 from conduit.data.structures import TargetData
-from conduit.types import Addable, IndexType
+from conduit.types import IndexType
 
 __all__ = ["CdtVisionDataset"]
 

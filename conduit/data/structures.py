@@ -23,11 +23,12 @@ import numpy as np
 import numpy.typing as npt
 from ranzen.decorators import implements
 from ranzen.misc import gcopy
+from ranzen.types import Addable
 import torch
 from torch import Tensor
 from typing_extensions import Self, TypeAlias, runtime_checkable
 
-from conduit.types import Addable, IndexType, Sized
+from conduit.types import IndexType, Sized
 
 __all__ = [
     "BinarySample",
