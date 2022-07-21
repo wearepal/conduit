@@ -1,6 +1,6 @@
 from enum import Enum
 from functools import partial, wraps
-from typing import List, Optional, Protocol, Tuple, TypeVar, Union
+from typing import List, Optional, Protocol, Tuple, TypeVar, Union, cast
 
 import torch
 from torch import Tensor
@@ -145,8 +145,8 @@ def _apply_groupwise_metric(
                 )
             elem = elem.squeeze()
             unique_vals, inv_indices = elem.unique(return_inverse=True)
-            index_set *= len(unique_vals)
-            index_set += inv_indices
+            index_set *= int(len(unique_vals))
+            index_set += cast(Tensor, inv_indices)
 
     res = comparator(y_pred=y_pred, y_true=y_true)
     if isinstance(res, tuple):
@@ -155,7 +155,14 @@ def _apply_groupwise_metric(
         comps, comp_mask = res, slice(None)
 
     if index_set is not None:
-        scores = torch.scatter_reduce(comps, dim=0, index=index_set[comp_mask], reduce="mean")
+        res = index_set.max()
+        scores = torch.scatter_reduce(
+            input=torch.zeros(int(index_set.max() + 1)),
+            src=comps,
+            dim=0,
+            index=index_set[comp_mask],
+            reduce="mean",
+        )
         if aggregator is not None:
             scores = aggregator.value(scores)
         return scores
