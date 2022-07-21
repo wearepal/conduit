@@ -109,9 +109,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         self.target_attrs = [
             str_to_enum(str_=elem, enum=SoundscapeAttr).name for elem in target_attrs
         ]
-        self.md_attrs = [
-            str_to_enum(str_=elem, enum=MDAttr).name for elem in md_attrs
-        ]
+        self.md_attrs = [str_to_enum(str_=elem, enum=MDAttr).name for elem in md_attrs]
 
         if self.download:
             self._download_files()
