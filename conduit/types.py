@@ -11,7 +11,6 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR,
 from typing_extensions import Protocol, Self, TypeAlias, runtime_checkable
 
 __all__ = [
-    "Addable",
     "IndexType",
     "Indexable",
     "LRScheduler",
@@ -54,12 +53,6 @@ T_co = TypeVar("T_co", covariant=True)
 @runtime_checkable
 class Sized(Protocol[T_co]):
     def __len__(self) -> int:
-        ...
-
-
-@runtime_checkable
-class Addable(Protocol[T_co]):
-    def __add__(self, other: Self) -> Self:
         ...
 
 
