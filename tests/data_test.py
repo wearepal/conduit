@@ -160,7 +160,10 @@ def test_ecoacoustics_dm(root: Path):
     train_dl = dm.train_dataloader()
     test_sample = next(iter(train_dl))
 
-    # Test size().
+    # Test is a ternary sample
+    assert type(test_sample) == TernarySample
+
+    # Test size()
     assert test_sample.x.size()[1] == dm.dims[0]
     assert test_sample.x.size()[2] == dm.dims[1]
     assert test_sample.x.size()[3] == dm.dims[2]
@@ -185,6 +188,7 @@ def test_ecoacoustics_dm_batch_multi_label(root: Path, train_batch_size: int) ->
 
     assert sample.y.size(1) == len(target_attrs)
     assert sample.x.size(0) == sample.y.size(0) == train_batch_size
+    assert sample.s.size(0) == sample.y.size(0) == train_batch_size
 
 
 def test_add_field() -> None:
