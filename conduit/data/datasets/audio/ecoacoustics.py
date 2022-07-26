@@ -9,7 +9,7 @@ from enum import Enum, auto
 import math
 from pathlib import Path
 import shutil
-from typing import ClassVar, List, Optional, Tuple, Union, cast
+from typing import ClassVar, List, Optional, Tuple, Union, cast, Dict
 import zipfile
 
 import numpy as np
@@ -121,10 +121,6 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
 
         self.metadata = pd.read_csv(self.base_dir / self._METADATA_FILENAME)
         # map numerical indices to target attributes
-        self.md_decoder = self.metadata[self.md_attrs].to_dict()
-        encoded_targets = [SoundscapeAttr.habitat.name, SoundscapeAttr.site.name]
-        self.target_attr_decoder = self.metadata[encoded_targets].to_dict()
-
         x = self.metadata["filePath"].to_numpy()
         y = torch.as_tensor(
             self._label_encode(self.metadata[self.target_attrs], inplace=True).to_numpy()
@@ -166,6 +162,10 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
                 )
             if zipfile.is_zipfile(dir_):
                 raise RuntimeError(f"{dir_} file not unzipped.")
+
+    def label_decoder(self) -> Dict[SoundscapeAttr, Dict[str, int]]:
+        encoded_targets = [SoundscapeAttr.habitat.name, SoundscapeAttr.site.name] + self.md_attrs
+        return self.metadata[encoded_targets].to_dict()
 
     @staticmethod
     def _label_encode(
