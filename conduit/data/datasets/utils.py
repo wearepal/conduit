@@ -311,7 +311,8 @@ def compute_instance_weights(dataset: Dataset, *, upweight: bool = False) -> Ten
     # - this approach should be preferred due to being more numerically stable
     # (very small counts can lead to very large weighted loss values when upweighting)
     else:
-        group_weights = 1 - (counts / len(group_ids))
+        counts_r = counts.reciprocal()
+        group_weights = counts_r / counts_r.sum()
     return group_weights[inv_indexes]
 
 
@@ -418,11 +419,10 @@ class cdt_collate:
                 storage = elem.storage()._new_shared(numel)
                 out = elem.new(storage).resize_(len(batch), *list(elem.size()))
             ndims = elem.dim()
-            # If 'batch' is a sequence of sub-batched tensors we concatenate
-            # the elements along the batch dimesion.
-            # Note, the problem of inferring whether the tensors are sub-batched or not is ill-posed
-            # given that the dimensionality of samples varies with modality; the current
-            # solution is tailored for tabular and image data.
+            # If 'batch' is a sequence of sub-batched tensors we concatenate the elements along the
+            # batch dimesion. Note, the problem of inferring whether the tensors are sub-batched or
+            # not is ill-posed given that the dimensionality of samples varies with modality; the
+            # current solution is tailored for tabular and image data.
             if (ndims > 0) and ((ndims % 2) == 0):
                 return torch.cat(batch, dim=0, out=out)  # type: ignore
             return torch.stack(batch, dim=0, out=out)  # type: ignore
