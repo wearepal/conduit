@@ -122,6 +122,8 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         self.metadata = pd.read_csv(self.base_dir / self._METADATA_FILENAME)
         # map numerical indices to target attributes
         self.md_decoder = self.metadata[self.md_attrs].to_dict()
+        encoded_targets = [SoundscapeAttr.habitat.name, SoundscapeAttr.site.name]
+        self.target_attr_decoder = self.metadata[encoded_targets].to_dict()
 
         x = self.metadata["filePath"].to_numpy()
         y = torch.as_tensor(
