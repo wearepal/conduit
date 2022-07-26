@@ -42,7 +42,7 @@ class SoundscapeAttr(Enum):
     time = auto()
     NN = auto()
     N0 = auto()
-    A_Den = auto()
+    A_Den = "A.Den"
 
 
 @enum_name_str
