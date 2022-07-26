@@ -9,7 +9,7 @@ from enum import Enum, auto
 import math
 from pathlib import Path
 import shutil
-from typing import ClassVar, List, Optional, Tuple, Union, cast, Dict
+from typing import ClassVar, List, Optional, Tuple, Union, cast, Dict, Any
 import zipfile
 
 import numpy as np
@@ -163,7 +163,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
             if zipfile.is_zipfile(dir_):
                 raise RuntimeError(f"{dir_} file not unzipped.")
 
-    def label_decoder(self) -> Dict[SoundscapeAttr, Dict[str, int]]:
+    def label_decoder(self) -> Dict[str, Any]:
         encoded_targets = [SoundscapeAttr.habitat.name, SoundscapeAttr.site.name] + self.md_attrs
         return self.metadata[encoded_targets].to_dict()
 
