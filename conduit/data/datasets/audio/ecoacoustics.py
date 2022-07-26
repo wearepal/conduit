@@ -9,7 +9,7 @@ from enum import Enum, auto
 import math
 from pathlib import Path
 import shutil
-from typing import ClassVar, List, Optional, Tuple, Union, cast, Dict, Any
+from typing import Any, ClassVar, Dict, List, Optional, Tuple, Union, cast
 import zipfile
 
 import numpy as np
