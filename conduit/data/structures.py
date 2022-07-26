@@ -139,7 +139,7 @@ class InputContainer(Sized, Addable, Protocol[X_co]):
         """
         Collates a sequence of container instances into a single instance.
 
-        :param sequence: Sequence of containers to be collated
+        :param sequence: Sequence of containers to be collated.
 
         :returns: A collated container.
         """
