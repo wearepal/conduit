@@ -56,7 +56,6 @@ from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import (
     BinarySample,
     Dataset,
-    InputContainer,
     LoadedData,
     NamedSample,
     PseudoCdtDataset,
@@ -398,11 +397,8 @@ class cdt_collate:
     def _collate(self, batch: Any) -> Any:
         elem = batch[0]
         elem_type = type(elem)
-        # InputContainer
-        if isinstance(elem, InputContainer):
-            return elem.fromiter(batch)
         # dataclass
-        elif is_dataclass(elem):
+        if is_dataclass(elem):
             return elem_type(
                 **{
                     field.name: self._collate([getattr(d, field.name) for d in batch])
@@ -449,14 +445,14 @@ class cdt_collate:
             return batch
         # Mapping
         elif isinstance(elem, Mapping):
-            return {key: self._collate([d[key] for d in batch]) for key in elem}
+            return elem_type({key: self._collate([d[key] for d in batch]) for key in elem})
         # NamedTuple
         elif isinstance(elem, tuple) and hasattr(elem, "_fields"):  # namedtuple
             return elem_type(**(self._collate(samples) for samples in zip(*batch)))
         # Tuple or List
         elif isinstance(elem, (tuple, list)):
             transposed = zip(*batch)
-            return [self._collate(samples) for samples in transposed]
+            return elem_type([self._collate(samples) for samples in transposed])
         # Invalid (uncollatable) type
         raise TypeError(default_collate_err_msg_format.format(elem_type))
 
