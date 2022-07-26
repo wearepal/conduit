@@ -6,6 +6,7 @@ from typing import (
     Any,
     Dict,
     Generic,
+    Iterable,
     Iterator,
     List,
     Optional,
@@ -22,7 +23,7 @@ import attr
 import numpy as np
 import numpy.typing as npt
 from ranzen.decorators import implements
-from ranzen.misc import gcopy
+from ranzen.misc import gcopy, reduce_add
 from ranzen.types import Addable
 import torch
 from torch import Tensor
@@ -133,6 +134,17 @@ def concatenate_inputs(x1: X, x2: X, *, is_batched: bool) -> X:
 
 @runtime_checkable
 class InputContainer(Sized, Addable, Protocol[X_co]):
+    @classmethod
+    def fromiter(cls, sequence: Iterable[Self]) -> Self:
+        """
+        Collates a sequence of container instances into a single instance.
+
+        :param sequence: Sequence of containers to be collated
+
+        :returns: A collated container.
+        """
+        return reduce_add(sequence)
+
     @implements(Sized)
     def __len__(self) -> int:
         """Total number of samples in the container."""

@@ -56,6 +56,7 @@ from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import (
     BinarySample,
     Dataset,
+    InputContainer,
     LoadedData,
     NamedSample,
     PseudoCdtDataset,
@@ -396,7 +397,19 @@ class cdt_collate:
     def _collate(self, batch: Any) -> Any:
         elem = batch[0]
         elem_type = type(elem)
-        if isinstance(elem, Tensor):
+        # InputContainer
+        if isinstance(elem, InputContainer):
+            return elem.fromiter(batch)
+        # dataclass
+        elif is_dataclass(elem):
+            return elem_type(
+                **{
+                    field.name: self._collate([getattr(d, field.name) for d in batch])
+                    for field in fields(elem)
+                }
+            )
+        # Tensor
+        elif isinstance(elem, Tensor):
             out = None
             if torch.utils.data.get_worker_info() is not None:  # type: ignore
                 # If we're in a background process, concatenate directly into a
@@ -405,9 +418,15 @@ class cdt_collate:
                 storage = elem.storage()._new_shared(numel)
                 out = elem.new(storage).resize_(len(batch), *list(elem.size()))
             ndims = elem.dim()
+            # If 'batch' is a sequence of sub-batched tensors we concatenate
+            # the elements along the batch dimesion.
+            # Note, the problem of inferring whether the tensors are sub-batched or not is ill-posed
+            # given that the dimensionality of samples varies with modality; the current
+            # solution is tailored for tabular and image data.
             if (ndims > 0) and ((ndims % 2) == 0):
                 return torch.cat(batch, dim=0, out=out)  # type: ignore
             return torch.stack(batch, dim=0, out=out)  # type: ignore
+        # NumPy array
         elif (
             elem_type.__module__ == "numpy"
             and elem_type.__name__ != "str_"
@@ -419,26 +438,26 @@ class cdt_collate:
                 if np_str_obj_array_pattern.search(elem.dtype.str) is not None:
                     raise TypeError(default_collate_err_msg_format.format(elem.dtype))
                 return self._collate([torch.as_tensor(b) for b in batch])
+        # Float
         elif isinstance(elem, float):
-            return torch.tensor(batch, dtype=torch.float64)
+            return torch.tensor(batch, dtype=torch.float32)
+        # Integer
         elif isinstance(elem, int):
             return torch.tensor(batch)
+        # String
         elif isinstance(elem, string_classes):
             return batch
+        # Mapping
         elif isinstance(elem, Mapping):
             return {key: self._collate([d[key] for d in batch]) for key in elem}
+        # NamedTuple
         elif isinstance(elem, tuple) and hasattr(elem, "_fields"):  # namedtuple
             return elem_type(**(self._collate(samples) for samples in zip(*batch)))
-        elif is_dataclass(elem):  # dataclass
-            return elem_type(
-                **{
-                    field.name: self._collate([getattr(d, field.name) for d in batch])
-                    for field in fields(elem)
-                }
-            )
+        # Tuple or List
         elif isinstance(elem, (tuple, list)):
             transposed = zip(*batch)
             return [self._collate(samples) for samples in transposed]
+        # Invalid (uncollatable) type
         raise TypeError(default_collate_err_msg_format.format(elem_type))
 
     def __call__(self, batch: Any) -> Any:
