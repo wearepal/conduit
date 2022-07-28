@@ -164,8 +164,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
                 raise RuntimeError(f"{dir_} file not unzipped.")
 
     def label_decoder(self) -> Dict[str, Any]:
-        encoded_targets = [SoundscapeAttr.habitat.name, SoundscapeAttr.site.name] + self.md_attrs
-        return self.metadata[encoded_targets].to_dict()
+        return self.metadata[self.target_attrs + self.md_attrs].to_dict()
 
     @staticmethod
     def _label_encode(
