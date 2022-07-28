@@ -1,4 +1,4 @@
-"""PACS data-module."""
+"""PACS datamodule."""
 from typing import Any
 
 import albumentations as A  # type: ignore
@@ -16,7 +16,7 @@ __all__ = ["PACSDataModule"]
 
 @attr.define(kw_only=True)
 class PACSDataModule(CdtVisionDataModule[PACS, SampleType]):
-    """Data-module for the NICO dataset."""
+    """PyTorch Lightning Datamodule for the PACS dataset."""
 
     image_size: int = 224
     target_domain: PACS.Domain = PACS.Domain.sketch
