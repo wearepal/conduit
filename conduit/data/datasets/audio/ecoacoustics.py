@@ -9,7 +9,7 @@ from enum import Enum, auto
 import math
 from pathlib import Path
 import shutil
-from typing import Any, ClassVar, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, ClassVar, Dict, List, Optional, Tuple, Union, cast, Dict
 import zipfile
 
 import numpy as np
@@ -122,12 +122,14 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         self.metadata = pd.read_csv(self.base_dir / self._METADATA_FILENAME)
         # map numerical indices to target attributes
         x = self.metadata["filePath"].to_numpy()
-        y = torch.as_tensor(
-            self._label_encode(self.metadata[self.target_attrs], inplace=True).to_numpy()
-        )
-        s = torch.as_tensor(
-            self._label_encode(self.metadata[self.md_attrs], inplace=True).to_numpy()
-        )
+        # encode targets
+        label_encoding, label_decoder = self._label_encode(self.metadata[self.target_attrs], inplace=True)
+        md_encoding, md_decoder = self._label_encode(self.metadata[self.md_attrs], inplace=True)
+        # decoder maps encoded integer value to string value for each object / categorical target
+        self.decoder = {k: v for d in [label_decoder, md_decoder] for k, v in d.items()}
+
+        y = torch.as_tensor(label_encoding.to_numpy())
+        s = torch.as_tensor(md_encoding.to_numpy())
 
         super().__init__(x=x, y=y, s=s, transform=transform, audio_dir=self.base_dir)
 
@@ -163,25 +165,28 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
             if zipfile.is_zipfile(dir_):
                 raise RuntimeError(f"{dir_} file not unzipped.")
 
-    def label_decoder(self) -> Dict[str, Any]:
-        return self.metadata[self.target_attrs + self.md_attrs].to_dict()
-
     @staticmethod
     def _label_encode(
-        data: Union[pd.DataFrame, pd.Series], inplace=True
-    ) -> Union[pd.DataFrame, pd.Series]:
+        data: Union[pd.DataFrame, pd.Series],
+        inplace: bool = True
+    ) -> Tuple[Union[pd.DataFrame, pd.Series], Union[Dict[int, Any], Dict[str, Dict[int, Any]]]]:
         """Label encode the extracted concept/context/superclass information."""
         data = data.copy(deep=not inplace)
+        mapping = {}
         if isinstance(data, pd.Series):
             if is_object_dtype(data) or is_categorical_dtype(data):
-                data.update(data.factorize()[0])  # type: ignore
+                encoded_values, true_values = data.factorize()
+                data.update(encoded_values)  # type: ignore
                 data = data.astype(np.int64)
+                mapping = dict(zip(range(len(true_values)), true_values))
         else:
             for col in data.columns:
                 # Add a new column containing the label-encoded data
                 if is_object_dtype(data[col]) or is_categorical_dtype(data[col]):
-                    data[col] = data[col].factorize()[0]
-        return data
+                    encoded_values, true_values = data[col].factorize()
+                    data[col] = encoded_values
+                    mapping[col] = dict(zip(range(len(true_values)), true_values))
+        return data, mapping
 
     def _download_files(self) -> None:
         """Download all files necessary for dataset to work."""
