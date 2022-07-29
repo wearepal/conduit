@@ -107,7 +107,7 @@ class PACS(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._base_dir)
 
     def _check_unzipped(self) -> bool:
-        return all((self._base_dir / sc.value).exists() for sc in PacsDomain)
+        return all((self._base_dir / str(sc)).exists() for sc in PacsDomain)
 
     def _extract_metadata(self) -> None:
         """Extract domain/class information from the image filepaths and it save to csv."""
