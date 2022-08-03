@@ -201,11 +201,23 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
 
     @property
     def dim_x(self) -> Tuple[int, ...]:
+        """
+        Returns the dimensions of the first input (x).
+
+        :returns: Tuple containing the dimensions of the (first) input.
+        """
         if self._dim_x is None:
             self._check_setup_called()
             input_size = tuple(self._train_data[0].x.shape)  # type: ignore
             self._dim_x = input_size
         return self._dim_x
+
+    def size(self) -> Tuple[int, ...]:
+        """Alias for ``dim_x``.
+
+        :returns: Tuple containing the dimensions of the (first) input.
+        """
+        return self.dim_x
 
     @final
     def _num_samples(self, dataset: D) -> int:
