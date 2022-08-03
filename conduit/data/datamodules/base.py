@@ -90,6 +90,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     _card_y: Optional[int] = attr.field(default=None, init=False)
     _dim_s: Optional[torch.Size] = attr.field(default=None, init=False)
     _dim_y: Optional[torch.Size] = attr.field(default=None, init=False)
+    _dim_x: Optional[Tuple[int, ...]] = attr.field(default=None, init=False)
 
     def __attrs_pre_init__(self) -> None:
         super().__init__()
@@ -199,14 +200,24 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
         return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.test_data)
 
     @property
-    @implements(pl.LightningDataModule)
-    def dims(self) -> Tuple[int, ...]:
-        if self._dims:
-            return self._dims
-        self._check_setup_called()
-        input_size = tuple(self._train_data[0].x.shape)  # type: ignore
-        self._dims = input_size
-        return self._dims
+    def dim_x(self) -> Tuple[int, ...]:
+        """
+        Returns the dimensions of the first input (x).
+
+        :returns: Tuple containing the dimensions of the (first) input.
+        """
+        if self._dim_x is None:
+            self._check_setup_called()
+            input_size = tuple(self._train_data[0].x.shape)  # type: ignore
+            self._dim_x = input_size
+        return self._dim_x
+
+    def size(self) -> Tuple[int, ...]:
+        """Alias for ``dim_x``.
+
+        :returns: Tuple containing the dimensions of the (first) input.
+        """
+        return self.dim_x
 
     @final
     def _num_samples(self, dataset: D) -> int:
