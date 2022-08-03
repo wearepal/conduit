@@ -72,8 +72,8 @@ class CdtVisionDataModule(CdtDataModule[D, I]):
 
     @property
     @implements(CdtDataModule)
-    def dims(self) -> ImageSize:
-        return ImageSize(*super().dims)
+    def dim_x(self) -> ImageSize:
+        return ImageSize(*super().dim_x)
 
     @property
     def _default_test_transforms(self) -> A.Compose:
