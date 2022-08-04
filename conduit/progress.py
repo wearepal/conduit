@@ -54,7 +54,7 @@ def _quarterion_theme() -> RichProgressBarTheme:
     )
 
 
-def _cyperbunk_theme() -> RichProgressBarTheme:
+def _cyberpunk_theme() -> RichProgressBarTheme:
     return RichProgressBarTheme(
         description="#FF00CF",
         progress_bar="#00ff9f",
@@ -82,7 +82,7 @@ def _google_theme() -> RichProgressBarTheme:
 
 class ProgressBarTheme(Enum):
     QUARTERION = partial(_quarterion_theme)
-    CYBERPUNK = partial(_cyperbunk_theme)
+    CYBERPUNK = partial(_cyberpunk_theme)
     GOOGLE = partial(_google_theme)
 
 
