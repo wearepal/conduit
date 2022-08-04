@@ -37,7 +37,7 @@ class _FixedLengthProcessionSpeed(ProcessingSpeedColumn):
         return Text(f"{task_speed}it/s", style=self.style, justify="center")
 
 
-def _default_theme():
+def _default_theme() -> RichProgressBarTheme:
     return RichProgressBarTheme(
         description="white",
         progress_bar="#4881AD",
