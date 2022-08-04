@@ -192,12 +192,10 @@ class CdtProgressBar(RichProgressBar):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        if not self.has_dataloader_changed(dataloader_idx):
-            return
-
-        if (self.predict_progress_bar_id is not None) and (self.progress is not None):
-            self.progress.update(TaskID(self.predict_progress_bar_id), advance=0, visible=False)
-        self.predict_progress_bar_id = self._add_task(
-            self.total_predict_batches_current_dataloader, self.predict_description
-        )
-        self.refresh()
+        if self.has_dataloader_changed(dataloader_idx):
+            if (self.predict_progress_bar_id is not None) and (self.progress is not None):
+                self.progress.update(TaskID(self.predict_progress_bar_id), advance=0, visible=False)
+            self.predict_progress_bar_id = self._add_task(
+                self.total_predict_batches_current_dataloader, self.predict_description
+            )
+            self.refresh()
