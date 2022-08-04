@@ -57,8 +57,8 @@ def _quarterion_theme() -> RichProgressBarTheme:
 def _cyberpunk_theme() -> RichProgressBarTheme:
     return RichProgressBarTheme(
         description="#FF00CF",
-        progress_bar="#00ff9f",
-        progress_bar_finished="#001eff",
+        progress_bar="#001eff",
+        progress_bar_finished="#00ff9f",
         progress_bar_pulse="#001eff",
         batch_progress="#FF00CF",
         time="#00b8ff",
