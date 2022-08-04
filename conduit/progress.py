@@ -17,10 +17,14 @@ from rich.console import RenderableType
 from rich.progress import Task, TaskID, TextColumn
 from rich.table import Column
 from rich.text import Text
+from typing_extensions import TypeAlias
 
 from conduit.data.datamodules.vision.dummy import DummyVisionDataModule  # type: ignore
 
-__all__ = ["CdtProgressBar"]
+__all__ = [
+    "CdtProgressBar",
+    "ProgressBarTheme",
+]
 
 
 class _FixedLengthProcessionSpeed(ProcessingSpeedColumn):
@@ -37,7 +41,7 @@ class _FixedLengthProcessionSpeed(ProcessingSpeedColumn):
         return Text(f"{task_speed}it/s", style=self.style, justify="center")
 
 
-def _default_theme() -> RichProgressBarTheme:
+def _quarterion_theme() -> RichProgressBarTheme:
     return RichProgressBarTheme(
         description="white",
         progress_bar="#4881AD",
@@ -50,19 +54,49 @@ def _default_theme() -> RichProgressBarTheme:
     )
 
 
+def _cyperbunk_theme() -> RichProgressBarTheme:
+    return RichProgressBarTheme(
+        description="#FF00CF",
+        progress_bar="#00ff9f",
+        progress_bar_finished="#001eff",
+        progress_bar_pulse="#001eff",
+        batch_progress="#FF00CF",
+        time="#00b8ff",
+        processing_speed="#FF46D6",
+        metrics="#00ff9f",
+    )
+
+
+def _google_theme() -> RichProgressBarTheme:
+    return RichProgressBarTheme(
+        description="#008744",
+        progress_bar="#0057e7",
+        progress_bar_finished="#d62d20",
+        progress_bar_pulse="#d62d20",
+        batch_progress="#ffa700",
+        time="white",
+        processing_speed="#0057e7",
+        metrics="#d62d20",
+    )
+
+
 class ProgressBarTheme(Enum):
-    DEFAULT = partial(_default_theme)
+    QUARTERION = partial(_quarterion_theme)
+    CYBERPUNK = partial(_cyperbunk_theme)
+    GOOGLE = partial(_google_theme)
 
 
 class CdtProgressBar(RichProgressBar):
     """Custom Lightning progress bar supporting both epoch- and iteration-based training."""
+
+    Theme: TypeAlias = ProgressBarTheme
 
     def __init__(
         self,
         refresh_rate: int = 1,
         *,
         leave: bool = False,
-        theme: Union[RichProgressBarTheme, ProgressBarTheme] = ProgressBarTheme.DEFAULT,
+        theme: Union[RichProgressBarTheme, Theme] = Theme.CYBERPUNK,
         console_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         if isinstance(theme, ProgressBarTheme):
@@ -188,9 +222,10 @@ class CdtProgressBar(RichProgressBar):
     def on_predict_batch_start(
         self,
         trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
+        batch: Any,
+        batch_idx: int,
         dataloader_idx: int,
-        *args: Any,
-        **kwargs: Any,
     ) -> None:
         if self.has_dataloader_changed(dataloader_idx):
             if (self.predict_progress_bar_id is not None) and (self.progress is not None):
