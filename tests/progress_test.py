@@ -23,25 +23,25 @@ class DummyModel(pl.LightningModule):
         )
         self.wait_time = wait_time
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.AdamW(self.model.parameters())
 
-    def training_step(self, sample: TernarySample[Tensor], *args):
+    def training_step(self, sample: TernarySample[Tensor], *args) -> Tensor:
         logits = self.model(sample.x)
         time.sleep(self.wait_time)
         return cross_entropy_loss(logits, target=sample.y)
 
-    def validation_step(self, sample: TernarySample[Tensor], *args):
+    def validation_step(self, sample: TernarySample[Tensor], *args) -> Tensor:
         logits = self.model(sample.x)
         time.sleep(self.wait_time)
         return cross_entropy_loss(logits, target=sample.y)
 
-    def test_step(self, sample: TernarySample[Tensor], *args):
+    def test_step(self, sample: TernarySample[Tensor], *args) -> Tensor:
         logits = self.model(sample.x)
         time.sleep(self.wait_time)
         return cross_entropy_loss(logits, target=sample.y)
 
-    def predict_step(self, sample: TernarySample[Tensor], *args):
+    def predict_step(self, sample: TernarySample[Tensor], *args) -> Tensor:
         time.sleep(self.wait_time)
         return self.model(sample.x).argmax(dim=1)
 
