@@ -41,7 +41,7 @@ class _FixedLengthProcessionSpeed(ProcessingSpeedColumn):
         return Text(f"{task_speed}it/s", style=self.style, justify="center")
 
 
-def _quarterion_theme() -> RichProgressBarTheme:
+def _quaterion_theme() -> RichProgressBarTheme:
     return RichProgressBarTheme(
         description="white",
         progress_bar="#4881AD",
@@ -81,7 +81,7 @@ def _google_theme() -> RichProgressBarTheme:
 
 
 class ProgressBarTheme(Enum):
-    QUARTERION = partial(_quarterion_theme)
+    QUATERION = partial(_quaterion_theme)
     CYBERPUNK = partial(_cyberpunk_theme)
     GOOGLE = partial(_google_theme)
 
