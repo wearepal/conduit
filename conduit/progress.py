@@ -132,7 +132,7 @@ class CdtProgressBar(RichProgressBar):
 
     @staticmethod
     def _is_iteration_based(trainer: pl.Trainer) -> bool:
-        return (trainer.max_steps >= 0) or (trainer.num_training_batches == float("inf"))
+        return trainer.num_training_batches == float("inf")
 
     @property
     @implements(RichProgressBar)
