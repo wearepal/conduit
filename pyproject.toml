@@ -23,7 +23,6 @@ readme="README.md"
 [tool.poetry.dependencies]
 python = ">=3.8.0,<3.11"
 albumentations = "^1.0.0"
-lightning-bolts = "^0.3.4"
 torch = ">=1.11.0"
 torchvision = ">=0.10.1"
 torchaudio = ">=0.9.1"
@@ -85,7 +84,7 @@ exclude = '''
 )
 '''
 [tool.isort]
-known_third_party = ["PIL", "albumentations", "attr", "cv2", "ethicml", "hydra", "numpy", "omegaconf", "pandas", "pytest", "pytorch_lightning", "ranzen", "requests", "sklearn", "torch", "torchaudio", "torchmetrics", "torchvision", "tqdm", "typing_extensions"]
+known_third_party = ["PIL", "albumentations", "attr", "cv2", "ethicml", "hydra", "numpy", "omegaconf", "pandas", "pytest", "pytorch_lightning", "ranzen", "requests", "rich", "sklearn", "torch", "torchaudio", "torchmetrics", "torchvision", "tqdm", "typing_extensions"]
 known_future_library = []
 extra_standard_library = ["dataclasses", "__future__", "typing_extensions"]
 line_length = 88
