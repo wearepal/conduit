@@ -1,6 +1,6 @@
 from enum import Enum
 from functools import partial, wraps
-from typing import List, Optional, Protocol, Tuple, TypeVar, Union, cast
+from typing import List, Optional, Protocol, Sequence, Tuple, TypeVar, Union, cast
 
 import torch
 from torch import Tensor
@@ -102,6 +102,19 @@ class Aggregator(Enum):
     "Aggregate by taking the maximum of the pairwise (absolute) differences."
 
 
+def merge_group_ids(group_ids: Sequence[Tensor]) -> Tensor:
+    group_ids_ls = list(group_ids)
+    index_set = group_ids_ls.pop().clone().squeeze()
+
+    for elem in group_ids_ls:
+        elem = elem.squeeze()
+        unique_vals, inv_indices = elem.unique(return_inverse=True)
+        index_set *= int(len(unique_vals))
+        index_set += cast(Tensor, inv_indices)
+
+    return index_set
+
+
 @torch.no_grad()
 def _apply_groupwise_metric(
     *group_ids: Tensor,
@@ -136,7 +149,7 @@ def _apply_groupwise_metric(
 
     if group_ids:
         group_ids_ls = list(group_ids)
-        index_set = group_ids_ls.pop().squeeze()
+        index_set = group_ids_ls.pop().clone().squeeze()
 
         for elem in group_ids_ls:
             if len(y_pred) != len(y_true) != len(elem):
@@ -277,4 +290,10 @@ tpr_differences = subclasswise_metric(
 )
 tnr_differences = subclasswise_metric(
     comparator=partial(conditional_equal, y_true_cond=0), aggregator=Aggregator.DIFF
+)
+robust_tpr = subclasswise_metric(
+    comparator=partial(conditional_equal, y_true_cond=1), aggregator=Aggregator.MIN
+)
+robust_tnr = subclasswise_metric(
+    comparator=partial(conditional_equal, y_true_cond=0), aggregator=Aggregator.MIN
 )
