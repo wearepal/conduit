@@ -549,7 +549,7 @@ class MeanStd:
     std: Union[Tuple[float, ...], List[float]]
 
     def __iter__(self) -> Iterator[Union[Tuple[float, ...], List[float]]]:
-        yield from (self.mean, self.mean)
+        yield from (self.mean, self.std)
 
     def __imul__(self, value: float) -> Self:
         self.mean = [value * elem for elem in self.mean]
