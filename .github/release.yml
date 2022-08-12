@@ -9,7 +9,7 @@ changelog:
   categories:
     - title: Breaking Changes 🛠
       labels:
-        - breaking
+        - breaking-change
     - title: Exciting New Features 🎉
       labels:
         - enhancement
