@@ -12,9 +12,12 @@ __all__ = [
     "groupwise_metric",
     "hard_prediction",
     "max_difference_1d",
+    "merge_indices",
     "precision_at_k",
     "robust_accuracy",
     "robust_gap",
+    "robust_tnr",
+    "robust_tpr",
     "subclass_balanced_accuracy",
     "subclasswise_metric",
     "tnr_per_subclass",
@@ -102,6 +105,33 @@ class Aggregator(Enum):
     "Aggregate by taking the maximum of the pairwise (absolute) differences."
 
 
+def merge_indices(*indices: Tensor) -> Tensor:
+    """
+    Bijectively merge a sequence of index tensors into a single index tensor, such that each
+    combination of possible indices from across the elements in ``group_ids`` is assigned a unique
+    index.
+
+    :param group_ids: A sequence of (long-type) index tensors.
+    :returns: A merged index set which uniquely indexes each possible combination in indices.
+
+    :raises TypeError: If any elemnts of ``indices`` do not have dtype ``torch.long``.
+    """
+    group_ids_ls = list(indices)
+    index_set = group_ids_ls.pop().clone().squeeze()
+    if index_set.dtype != torch.long:
+        raise TypeError("All index tensors must have dtype `torch.long'.")
+
+    for elem in group_ids_ls:
+        elem = elem.squeeze()
+        if elem.dtype != torch.long:
+            raise TypeError("All index tensors must have dtype `torch.long'.")
+        unique_vals, inv_indices = elem.unique(return_inverse=True)
+        index_set *= int(len(unique_vals))
+        index_set += cast(Tensor, inv_indices)
+
+    return index_set
+
+
 @torch.no_grad()
 def _apply_groupwise_metric(
     *group_ids: Tensor,
@@ -136,7 +166,7 @@ def _apply_groupwise_metric(
 
     if group_ids:
         group_ids_ls = list(group_ids)
-        index_set = group_ids_ls.pop().squeeze()
+        index_set = group_ids_ls.pop().clone().squeeze()
 
         for elem in group_ids_ls:
             if len(y_pred) != len(y_true) != len(elem):
@@ -277,4 +307,10 @@ tpr_differences = subclasswise_metric(
 )
 tnr_differences = subclasswise_metric(
     comparator=partial(conditional_equal, y_true_cond=0), aggregator=Aggregator.DIFF
+)
+robust_tpr = subclasswise_metric(
+    comparator=partial(conditional_equal, y_true_cond=1), aggregator=Aggregator.MIN
+)
+robust_tnr = subclasswise_metric(
+    comparator=partial(conditional_equal, y_true_cond=0), aggregator=Aggregator.MIN
 )
