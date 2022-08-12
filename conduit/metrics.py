@@ -1,6 +1,6 @@
 from enum import Enum
 from functools import partial, wraps
-from typing import List, Optional, Protocol, Sequence, Tuple, TypeVar, Union, cast
+from typing import List, Optional, Protocol, Tuple, TypeVar, Union, cast
 
 import torch
 from torch import Tensor
@@ -12,7 +12,7 @@ __all__ = [
     "groupwise_metric",
     "hard_prediction",
     "max_difference_1d",
-    "merge_group_ids",
+    "merge_indices",
     "precision_at_k",
     "robust_accuracy",
     "robust_gap",
@@ -103,12 +103,26 @@ class Aggregator(Enum):
     "Aggregate by taking the maximum of the pairwise (absolute) differences."
 
 
-def merge_group_ids(group_ids: Sequence[Tensor]) -> Tensor:
-    group_ids_ls = list(group_ids)
+def merge_indices(*indices: Tensor) -> Tensor:
+    """
+    Bijectively merge a sequence of index tensors into a single index tensor, such that each
+    combination of possible indices from across the elements in ``group_ids`` is assigned a unique
+    index.
+
+    :param group_ids: A sequence of (long-type) index tensors.
+    :returns: A merged index set which uniquely indexes each possible combination in indices.
+
+    :raises TypeError: If any elemnts of ``indices`` do not have dtype ``torch.long``.
+    """
+    group_ids_ls = list(indices)
     index_set = group_ids_ls.pop().clone().squeeze()
+    if index_set.dtype != torch.long:
+        raise TypeError("All index tensors must have dtype `torch.long'.")
 
     for elem in group_ids_ls:
         elem = elem.squeeze()
+        if elem.dtype != torch.long:
+            raise TypeError("All index tensors must have dtype `torch.long'.")
         unique_vals, inv_indices = elem.unique(return_inverse=True)
         index_set *= int(len(unique_vals))
         index_set += cast(Tensor, inv_indices)
