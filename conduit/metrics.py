@@ -12,6 +12,7 @@ __all__ = [
     "groupwise_metric",
     "hard_prediction",
     "max_difference_1d",
+    "merge_group_ids",
     "precision_at_k",
     "robust_accuracy",
     "robust_gap",
