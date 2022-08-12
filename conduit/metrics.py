@@ -16,6 +16,8 @@ __all__ = [
     "precision_at_k",
     "robust_accuracy",
     "robust_gap",
+    "robust_tnr",
+    "robust_tpr",
     "subclass_balanced_accuracy",
     "subclasswise_metric",
     "tnr_per_subclass",
