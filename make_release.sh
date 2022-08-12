@@ -94,7 +94,7 @@ git push origin $branch_name $new_tag
 echo "#######################################"
 echo "#     create PR for version bump      #"
 echo "#######################################"
-gh pr create --fill --base "main"
+gh pr create --fill --base "main" --label version-bump
 gh pr merge $branch_name --merge --auto
 
 echo "#######################################"
