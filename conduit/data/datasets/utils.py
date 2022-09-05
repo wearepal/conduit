@@ -660,13 +660,38 @@ def random_split(
     return splits
 
 
+@overload
+def stratified_split(
+    dataset: PseudoCdtDataset,
+    *,
+    default_train_prop: float,
+    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = None,
+    seed: Optional[int] = None,
+    as_indices: Literal[True],
+) -> TrainTestSplit[Tensor]:
+    ...
+
+
+@overload
 def stratified_split(
     dataset: PCD,
     *,
     default_train_prop: float,
     train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = None,
     seed: Optional[int] = None,
+    as_indices: Literal[False] = ...,
 ) -> TrainTestSplit[PCD]:
+    ...
+
+
+def stratified_split(
+    dataset: PCD,
+    *,
+    default_train_prop: float,
+    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = None,
+    seed: Optional[int] = None,
+    as_indices: bool = False,
+) -> Union[TrainTestSplit[PCD], TrainTestSplit[Tensor]]:
     """Splits the data into train/test sets conditional on super- and sub-class labels.
 
     :param default_train_prop: Proportion of samples for a given to sample for
@@ -678,9 +703,12 @@ def stratified_split(
     case the sampling is applied only to the subclasses of the superclass given by the keys.
     If ``None`` then the function reduces to a simple random split of the data.
 
-    :param seed: PRNG seed to use for sampling.
+    :param as_idnices: Whether to return the raw train/test indices instead of subsets of the
+    dataset constructed from them.
 
-    :returns: Train-test split.
+    :param seed: PRNG seed to use for determining the splits.
+
+    :returns: Train-test subsets (``as_indices=False``) or indices (``as_indices=True``).
     """
     if dataset.y is None:
         raise TypeError(
@@ -750,6 +778,9 @@ def stratified_split(
     train_test_inds = sort_inds.tensor_split(thresholds.flatten()[:-1], dim=0)
     train_inds = perm_inds[torch.cat(train_test_inds[0::2])]
     test_inds = perm_inds[torch.cat(train_test_inds[1::2])]
+
+    if as_indices:
+        return TrainTestSplit(train=train_inds, test=test_inds)
 
     train_data = make_subset(dataset=dataset, indices=train_inds)
     test_data = make_subset(dataset=dataset, indices=test_inds)
