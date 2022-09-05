@@ -635,12 +635,50 @@ def download_from_gdrive(
                     fhandle.extractall(str(root))
 
 
+@overload
+def random_split(
+    dataset: PseudoCdtDataset,
+    *,
+    props: Union[Sequence[float], float],
+    deep: bool = ...,
+    as_indices: Literal[True],
+    seed: Optional[int] = ...,
+) -> List[List[int]]:
+    ...
+
+
+@overload
 def random_split(
     dataset: PCD,
+    *,
+    props: Union[Sequence[float], float],
+    deep: bool = ...,
+    as_indices: Literal[False] = ...,
+    seed: Optional[int] = ...,
+) -> List[PCD]:
+    ...
+
+
+@overload
+def random_split(
+    dataset: PCD,
+    *,
+    props: Union[Sequence[float], float],
+    deep: bool = ...,
+    as_indices: bool,
+    seed: Optional[int] = ...,
+) -> Union[List[PCD], List[List[int]]]:
+    ...
+
+
+def random_split(
+    dataset: PCD,
+    *,
     props: Union[Sequence[float], float],
     deep: bool = False,
+    as_indices: bool = False,
     seed: Optional[int] = None,
-) -> List[PCD]:
+) -> Union[List[PCD], List[List[int]]]:
     """Randomly split the dataset into subsets according to the given proportions.
 
     :param props: The fractional size of each subset into which to randomly split the data.
@@ -651,11 +689,16 @@ def random_split(
     a basis for the random subsets. If False then the data of the subsets will be
     views of original dataset's data.
 
-    :param seed: PRNG seed to use for sampling.
+    :param as_indices: Whether to return the raw train/test indices instead of subsets of the
+    dataset constructed from them.
 
-    :returns: Random subsets of the data of the requested proportions.
+    :param seed: PRNG seed to use for splitting the data.
+
+    :returns: Random subsets of the data (or their associated indices) of the requested proportions.
     """
     split_indices = prop_random_split(dataset=dataset, props=props, as_indices=True, seed=seed)
+    if as_indices:
+        return split_indices
     splits = [make_subset(dataset, indices=indices, deep=deep) for indices in split_indices]
     return splits
 
@@ -665,10 +708,10 @@ def stratified_split(
     dataset: PseudoCdtDataset,
     *,
     default_train_prop: float,
-    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = None,
-    seed: Optional[int] = None,
+    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = ...,
+    seed: Optional[int] = ...,
     as_indices: Literal[True],
-) -> TrainTestSplit[Tensor]:
+) -> TrainTestSplit[List[int]]:
     ...
 
 
@@ -677,10 +720,22 @@ def stratified_split(
     dataset: PCD,
     *,
     default_train_prop: float,
-    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = None,
-    seed: Optional[int] = None,
+    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = ...,
+    seed: Optional[int] = ...,
     as_indices: Literal[False] = ...,
 ) -> TrainTestSplit[PCD]:
+    ...
+
+
+@overload
+def stratified_split(
+    dataset: PCD,
+    *,
+    default_train_prop: float,
+    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = ...,
+    seed: Optional[int] = ...,
+    as_indices: bool,
+) -> Union[TrainTestSplit[PCD], TrainTestSplit[List[int]]]:
     ...
 
 
@@ -691,7 +746,7 @@ def stratified_split(
     train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = None,
     seed: Optional[int] = None,
     as_indices: bool = False,
-) -> Union[TrainTestSplit[PCD], TrainTestSplit[Tensor]]:
+) -> Union[TrainTestSplit[PCD], TrainTestSplit[List[int]]]:
     """Splits the data into train/test sets conditional on super- and sub-class labels.
 
     :param default_train_prop: Proportion of samples for a given to sample for
@@ -703,7 +758,7 @@ def stratified_split(
     case the sampling is applied only to the subclasses of the superclass given by the keys.
     If ``None`` then the function reduces to a simple random split of the data.
 
-    :param as_idnices: Whether to return the raw train/test indices instead of subsets of the
+    :param as_indices: Whether to return the raw train/test indices instead of subsets of the
     dataset constructed from them.
 
     :param seed: PRNG seed to use for determining the splits.
@@ -780,7 +835,7 @@ def stratified_split(
     test_inds = perm_inds[torch.cat(train_test_inds[1::2])]
 
     if as_indices:
-        return TrainTestSplit(train=train_inds, test=test_inds)
+        return TrainTestSplit(train=train_inds.tolist(), test=test_inds.tolist())
 
     train_data = make_subset(dataset=dataset, indices=train_inds)
     test_data = make_subset(dataset=dataset, indices=test_inds)

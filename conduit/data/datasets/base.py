@@ -190,13 +190,36 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
 
         return make_subset(dataset=self, indices=indices, deep=deep)
 
+    @overload
+    def random_split(
+        self: Self,
+        props: Union[Sequence[float], float],
+        *,
+        deep: bool = ...,
+        as_indices: Literal[False] = ...,
+        seed: Optional[int] = ...,
+    ) -> List[Self]:
+        ...
+
+    @overload
+    def random_split(
+        self: Self,
+        props: Union[Sequence[float], float],
+        *,
+        deep: bool = ...,
+        as_indices: Literal[True],
+        seed: Optional[int] = ...,
+    ) -> List[List[int]]:
+        ...
+
     def random_split(
         self: Self,
         props: Union[Sequence[float], float],
         *,
         deep: bool = False,
+        as_indices: bool = False,
         seed: Optional[int] = None,
-    ) -> List[Self]:
+    ) -> Union[List[Self], List[List[int]]]:
         """Randomly split the dataset into subsets according to the given proportions.
 
         :param props: The fractional size of each subset into which to randomly split the data.
@@ -207,14 +230,17 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         a basis for the random subsets. If False then the data of the subsets will be
         views of original dataset's data.
 
-        :param seed: PRNG seed to use for sampling.
+        :param as_indices: Whether to return the raw train/test indices instead of subsets of the
+        dataset constructed from them.
+
+        :param seed: PRNG seed to use for splitting the data.
 
         :returns: Random subsets of the data of the requested proportions.
         """
-        # lazily import ``random_split`` to prevent it being a circular import
+        # lazily import ``random_split`` to prevent it from being a circular import
         from conduit.data.datasets.utils import random_split
 
-        return random_split(self, props=props, deep=deep, seed=seed)
+        return random_split(self, props=props, deep=deep, seed=seed, as_indices=as_indices)
 
     @overload
     def cat(self: Self, other: Self, *, inplace: Literal[True] = ..., deep: bool = False) -> None:
