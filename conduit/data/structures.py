@@ -609,7 +609,7 @@ class PseudoCdtDataset(Protocol[R_co, X2, Y, S]):
         ...
 
 
-D = TypeVar("D", bound=Dataset)
+D = TypeVar("D", bound=Union[Dataset, Tensor, List[int]])
 
 
 @runtime_checkable
