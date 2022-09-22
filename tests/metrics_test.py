@@ -13,7 +13,7 @@ def test_groupwise_metrics(card_y: int, card_s: int) -> None:
     # Peturb y_true by noise factor 0.3 to simulate predictions.
     m = torch.rand(N) < 0.3
     y_pred[m] += 1
-    y_pred[m] %= 2
+    y_pred[m] %= card_y
     s = torch.randint(0, card_s, (N, 1))
 
     card_y = len(y_true.unique())
