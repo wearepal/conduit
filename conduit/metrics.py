@@ -86,8 +86,7 @@ C_co = TypeVar("C_co", bound=Comparator, covariant=True)
 
 
 def _pdist_1d(x: Tensor) -> Tensor:
-    res = torch.pdist(x.view(-1, 1)).squeeze()
-    return res
+    return torch.pdist(x.view(-1, 1)).squeeze()
 
 
 def max_difference_1d(x: Tensor) -> Tensor:
