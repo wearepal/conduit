@@ -90,6 +90,8 @@ def _pdist_1d(x: Tensor) -> Tensor:
 
 
 def max_difference_1d(x: Tensor) -> Tensor:
+    if x.numel() == 1:
+        return x.squeeze()
     return _pdist_1d(x).max()
 
 

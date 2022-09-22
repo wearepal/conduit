@@ -1,27 +1,27 @@
+import pytest
 import torch
 
 import conduit.metrics as cdtm
 
 
-def test_groupwise_metrics() -> None:
+@pytest.mark.parametrize("card_y", [1, 2, 3])
+@pytest.mark.parametrize("card_s", [1, 2, 3])
+def test_groupwise_metrics(card_y: int, card_s: int) -> None:
     N = 57
-    CARD_Y = 2
-    CARD_S = 2
-
-    y_true = torch.randint(0, CARD_Y, (N, 1))
+    y_true = torch.randint(0, card_y, (N, 1))
     y_pred = y_true.clone()
     # Peturb y_true by noise factor 0.3 to simulate predictions.
     m = torch.rand(N) < 0.3
     y_pred[m] += 1
     y_pred[m] %= 2
-    s = torch.randint(0, CARD_S, (N, 1))
+    s = torch.randint(0, card_s, (N, 1))
 
     card_y = len(y_true.unique())
     card_s = len(s.unique())
 
     hits = (y_pred == y_true).float()
     _, s_counts = s.unique(return_counts=True)
-    sw_hits = torch.zeros(N, CARD_S).scatter_(-1, index=s, src=hits)
+    sw_hits = torch.zeros(N, card_s).scatter_(-1, index=s, src=hits)
 
     aps = cdtm.accuracy_per_subclass(y_pred=y_pred, y_true=y_true, s=s)
     assert len(aps) == card_s
@@ -36,7 +36,11 @@ def test_groupwise_metrics() -> None:
     tps = cdtm.tpr_per_subclass(y_pred=y_pred, y_true=y_true, s=s)
     assert len(tps) == card_s
     y_mask = y_true == 1
-    tps_ref = sw_hits[y_mask.squeeze()].sum(0) / s[y_mask].unique(return_counts=True)[1]
+    if y_mask.count_nonzero():
+        tps_ref = sw_hits[y_mask.squeeze()].sum(0)
+        tps_ref /= s[y_mask].unique(return_counts=True)[1]
+    else:
+        tps_ref = torch.zeros(card_s)
     assert torch.allclose(tps_ref, tps)
 
     ra = cdtm.robust_accuracy(y_pred=y_pred, y_true=y_true, s=s)
@@ -51,7 +55,7 @@ def test_groupwise_metrics() -> None:
 
     apc = cdtm.accuracy_per_class(y_pred=y_pred, y_true=y_true)
     _, y_counts = y_true.unique(return_counts=True)
-    cw_hits = torch.zeros(N, CARD_Y).scatter_(-1, index=y_true, src=hits)
+    cw_hits = torch.zeros(N, card_y).scatter_(-1, index=y_true, src=hits)
     apc_ref = cw_hits.sum(0).div_(y_counts)
     assert torch.allclose(apc, apc_ref)
 
