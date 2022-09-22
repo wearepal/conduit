@@ -1,6 +1,6 @@
 from enum import Enum
 from functools import partial, wraps
-from typing import List, Optional, Protocol, Tuple, TypeVar, Union, cast
+from typing import Callable, List, Optional, Protocol, Tuple, TypeVar, Union, cast
 
 import torch
 from torch import Tensor
@@ -8,7 +8,10 @@ from torch import Tensor
 __all__ = [
     "Comparator",
     "accuracy",
+    "accuracy_per_class",
+    "accuracy_per_group",
     "accuracy_per_subclass",
+    "balanced_accuracy",
     "groupwise_metric",
     "hard_prediction",
     "max_difference_1d",
@@ -87,22 +90,40 @@ def _pdist_1d(x: Tensor) -> Tensor:
 
 
 def max_difference_1d(x: Tensor) -> Tensor:
+    if x.numel() == 1:
+        return x.squeeze()
     return _pdist_1d(x).max()
 
 
 class Aggregator(Enum):
-    MIN = min
+    MIN = (min,)
     "Aggregate by taking the minimum."
-    MAX = max
+    MAX = (max,)
     "Aggregate by taking the maximum."
-    MEAN = torch.mean
+    MEAN = (torch.mean,)
     "Aggregate by taking the mean."
-    MEADIAN = torch.median
+    MEADIAN = (torch.median,)
     "Aggregate by taking the median."
-    DIFF = partial(_pdist_1d)
+    DIFF = (_pdist_1d,)
     "Aggregate by taking the pairwise (absolute) differences."
-    MAX_DIFF = partial(max_difference_1d)
+    MAX_DIFF = (max_difference_1d,)
     "Aggregate by taking the maximum of the pairwise (absolute) differences."
+
+    def __init__(self, fn: Callable[[Tensor], Tensor]) -> None:
+        """
+        Metric aggregator.
+
+        :param fn: Aggregation function."""
+        self.fn = fn
+
+    @torch.no_grad()
+    def __call__(self, x: Tensor) -> Tensor:
+        """Apply the aggregation function associated with the enum member to the input.
+
+        :param x: Input to be aggregated.
+        :returns: Aggregated input.
+        """
+        return self.fn(x)
 
 
 def merge_indices(*indices: Tensor) -> Tensor:
@@ -192,9 +213,10 @@ def _apply_groupwise_metric(
             dim=0,
             index=index_set[comp_mask],
             reduce="mean",
+            include_self=False,
         )
         if aggregator is not None:
-            scores = aggregator.value(scores)
+            scores = aggregator(scores)
         return scores
 
     return comps.mean()
@@ -202,6 +224,12 @@ def _apply_groupwise_metric(
 
 A = TypeVar("A", Aggregator, None)
 A_co = TypeVar("A_co", Aggregator, None, covariant=True)
+
+
+class Metric(Protocol[C_co, A_co]):
+    @staticmethod
+    def __call__(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
+        ...
 
 
 class GroupwiseMetric(Protocol[C_co, A_co]):
@@ -264,6 +292,38 @@ def subclasswise_metric(
     return _decorated_comparator
 
 
+def classwise_metric(
+    comparator: C,
+    *,
+    aggregator: A,
+    cond_on_pred: bool = False,
+) -> Metric[C, A]:
+    """
+    Converts a given ``comparator`` and ``aggregator`` into a subclass-wise metric.
+
+    :param comparator: Function used to assess the correctness of ``y_pred`` with respect
+    to ``y_true``. Should return a score for each sample.
+
+    :param aggregator: Function with which to aggregate over the subclass-wise scores.
+    If ``None`` then no aggregation will be applied and scores will be returned for each
+    group.
+
+    :returns: A subclass-wise metric formed from ``comparator`` and ``aggregator``.
+    """
+
+    @wraps(comparator)
+    def _decorated_comparator(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
+        return _apply_groupwise_metric(
+            y_pred if cond_on_pred else y_true,
+            comparator=comparator,
+            aggregator=aggregator,
+            y_pred=y_pred,
+            y_true=y_true,
+        )
+
+    return _decorated_comparator
+
+
 def equal(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
     y_true = torch.atleast_1d(y_true.squeeze()).long()
     if len(y_pred) != len(y_true):
@@ -292,10 +352,18 @@ def conditional_equal(
 
 
 robust_accuracy = subclasswise_metric(comparator=equal, aggregator=Aggregator.MIN)
-robust_gap = subclasswise_metric(comparator=equal, aggregator=Aggregator.MAX_DIFF)
-subclass_balanced_accuracy = subclasswise_metric(comparator=equal, aggregator=Aggregator.MEAN)
-group_balanced_accuracy = groupwise_metric(comparator=equal, aggregator=Aggregator.MEAN)
 accuracy_per_subclass = subclasswise_metric(comparator=equal, aggregator=None)
+subclass_balanced_accuracy = subclasswise_metric(comparator=equal, aggregator=Aggregator.MEAN)
+robust_gap = subclasswise_metric(comparator=equal, aggregator=Aggregator.MAX_DIFF)
+
+group_balanced_accuracy = groupwise_metric(comparator=equal, aggregator=Aggregator.MEAN)
+accuracy_per_group = groupwise_metric(comparator=equal, aggregator=None)
+
+accuracy_per_class = classwise_metric(comparator=equal, aggregator=None)
+balanced_accuracy = classwise_metric(
+    comparator=equal, aggregator=Aggregator.MEAN, cond_on_pred=False
+)
+
 tpr_per_subclass = subclasswise_metric(
     comparator=partial(conditional_equal, y_true_cond=1), aggregator=None
 )
