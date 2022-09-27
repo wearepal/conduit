@@ -103,24 +103,36 @@ C = TypeVar("C", bound=Comparator)
 C_co = TypeVar("C_co", bound=Comparator, covariant=True)
 
 
+@torch.no_grad()
+def nanmax(x: Tensor) -> Tensor:
+    return torch.max(torch.nan_to_num(x, nan=float("-inf")))
+
+
+@torch.no_grad()
+def nanmin(x: Tensor) -> Tensor:
+    return torch.min(torch.nan_to_num(x, nan=float("inf")))
+
+
+@torch.no_grad()
 def _pdist_1d(x: Tensor) -> Tensor:
     return torch.pdist(x.view(-1, 1)).squeeze()
 
 
+@torch.no_grad()
 def max_difference_1d(x: Tensor) -> Tensor:
     if x.numel() == 1:
         return x.squeeze()
-    return _pdist_1d(x).max()
+    return nanmax(_pdist_1d(x))
 
 
 class Aggregator(Enum):
-    MIN = (min,)
+    MIN = (nanmin,)
     "Aggregate by taking the minimum."
-    MAX = (max,)
+    MAX = (nanmax,)
     "Aggregate by taking the maximum."
-    MEAN = (torch.mean,)
+    MEAN = (torch.nanmean,)
     "Aggregate by taking the mean."
-    MEADIAN = (torch.median,)
+    MEADIAN = (torch.nanmedian,)
     "Aggregate by taking the median."
     DIFF = (_pdist_1d,)
     "Aggregate by taking the pairwise (absolute) differences."
@@ -432,6 +444,12 @@ robust_tnr = subclasswise_metric(
 )
 
 
+@torch.no_grad()
+def _pad_with_nans(n: int, *, src: Tensor, index: Tensor) -> Tensor:
+    nan_tensor = src.new_full((n,), fill_value=torch.nan)
+    return nan_tensor.scatter(0, src=src, index=index)
+
+
 def fscore(
     y_pred: Tensor,
     *,
@@ -460,8 +478,9 @@ def fscore(
     :returns: The (optionally aggregated) F-beta score given predictions ``y_pred`` and targets
     ``y_pred``.
     """
+    prec_ids = y_pred if s is None else merge_indices(s, y_pred)
     precs = _apply_groupwise_metric(
-        y_pred if s is None else merge_indices(y_pred, s),
+        prec_ids,
         comparator=equal,
         y_pred=y_pred,
         y_true=y_true,
@@ -469,10 +488,10 @@ def fscore(
     )
     if s is None:
         rec_ids = y_true
-        y_card = None
+        card_s = None
     else:
-        rec_ids, y_card_ls = merge_indices(y_true, s, return_cardinalities=True)
-        y_card = y_card_ls[0]
+        rec_ids, s_card_ls = merge_indices(s, y_true, return_cardinalities=True)
+        card_s = s_card_ls[0]
     recs = _apply_groupwise_metric(
         rec_ids,
         comparator=equal,
@@ -480,11 +499,22 @@ def fscore(
         y_true=y_true,
         aggregator=None,
     )
+    y_true_supp = y_true.unique()
+    y_pred_supp = y_pred.unique()
+    # Pad the missing group entries with nans.
+    torch.all
+    if not torch.equal(y_true_supp, y_pred_supp):
+        card_joint = len(torch.cat((y_true_supp, y_pred_supp)).unique())
+        if card_s is not None:
+            card_joint *= card_s
+        precs = _pad_with_nans(n=card_joint, src=precs, index=prec_ids.unique())
+        recs = _pad_with_nans(n=card_joint, src=recs, index=rec_ids.unique())
+
     beta_sq = beta**2
     f1s = (1 + beta_sq) * precs * recs / (beta_sq * precs + recs)
-    if (inner_summand is not None) and (y_card is not None):
-        reduction_dim = int(inner_summand == "y_true")
-        f1s = f1s.view(-1, y_card).mean(reduction_dim)
+    if (inner_summand is not None) and (card_s is not None):
+        reduction_dim = int(inner_summand == "s")
+        f1s = f1s.view(-1, card_s).nanmean(reduction_dim)
     if aggregator is None:
         return f1s
     return aggregator(f1s)
