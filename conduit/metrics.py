@@ -32,6 +32,8 @@ __all__ = [
     "macro_fscore",
     "max_difference_1d",
     "merge_indices",
+    "nanmax",
+    "nanmin",
     "precision_at_k",
     "robust_accuracy",
     "robust_fscore",
