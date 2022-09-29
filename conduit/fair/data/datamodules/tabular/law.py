@@ -1,17 +1,18 @@
 """Law Admissions Dataset."""
 import attr
-from ethicml.data import Dataset, Law, LawSplits
+from ethicml.data import Dataset, Law
+from ethicml.data import LawSplits as LawSens
 
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 
-__all__ = ["LawDataModule", "LawSplits"]
+__all__ = ["LawDataModule", "LawSens"]
 
 
 @attr.define(kw_only=True)
 class LawDataModule(EthicMlDataModule):
     """LSAC Law Admissions Dataset."""
 
-    sens_feat: LawSplits = LawSplits.SEX
+    sens_feat: LawSens = LawSens.SEX
     disc_feats_only: bool = False
 
     @property

@@ -1,17 +1,19 @@
 """Credit Dataset."""
 import attr
-from ethicml.data import Credit, CreditSplits, Dataset
+from ethicml.data import Credit
+from ethicml.data import CreditSplits as CreditSens
+from ethicml.data import Dataset
 
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 
-__all__ = ["CreditDataModule", "CreditSplits"]
+__all__ = ["CreditDataModule", "CreditSens"]
 
 
 @attr.define(kw_only=True)
 class CreditDataModule(EthicMlDataModule):
     """Data Module for the Credit Dataset."""
 
-    sens_feat: CreditSplits = CreditSplits.SEX
+    sens_feat: CreditSens = CreditSens.SEX
     disc_feats_only: bool = False
 
     @property

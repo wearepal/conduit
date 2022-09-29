@@ -54,15 +54,9 @@ class DataTupleDataset(CdtDataset):
         self.x_cont = torch.as_tensor(dataset.x[self.cont_features].to_numpy(), dtype=torch.float)
         x = torch.cat([self.x_disc, self.x_cont], dim=1)
 
-        (
-            _,
-            s,
-            self.num,
-            self.xdim,
-            self.sdim,
-            self.x_names,
-            self.s_names,
-        ) = _get_info(dataset)
+        # NOTE: we should probably not use an internal function from EthicML here
+        _, s, self.num, self.xdim, self.x_names, self.s_names = _get_info(dataset)
+        self.sdim = 1
 
         y = torch.as_tensor(dataset.y.to_numpy(), dtype=torch.float32)
 

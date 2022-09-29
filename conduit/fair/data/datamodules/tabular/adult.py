@@ -1,10 +1,12 @@
 """Adult Income Dataset."""
 import attr
-from ethicml.data import Adult, AdultSplits, Dataset
+from ethicml.data import Adult
+from ethicml.data import AdultSplits as AdultSens
+from ethicml.data import Dataset
 
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 
-__all__ = ["AdultDataModule", "AdultSplits"]
+__all__ = ["AdultDataModule", "AdultSens"]
 
 
 @attr.define(kw_only=True)
@@ -12,7 +14,7 @@ class AdultDataModule(EthicMlDataModule):
     """UCI Adult Income Dataset."""
 
     bin_nationality: bool = False
-    sens_feat: AdultSplits = AdultSplits.SEX
+    sens_feat: AdultSens = AdultSens.SEX
     bin_race: bool = False
     disc_feats_only: bool = False
 
