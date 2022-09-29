@@ -1,6 +1,17 @@
 from enum import Enum
 from functools import partial, wraps
-from typing import Callable, List, Optional, Protocol, Tuple, TypeVar, Union, cast
+from typing import (
+    Callable,
+    List,
+    Literal,
+    Optional,
+    Protocol,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
 import torch
 from torch import Tensor
@@ -12,12 +23,21 @@ __all__ = [
     "accuracy_per_group",
     "accuracy_per_subclass",
     "balanced_accuracy",
+    "fscore",
+    "fscore",
+    "fscore_per_group",
+    "fscore_per_subclass",
     "groupwise_metric",
     "hard_prediction",
+    "macro_fscore",
     "max_difference_1d",
     "merge_indices",
+    "nanmax",
+    "nanmin",
     "precision_at_k",
     "robust_accuracy",
+    "robust_fscore",
+    "robust_fscore_gap",
     "robust_gap",
     "robust_tnr",
     "robust_tpr",
@@ -85,24 +105,36 @@ C = TypeVar("C", bound=Comparator)
 C_co = TypeVar("C_co", bound=Comparator, covariant=True)
 
 
+@torch.no_grad()
+def nanmax(x: Tensor) -> Tensor:
+    return torch.max(torch.nan_to_num(x, nan=float("-inf")))
+
+
+@torch.no_grad()
+def nanmin(x: Tensor) -> Tensor:
+    return torch.min(torch.nan_to_num(x, nan=float("inf")))
+
+
+@torch.no_grad()
 def _pdist_1d(x: Tensor) -> Tensor:
     return torch.pdist(x.view(-1, 1)).squeeze()
 
 
+@torch.no_grad()
 def max_difference_1d(x: Tensor) -> Tensor:
     if x.numel() == 1:
         return x.squeeze()
-    return _pdist_1d(x).max()
+    return nanmax(_pdist_1d(x))
 
 
 class Aggregator(Enum):
-    MIN = (min,)
+    MIN = (nanmin,)
     "Aggregate by taking the minimum."
-    MAX = (max,)
+    MAX = (nanmax,)
     "Aggregate by taking the maximum."
-    MEAN = (torch.mean,)
+    MEAN = (torch.nanmean,)
     "Aggregate by taking the mean."
-    MEADIAN = (torch.median,)
+    MEADIAN = (torch.nanmedian,)
     "Aggregate by taking the median."
     DIFF = (_pdist_1d,)
     "Aggregate by taking the pairwise (absolute) differences."
@@ -126,7 +158,21 @@ class Aggregator(Enum):
         return self.fn(x)
 
 
-def merge_indices(*indices: Tensor) -> Tensor:
+@overload
+def merge_indices(
+    *indices: Tensor, return_cardinalities: Literal[True]
+) -> Tuple[Tensor, List[int]]:
+    ...
+
+
+@overload
+def merge_indices(*indices: Tensor, return_cardinalities: Literal[False] = ...) -> Tensor:
+    ...
+
+
+def merge_indices(
+    *indices: Tensor, return_cardinalities: bool = False
+) -> Union[Tensor, Tuple[Tensor, List[int]]]:
     """
     Bijectively merge a sequence of index tensors into a single index tensor, such that each
     combination of possible indices from across the elements in ``group_ids`` is assigned a unique
@@ -139,18 +185,27 @@ def merge_indices(*indices: Tensor) -> Tensor:
     """
     group_ids_ls = list(indices)
     index_set = group_ids_ls.pop().clone().squeeze()
+    cards = None
     if index_set.dtype != torch.long:
         raise TypeError("All index tensors must have dtype `torch.long'.")
 
+    cards = None
+    if return_cardinalities:
+        cards = []
     for elem in group_ids_ls:
         elem = elem.squeeze()
         if elem.dtype != torch.long:
             raise TypeError("All index tensors must have dtype `torch.long'.")
         unique_vals, inv_indices = elem.unique(return_inverse=True)
-        index_set *= int(len(unique_vals))
+        card = int(len(unique_vals))
+        if cards is not None:
+            cards.append(card)
+        index_set *= card
         index_set += cast(Tensor, inv_indices)
 
-    return index_set
+    if cards is None:
+        return index_set
+    return index_set, cards
 
 
 @torch.no_grad()
@@ -239,9 +294,7 @@ class GroupwiseMetric(Protocol[C_co, A_co]):
 
 
 def groupwise_metric(
-    comparator: C,
-    *,
-    aggregator: A,
+    comparator: C, *, aggregator: A, cond_on_pred: bool = False
 ) -> GroupwiseMetric[C, A]:
     """
     Converts a given ``comparator`` and ``aggregator`` into a group-wise metric.
@@ -259,7 +312,12 @@ def groupwise_metric(
     @wraps(comparator)
     def _decorated_comparator(y_pred: Tensor, *, y_true: Tensor, s: Tensor) -> Tensor:
         return _apply_groupwise_metric(
-            s, y_true, comparator=comparator, aggregator=aggregator, y_pred=y_pred, y_true=y_true
+            s,
+            y_pred if cond_on_pred else y_true,
+            comparator=comparator,
+            aggregator=aggregator,
+            y_pred=y_pred,
+            y_true=y_true,
         )
 
     return _decorated_comparator
@@ -363,6 +421,10 @@ accuracy_per_class = classwise_metric(comparator=equal, aggregator=None)
 balanced_accuracy = classwise_metric(
     comparator=equal, aggregator=Aggregator.MEAN, cond_on_pred=False
 )
+precision_per_class = classwise_metric(comparator=equal, aggregator=None, cond_on_pred=True)
+precision_per_subclass = groupwise_metric(comparator=equal, aggregator=None, cond_on_pred=True)
+
+balanced_precision = classwise_metric(comparator=equal, aggregator=None, cond_on_pred=True)
 
 tpr_per_subclass = subclasswise_metric(
     comparator=partial(conditional_equal, y_true_cond=1), aggregator=None
@@ -382,3 +444,134 @@ robust_tpr = subclasswise_metric(
 robust_tnr = subclasswise_metric(
     comparator=partial(conditional_equal, y_true_cond=0), aggregator=Aggregator.MIN
 )
+
+
+@torch.no_grad()
+def _pad_with_nans(n: int, *, src: Tensor, index: Tensor) -> Tensor:
+    nan_tensor = src.new_full((n,), fill_value=torch.nan)
+    return nan_tensor.scatter(0, src=src, index=index)
+
+
+def fscore(
+    y_pred: Tensor,
+    *,
+    y_true: Tensor,
+    s: Optional[Tensor] = None,
+    beta: float = 1.0,
+    aggregator: Optional[Aggregator] = None,
+    inner_summand: Optional[Literal["y_true", "s"]] = None,
+) -> Tensor:
+    """
+    Computes the F-beta score between ``y_pred`` and ``y_true`` with optional subclass-conditioning.
+
+    :param y_pred: Predicted labels.
+    :param y_true: Target labels.
+    :param s: Subclass labels.
+    :param beta: Beta coefficient that determines the weight of recall relative to precision.
+    ``beta < 1`` lends more weight to precision, while ``beta > 1`` favors recal
+
+    :param inner_summand: Which conditioning factor, if any, to sum over prior to the final
+    aggregation when conditioning on the subclass labels.
+
+    :param aggregator: Function with which to aggregate over the scores.
+    If ``None`` then no aggregation will be applied and scores will be returned for each
+    group.
+
+    :returns: The (optionally aggregated) F-beta score given predictions ``y_pred`` and targets
+    ``y_pred``.
+    """
+    prec_ids = y_pred if s is None else merge_indices(s, y_pred)
+    precs = _apply_groupwise_metric(
+        prec_ids,
+        comparator=equal,
+        y_pred=y_pred,
+        y_true=y_true,
+        aggregator=None,
+    )
+    if s is None:
+        rec_ids = y_true
+        card_s = None
+    else:
+        rec_ids, s_card_ls = merge_indices(s, y_true, return_cardinalities=True)
+        card_s = s_card_ls[0]
+    recs = _apply_groupwise_metric(
+        rec_ids,
+        comparator=equal,
+        y_pred=y_pred,
+        y_true=y_true,
+        aggregator=None,
+    )
+    y_true_supp = y_true.unique()
+    y_pred_supp = y_pred.unique()
+    # Pad the missing group entries with nans.
+    torch.all
+    if not torch.equal(y_true_supp, y_pred_supp):
+        card_joint = len(torch.cat((y_true_supp, y_pred_supp)).unique())
+        if card_s is not None:
+            card_joint *= card_s
+        precs = _pad_with_nans(n=card_joint, src=precs, index=prec_ids.unique())
+        recs = _pad_with_nans(n=card_joint, src=recs, index=rec_ids.unique())
+
+    beta_sq = beta**2
+    f1s = (1 + beta_sq) * precs * recs / (beta_sq * precs + recs)
+    if (inner_summand is not None) and (card_s is not None):
+        reduction_dim = int(inner_summand == "s")
+        f1s = f1s.view(-1, card_s).nanmean(reduction_dim)
+    if aggregator is None:
+        return f1s
+    return aggregator(f1s)
+
+
+def robust_fscore(y_pred: Tensor, *, y_true: Tensor, s: Tensor, beta: float = 1.0) -> Tensor:
+    return fscore(
+        y_pred=y_pred,
+        y_true=y_true,
+        s=s,
+        beta=beta,
+        inner_summand="y_true",
+        aggregator=Aggregator.MIN,
+    )
+
+
+def fscore_per_subclass(y_pred: Tensor, *, y_true: Tensor, s: Tensor, beta: float = 1.0) -> Tensor:
+    return fscore(
+        y_pred=y_pred,
+        y_true=y_true,
+        s=s,
+        beta=beta,
+        inner_summand="y_true",
+        aggregator=None,
+    )
+
+
+def macro_fscore(y_pred: Tensor, *, y_true: Tensor, beta: float = 1.0) -> Tensor:
+    return fscore(
+        y_pred=y_pred,
+        y_true=y_true,
+        s=None,
+        beta=beta,
+        inner_summand=None,
+        aggregator=Aggregator.MEAN,
+    )
+
+
+def fscore_per_group(y_pred: Tensor, *, y_true: Tensor, s: Tensor, beta: float = 1.0) -> Tensor:
+    return fscore(
+        y_pred=y_pred,
+        y_true=y_true,
+        s=s,
+        beta=beta,
+        inner_summand=None,
+        aggregator=None,
+    )
+
+
+def robust_fscore_gap(y_pred: Tensor, *, y_true: Tensor, s: Tensor, beta: float = 1.0) -> Tensor:
+    return fscore(
+        y_pred=y_pred,
+        y_true=y_true,
+        s=s,
+        beta=beta,
+        inner_summand="y_true",
+        aggregator=Aggregator.MAX_DIFF,
+    )
