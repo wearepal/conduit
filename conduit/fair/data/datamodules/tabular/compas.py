@@ -2,7 +2,7 @@
 from enum import Enum
 
 import attr
-import ethicml as em
+from ethicml.data import Compas, Dataset
 
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 
@@ -23,7 +23,7 @@ class CompasDataModule(EthicMlDataModule):
     disc_feats_only: bool = False
 
     @property
-    def em_dataset(self) -> em.Dataset:
-        return em.compas(
+    def em_dataset(self) -> Dataset:
+        return Compas(
             split=self.sens_feat.value, discrete_only=self.disc_feats_only, invert_s=self.invert_s
         )

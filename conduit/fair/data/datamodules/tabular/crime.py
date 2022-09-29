@@ -2,7 +2,7 @@
 from enum import Enum
 
 import attr
-import ethicml as em
+from ethicml.data import Crime, Dataset
 
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 
@@ -21,7 +21,7 @@ class CrimeDataModule(EthicMlDataModule):
     disc_feats_only: bool = False
 
     @property
-    def em_dataset(self) -> em.Dataset:
-        return em.crime(
+    def em_dataset(self) -> Dataset:
+        return Crime(
             split=self.sens_feat.value, discrete_only=self.disc_feats_only, invert_s=self.invert_s
         )
