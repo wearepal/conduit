@@ -220,7 +220,7 @@ python-versions = "*"
 
 [[package]]
 name = "ethicml"
-version = "1.0.0"
+version = "1.0.1"
 description = "EthicML is a library for performing and assessing algorithmic fairness. Unlike other libraries, EthicML isn't an education tool, but rather a researcher's toolkit."
 category = "main"
 optional = true
@@ -1729,8 +1729,8 @@ distlib = [
     {file = "distlib-0.3.5.tar.gz", hash = "sha256:a7f75737c70be3b25e2bee06288cec4e4c221de18455b2dd037fe2a795cab2fe"},
 ]
 ethicml = [
-    {file = "EthicML-1.0.0.tar.gz", hash = "sha256:d30719310154482f06b303ae58d3af91c4ed73435b7efe55cf596737fe9bba2e"},
-    {file = "ethicml-1.0.0-py3-none-any.whl", hash = "sha256:a8aef8f45e4b907a5b0a488852a2cfac2f5f5b2c45a488a84b6a48f2ed9cd800"},
+    {file = "EthicML-1.0.1.tar.gz", hash = "sha256:4f45f3c5ae717be3cde46a32f6e5066cf9bb3d7dd7b2548c3d9f47321fb813bd"},
+    {file = "ethicml-1.0.1-py3-none-any.whl", hash = "sha256:8321f65b318f857d7c52165242bf63537018b6b1729d1801a7d04cd4fdb5b8f5"},
 ]
 filelock = [
     {file = "filelock-3.8.0-py3-none-any.whl", hash = "sha256:617eb4e5eedc82fc5f47b6d61e4d11cb837c56cb4544e39081099fa17ad109d4"},
