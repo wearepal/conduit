@@ -710,8 +710,8 @@ python-versions = ">=3.8"
 
 [package.dependencies]
 numpy = [
-    {version = ">=1.21.0", markers = "python_version >= \"3.10\""},
     {version = ">=1.20.3", markers = "python_version < \"3.10\""},
+    {version = ">=1.21.0", markers = "python_version >= \"3.10\""},
 ]
 python-dateutil = ">=2.8.1"
 pytz = ">=2020.1"
@@ -1019,7 +1019,7 @@ typing-extensions = "*"
 
 [[package]]
 name = "ranzen"
-version = "2.0.3"
+version = "2.0.5"
 description = "A toolkit facilitating machine-learning experimentation."
 category = "main"
 optional = false
@@ -2453,8 +2453,8 @@ qudida = [
     {file = "qudida-0.0.4.tar.gz", hash = "sha256:db198e2887ab0c9aa0023e565afbff41dfb76b361f85fd5e13f780d75ba18cc8"},
 ]
 ranzen = [
-    {file = "ranzen-2.0.3-py3-none-any.whl", hash = "sha256:6885dae64544e720526f82e80880fa80204a177e6ef1011e675f7ac87adc9f48"},
-    {file = "ranzen-2.0.3.tar.gz", hash = "sha256:30ece0cd8efa206dbc784090fc345c6ab139adba9a23dd3cf6b5b265ee70736c"},
+    {file = "ranzen-2.0.5-py3-none-any.whl", hash = "sha256:c92bae51177f596b1e2bd7d687d42ea0f3dfb2105b11b0174202c1d4e798537c"},
+    {file = "ranzen-2.0.5.tar.gz", hash = "sha256:15d3dfddc45c78ff4b59e507c782bdd60ec7849c258ee8251d1c8eb49793c8a9"},
 ]
 requests = [
     {file = "requests-2.28.1-py3-none-any.whl", hash = "sha256:8fefa2a1a1365bf5520aac41836fbee479da67864514bdb821f31ce07ce65349"},
