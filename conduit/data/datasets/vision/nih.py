@@ -186,4 +186,4 @@ class NIHChestXRays(CdtVisionDataset):
         super().__init__(image_dir=self._base_dir, x=x, s=s, y=y, transform=transform)
 
     def _check_unzipped(self) -> bool:
-        return (self._metadata_fp).is_file()
+        return (self._metadata_fp).exists()
