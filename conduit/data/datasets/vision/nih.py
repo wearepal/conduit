@@ -11,7 +11,12 @@ from typing_extensions import TypeAlias
 from conduit.data.datasets.utils import ImageTform
 from conduit.data.datasets.vision.base import CdtVisionDataset
 
-__all__ = ["NIHChestXRays"]
+__all__ = [
+    "NIHChestXRays",
+    "NIHSplit",
+    "NIHSubgroup",
+    "NIHTarget",
+]
 
 
 class NIHSplit(Enum):
