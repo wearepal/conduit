@@ -11,7 +11,7 @@ from typing_extensions import TypeAlias
 from conduit.data.datasets.utils import ImageTform
 from conduit.data.datasets.vision.base import CdtVisionDataset
 
-__all__ = ["NIHChestXRayDataset"]
+__all__ = ["NIHChestXRays"]
 
 
 class NIHSplit(Enum):
@@ -26,7 +26,7 @@ class NIHSensAttr(Enum):
 
 class NIHTargetAttr(Enum):
     """
-    Taget attributes for the NIH chest x-ray dataset.
+    Taget attributes for the NIH chest X-rays dataset.
 
     Fraction of labels that are positive for each of the thoracic diseases:
         Atelectasis           0.103095
@@ -62,10 +62,10 @@ class NIHTargetAttr(Enum):
     FINDING = "No Finding"
 
 
-class NIHChestXRayDataset(CdtVisionDataset):
+class NIHChestXRays(CdtVisionDataset):
     """ "
-    National Institutes of Health Chest X-Ray Dataset
-    This NIH Chest X-ray Dataset is comprised of 112,120 X-ray images with disease labels from
+    National Institutes of Health (NIH) chest X-Rays dataset.
+    This NIH Chest X-rays dataset is comprised of 112,120 X-ray images with disease labels from
     30,805 unique patients. To create these labels, the authors used Natural Language Processing to
     text-mine disease classifications from the associated radiological reports. The labels are
     expected to be >90% accurate and suitable for weakly-supervised learning. The original radiology
@@ -79,6 +79,8 @@ class NIHChestXRayDataset(CdtVisionDataset):
 
     TARGET_ATTR: TypeAlias = NIHTargetAttr
     SENS_ATTR: TypeAlias = NIHSensAttr
+    SPLIT: TypeAlias = NIHSplit
+
     _METADATA_FILENAME: ClassVar[str] = "Data_Entry_2017.csv"
     _BASE_DIR_NAME: ClassVar[str] = "nih_chest_x_rays"
 
@@ -122,20 +124,21 @@ class NIHChestXRayDataset(CdtVisionDataset):
             split = str_to_enum(str_=split, enum=NIHSplit)
         self.split = split
         self.download = download
-        if self.download:
-            import kaggle  # type: ignore
+        if not self._check_unzipped():
+            if self.download:
+                import kaggle  # type: ignore
 
-            kaggle.api.authenticate()
-            kaggle.api.dataset_download_files(
-                dataset="nih-chest-xrays/data",
-                path=self._base_dir,
-                unzip=True,
-                quiet=False,
-            )
-        elif not self._check_unzipped():
-            raise FileNotFoundError(
-                f"Data not found at location {self.root.resolve()}. Have you downloaded it?"
-            )
+                kaggle.api.authenticate()
+                kaggle.api.dataset_download_files(
+                    dataset="nih-chest-xrays/data",
+                    path=self._base_dir,
+                    unzip=True,
+                    quiet=False,
+                )
+            else:
+                raise FileNotFoundError(
+                    f"Data not found at location {self.root.resolve()}. Have you downloaded it?"
+                )
 
         self.metadata = cast(pd.DataFrame, pd.read_csv(self._metadata_fp))
         if self.split is not None:
@@ -170,7 +173,7 @@ class NIHChestXRayDataset(CdtVisionDataset):
         filepaths = (
             pd.Series(self._base_dir.glob("*/*/*"), dtype=str)
             .sort_values()
-            .str.split("/", expand=True, n=3)[3]
+            .str.split("/", expand=True, n=4)[4]
             .rename("Image Path")
         )
         if self.split is None:
