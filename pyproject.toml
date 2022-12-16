@@ -53,8 +53,11 @@ hydra-core = "^1.1.1"
 [tool.poetry.group.logging.dependencies]
 rich = "^12.5.1"
 
+[tool.poetry.group.fair]
+optional = true
+
 [tool.poetry.group.fair.dependencies]
-ethicml = {version = "^1.0.0", optional = true, extras = ["data"]}
+ethicml = {version = "^1.0.0", extras = ["data"]}
 
 [tool.poetry.group.dev.dependencies]
 black = "*"
@@ -67,9 +70,6 @@ pydocstyle = "*"
 pylint = "^2.11.1"
 pytest = "*"
 python-type-stubs = {git = "https://github.com/predictive-analytics-lab/python-type-stubs.git", branch = "main" }
-
-[tool.poetry.extras]
-fair = ["ethicml"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
