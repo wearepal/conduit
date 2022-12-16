@@ -57,7 +57,8 @@ rich = "^12.5.1"
 optional = true
 
 [tool.poetry.group.fair.dependencies]
-ethicml = {version = "^1.0.0", extras = ["data"]}
+ethicml = ">=1.0.1"
+folktables = "^0.0.11"
 
 [tool.poetry.group.dev.dependencies]
 black = "*"

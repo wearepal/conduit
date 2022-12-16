@@ -2,9 +2,9 @@ from enum import Enum
 from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
 
-import pandas as pd
+import pandas as pd  # type: ignore
 from ranzen import parsable, str_to_enum
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer  # type: ignore
 import torch
 from typing_extensions import TypeAlias
 
@@ -15,8 +15,8 @@ __all__ = ["NIHChestXRayDataset"]
 
 
 class NIHSplit(Enum):
-    train = "train_val_list.txt"
-    test = "test_list.txt"
+    TRAIN = "train_val_list.txt"
+    TEST = "test_list.txt"
 
 
 class NIHSensAttr(Enum):
@@ -145,9 +145,9 @@ class NIHChestXRayDataset(CdtVisionDataset):
             self.metadata = self.metadata.merge(split_info, on="Image Index")
 
         # In the case of Patient Gender, factorize yields the mapping: M -> 0, F -> 1
-        s_pd = self.metadata[self.sens_attr.value]
+        s_pd = cast(pd.Series, self.metadata[self.sens_attr.value])
         if (self.sens_attr is NIHSensAttr.AGE) and (num_quantiles is not None):
-            s_pd = pd.qcut(s_pd, q=num_quantiles)
+            s_pd = cast(pd.Series, pd.qcut(s_pd, q=num_quantiles))
         s_pd_le = s_pd.factorize()[0]
         s = torch.as_tensor(s_pd_le, dtype=torch.long)
 
