@@ -59,8 +59,8 @@ def test_data_modules(dm_cls: Type[EthicMlDataModule], stratified: bool) -> None
     loader = dm_2.train_dataloader()
     batch_2 = next(iter(loader))
 
-    torch.testing.assert_allclose(batch.x, batch_2.x)
-    torch.testing.assert_allclose(batch.y, batch_2.y)
+    torch.testing.assert_close(batch.x, batch_2.x)  # type: ignore
+    torch.testing.assert_close(batch.y, batch_2.y)  # type: ignore
     with pytest.raises(AssertionError):
         torch.testing.assert_allclose(batch.s, batch_2.s)
 

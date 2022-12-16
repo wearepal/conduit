@@ -68,7 +68,7 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
                 logger=self.logger,
                 remove_finished=True,
             )
-        else:
+        elif not self._check_unzipped():
             raise FileNotFoundError(
                 f"Data not found at location {self._base_dir.resolve()}. Have you downloaded it?"
             )
@@ -90,3 +90,6 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         s = torch.as_tensor(self.metadata["place"].to_numpy(), dtype=torch.long)
 
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._base_dir)
+
+    def _check_unzipped(self) -> bool:
+        return (self._base_dir).is_dir()
