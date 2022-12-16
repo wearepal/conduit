@@ -119,7 +119,7 @@ uvloop = ["uvloop (>=0.15.2)"]
 name = "certifi"
 version = "2022.12.7"
 description = "Python package for providing Mozilla's CA Bundle."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -146,7 +146,7 @@ python-versions = ">=3.6.1"
 name = "charset-normalizer"
 version = "2.1.1"
 description = "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6.0"
 
@@ -212,7 +212,7 @@ python-versions = "*"
 
 [[package]]
 name = "ethicml"
-version = "1.0.1"
+version = "1.0.2"
 description = "EthicML is a library for performing and assessing algorithmic fairness. Unlike other libraries, EthicML isn't an education tool, but rather a researcher's toolkit."
 category = "dev"
 optional = false
@@ -224,7 +224,7 @@ numpy = ">=1.20.1"
 pandas = ">=1.0,<2.0"
 ranzen = ">=2.0.1,<3.0.0"
 teext = ">=0.1.3,<0.2.0"
-typing-extensions = ">=4.0"
+typing-extensions = ">=4.4"
 
 [package.extras]
 all = ["GitPython (>=3.1.20,<4.0.0)", "cloudpickle (>=2.0.0,<3.0.0)", "fairlearn (==0.7.0)", "folktables (>=0.0.11,<0.0.12)", "gitdb2 (==4.0.2)", "matplotlib (>=3.0.2)", "pipenv (>=2018.11.26,<2022.8.5)", "scikit-learn (>=0.20.1)", "scipy (>=1.7.2,<2.0.0)", "seaborn (>=0.9.0)", "smmap2 (==3.0.1)"]
@@ -256,20 +256,6 @@ python-versions = ">=3.7"
 [package.extras]
 docs = ["furo (>=2022.9.29)", "sphinx (>=5.3)", "sphinx-autodoc-typehints (>=1.19.5)"]
 testing = ["covdefaults (>=2.2.2)", "coverage (>=6.5)", "pytest (>=7.2)", "pytest-cov (>=4)", "pytest-timeout (>=2.1)"]
-
-[[package]]
-name = "folktables"
-version = "0.0.11"
-description = "New machine learning benchmarks from tabular datasets."
-category = "main"
-optional = false
-python-versions = ">=3.7"
-
-[package.dependencies]
-numpy = "*"
-pandas = "*"
-requests = "*"
-sklearn = "*"
 
 [[package]]
 name = "frozenlist"
@@ -357,7 +343,7 @@ license = ["ukkonen"]
 name = "idna"
 version = "3.4"
 description = "Internationalized Domain Names in Applications (IDNA)"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.5"
 
@@ -899,7 +885,7 @@ resolved_reference = "530d077d2f7897d5fe1e3033fb4acf23427eeaba"
 
 [[package]]
 name = "pytorch-lightning"
-version = "1.8.5"
+version = "1.8.5.post0"
 description = "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers. Scale your models. Write less boilerplate."
 category = "dev"
 optional = false
@@ -983,7 +969,7 @@ python-versions = ">=3.8.0,<3.11"
 name = "requests"
 version = "2.28.1"
 description = "Python HTTP for Humans."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7, <4"
 
@@ -1094,14 +1080,6 @@ description = "Python 2 and 3 compatibility utilities"
 category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
-
-[[package]]
-name = "sklearn"
-version = "0.0.post1"
-description = "deprecated sklearn package, use scikit-learn instead"
-category = "main"
-optional = false
-python-versions = "*"
 
 [[package]]
 name = "snowballstemmer"
@@ -1330,7 +1308,7 @@ typing-extensions = ">=3.7.4"
 name = "urllib3"
 version = "1.26.13"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
 
@@ -1402,7 +1380,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8.0,<3.11"
-content-hash = "fccf2c08e3fb8d473bb300ed90819c30f7e075a366ae0f29912e51d5211ba1ed"
+content-hash = "7da49ad24c6dcefa2ae8574fb14fbf37f4e8d6458a58a0f1d256470568f87882"
 
 [metadata.files]
 aiohttp = [
@@ -1634,8 +1612,8 @@ distlib = [
     {file = "distlib-0.3.6.tar.gz", hash = "sha256:14bad2d9b04d3a36127ac97f30b12a19268f211063d8f8ee4f47108896e11b46"},
 ]
 ethicml = [
-    {file = "EthicML-1.0.1.tar.gz", hash = "sha256:4f45f3c5ae717be3cde46a32f6e5066cf9bb3d7dd7b2548c3d9f47321fb813bd"},
-    {file = "ethicml-1.0.1-py3-none-any.whl", hash = "sha256:8321f65b318f857d7c52165242bf63537018b6b1729d1801a7d04cd4fdb5b8f5"},
+    {file = "ethicml-1.0.2-py3-none-any.whl", hash = "sha256:ff183d4a19fec9c71997c084bd4d388d981e56460d964ae2aa8acd7013103d28"},
+    {file = "ethicml-1.0.2.tar.gz", hash = "sha256:6808ca3e42415f6330e4cea781099e0cf1939fa42801779f213a68ecfde1c831"},
 ]
 exceptiongroup = [
     {file = "exceptiongroup-1.0.4-py3-none-any.whl", hash = "sha256:542adf9dea4055530d6e1279602fa5cb11dab2395fa650b8674eaec35fc4a828"},
@@ -1644,9 +1622,6 @@ exceptiongroup = [
 filelock = [
     {file = "filelock-3.8.2-py3-none-any.whl", hash = "sha256:8df285554452285f79c035efb0c861eb33a4bcfa5b7a137016e32e6a90f9792c"},
     {file = "filelock-3.8.2.tar.gz", hash = "sha256:7565f628ea56bfcd8e54e42bdc55da899c85c1abfe1b5bcfd147e9188cebb3b2"},
-]
-folktables = [
-    {file = "folktables-0.0.11.tar.gz", hash = "sha256:e8e133e08975d9c28800fee0385a45fe123d26dad6b887bef7177360217f279d"},
 ]
 frozenlist = [
     {file = "frozenlist-1.3.3-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ff8bf625fe85e119553b5383ba0fb6aa3d0ec2ae980295aaefa552374926b3f4"},
@@ -2236,8 +2211,8 @@ python-slugify = [
 ]
 python-type-stubs = []
 pytorch-lightning = [
-    {file = "pytorch-lightning-1.8.5.tar.gz", hash = "sha256:1c6fbd86923e73877521cdd21927f4da1d460719bbca2e04aec3d6b88d60a783"},
-    {file = "pytorch_lightning-1.8.5-py3-none-any.whl", hash = "sha256:0d690ee2792376472f81d423d24c4dc5f465aaf4fb97a0841e63d880b08df52c"},
+    {file = "pytorch-lightning-1.8.5.post0.tar.gz", hash = "sha256:af5ea24ccdecaba1dababdabb3c6ad2533e1f19ff9344618b873961ce8ffeafc"},
+    {file = "pytorch_lightning-1.8.5.post0-py3-none-any.whl", hash = "sha256:062e05e67bad353fce411fd92dc628e21f58a605747b7c811c9e7c689de9b82c"},
 ]
 pytz = [
     {file = "pytz-2022.6-py2.py3-none-any.whl", hash = "sha256:222439474e9c98fced559f1709d89e6c9cbf8d79c794ff3eb9f8800064291427"},
@@ -2402,9 +2377,6 @@ setuptools = [
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
-]
-sklearn = [
-    {file = "sklearn-0.0.post1.tar.gz", hash = "sha256:76b9ed1623775168657b86b5fe966d45752e5c87f528de6240c38923b94147c5"},
 ]
 snowballstemmer = [
     {file = "snowballstemmer-2.2.0-py2.py3-none-any.whl", hash = "sha256:c8e1716e83cc398ae16824e5572ae04e0d9fc2c6b985fb0f900f5f0c96ecba1a"},
