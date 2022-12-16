@@ -19,12 +19,12 @@ class NIHSplit(Enum):
     TEST = "test_list.txt"
 
 
-class NIHSensAttr(Enum):
+class NIHSubgroup(Enum):
     GENDER = "Patient Gender"
     AGE = "Patient Age"
 
 
-class NIHTargetAttr(Enum):
+class NIHTarget(Enum):
     """
     Taget attributes for the NIH chest X-rays dataset.
 
@@ -77,9 +77,9 @@ class NIHChestXRays(CdtVisionDataset):
     The dataset can be downloaded by following the above link or from `kaggle <https://www.kaggle.com/datasets/nih-chest-xrays/data>`__
     """
 
-    TARGET_ATTR: TypeAlias = NIHTargetAttr
-    SENS_ATTR: TypeAlias = NIHSensAttr
-    SPLIT: TypeAlias = NIHSplit
+    Target: TypeAlias = NIHTarget
+    Subgroup: TypeAlias = NIHSubgroup
+    Split: TypeAlias = NIHSplit
 
     _METADATA_FILENAME: ClassVar[str] = "Data_Entry_2017.csv"
     _BASE_DIR_NAME: ClassVar[str] = "nih_chest_x_rays"
@@ -89,8 +89,8 @@ class NIHChestXRays(CdtVisionDataset):
         self,
         root: Union[Path, str],
         *,
-        target_attr: Optional[Union[NIHTargetAttr, str]] = NIHTargetAttr.FINDING,
-        sens_attr: Union[NIHSensAttr, str] = NIHSensAttr.GENDER,
+        target: Optional[Union[NIHTarget, str]] = NIHTarget.FINDING,
+        subgroup: Union[NIHSubgroup, str] = NIHSubgroup.GENDER,
         split: Optional[Union[NIHSplit, str]] = None,
         transform: Optional[ImageTform] = None,
         num_quantiles: Optional[float] = 4,
@@ -98,8 +98,8 @@ class NIHChestXRays(CdtVisionDataset):
     ) -> None:
         """
         :param root: Root directory of dataset.
-        :param target_attr: Attribute to set as the target attribute ('y').
-        :param sens_attr: Attribute to set as the sensitive (subgroup) attribute ('s').
+        :param target: Attribute to set as the target attribute ('y').
+        :param subgroup: Attribute to set as the subgroup attribute ('s').
         :param split: Which predefined split of the dataset to use. If ``None`` then the full
             (unsplit) dataset will be returned.
         :param transform: A function/transform that takes in a PIL or ndarray image and returns a
@@ -116,10 +116,10 @@ class NIHChestXRays(CdtVisionDataset):
         self.root = Path(root)
         self._base_dir = self.root / self._BASE_DIR_NAME
         self._metadata_fp = self._base_dir / self._METADATA_FILENAME
-        if target_attr is not None:
-            target_attr = str_to_enum(str_=target_attr, enum=NIHTargetAttr)
-        self.target_attr = target_attr
-        self.sens_attr = str_to_enum(str_=sens_attr, enum=NIHSensAttr)
+        if target is not None:
+            target = str_to_enum(str_=target, enum=NIHTarget)
+        self.target = target
+        self.subgroup = str_to_enum(str_=subgroup, enum=NIHSubgroup)
         if split is not None:
             split = str_to_enum(str_=split, enum=NIHSplit)
         self.split = split
@@ -148,8 +148,8 @@ class NIHChestXRays(CdtVisionDataset):
             self.metadata = self.metadata.merge(split_info, on="Image Index")
 
         # In the case of Patient Gender, factorize yields the mapping: M -> 0, F -> 1
-        s_pd = cast(pd.Series, self.metadata[self.sens_attr.value])
-        if (self.sens_attr is NIHSensAttr.AGE) and (num_quantiles is not None):
+        s_pd = cast(pd.Series, self.metadata[self.subgroup.value])
+        if (self.subgroup is NIHSubgroup.AGE) and (num_quantiles is not None):
             s_pd = cast(pd.Series, pd.qcut(s_pd, q=num_quantiles))
         s_pd_le = s_pd.factorize()[0]
         s = torch.as_tensor(s_pd_le, dtype=torch.long)
@@ -160,11 +160,11 @@ class NIHChestXRays(CdtVisionDataset):
             self.encoder.transform(findings_str), columns=self.encoder.classes_
         )
         self.metadata = pd.concat((self.metadata, findings_ml), axis=1)
-        if self.target_attr is None:
+        if self.target is None:
             findings_ml.drop("No Finding", axis=1, inplace=True)
         else:
-            findings_ml = findings_ml[self.target_attr.value]
-            if self.target_attr is NIHTargetAttr.FINDING:
+            findings_ml = findings_ml[self.target.value]
+            if self.target is NIHTarget.FINDING:
                 # Flip the label such that the presence of some thoracic disease
                 # is represented by the positive class.
                 findings_ml = 1 - findings_ml
