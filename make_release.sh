@@ -94,7 +94,7 @@ git push origin $branch_name $new_tag
 echo "#######################################"
 echo "#     create PR for version bump      #"
 echo "#######################################"
-gh pr create --title "Version bump $new_tag" --body "**Do not use squash merge!**" --base "main" --label version-bump
+gh pr create --title "Version bump $new_tag" --body "__Do not use squash merge!__" --base "main" --label version-bump
 # the following command is allowed to fail; hence the "||:" at the end
 gh pr merge $branch_name --merge --admin || :
 
