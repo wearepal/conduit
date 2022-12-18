@@ -6,16 +6,19 @@
 
 from dataclasses import dataclass, field
 from builtins import dict
+from conduit.data.datasets.audio.ecoacoustics import SoundscapeAttr
 from conduit.data.datasets.vision.camelyon17 import Camelyon17Attr
 from conduit.data.datasets.vision.camelyon17 import Camelyon17SplitScheme
 from conduit.data.datasets.vision.celeba import CelebAttr
 from conduit.data.datasets.vision.nico import NicoSuperclass
 from omegaconf import MISSING
+from pathlib import Path
 from ranzen.torch.data import TrainingMode
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Union
 
 
 @dataclass
@@ -32,12 +35,12 @@ class CelebADataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    root: Any = MISSING  # Union[str, Path]
-    train_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    test_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
+    root: Union[str, Path] = MISSING
+    train_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    test_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
     image_size: int = 224
-    superclass: CelebAttr = CelebAttr.Smiling
-    subclass: CelebAttr = CelebAttr.Male
+    superclass: CelebAttr = CelebAttr.SMILING
+    subclass: CelebAttr = CelebAttr.MALE
     use_predefined_splits: bool = False
 
 
@@ -55,9 +58,9 @@ class ColoredMNISTDataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    root: Any = MISSING  # Union[str, Path]
-    train_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    test_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
+    root: Union[str, Path] = MISSING
+    train_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    test_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
     image_size: int = 32
     use_predefined_splits: bool = False
     label_map: Optional[Dict[str, int]] = None
@@ -85,12 +88,12 @@ class NICODataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    root: Any = MISSING  # Union[str, Path]
-    train_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    test_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
+    root: Union[str, Path] = MISSING
+    train_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    test_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
     image_size: int = 224
     class_train_props: Optional[dict] = None
-    superclass: NicoSuperclass = NicoSuperclass.animals
+    superclass: NicoSuperclass = NicoSuperclass.ANIMALS
 
 
 @dataclass
@@ -107,9 +110,9 @@ class WaterbirdsDataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    root: Any = MISSING  # Union[str, Path]
-    train_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    test_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
+    root: Union[str, Path] = MISSING
+    train_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    test_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
     image_size: int = 224
     use_predefined_splits: bool = False
 
@@ -128,14 +131,14 @@ class Camelyon17DataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    root: Any = MISSING  # Union[str, Path]
-    train_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    test_transforms: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
+    root: Union[str, Path] = MISSING
+    train_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    test_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
     image_size: int = 96
-    superclass: Camelyon17Attr = Camelyon17Attr.tumor
-    subclass: Camelyon17Attr = Camelyon17Attr.center
+    superclass: Camelyon17Attr = Camelyon17Attr.TUMOR
+    subclass: Camelyon17Attr = Camelyon17Attr.CENTER
     use_predefined_splits: bool = False
-    split_scheme: Camelyon17SplitScheme = Camelyon17SplitScheme.official
+    split_scheme: Camelyon17SplitScheme = Camelyon17SplitScheme.OFFICIAL
 
 
 @dataclass
@@ -152,8 +155,9 @@ class EcoacousticsDataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    root: Any = MISSING  # Union[str, Path]
+    root: str = MISSING
     train_transforms: Any = None  # Optional[Callable[[Tensor], Tensor]]
     test_transforms: Any = None  # Optional[Callable[[Tensor], Tensor]]
     segment_len: float = 15
-    target_attrs: Any = MISSING  # Union[SoundscapeAttr, str, List[Union[SoundscapeAttr, str]]]
+    sample_rate: int = 48000
+    target_attrs: List[SoundscapeAttr] = MISSING

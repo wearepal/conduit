@@ -7,35 +7,41 @@
 from dataclasses import dataclass, field
 from conduit.data.datasets.audio.ecoacoustics import SoundscapeAttr
 from conduit.data.datasets.vision.camelyon17 import Camelyon17Attr
+from conduit.data.datasets.vision.camelyon17 import Camelyon17Split
 from conduit.data.datasets.vision.camelyon17 import Camelyon17SplitScheme
+from conduit.data.datasets.vision.celeba import CelebASplit
 from conduit.data.datasets.vision.celeba import CelebAttr
+from conduit.data.datasets.vision.cmnist import ColoredMNISTSplit
 from conduit.data.datasets.vision.isic import IsicAttr
 from conduit.data.datasets.vision.nico import NicoSuperclass
 from conduit.data.datasets.vision.ssrp import SSRPSplit
+from conduit.data.datasets.vision.waterbirds import WaterbirdsSplit
 from omegaconf import MISSING
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Union
 
 
 @dataclass
 class CelebAConf:
     _target_: str = "conduit.data.datasets.CelebA"
-    root: Any = MISSING  # Union[str, Path]
+    root: Union[str, Path] = MISSING
     download: bool = True
-    superclass: Any = CelebAttr.Smiling  # Union[CelebAttr, str]
-    subclass: Any = CelebAttr.Male  # Union[CelebAttr, str]
-    transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    split: Any = None  # Union[CelebASplit, str, NoneType]
+    superclass: Union[CelebAttr, str] = CelebAttr.SMILING
+    subclass: Union[CelebAttr, str] = CelebAttr.MALE
+    transform: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    split: Optional[Union[CelebASplit, str]] = None
 
 
 @dataclass
 class ColoredMNISTConf:
     _target_: str = "conduit.data.datasets.ColoredMNIST"
-    root: Any = MISSING  # Union[str, Path]
+    root: Union[str, Path] = MISSING
     download: bool = True
-    transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
+    transform: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
     label_map: Optional[Dict[str, int]] = None
     colors: Optional[List[int]] = None
     num_colors: int = 10
@@ -45,66 +51,66 @@ class ColoredMNISTConf:
     greyscale: bool = False
     background: bool = False
     black: bool = True
-    split: Any = None  # Union[ColoredMNISTSplit, str, NoneType]
+    split: Optional[Union[ColoredMNISTSplit, str]] = None
     seed: Optional[int] = 42
 
 
 @dataclass
 class ISICConf:
     _target_: str = "conduit.data.datasets.ISIC"
-    root: Any = MISSING  # Union[str, Path]
+    root: Union[str, Path] = MISSING
     download: bool = True
     max_samples: int = 25000
-    context_attr: IsicAttr = IsicAttr.histo
-    target_attr: IsicAttr = IsicAttr.malignant
-    transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
+    context_attr: IsicAttr = IsicAttr.HISTO
+    target_attr: IsicAttr = IsicAttr.MALIGNANT
+    transform: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
 
 
 @dataclass
 class NICOConf:
     _target_: str = "conduit.data.datasets.NICO"
-    root: Any = MISSING  # Union[str, Path]
+    root: Union[str, Path] = MISSING
     download: bool = True
-    transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    superclass: Any = NicoSuperclass.animals  # Union[NicoSuperclass, str, NoneType]
+    transform: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    superclass: Optional[Union[NicoSuperclass, str]] = NicoSuperclass.ANIMALS
 
 
 @dataclass
 class SSRPConf:
     _target_: str = "conduit.data.datasets.SSRP"
-    root: Any = MISSING  # Union[str, Path]
-    split: Any = SSRPSplit.pretrain  # Union[SSRPSplit, str]
+    root: Union[str, Path] = MISSING
+    split: Union[SSRPSplit, str] = SSRPSplit.pretrain
     download: bool = True
-    transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
+    transform: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
 
 
 @dataclass
 class WaterbirdsConf:
     _target_: str = "conduit.data.datasets.Waterbirds"
-    root: Any = MISSING  # Union[str, Path]
+    root: Union[str, Path] = MISSING
     download: bool = True
-    transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    split: Any = None  # Union[WaterbirdsSplit, str, NoneType]
+    transform: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    split: Optional[Union[WaterbirdsSplit, str]] = None
 
 
 @dataclass
 class Camelyon17Conf:
     _target_: str = "conduit.data.datasets.Camelyon17"
-    root: Any = MISSING  # Union[str, Path]
+    root: Union[str, Path] = MISSING
     download: bool = True
-    transform: Any = None  # Union[Compose, BasicTransform, Callable[[Image], Any], NoneType]
-    split: Any = None  # Union[Camelyon17Split, str, NoneType]
-    split_scheme: Any = Camelyon17SplitScheme.official  # Union[Camelyon17SplitScheme, str]
-    superclass: Any = Camelyon17Attr.tumor  # Union[Camelyon17Attr, str]
-    subclass: Any = Camelyon17Attr.center  # Union[Camelyon17Attr, str]
+    transform: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    split: Optional[Union[Camelyon17Split, str]] = None
+    split_scheme: Union[Camelyon17SplitScheme, str] = Camelyon17SplitScheme.OFFICIAL
+    superclass: Union[Camelyon17Attr, str] = Camelyon17Attr.TUMOR
+    subclass: Union[Camelyon17Attr, str] = Camelyon17Attr.CENTER
 
 
 @dataclass
 class EcoacousticsConf:
     _target_: str = "conduit.data.datasets.Ecoacoustics"
-    root: Any = MISSING  # Union[str, Path]
+    root: str = MISSING
+    target_attrs: List[SoundscapeAttr] = MISSING
     transform: Any = None  # Optional[Callable[[Tensor], Tensor]]
     download: bool = True
-    target_attrs: Any = SoundscapeAttr.habitat  # Union[SoundscapeAttr, str, List[Union[SoundscapeAttr, str]]]
-    segment_len: Optional[float] = 15
-    preprocess: bool = False
+    segment_len: float = 15
+    sample_rate: int = 48000
