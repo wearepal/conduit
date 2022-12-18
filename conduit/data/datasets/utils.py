@@ -258,10 +258,10 @@ def extract_labels_from_dataset(
         base_dataset, indices = extract_base_dataset(dataset=dataset, return_subset_indices=True)
         _s = None
         _y = None
-        if getattr(base_dataset, "s", None) is not None:
-            _s = base_dataset.s[indices]  # type: ignore
-        if getattr(base_dataset, "y", None) is not None:
-            _y = base_dataset.y[indices]  # type: ignore
+        if (s := getattr(base_dataset, "s", None)) is not None:
+            _s = s[indices]
+        if (y := getattr(base_dataset, "y", None)) is not None:
+            _y = y[indices]
 
         _s = torch.from_numpy(_s) if isinstance(_s, np.ndarray) else _s
         _y = torch.from_numpy(_y) if isinstance(_y, np.ndarray) else _y

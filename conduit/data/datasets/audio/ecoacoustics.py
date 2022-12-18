@@ -169,8 +169,8 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
             download_from_url(
                 file_info=finfo, root=self.base_dir, logger=self.logger, remove_finished=True
             )
-        if (self.base_dir / "__MACOSX").exists():
-            shutil.rmtree(self.base_dir / "__MACOSX")
+        if (macosx_dir := self.base_dir / "__MACOSX").exists():
+            shutil.rmtree(macosx_dir)
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
