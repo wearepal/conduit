@@ -34,9 +34,7 @@ class MemoryBank(nn.Module, Indexable, Sized):
 
     @classmethod
     @torch.no_grad()
-    def with_randint_init(
-        cls, capacity: int, *, dim: int, high: int, low: int = 0
-    ) -> Self:
+    def with_randint_init(cls, capacity: int, *, dim: int, high: int, low: int = 0) -> Self:
         return MemoryBank(torch.randint(low=low, high=high, size=(capacity, dim)))
 
     @classmethod
