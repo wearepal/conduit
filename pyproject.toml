@@ -146,12 +146,9 @@ exclude = ["conf.py"]
 module = [
     "albumentations.*",
     "cv2.*",
-    "ethicml.*",
     "flash.*",
     "gdown.*",
     "git.*",
-    "ranzen.*",
-    "pandas.*",
     "PIL.*",
     "pl_bolts.*",
     "pytest.*",
@@ -163,20 +160,14 @@ module = [
     "torchmetrics.*",
     "torchvision.*",
     "typing_inspect.*",
-    "tqdm.*",
     "wandb.*"
 ]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = [
-    "ethicml.*",
-    "ranzen.*",
-    "numpy.typing.*",
-    "pytest.*",
-    "pytorch_lightning.*",
     "torch.*",
     "torchmetrics.*"
 ]
 follow_imports = "skip"
-follow_imports_for_stubs = true
+#follow_imports_for_stubs = true

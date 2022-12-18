@@ -29,13 +29,13 @@ class MemoryBank(nn.Module, Indexable, Sized):
 
     @classmethod
     @torch.no_grad()
-    def with_l2_hypersphere_init(cls: Type[Self], capacity: int, *, dim: int) -> Self:
+    def with_l2_hypersphere_init(cls, capacity: int, *, dim: int) -> Self:
         return MemoryBank(l2_hypersphere_init(capacity=capacity, dim=dim))
 
     @classmethod
     @torch.no_grad()
     def with_randint_init(
-        cls: Type[Self], capacity: int, *, dim: int, high: int, low: int = 0
+        cls, capacity: int, *, dim: int, high: int, low: int = 0
     ) -> Self:
         return MemoryBank(torch.randint(low=low, high=high, size=(capacity, dim)))
 
