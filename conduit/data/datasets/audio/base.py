@@ -3,10 +3,10 @@ from typing import List, Optional, Union, overload
 
 import numpy as np
 import numpy.typing as npt
-from ranzen import implements
 import torch
 from torch import Tensor
 import torchaudio  # type: ignore
+from typing_extensions import override
 
 from conduit.data.datasets.base import CdtDataset, I, S, Y
 from conduit.data.datasets.utils import (
@@ -77,7 +77,7 @@ class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
     def _sample_x(self, index: List[int], *, coerce_to_tensor: bool = ...) -> List[Tensor]:
         ...
 
-    @implements(CdtDataset)
+    @override
     def _sample_x(
         self, index: IndexType, *, coerce_to_tensor: bool = False
     ) -> Union[Tensor, List[Tensor]]:

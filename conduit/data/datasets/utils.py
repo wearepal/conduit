@@ -122,7 +122,7 @@ def load_image(filepath: Union[Path, str], *, backend: ImageLoadingBackend = "op
         if isinstance(filepath, Path):
             # cv2 can only read string filepaths
             filepath = str(filepath)
-        image = cv2.imread(filepath)  # type: ignore
+        image = cv2.imread(filepath)
         if image is None:
             raise OSError(f"Image-file could not be read from location '{filepath}'")
         return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # type: ignore

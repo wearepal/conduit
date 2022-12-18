@@ -5,10 +5,8 @@ from typing import Dict, List, Optional, Union, cast
 import attr
 import ethicml as em
 from ethicml.data import Dataset, FeatureOrder
-from pytorch_lightning import LightningDataModule
-from ranzen import implements
 from sklearn.preprocessing import StandardScaler  # type: ignore
-from typing_extensions import final
+from typing_extensions import final, override
 
 from conduit.data.datamodules import CdtDataModule
 from conduit.data.structures import TrainValTestSplit
@@ -59,11 +57,11 @@ class EthicMlDataModule(CdtDataModule):
 
         return splits
 
-    @implements(LightningDataModule)
+    @override
     def prepare_data(self) -> None:
         self.make_feature_groups()
 
-    @implements(CdtDataModule)
+    @override
     def _get_splits(self) -> TrainValTestSplit[DataTupleDataset]:
         self._datatuple = self.em_dataset.load(order=FeatureOrder.disc_first)
 
@@ -82,7 +80,7 @@ class EthicMlDataModule(CdtDataModule):
         )
 
         self._train_datatuple, self.scaler = em.scale_continuous(
-            self.em_dataset, datatuple=train_data, scaler=self.scaler  # type: ignore
+            self.em_dataset, datatuple=train_data, scaler=self.scaler
         )
         self._val_datatuple, _ = em.scale_continuous(
             self.em_dataset, datatuple=val_data, scaler=self.scaler, fit=False

@@ -12,19 +12,13 @@ from pytorch_lightning.callbacks.progress.rich_progress import (
     RichProgressBar,
     RichProgressBarTheme,
 )
-from ranzen.decorators import implements
 from rich.console import RenderableType
 from rich.progress import Task, TaskID, TextColumn
 from rich.table import Column
 from rich.text import Text
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias, override
 
-from conduit.data.datamodules.vision.dummy import DummyVisionDataModule  # type: ignore
-
-__all__ = [
-    "CdtProgressBar",
-    "ProgressBarTheme",
-]
+__all__ = ["CdtProgressBar", "ProgressBarTheme"]
 
 
 class _FixedLengthProcessionSpeed(ProcessingSpeedColumn):
@@ -110,7 +104,7 @@ class CdtProgressBar(RichProgressBar):
         )
         self.predict_progress_bar_id = None
 
-    @implements(RichProgressBar)
+    @override
     def configure_columns(self, *args: Any, **kwargs: Any) -> list:
         return [
             TextColumn(
@@ -135,7 +129,7 @@ class CdtProgressBar(RichProgressBar):
         return trainer.num_training_batches == float("inf")
 
     @property
-    @implements(RichProgressBar)
+    @override
     def total_train_batches(self) -> Union[int, float]:
         """The total number of training batches, which may change from epoch to epoch.
 
@@ -146,7 +140,7 @@ class CdtProgressBar(RichProgressBar):
             return self.trainer.max_steps
         return self.trainer.num_training_batches
 
-    @implements(RichProgressBar)
+    @override
     def _add_task(
         self, total_batches: float, description: str, visible: bool = True
     ) -> Optional[int]:
@@ -155,7 +149,7 @@ class CdtProgressBar(RichProgressBar):
                 f"[{self.theme.description}]{description}", total=total_batches, visible=visible
             )
 
-    @implements(RichProgressBar)
+    @override
     def _update(self, progress_bar_id: int, current: int, visible: bool = True) -> None:
         if self.progress is not None and self.is_enabled:
             total = self.progress.tasks[progress_bar_id].total
@@ -167,7 +161,7 @@ class CdtProgressBar(RichProgressBar):
             self.progress.update(TaskID(progress_bar_id), advance=advance, visible=visible)
             self.refresh()
 
-    @implements(RichProgressBar)
+    @override
     def _get_train_description(self, current_epoch: Optional[int]) -> str:
         train_description = f"Training"
         if current_epoch is not None:
@@ -183,7 +177,7 @@ class CdtProgressBar(RichProgressBar):
                 train_description += " "
         return train_description
 
-    @implements(RichProgressBar)
+    @override
     def on_train_epoch_start(self, trainer, pl_module):
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
@@ -209,7 +203,7 @@ class CdtProgressBar(RichProgressBar):
             )
         self.refresh()
 
-    @implements(RichProgressBar)
+    @override
     def on_validation_batch_end(self, trainer: pl.Trainer, *args: Any, **kwargs: Any) -> None:
         if trainer.sanity_checking:
             self._update(self.val_sanity_progress_bar_id, self.val_batch_idx)  # type: ignore
@@ -218,7 +212,7 @@ class CdtProgressBar(RichProgressBar):
             self._update(self.val_progress_bar_id, self.val_batch_idx)
         self.refresh()
 
-    @implements(RichProgressBar)
+    @override
     def on_predict_batch_start(
         self,
         trainer: pl.Trainer,

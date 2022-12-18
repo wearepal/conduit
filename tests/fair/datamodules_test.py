@@ -28,7 +28,7 @@ def _create_dm(
 ) -> EthicMlDataModule:
     extra_args = {} if extra_args is None else extra_args
     dm_kwargs = dict(train_batch_size=BATCHSIZE, stratified_sampling=stratified, **extra_args)
-    dm = dm_cls(**dm_kwargs)  # type: ignore[arg-type]
+    dm = dm_cls(**dm_kwargs)
     dm.prepare_data()
     dm.setup()
     return dm
@@ -51,7 +51,7 @@ def test_data_modules(dm_cls: Type[EthicMlDataModule], stratified: bool) -> None
     dm = _create_dm(dm_cls, stratified)
     loader = dm.train_dataloader()
     batch = next(iter(loader))
-    assert batch.x.size() == torch.Size([BATCHSIZE, *dm.size()])  # type: ignore
+    assert batch.x.size() == torch.Size([BATCHSIZE, *dm.size()])
     assert batch.s.size() == torch.Size([BATCHSIZE])
     assert batch.y.size() == torch.Size([BATCHSIZE])
 
@@ -107,6 +107,6 @@ def test_persist_param(root: Path) -> None:
     dm.setup()
     loader = dm.train_dataloader()
     batch = next(iter(loader))
-    assert batch.x.size() == torch.Size([32, *dm.size()])  # type: ignore
+    assert batch.x.size() == torch.Size([32, *dm.size()])
     assert batch.s.size() == torch.Size([32])
     assert batch.y.size() == torch.Size([32])

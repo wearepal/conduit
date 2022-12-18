@@ -3,10 +3,8 @@ from typing import Any
 
 import albumentations as A  # type: ignore
 import attr
-from pytorch_lightning import LightningDataModule
-from ranzen import implements
+from typing_extensions import override
 
-from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision.waterbirds import (
     SampleType,
@@ -25,12 +23,12 @@ class WaterbirdsDataModule(CdtVisionDataModule[Waterbirds, SampleType]):
     image_size: int = 224
     use_predefined_splits: bool = False
 
-    @implements(LightningDataModule)
+    @override
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
         Waterbirds(root=self.root, download=True)
 
-    @property  # type: ignore[misc]
-    @implements(CdtVisionDataModule)
+    @property
+    @override
     def _default_train_transforms(self) -> A.Compose:
         # We use the transoform pipeline described in https://arxiv.org/abs/2008.06775
         # rather than that described in the paper in which the dataset was first introduced
@@ -45,12 +43,12 @@ class WaterbirdsDataModule(CdtVisionDataModule[Waterbirds, SampleType]):
         normalization = super()._default_train_transforms
         return A.Compose([base_transforms, normalization])
 
-    @property  # type: ignore[misc]
-    @implements(CdtVisionDataModule)
+    @property
+    @override
     def _default_test_transforms(self) -> A.Compose:
         return self._default_train_transforms
 
-    @implements(CdtDataModule)
+    @override
     def _get_splits(self) -> TrainValTestSplit[Waterbirds]:
         # Split the data according to the pre-defined split indices
         if self.use_predefined_splits:

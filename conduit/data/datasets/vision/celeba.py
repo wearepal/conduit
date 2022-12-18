@@ -1,12 +1,11 @@
 """CelebA Dataset."""
-from enum import Enum, auto
+from enum import auto
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from ranzen import parsable, str_to_enum
-from ranzen.decorators import enum_name_str
+from ranzen import StrEnum, parsable, str_to_enum
 import torch
 from torch import Tensor
 from typing_extensions import TypeAlias
@@ -18,54 +17,53 @@ from conduit.data.structures import TernarySample
 __all__ = ["CelebA", "CelebAttr", "CelebASplit"]
 
 
-@enum_name_str
-class CelebAttr(Enum):
-    Five_o_Clock_Shadow = auto()
-    Arched_Eyebrows = auto()
-    Attractive = auto()
-    Bags_Under_Eyes = auto()
-    Bald = auto()
-    Bangs = auto()
-    Big_Lips = auto()
-    Big_Nose = auto()
-    Black_Hair = auto()
-    Blond_Hair = auto()
-    Blurry = auto()
-    Brown_Hair = auto()
-    Bushy_Eyebrows = auto()
-    Chubby = auto()
-    Double_Chin = auto()
-    Eyeglasses = auto()
-    Goatee = auto()
-    Gray_Hair = auto()
-    Heavy_Makeup = auto()
-    High_Cheekbones = auto()
-    Male = auto()
-    Mouth_Slightly_Open = auto()
-    Mustache = auto()
-    Narrow_Eyes = auto()
-    No_Beard = auto()
-    Oval_Face = auto()
-    Pale_Skin = auto()
-    Pointy_Nose = auto()
-    Receding_Hairline = auto()
-    Rosy_Cheeks = auto()
-    Sideburns = auto()
-    Smiling = auto()
-    Straight_Hair = auto()
-    Wavy_Hair = auto()
-    Wearing_Earrings = auto()
-    Wearing_Hat = auto()
-    Wearing_Lipstick = auto()
-    Wearing_Necklace = auto()
-    Wearing_Necktie = auto()
-    Young = auto()
+class CelebAttr(StrEnum):
+    FIVE_O_CLOCK_SHADOW = "Five_o_Clock_Shadow"
+    ARCHED_EYEBROWS = "Arched_Eyebrows"
+    ATTRACTIVE = "Attractive"
+    BAGS_UNDER_EYES = "Bags_Under_Eyes"
+    BALD = "Bald"
+    BANGS = "Bangs"
+    BIG_LIPS = "Big_Lips"
+    BIG_NOSE = "Big_Nose"
+    BLACK_HAIR = "Black_Hair"
+    BLOND_HAIR = "Blond_Hair"
+    BLURRY = "Blurry"
+    BROWN_HAIR = "Brown_Hair"
+    BUSHY_EYEBROWS = "Bushy_Eyebrows"
+    CHUBBY = "Chubby"
+    DOUBLE_CHIN = "Double_Chin"
+    EYEGLASSES = "Eyeglasses"
+    GOATEE = "Goatee"
+    GRAY_HAIR = "Gray_Hair"
+    HEAVY_MAKEUP = "Heavy_Makeup"
+    HIGH_CHEEKBONES = "High_Cheekbones"
+    MALE = "Male"
+    MOUTH_SLIGHTLY_OPEN = "Mouth_Slightly_Open"
+    MUSTACHE = "Mustache"
+    NARROW_EYES = "Narrow_Eyes"
+    NO_BEARD = "No_Beard"
+    OVAL_FACE = "Oval_Face"
+    PALE_SKIN = "Pale_Skin"
+    POINTY_NOSE = "Pointy_Nose"
+    RECEDING_HAIRLINE = "Receding_Hairline"
+    ROSY_CHEEKS = "Rosy_Cheeks"
+    SIDEBURNS = "Sideburns"
+    SMILING = "Smiling"
+    STRAIGHT_HAIR = "Straight_Hair"
+    WAVY_HAIR = "Wavy_Hair"
+    WEARING_EARRINGS = "Wearing_Earrings"
+    WEARING_HAT = "Wearing_Hat"
+    WEARING_LIPSTICK = "Wearing_Lipstick"
+    WEARING_NECKLACE = "Wearing_Necklace"
+    WEARING_NECKTIE = "Wearing_Necktie"
+    YOUNG = "Young"
 
 
-class CelebASplit(Enum):
-    train = 0
-    val = 1
-    test = 2
+class CelebASplit(StrEnum):
+    TRAIN = auto()
+    VAL = auto()
+    TEST = auto()
 
 
 SampleType: TypeAlias = TernarySample
@@ -101,15 +99,15 @@ class CelebA(CdtVisionDataset[SampleType, Tensor, Tensor]):
         root: Union[str, Path],
         *,
         download: bool = True,
-        superclass: Union[CelebAttr, str] = CelebAttr.Smiling,
-        subclass: Union[CelebAttr, str] = CelebAttr.Male,
+        superclass: Union[CelebAttr, str] = CelebAttr.SMILING,
+        subclass: Union[CelebAttr, str] = CelebAttr.MALE,
         transform: Optional[ImageTform] = None,
         split: Optional[Union[CelebASplit, str]] = None,
     ) -> None:
 
-        self.superclass = str_to_enum(str_=superclass, enum=CelebAttr)
-        self.subclass = str_to_enum(str_=subclass, enum=CelebAttr)
-        self.split = str_to_enum(str_=split, enum=CelebASplit) if isinstance(split, str) else split
+        self.superclass = CelebAttr(superclass)
+        self.subclass = CelebAttr(subclass)
+        self.split = CelebASplit(split) if isinstance(split, str) else split
 
         self.root = Path(root)
         self._base_dir = self.root / self.__class__.__name__

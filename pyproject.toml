@@ -27,7 +27,7 @@ pandas = "^1.3.3"
 python = ">=3.8.0,<3.11"
 ranzen = {version = ">=2.0.0", extras = ["hydra"]}
 scikit-learn = "^1.2.0"
-typing-extensions = ">=4.0.0"
+typing-extensions = ">=4.4.0"
 
 [tool.poetry.group.torch.dependencies]
 pytorch-lightning = "^1.5.0"
@@ -70,6 +70,8 @@ pydocstyle = "*"
 pylint = "^2.11.1"
 pytest = "*"
 python-type-stubs = {git = "https://github.com/predictive-analytics-lab/python-type-stubs.git", branch = "main" }
+pandas-stubs = "*"
+types-tqdm = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -110,7 +112,7 @@ classes = ["MISSING"]
 
 [tool.pyright]
 include = ["conduit"]
-exclude = ["**/node_modules", "**/__pycache__"]
+exclude = ["**/node_modules", "**/__pycache__", "**/.*", "**/conf.py"]
 typeCheckingMode = "basic"
 pythonVersion = "3.8"
 reportUnusedImport = "error"
@@ -124,6 +126,7 @@ reportMissingTypeStubs = "warning"
 strictListInference = true
 strictSetInference = true
 strictParameterNoneValue = true
+reportUnnecessaryTypeIgnoreComment = "warning"
 
 [tool.mypy]
 python_version = "3.8"

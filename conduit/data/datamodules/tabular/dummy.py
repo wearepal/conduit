@@ -1,7 +1,7 @@
 from typing import Optional
 
 import attr
-from ranzen import implements
+from typing_extensions import override
 
 from conduit.data import CdtDataModule, TrainValTestSplit
 from conduit.data.datasets.tabular.dummy import RandomTabularDataset
@@ -16,7 +16,7 @@ class DummyTabularDataModule(CdtDataModule):
     s_card: Optional[int] = None
     y_card: Optional[int] = None
 
-    @implements(CdtDataModule)
+    @override
     def _get_splits(self) -> TrainValTestSplit[RandomTabularDataset]:
         # Split the data randomly according to val- and test-prop
         data = RandomTabularDataset(

@@ -1,13 +1,12 @@
 from dataclasses import dataclass
 from typing import Generic, List, Optional, Sequence, Tuple, TypeVar, Union, overload
 
-from ranzen.decorators import implements
 from ranzen.misc import gcopy
 import torch
 from torch import Tensor
 import torchvision.transforms as T  # type: ignore
 import torchvision.transforms.functional as TF  # type: ignore
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 from conduit.data.constants import IMAGENET_STATS
 from conduit.data.datasets.utils import (
@@ -41,11 +40,11 @@ class MultiViewPair(InputContainer[Tensor]):
         if self.v1.size() != self.v2.size():
             raise AttributeError("'v1' and 'v2' must have the same shape.")
 
-    @implements(InputContainer)
+    @override
     def __len__(self) -> int:
         return len(self.v1)
 
-    @implements(InputContainer)
+    @override
     def __add__(self, other: Self) -> Self:
         copy = gcopy(self, deep=False)
         is_batched = self.v1.ndim == 4
@@ -127,12 +126,12 @@ class MultiCropOutput(InputContainer[MultiViewPair]):
     def target(self) -> Tensor:
         return self.global_views.v2
 
-    @implements(InputContainer)
+    @override
     def __len__(self) -> int:
         """Total number of crops."""
         return len(self.global_views) + len(self.local_views)
 
-    @implements(InputContainer)
+    @override
     def __add__(self, other: Self) -> Self:
         copy = gcopy(self, deep=False)
         copy.global_views = copy.global_views + other.global_views

@@ -1,8 +1,8 @@
 """Dummy data-module."""
 import attr
-from ranzen import implements
+from typing_extensions import override
 
-from conduit.data import CdtDataModule, CdtVisionDataModule, TrainValTestSplit
+from conduit.data import CdtVisionDataModule, TrainValTestSplit
 from conduit.data.datasets.vision.dummy import DummyVisionDataset, SampleType
 
 
@@ -18,7 +18,7 @@ class DummyVisionDataModule(CdtVisionDataModule[DummyVisionDataset, SampleType])
     s_card: int = 2
     y_card: int = 2
 
-    @implements(CdtDataModule)
+    @override
     def _get_splits(self) -> TrainValTestSplit[DummyVisionDataset]:
         # Split the data randomly according to val- and test-prop
         data = DummyVisionDataset(

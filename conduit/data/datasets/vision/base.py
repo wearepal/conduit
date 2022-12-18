@@ -5,11 +5,10 @@ from typing import List, Optional, Sequence, Union, cast, overload
 
 import numpy as np
 import numpy.typing as npt
-from ranzen import implements
 from ranzen.types import Addable
 import torch
 from torch import Tensor
-from typing_extensions import Self, TypeAlias
+from typing_extensions import Self, TypeAlias, override
 
 from conduit.data.datasets.base import CdtDataset, I, S, Y
 from conduit.data.datasets.utils import (
@@ -77,7 +76,7 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
     def _sample_x(self, index: List[int], *, coerce_to_tensor: bool = ...) -> List[ItemType]:
         ...
 
-    @implements(CdtDataset)
+    @override
     def _sample_x(
         self, index: IndexType, *, coerce_to_tensor: bool = False
     ) -> Union[ItemType, List[ItemType]]:
@@ -105,7 +104,7 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
                 image = img_to_tensor(image)
         return image
 
-    @implements(CdtDataset)
+    @override
     def subset(
         self: Self,
         indices: Union[List[int], npt.NDArray[np.uint64], Tensor, slice],

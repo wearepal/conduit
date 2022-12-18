@@ -1,16 +1,18 @@
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
-from albumentations.pytorch import ToTensorV2
+from albumentations.pytorch import ToTensorV2  # type: ignore
 import numpy as np
 import pytest
 import torch
 from torch import Tensor
 import torchaudio.transforms as AT  # type: ignore
-from torchvision import transforms as T
+from torchvision import transforms as T  # type: ignore
 from typing_extensions import Type
 
 from conduit.data import (
+    Camelyon17,
+    PACS,
     NICO,
     SSRP,
     BinarySample,
@@ -86,6 +88,7 @@ def test_vision_datasets(
     ],
 ) -> None:
     """Basic test for datasets.
+
     Confirms that the datasets can be instantiated and have a functional __getitem__ method.
     """
     transform = T.ToTensor()
@@ -96,6 +99,36 @@ def test_vision_datasets(
         break
 
 
+def test_str_for_enum(root: Path) -> None:
+    """Confirm that the conversion from ``str`` to ``Enum`` works."""
+    try:
+        Camelyon17(
+            root, download=False, superclass="tumor", subclass="center", split_scheme="official"
+        )
+    except FileNotFoundError:
+        pass
+
+    try:
+        CelebA(root, download=False, superclass="Smiling", subclass="Male", split="val")
+    except FileNotFoundError:
+        pass
+
+    try:
+        NICO(root, download=False, superclass="animals")
+    except FileNotFoundError:
+        pass
+
+    try:
+        PACS(root, download=False, domains="photo")
+    except FileNotFoundError:
+        pass
+
+    try:
+        Ecoacoustics(str(root), download=False, target_attrs=[SoundscapeAttr.N0])
+    except FileNotFoundError:
+        pass
+
+
 @pytest.mark.slow
 @pytest.mark.parametrize("segment_len", [1, 15, 30])
 def test_audio_dataset(root: Path, segment_len: float) -> None:
@@ -103,7 +136,7 @@ def test_audio_dataset(root: Path, segment_len: float) -> None:
     ds = Ecoacoustics(
         root=str(root),
         download=True,
-        target_attrs=[SoundscapeAttr.habitat, SoundscapeAttr.site],
+        target_attrs=[SoundscapeAttr.HABITAT, SoundscapeAttr.SITE],
         transform=None,
         segment_len=segment_len,
     )
@@ -124,7 +157,7 @@ def test_audio_dataset(root: Path, segment_len: float) -> None:
 
 @pytest.mark.slow
 def test_ecoacoustics_metadata_labels(root: Path):
-    target_attr = [SoundscapeAttr.habitat]
+    target_attr = [SoundscapeAttr.HABITAT]
     ds = Ecoacoustics(
         root=str(root),
         download=True,
@@ -150,7 +183,7 @@ def test_ecoacoustics_dm(root: Path):
     dm = EcoacousticsDataModule(
         root=str(root),
         segment_len=30.0,
-        target_attrs=[SoundscapeAttr.habitat],
+        target_attrs=[SoundscapeAttr.HABITAT],
         train_transforms=AT.Spectrogram(),
     )
     dm.prepare_data()
@@ -169,7 +202,7 @@ def test_ecoacoustics_dm(root: Path):
 @pytest.mark.slow
 @pytest.mark.parametrize("train_batch_size", [1, 2, 8])
 def test_ecoacoustics_dm_batch_multi_label(root: Path, train_batch_size: int) -> None:
-    target_attrs = [SoundscapeAttr.habitat, SoundscapeAttr.site]
+    target_attrs = [SoundscapeAttr.HABITAT, SoundscapeAttr.SITE]
     data_module = EcoacousticsDataModule(
         root=str(root),
         segment_len=30.0,

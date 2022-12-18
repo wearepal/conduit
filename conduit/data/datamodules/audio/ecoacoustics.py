@@ -2,11 +2,9 @@
 from typing import Any, List, Optional, Sequence
 
 import attr
-from pytorch_lightning import LightningDataModule
-from ranzen import implements
 from torch.utils.data import Sampler
+from typing_extensions import override
 
-from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
 from conduit.data.datasets.utils import AudioTform, CdtDataLoader
 from conduit.data.structures import BinarySample, TernarySample, TrainValTestSplit
@@ -51,7 +49,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
             converter=self._batch_converter,
         )
 
-    @implements(LightningDataModule)
+    @override
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
         Ecoacoustics(
             root=self.root,
@@ -64,17 +62,17 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
     def _default_transform(self) -> Compose:
         return Compose([LogMelSpectrogram(), Framing()])
 
-    @property  # type: ignore[misc]
-    @implements(CdtAudioDataModule)
+    @property
+    @override
     def _default_train_transforms(self) -> AudioTform:
         return self._default_transform
 
-    @property  # type: ignore[misc]
-    @implements(CdtAudioDataModule)
+    @property
+    @override
     def _default_test_transforms(self) -> AudioTform:
         return self._default_transform
 
-    @implements(CdtDataModule)
+    @override
     def _get_splits(self) -> TrainValTestSplit[Ecoacoustics]:
         all_data = Ecoacoustics(
             root=self.root,

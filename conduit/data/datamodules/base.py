@@ -5,12 +5,11 @@ from typing import Generic, Optional, Sequence, Tuple, TypeVar, cast
 
 import attr
 import pytorch_lightning as pl
-from ranzen import implements
 from ranzen.torch import SequentialBatchSampler, StratifiedBatchSampler, TrainingMode
 from ranzen.torch.data import num_batches_per_epoch
 import torch
 from torch.utils.data import Sampler
-from typing_extensions import final
+from typing_extensions import final, override
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.datasets.utils import (
@@ -191,11 +190,11 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
             ds=self.train_data, batch_size=self.train_batch_size, batch_sampler=batch_sampler
         )
 
-    @implements(pl.LightningDataModule)
+    @override
     def val_dataloader(self) -> CdtDataLoader[I]:
         return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.val_data)
 
-    @implements(pl.LightningDataModule)
+    @override
     def test_dataloader(self) -> CdtDataLoader[I]:
         return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.test_data)
 
@@ -222,7 +221,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     @final
     def _num_samples(self, dataset: D) -> int:
         if hasattr(dataset, "__len__"):
-            return len(dataset)  # type: ignore
+            return len(dataset)
         raise AttributeError(
             f"Number of samples cannot be determined as dataset of type '{dataset.__class__.__name__}' "
             "has no '__len__' attribute defined."
@@ -330,7 +329,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
             dataset=self.test_data, return_subset_indices=False
         )
 
-    @implements(pl.LightningDataModule)
+    @override
     @final
     def setup(self, stage: Optional[Stage] = None, force_reset: bool = False) -> None:
         # Only perform the setup if it hasn't already been done

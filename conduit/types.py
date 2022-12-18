@@ -1,14 +1,14 @@
-from enum import Enum
+from enum import auto
 from typing import Any, Dict, List, Protocol, TypeVar, Union
 
 import numpy as np
 import numpy.typing as npt
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
-from ranzen.decorators import enum_name_str
+from ranzen import StrEnum
 from ranzen.torch.loss import ReductionType
 from torch import Tensor
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR
-from typing_extensions import Protocol, Self, TypeAlias, runtime_checkable
+from typing_extensions import Protocol, TypeAlias, runtime_checkable
 
 __all__ = [
     "IndexType",
@@ -35,11 +35,10 @@ class Loss(Protocol):
         ...
 
 
-@enum_name_str
-class Stage(Enum):
-    fit = "fit"
-    validate = "validate"
-    test = "test"
+class Stage(StrEnum):
+    FIT = auto()
+    VALIDATE = auto()
+    TEST = auto()
 
 
 LRScheduler: TypeAlias = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]

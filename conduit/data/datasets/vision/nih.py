@@ -2,7 +2,7 @@ from enum import Enum
 from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
 
-import pandas as pd  # type: ignore
+import pandas as pd
 from ranzen import parsable, str_to_enum
 from sklearn.preprocessing import MultiLabelBinarizer  # type: ignore
 import torch

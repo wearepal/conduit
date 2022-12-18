@@ -1,6 +1,6 @@
 """ISIC Dataset."""
 from __future__ import annotations
-from enum import Enum, auto
+from enum import auto
 from itertools import islice
 import os
 from pathlib import Path
@@ -10,12 +10,12 @@ import zipfile
 
 from PIL import Image
 import pandas as pd
-from ranzen import flatten_dict
-from ranzen.decorators import enum_name_str, parsable
+from ranzen import StrEnum, flatten_dict
+from ranzen.decorators import parsable
 import requests
 import torch
 from torch import Tensor
-from tqdm import tqdm  # type: ignore
+from tqdm import tqdm
 from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import ImageTform
@@ -25,11 +25,10 @@ from conduit.data.structures import TernarySample
 __all__ = ["IsicAttr", "ISIC"]
 
 
-@enum_name_str
-class IsicAttr(Enum):
-    histo = auto()
-    malignant = auto()
-    patch = auto()
+class IsicAttr(StrEnum):
+    HISTO = auto()
+    MALIGNANT = auto()
+    PATCH = auto()
 
 
 T = TypeVar("T")
@@ -53,8 +52,8 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
         *,
         download: bool = True,
         max_samples: int = 25_000,  # default is the number of samples used for the NSLB paper
-        context_attr: IsicAttr = IsicAttr.histo,
-        target_attr: IsicAttr = IsicAttr.malignant,
+        context_attr: IsicAttr = IsicAttr.HISTO,
+        target_attr: IsicAttr = IsicAttr.MALIGNANT,
         transform: Optional[ImageTform] = None,
     ) -> None:
 
@@ -189,7 +188,7 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
         labels_df = self._add_patch_column(labels_df)
 
         labels_df["path"] = (
-            str(self._processed_dir)  # type: ignore
+            str(self._processed_dir)
             + os.sep
             + "ISIC-images"
             + os.sep
@@ -245,7 +244,7 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
             value="non-histopathology", inplace=True
         )
         histopathology_mask = labels_df["meta.clinical.diagnosis_confirm_type"] == "histopathology"
-        labels_df["histo"] = histopathology_mask.astype("uint8")  # type: ignore[arg-type]
+        labels_df["histo"] = histopathology_mask.astype("uint8")
 
         return labels_df
 
@@ -255,8 +254,8 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
         patch_mask = labels_df["dataset.name"] == "SONIC"
         # add to labels_df
         labels_df["patch"] = None
-        labels_df.loc[patch_mask, "patch"] = 1  # type: ignore[index]
-        labels_df.loc[~patch_mask, "patch"] = 0  # type: ignore[index]
+        labels_df.loc[patch_mask, "patch"] = 1
+        labels_df.loc[~patch_mask, "patch"] = 0
         assert all(patch is not None for patch in labels_df["patch"])
         return labels_df
 

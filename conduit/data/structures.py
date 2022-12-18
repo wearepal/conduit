@@ -22,12 +22,11 @@ from PIL import Image
 import attr
 import numpy as np
 import numpy.typing as npt
-from ranzen.decorators import implements
 from ranzen.misc import gcopy, reduce_add
 from ranzen.types import Addable
 import torch
 from torch import Tensor
-from typing_extensions import Self, TypeAlias, runtime_checkable
+from typing_extensions import Self, TypeAlias, override, runtime_checkable
 
 from conduit.types import IndexType, Sized
 
@@ -95,9 +94,7 @@ TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.i
 
 
 def concatenate_inputs(x1: X, x2: X, *, is_batched: bool) -> X:
-    if type(x1) != type(x2) or (
-        isinstance(x1, list) and type(x1[0]) != type(cast(List, x2)[0])  # type: ignore
-    ):
+    if type(x1) != type(x2) or (isinstance(x1, list) and type(x1[0]) != type(cast(List, x2)[0])):
         raise AttributeError("Only data of the same type can be concatenated (added) together.")
     if isinstance(x1, Tensor):
         # if the number of dimensions is different by 1, append a batch dimension.
@@ -145,12 +142,12 @@ class InputContainer(Sized, Addable, Protocol[X_co]):
         """
         return reduce_add(sequence)
 
-    @implements(Sized)
+    @override
     def __len__(self) -> int:
         """Total number of samples in the container."""
         ...
 
-    @implements(Addable)
+    @override
     def __add__(self, other: Self) -> Self:
         ...
 
@@ -188,7 +185,7 @@ class MultiCropOutput(InputContainer[Tensor]):
         """Shape of the global crops - for compatibility with DMs."""
         return self.global_crops[0].shape
 
-    @implements(InputContainer)
+    @override
     def __len__(self) -> int:
         """Total number of crops."""
         return len(self.global_crops) + len(self.local_crops)
@@ -198,7 +195,7 @@ class MultiCropOutput(InputContainer[Tensor]):
         self.local_crops += other.local_crops
         return self
 
-    @implements(InputContainer)
+    @override
     def __add__(self, other: Self) -> Self:
         copy = gcopy(self, deep=False)
         copy.global_crops = copy.global_crops + other.global_crops
@@ -213,15 +210,15 @@ IS = TypeVar("IS", bound="SampleBase[IndexabledData]")
 class SampleBase(InputContainer[X]):
     x: X
 
-    @implements(InputContainer)
+    @override
     def __len__(self) -> int:
-        return len(self.__dataclass_fields__)  # type: ignore[attr-defined]
+        return len(self.__dataclass_fields__)
 
     @abstractmethod
     def __iter__(self) -> Iterator[X]:
         ...
 
-    @implements(InputContainer)
+    @override
     def __add__(self, other: Self) -> Self:
         copy = gcopy(self, deep=False)
         copy.x = concatenate_inputs(copy.x, other.x, is_batched=True)
@@ -277,11 +274,11 @@ class NamedSample(SampleBase[X]):
             return BinarySample(x=self.x, y=y)
         return self
 
-    @implements(SampleBase)
+    @override
     def __iter__(self) -> Iterator[X]:
         yield self.x
 
-    @implements(SampleBase)
+    @override
     def __getitem__(self: "NamedSample[XI]", index: IndexType) -> "NamedSample[XI]":
         return gcopy(self, deep=False, x=self.x[index])
 
@@ -325,18 +322,18 @@ class BinarySample(NamedSample[X], _BinarySampleMixin):
             return BinarySampleIW(x=self.x, y=self.y, iw=iw)
         return self
 
-    @implements(SampleBase)
+    @override
     def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.y)
 
-    @implements(NamedSample)
+    @override
     def __add__(self, other: Self) -> Self:
         copy = gcopy(self, deep=False)
         copy.y = torch.cat([copy.y, other.y], dim=0)
         copy.x = concatenate_inputs(copy.x, other.x, is_batched=len(copy.y) > 1)
         return copy
 
-    @implements(SampleBase)
+    @override
     def __getitem__(self: "BinarySample[XI]", index: IndexType) -> "BinarySample[XI]":
         return gcopy(self, deep=False, x=self.x[index], y=self.y[index])
 
@@ -370,18 +367,18 @@ class SubgroupSample(NamedSample[X], _SubgroupSampleMixin):
             return SubgroupSampleIW(x=self.x, s=self.s, iw=iw)
         return self
 
-    @implements(SampleBase)
+    @override
     def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.s)
 
-    @implements(NamedSample)
+    @override
     def __add__(self, other: Self) -> Self:
         copy = gcopy(self, deep=False)
         copy.s = torch.cat([copy.s, other.s], dim=0)
         copy.x = concatenate_inputs(copy.x, other.x, is_batched=len(copy.s) > 1)
         return copy
 
-    @implements(SampleBase)
+    @override
     def __getitem__(self: "SubgroupSample[XI]", index: IndexType) -> "SubgroupSample[XI]":
         return gcopy(self, deep=False, x=self.x[index], s=self.s[index])
 
@@ -406,17 +403,17 @@ class BinarySampleIW(BinarySample[X], _BinarySampleMixin, _IwMixin):
             return TernarySampleIW(x=self.x, s=s, y=self.y, iw=self.iw)
         return self
 
-    @implements(SampleBase)
+    @override
     def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.y, self.iw)
 
-    @implements(BinarySample)
+    @override
     def __add__(self, other: Self) -> Self:
         copy = super().__add__(other)
         copy.iw = torch.cat([copy.iw, other.iw], dim=0)
         return copy
 
-    @implements(SampleBase)
+    @override
     def __getitem__(self: "BinarySampleIW[XI]", index: IndexType) -> "BinarySampleIW[XI]":
         return gcopy(self, deep=False, x=self.x[index], y=self.y[index], iw=self.iw[index])
 
@@ -436,17 +433,17 @@ class SubgroupSampleIW(SubgroupSample[X], _IwMixin):
             return TernarySampleIW(x=self.x, s=self.s, y=y, iw=self.iw)
         return self
 
-    @implements(SampleBase)
+    @override
     def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.s, self.iw)
 
-    @implements(SubgroupSample)
+    @override
     def __add__(self, other: Self) -> Self:
         copy = super().__add__(other)
         copy.iw = torch.cat([copy.iw, other.iw], dim=0)
         return copy
 
-    @implements(SampleBase)
+    @override
     def __getitem__(self: "SubgroupSampleIW[XI]", index: IndexType) -> "SubgroupSampleIW[XI]":
         return gcopy(self, deep=False, x=self.x[index], s=self.s[index], iw=self.iw[index])
 
@@ -466,17 +463,17 @@ class TernarySample(BinarySample[X], _SubgroupSampleMixin):
             return TernarySampleIW(x=self.x, s=self.s, y=self.y, iw=iw)
         return self
 
-    @implements(SampleBase)
+    @override
     def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.y, self.s)
 
-    @implements(BinarySample)
+    @override
     def __add__(self, other: Self) -> Self:
         copy = super().__add__(other)
         copy.s = torch.cat([copy.s, other.s], dim=0)
         return copy
 
-    @implements(SampleBase)
+    @override
     def __getitem__(self: "TernarySample[XI]", index: IndexType) -> "TernarySample[XI]":
         return gcopy(self, deep=False, x=self.x[index], y=self.y[index], s=self.s[index])
 
@@ -486,17 +483,17 @@ class TernarySampleIW(TernarySample[X], _IwMixin):
     def add_field(self) -> Self:
         return self
 
-    @implements(SampleBase)
+    @override
     def __iter__(self) -> Iterator[LoadedData]:
         yield from (self.x, self.y, self.s, self.iw)
 
-    @implements(TernarySample)
+    @override
     def __add__(self, other: Self) -> Self:
         copy = super().__add__(other)
         copy.iw = torch.cat([copy.iw, other.iw], dim=0)
         return copy
 
-    @implements(SampleBase)
+    @override
     def __getitem__(self: "TernarySampleIW[XI]", index: IndexType) -> "TernarySampleIW[XI]":
         return gcopy(
             self, deep=False, x=self.x[index], y=self.y[index], s=self.s[index], iw=self.iw[index]
@@ -582,11 +579,11 @@ class Dataset(Protocol[R_co]):
 
 @runtime_checkable
 class SizedDataset(Dataset[R_co], Sized, Protocol):
-    @implements(Dataset)
+    @override
     def __getitem__(self, index: int) -> R_co:
         ...
 
-    @implements(Sized)
+    @override
     def __len__(self) -> int:
         ...
 
@@ -616,11 +613,11 @@ D = TypeVar("D", bound=Union[Dataset, Tensor, List[int]])
 class DatasetWrapper(SizedDataset[R_co], Protocol):
     dataset: Dataset
 
-    @implements(SizedDataset)
+    @override
     def __getitem__(self, index: int) -> R_co:
         ...
 
-    @implements(SizedDataset)
+    @override
     def __len__(self) -> Optional[int]:
         if isinstance(self.dataset, SizedDataset):
             return len(self.dataset)

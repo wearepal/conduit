@@ -3,10 +3,8 @@ from typing import Any
 
 import albumentations as A  # type: ignore
 import attr
-from pytorch_lightning import LightningDataModule
-from ranzen import implements
+from typing_extensions import override
 
-from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision.pacs import PACS, SampleType
 from conduit.data.structures import TrainValTestSplit
@@ -19,10 +17,10 @@ class PACSDataModule(CdtVisionDataModule[PACS, SampleType]):
     """PyTorch Lightning Datamodule for the PACS dataset."""
 
     image_size: int = 224
-    target_domain: PACS.Domain = PACS.Domain.sketch
+    target_domain: PACS.Domain = PACS.Domain.SKETCH
 
-    @property  # type: ignore[misc]
-    @implements(CdtVisionDataModule)
+    @property
+    @override
     def _default_train_transforms(self) -> A.Compose:
         base_transforms = A.Compose(
             [
@@ -33,16 +31,16 @@ class PACSDataModule(CdtVisionDataModule[PACS, SampleType]):
         normalization = super()._default_train_transforms
         return A.Compose([base_transforms, normalization])
 
-    @property  # type: ignore[misc]
-    @implements(CdtVisionDataModule)
+    @property
+    @override
     def _default_test_transforms(self) -> A.Compose:
         return self._default_train_transforms
 
-    @implements(LightningDataModule)
+    @override
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
         PACS(root=self.root, download=True)
 
-    @implements(CdtDataModule)
+    @override
     def _get_splits(self) -> TrainValTestSplit[PACS]:
         all_data = PACS(root=self.root, domains=None, transform=None)
         train_val_data, test_data = all_data.domain_split(target_domains=self.target_domain)

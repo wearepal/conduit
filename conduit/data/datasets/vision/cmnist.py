@@ -6,12 +6,11 @@ from typing import ClassVar, Dict, List, Optional, Tuple, Union, cast
 from PIL import Image
 import numpy as np
 import numpy.typing as npt
-from ranzen.decorators import implements, parsable
-from ranzen.misc import str_to_enum
+from ranzen import parsable, str_to_enum
 import torch
 from torch import Tensor
 from torchvision.datasets import MNIST  # type: ignore
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias, override
 
 from conduit.data.datasets.utils import ImageTform, RawImage
 from conduit.data.datasets.vision.base import CdtVisionDataset
@@ -264,7 +263,7 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
 
         super().__init__(x=x_colorized, y=y, s=s, transform=transform, image_dir=root)
 
-    @implements(CdtVisionDataset)
+    @override
     def _load_image(self, index: int) -> RawImage:
         image = self.x[index]
         if self._il_backend == "pillow":

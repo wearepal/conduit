@@ -15,11 +15,10 @@ from typing import (
 
 import numpy as np
 import numpy.typing as npt
-from ranzen import implements
 from ranzen.misc import gcopy
 import torch
 from torch import Tensor
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 from conduit.data.structures import (
     BinarySample,
@@ -278,7 +277,7 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         if not inplace:
             return superset
 
-    @implements(SizedDataset)
+    @override
     @final
     def __getitem__(self: Self, index: IndexType) -> I:
         x = self._sample_x(index, coerce_to_tensor=False)
@@ -293,7 +292,7 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
             sample = TernarySample(x=x, y=y, s=s)
         return sample  # type: ignore
 
-    @implements(SizedDataset)
+    @override
     def __len__(self) -> int:
         return len(self.x)
 
