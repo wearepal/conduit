@@ -1,10 +1,10 @@
 from abc import abstractmethod
 import math
-from typing import ClassVar, List, Union
+from typing import ClassVar, List, Union, final
 
 import torch
 from torch import Tensor
-from typing_extensions import final, override
+from typing_extensions import override
 
 __all__ = [
     "TabularTransform",

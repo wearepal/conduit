@@ -1,12 +1,11 @@
 """Test DataModules."""
 from __future__ import annotations
 from pathlib import Path
-from typing import Any
+from typing import Any, Final, Type
 
 import ethicml as em
 import pytest
 import torch
-from typing_extensions import Final, Type
 
 from conduit.data.datamodules.vision.celeba import CelebADataModule
 from conduit.fair.data import CrimeDataModule, HealthDataModule

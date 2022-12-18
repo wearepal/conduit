@@ -1,9 +1,9 @@
 """Base class for audio datasets."""
-from typing import Optional, TypeVar
+from typing import Optional, TypeVar, final
 
 import attr
 import torchaudio.transforms as T  # type: ignore
-from typing_extensions import final, override
+from typing_extensions import override
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.base import I

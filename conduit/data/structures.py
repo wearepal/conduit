@@ -16,6 +16,7 @@ from typing import (
     Union,
     cast,
     overload,
+    runtime_checkable,
 )
 
 from PIL import Image
@@ -26,7 +27,7 @@ from ranzen.misc import gcopy, reduce_add
 from ranzen.types import Addable
 import torch
 from torch import Tensor
-from typing_extensions import Self, TypeAlias, override, runtime_checkable
+from typing_extensions import Self, TypeAlias, override
 
 from conduit.types import IndexType, Sized
 
@@ -173,15 +174,15 @@ class MultiCropOutput(InputContainer[Tensor]):
         return self.global_crops + self.local_crops
 
     @property
-    def global_crop_sizes(self):
+    def global_crop_sizes(self) -> List[torch.Size]:
         return [crop.shape[-3:] for crop in self.global_crops]
 
     @property
-    def local_crop_sizes(self):
+    def local_crop_sizes(self) -> List[torch.Size]:
         return [crop.shape[-3:] for crop in self.local_crops]
 
     @property
-    def shape(self):
+    def shape(self) -> torch.Size:
         """Shape of the global crops - for compatibility with DMs."""
         return self.global_crops[0].shape
 

@@ -1,7 +1,7 @@
 """Base class from which all data-modules in conduit inherit."""
 from abc import abstractmethod
 import logging
-from typing import Generic, Optional, Sequence, Tuple, TypeVar, cast
+from typing import Generic, Optional, Sequence, Tuple, TypeVar, cast, final
 
 import attr
 import pytorch_lightning as pl
@@ -9,7 +9,7 @@ from ranzen.torch import SequentialBatchSampler, StratifiedBatchSampler, Trainin
 from ranzen.torch.data import num_batches_per_epoch
 import torch
 from torch.utils.data import Sampler
-from typing_extensions import final, override
+from typing_extensions import override
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.datasets.utils import (

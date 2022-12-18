@@ -178,7 +178,7 @@ class CdtProgressBar(RichProgressBar):
         return train_description
 
     @override
-    def on_train_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer: pl.Trainer, pl_module) -> None:
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
         if total_train_batches != float("inf"):
