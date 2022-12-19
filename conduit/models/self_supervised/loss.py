@@ -391,9 +391,7 @@ class DecoupledContrastiveLoss(nn.Module):
         )
 
     @classmethod
-    def with_vmf_weighting(
-        cls, sigma: float = 0.5, *, temperature: float = 0.1
-    ) -> Self:
+    def with_vmf_weighting(cls, sigma: float = 0.5, *, temperature: float = 0.1) -> Self:
         """
         Initialise the DCL loss with von Mises-Fisher weighting.
 

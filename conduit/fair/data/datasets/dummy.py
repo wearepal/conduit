@@ -14,6 +14,7 @@ class DummyDataset(CdtDataset):
     :param num_samples: how many samples to use in this dataset
     :param seed: random seed
     """
+
     def __init__(
         self, *shapes: Tuple[int, ...], num_samples: int = 10000, seed: Optional[int] = None
     ) -> None:
