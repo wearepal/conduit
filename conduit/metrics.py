@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from enum import Enum
 from functools import partial, wraps
 from typing import (
@@ -89,14 +90,16 @@ R = TypeVar("R", Tensor, Tuple[Tensor, Union[Tensor, slice]], covariant=True)
 
 
 class Comparator(Protocol[R]):
+    @abstractmethod
     def __call__(self, y_pred: Tensor, *, y_true: Tensor) -> R:
-        """
+        """Compare.
+
         :param y_pred: Predicted labels or raw logits of a classifier.
         :param y_true: Ground truth (correct) labels.
 
         :returns: An element-wise comparison between ``y_pred`` and ``y_true`` or a subset of them;
-        if the latter, the second element returned should be a mask indicating which samples
-        comprise that subset.
+            if the latter, the second element returned should be a mask indicating which samples
+            comprise that subset.
         """
         ...
 
@@ -178,7 +181,8 @@ def merge_indices(
     combination of possible indices from across the elements in ``group_ids`` is assigned a unique
     index.
 
-    :param group_ids: A sequence of (long-type) index tensors.
+    :param indices: (Long-type) index tensors.
+    :param return_cardinalities: if ``True``, return sizes.
     :returns: A merged index set which uniquely indexes each possible combination in indices.
 
     :raises TypeError: If any elemnts of ``indices`` do not have dtype ``torch.long``.
@@ -219,11 +223,10 @@ def _apply_groupwise_metric(
     Computes a groupwise metric given a ``comparator`` and ``aggregator``.
 
     :param comparator: Function used to assess the correctness of ``y_pred`` with respect
-    to ``y_true``. Should return a score for each sample.
+        to ``y_true``. Should return a score for each sample.
 
     :param aggregator: Function with which to aggregate over the group-wise scores.
-    If ``None`` then no aggregation will be applied and scores will be returned for each
-    group.
+        If ``None`` then no aggregation will be applied and scores will be returned for each group.
 
     :param y_pred: Predictions to be scored
     :param y_true: Ground truth (correct) labels.
@@ -232,8 +235,7 @@ def _apply_groupwise_metric(
     :returns: The score(s) as determined by the :attr:`comparator` and :attr:`aggregator`.
 
     :raises ValueError: If ``y_pred``, ``y_true``, and ``s`` do not match in size at dimension 0
-    (the 'batch' dimension).
-
+        (the 'batch' dimension).
     """
     y_pred = y_pred.squeeze()
     y_true = y_true.squeeze()
@@ -295,15 +297,13 @@ class GroupwiseMetric(Protocol[C_co, A_co]):
 def groupwise_metric(
     comparator: C, *, aggregator: A, cond_on_pred: bool = False
 ) -> GroupwiseMetric[C, A]:
-    """
-    Converts a given ``comparator`` and ``aggregator`` into a group-wise metric.
+    """Converts a given ``comparator`` and ``aggregator`` into a group-wise metric.
 
     :param comparator: Function used to assess the correctness of ``y_pred`` with respect
-    to ``y_true``. Should return a score for each sample.
-
+        to ``y_true``. Should return a score for each sample.
     :param aggregator: Function with which to aggregate over the group-wise scores.
-    If ``None`` then no aggregation will be applied and scores will be returned for each
-    group.
+        If ``None`` then no aggregation will be applied and scores will be returned for each group.
+    :param cond_on_pred: Whethr to condition on predictions.
 
     :returns: A group-wise metric formed from ``comparator`` and ``aggregator``.
     """
@@ -327,15 +327,13 @@ def subclasswise_metric(
     *,
     aggregator: A,
 ) -> GroupwiseMetric[C, A]:
-    """
-    Converts a given ``comparator`` and ``aggregator`` into a subclass-wise metric.
+    """Converts a given ``comparator`` and ``aggregator`` into a subclass-wise metric.
 
     :param comparator: Function used to assess the correctness of ``y_pred`` with respect
-    to ``y_true``. Should return a score for each sample.
+        to ``y_true``. Should return a score for each sample.
 
     :param aggregator: Function with which to aggregate over the subclass-wise scores.
-    If ``None`` then no aggregation will be applied and scores will be returned for each
-    group.
+        If ``None`` then no aggregation will be applied and scores will be returned for each group.
 
     :returns: A subclass-wise metric formed from ``comparator`` and ``aggregator``.
     """
@@ -355,15 +353,14 @@ def classwise_metric(
     aggregator: A,
     cond_on_pred: bool = False,
 ) -> Metric[C, A]:
-    """
-    Converts a given ``comparator`` and ``aggregator`` into a subclass-wise metric.
+    """Converts a given ``comparator`` and ``aggregator`` into a subclass-wise metric.
 
     :param comparator: Function used to assess the correctness of ``y_pred`` with respect
-    to ``y_true``. Should return a score for each sample.
+        to ``y_true``. Should return a score for each sample.
 
     :param aggregator: Function with which to aggregate over the subclass-wise scores.
-    If ``None`` then no aggregation will be applied and scores will be returned for each
-    group.
+        If ``None`` then no aggregation will be applied and scores will be returned for each group.
+    :param cond_on_pred: Whethr to condition on predictions.
 
     :returns: A subclass-wise metric formed from ``comparator`` and ``aggregator``.
     """
@@ -460,24 +457,19 @@ def fscore(
     aggregator: Optional[Aggregator] = None,
     inner_summand: Optional[Literal["y_true", "s"]] = None,
 ) -> Tensor:
-    """
-    Computes the F-beta score between ``y_pred`` and ``y_true`` with optional subclass-conditioning.
+    """Computes F-beta score between ``y_pred`` and ``y_true`` with optional subclass-conditioning.
 
     :param y_pred: Predicted labels.
     :param y_true: Target labels.
     :param s: Subclass labels.
     :param beta: Beta coefficient that determines the weight of recall relative to precision.
-    ``beta < 1`` lends more weight to precision, while ``beta > 1`` favors recal
-
+        ``beta < 1`` lends more weight to precision, while ``beta > 1`` favors recal
     :param inner_summand: Which conditioning factor, if any, to sum over prior to the final
-    aggregation when conditioning on the subclass labels.
-
+        aggregation when conditioning on the subclass labels.
     :param aggregator: Function with which to aggregate over the scores.
-    If ``None`` then no aggregation will be applied and scores will be returned for each
-    group.
-
+        If ``None`` then no aggregation will be applied and scores will be returned for each group.
     :returns: The (optionally aggregated) F-beta score given predictions ``y_pred`` and targets
-    ``y_pred``.
+        ``y_pred``.
     """
     prec_ids = y_pred if s is None else merge_indices(s, y_pred)
     precs = _apply_groupwise_metric(

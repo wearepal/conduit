@@ -106,20 +106,18 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
 
     @override
     def subset(
-        self: Self,
+        self,
         indices: Union[List[int], npt.NDArray[np.uint64], Tensor, slice],
         deep: bool = False,
         transform: Optional[ImageTform] = None,
     ) -> Self:
         """Create a subset of the dataset from the given indices.
 
-        :param indices: The sample-indices from which to create the subset.
-        In the case of being a numpy array or tensor, said array or tensor
-        must be 0- or 1-dimensional.
+        :param indices: The sample-indices from which to create the subset. In the case of being a
+            numpy array or tensor, said array or tensor must be 0- or 1-dimensional.
 
-        :param deep: Whether to create a copy of the underlying dataset as
-        a basis for the subset. If False then the data of the subset will be
-        a view of original dataset's data.
+        :param deep: Whether to create a copy of the underlying dataset as a basis for the subset.
+            If False then the data of the subset will be a view of original dataset's data.
 
         :param transform: Image transform to assign to the resulting subset.
 

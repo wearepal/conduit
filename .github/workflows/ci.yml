@@ -6,49 +6,45 @@ on:
     - main
 
 jobs:
+  linters:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install isort black darglint
+    - name: Format with black
+      run: |
+        python -m black --check .
+    - name: Format with isort
+      run: |
+        isort --check --diff .
+    - name: Lint with darglint
+      run: |
+        darglint --verbosity 2 --docstring-style sphinx -z long conduit
   ci_suite:
+    needs: [linters]
     runs-on: ubuntu-latest
     steps:
     #----------------------------------------------
     #       check-out repo and set-up python
     #----------------------------------------------
-    - name: Check out repository
-      uses: actions/checkout@v2
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v2
+    - uses: actions/checkout@v3
+    - name: Install poetry
+      run: pipx install poetry
+    - uses: actions/setup-python@v4
       with:
-        python-version: 3.8
+        python-version: '3.8'
+        cache: 'poetry'
     #----------------------------------------------
-    #  -----  install & configure poetry  -----
-    #----------------------------------------------
-    - name: Install Poetry
-      uses: snok/install-poetry@v1.2
-      with:
-        virtualenvs-create: true
-        virtualenvs-in-project: true
-        installer-parallel: true
-
-    #----------------------------------------------
-    #       load cached venv if cache exists
-    #----------------------------------------------
-    - name: Set up Poetry cache for Python dependencies
-      id: cached-poetry-dependencies
-      uses: actions/cache@v2
-      with:
-        path: .venv
-        key: venv2-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
-    #----------------------------------------------
-    # install dependencies if cache does not exist
+    # install dependencies
     #----------------------------------------------
     - name: Install dependencies
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --no-interaction --no-root --with fair
-    - name: Format with black
-      run: |
-        poetry run python -m black --check .
-    - name: Format with isort
-      run: |
-        poetry run isort --check --diff .
     # - name: Setup node.js (for pyright)
     #   uses: actions/setup-node@v1
     #   with:

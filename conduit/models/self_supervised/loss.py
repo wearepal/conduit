@@ -80,16 +80,18 @@ def moco_v2_loss(
     :param anchors: Logits of the anchor samples.
     :param positives: Logits of the positive samples w.r.t. ``anchors`` (derived from different
         views of the same samples).
-    :negatives: Logits of the negative samples w.r.t ``anchors`` (derived from different samples).
-    :temperature: Inverse temperature parameter used for adjusting the sharpness of the softmax
-        distribution. Smaller values lead to hard negatives being overemphasized.
+    :param negatives: Logits of the negative samples w.r.t ``anchors`` (derived from different
+        samples).
+    :param temperature: Inverse temperature parameter used for adjusting the sharpness of the
+        softmax distribution. Smaller values lead to hard negatives being overemphasized.
 
-    :dcl: Whether to decouple the numerators from the denominators, meaning that the
+    :param dcl: Whether to decouple the numerators from the denominators, meaning that the
         cross-view distances (similarity between the anchors and positives) are not included in the
         negative component of the loss. This has been shown to improve convergence and stability,
         particularly when working with smaller batch sizes.
 
-    :normalize: Whether to l2 normalize the logits before computing the inter-sample similarities
+    :param normalize: Whether to l2 normalize the logits before computing the inter-sample
+        similarities.
 
     :returns: Loss as a 0-dimensional tensor.
     """
@@ -389,13 +391,12 @@ class DecoupledContrastiveLoss(nn.Module):
         )
 
     @classmethod
-    def with_vmf_weighting(
-        cls: Type[Self], sigma: float = 0.5, *, temperature: float = 0.1
-    ) -> Self:
+    def with_vmf_weighting(cls, sigma: float = 0.5, *, temperature: float = 0.1) -> Self:
         """
         Initialise the DCL loss with von Mises-Fisher weighting.
 
         :param sigma: :math:`\\sigma` (scale) parameter for the weigting function.
         :param temperature: Temperature controlling the sharpness of the softmax distribution.
+        :returns: the loss object
         """
         return cls(temperature=temperature, weight_fn=_von_mises_fisher_weighting)
