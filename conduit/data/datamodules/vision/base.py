@@ -5,8 +5,7 @@ from typing import List, Optional, TypeVar, Union
 import albumentations as A  # type: ignore
 from albumentations.pytorch import ToTensorV2  # type: ignore
 import attr
-from ranzen import implements
-from typing_extensions import final
+from typing_extensions import final, override
 
 from conduit.data.constants import IMAGENET_STATS
 from conduit.data.datamodules.base import CdtDataModule
@@ -39,7 +38,7 @@ class CdtVisionDataModule(CdtDataModule[D, I]):
         )
 
     @train_transforms.setter
-    def train_transforms(self, transform: Optional[ImageTform]) -> None:  # type: ignore
+    def train_transforms(self, transform: Optional[ImageTform]) -> None:
         self._train_transforms = transform
         if isinstance(self._train_data, ImageTransformer):
             self._train_data.transform = transform
@@ -55,7 +54,7 @@ class CdtVisionDataModule(CdtDataModule[D, I]):
 
     @test_transforms.setter
     @final
-    def test_transforms(self, transform: Optional[ImageTform]) -> None:  # type: ignore
+    def test_transforms(self, transform: Optional[ImageTform]) -> None:
         self._test_transforms = transform
         if isinstance(self._val_data, ImageTransformer):
             self._val_data.transform = transform
@@ -76,7 +75,7 @@ class CdtVisionDataModule(CdtDataModule[D, I]):
         return A.Compose(transform_ls)
 
     @property
-    @implements(CdtDataModule)
+    @override
     def dim_x(self) -> ImageSize:
         """
         Returns the dimensions of the first input (x).
@@ -100,7 +99,7 @@ class CdtVisionDataModule(CdtDataModule[D, I]):
         transform_ls.append(ToTensorV2())
         return A.Compose(transform_ls)
 
-    @implements(CdtDataModule)
+    @override
     def _setup(self, stage: Optional[Stage] = None) -> None:
         train, val, test = self._get_splits()
         train = ImageTransformer(train, transform=self.train_transforms)

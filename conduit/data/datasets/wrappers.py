@@ -4,9 +4,9 @@ from typing import Any, Optional, Tuple, Union
 
 from PIL import Image
 import numpy as np
-from ranzen.decorators import implements
 import torch
 from torch import Tensor
+from typing_extensions import override
 
 from conduit.data.datasets.utils import (
     AudioTform,
@@ -65,7 +65,7 @@ class ImageTransformer(DatasetWrapper[Any]):
             base_dataset.update_il_backend(transform)
         self._transform = transform
 
-    @implements(DatasetWrapper)
+    @override
     def __getitem__(self, index: int) -> Any:
         sample = self.dataset[index]
 
@@ -114,7 +114,7 @@ class AudioTransformer(DatasetWrapper[Any]):
         self._transform: Optional[ImageTform] = None
         self.transform = transform
 
-    @implements(DatasetWrapper)
+    @override
     def __getitem__(self, index: int) -> Any:
         sample = self.dataset[index]
         if self.transform is not None:
@@ -154,7 +154,7 @@ class TabularTransformer(DatasetWrapper[Any]):
         self.transform = transform
         self.target_transform = target_transform
 
-    @implements(DatasetWrapper)
+    @override
     def __getitem__(self, index: int) -> Any:
         sample = self.dataset[index]
         if self.transform is not None:
@@ -195,7 +195,7 @@ class InstanceWeightedDataset(DatasetWrapper[Any]):
         self.dataset = dataset
         self.iw = compute_instance_weights(dataset)
 
-    @implements(DatasetWrapper)
+    @override
     def __getitem__(self, index: int) -> Union[NamedSample, Tuple[Any, ...]]:
         sample = self.dataset[index]
         iw = self.iw[index]

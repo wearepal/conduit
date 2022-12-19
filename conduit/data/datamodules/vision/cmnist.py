@@ -6,11 +6,9 @@ import albumentations as A  # type: ignore
 from albumentations.pytorch.transforms import ToTensorV2  # type: ignore
 import attr
 import numpy as np
-from pytorch_lightning import LightningDataModule
-from ranzen import implements
 from torchvision.datasets import MNIST  # type: ignore
+from typing_extensions import override
 
-from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision.cmnist import (
     ColoredMNIST,
@@ -39,8 +37,8 @@ class ColoredMNISTDataModule(CdtVisionDataModule[ColoredMNIST, SampleType]):
     background: bool = False
     black: bool = True
 
-    @property  # type: ignore[misc]
-    @implements(CdtVisionDataModule)
+    @property
+    @override
     def _default_train_transforms(self) -> A.Compose:
         transforms = [A.Compose([A.Resize(self.image_size, self.image_size)])]
         if self.norm_values is not None:
@@ -50,17 +48,17 @@ class ColoredMNISTDataModule(CdtVisionDataModule[ColoredMNIST, SampleType]):
             transforms.append(normalization)  # type: ignore
         return A.Compose(transforms)
 
-    @property  # type: ignore[misc]
-    @implements(CdtVisionDataModule)
+    @property
+    @override
     def _default_test_transforms(self) -> A.Compose:
         return self._default_train_transforms
 
-    @implements(LightningDataModule)
+    @override
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
         MNIST(root=str(self.root), download=True, train=True)
         MNIST(root=str(self.root), download=True, train=False)
 
-    @implements(CdtDataModule)
+    @override
     def _get_splits(self) -> TrainValTestSplit[ColoredMNIST]:
         # TODO: Add more sophisticated (e.g. biased) splits
         fact_func = partial(
@@ -77,8 +75,8 @@ class ColoredMNISTDataModule(CdtVisionDataModule[ColoredMNIST, SampleType]):
         # Use the predefined train and test splits, sampling the val split
         # randomly from the train split
         if self.use_predefined_splits:
-            train_data = fact_func(split=ColoredMNISTSplit.train)
-            test_data = fact_func(split=ColoredMNISTSplit.test)
+            train_data = fact_func(split=ColoredMNISTSplit.TRAIN)
+            test_data = fact_func(split=ColoredMNISTSplit.TEST)
             val_data, train_data = train_data.random_split(props=self.val_prop)
         else:
             # Split the data randomly according to val- and test-prop

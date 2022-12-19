@@ -1,10 +1,9 @@
 from typing import Optional, Type
 
-from ranzen.decorators import implements
 import torch
 from torch import Tensor, nn
 import torch.nn.functional as F
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 from conduit.types import Indexable, IndexType, Sized
 
@@ -30,14 +29,12 @@ class MemoryBank(nn.Module, Indexable, Sized):
 
     @classmethod
     @torch.no_grad()
-    def with_l2_hypersphere_init(cls: Type[Self], capacity: int, *, dim: int) -> Self:
+    def with_l2_hypersphere_init(cls, capacity: int, *, dim: int) -> Self:
         return MemoryBank(l2_hypersphere_init(capacity=capacity, dim=dim))
 
     @classmethod
     @torch.no_grad()
-    def with_randint_init(
-        cls: Type[Self], capacity: int, *, dim: int, high: int, low: int = 0
-    ) -> Self:
+    def with_randint_init(cls, capacity: int, *, dim: int, high: int, low: int = 0) -> Self:
         return MemoryBank(torch.randint(low=low, high=high, size=(capacity, dim)))
 
     @classmethod
@@ -72,10 +69,10 @@ class MemoryBank(nn.Module, Indexable, Sized):
             self.memory[self._ptr_pos : new_ptr_pos] = values
         self._ptr_pos = new_ptr_pos
 
-    @implements(Indexable)
+    @override
     def __getitem__(self, index: IndexType) -> Tensor:
         return self.memory[index]
 
-    @implements(Sized)
+    @override
     def __len__(self) -> int:
         return len(self.memory)

@@ -1,11 +1,9 @@
 """Base class for audio datasets."""
-from typing import Optional, TypeVar
+from typing import Optional, TypeVar, final
 
-import albumentations as A  # type: ignore
 import attr
-from ranzen.decorators import implements
 import torchaudio.transforms as T  # type: ignore
-from typing_extensions import final
+from typing_extensions import override
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.base import I
@@ -36,7 +34,7 @@ class CdtAudioDataModule(CdtDataModule[D, I]):
         )
 
     @train_transforms.setter
-    def train_transforms(self, transform: Optional[AudioTform]) -> None:  # type: ignore
+    def train_transforms(self, transform: Optional[AudioTform]) -> None:
         self._train_transforms = transform
         if isinstance(self._train_data, AudioTransformer):
             self._train_data.transform = transform
@@ -52,7 +50,7 @@ class CdtAudioDataModule(CdtDataModule[D, I]):
 
     @test_transforms.setter
     @final
-    def test_transforms(self, transform: Optional[AudioTform]) -> None:  # type: ignore
+    def test_transforms(self, transform: Optional[AudioTform]) -> None:
         self._test_transforms = transform
         if isinstance(self._val_data, AudioTransformer):
             self._val_data.transform = transform
@@ -67,7 +65,7 @@ class CdtAudioDataModule(CdtDataModule[D, I]):
     def _default_test_transforms(self) -> T.Spectrogram:
         return T.Spectrogram()
 
-    @implements(CdtDataModule)
+    @override
     @final
     def _setup(self, stage: Optional[Stage] = None) -> None:
         train, val, test = self._get_splits()

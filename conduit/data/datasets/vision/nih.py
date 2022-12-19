@@ -2,7 +2,7 @@ from enum import Enum
 from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
 
-import pandas as pd  # type: ignore
+import pandas as pd
 from ranzen import parsable, str_to_enum
 from sklearn.preprocessing import MultiLabelBinarizer  # type: ignore
 import torch
@@ -153,7 +153,7 @@ class NIHChestXRays(CdtVisionDataset):
             self.metadata = self.metadata.merge(split_info, on="Image Index")
 
         # In the case of Patient Gender, factorize yields the mapping: M -> 0, F -> 1
-        s_pd = cast(pd.Series, self.metadata[self.subgroup.value])
+        s_pd = self.metadata[self.subgroup.value]
         if (self.subgroup is NIHSubgroup.AGE) and (num_quantiles is not None):
             s_pd = cast(pd.Series, pd.qcut(s_pd, q=num_quantiles))
         s_pd_le = s_pd.factorize()[0]

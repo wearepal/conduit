@@ -3,10 +3,8 @@ from typing import Any
 
 import albumentations as A  # type: ignore
 import attr
-from pytorch_lightning import LightningDataModule
-from ranzen import implements
+from typing_extensions import override
 
-from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision.camelyon17 import (
     Camelyon17,
@@ -25,17 +23,17 @@ class Camelyon17DataModule(CdtVisionDataModule[Camelyon17, SampleType]):
     """Data-module for the Camelyon17 dataset."""
 
     image_size: int = 96
-    superclass: Camelyon17Attr = Camelyon17Attr.tumor
-    subclass: Camelyon17Attr = Camelyon17Attr.center
+    superclass: Camelyon17Attr = Camelyon17Attr.TUMOR
+    subclass: Camelyon17Attr = Camelyon17Attr.CENTER
     use_predefined_splits: bool = False
-    split_scheme: Camelyon17SplitScheme = Camelyon17SplitScheme.official
+    split_scheme: Camelyon17SplitScheme = Camelyon17SplitScheme.OFFICIAL
 
-    @implements(LightningDataModule)
+    @override
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
         Camelyon17(root=self.root, download=True)
 
-    @property  # type: ignore[misc]
-    @implements(CdtVisionDataModule)
+    @property
+    @override
     def _default_train_transforms(self) -> A.Compose:
         base_transforms = A.Compose(
             [
@@ -49,8 +47,8 @@ class Camelyon17DataModule(CdtVisionDataModule[Camelyon17, SampleType]):
 
         return A.Compose([base_transforms, normalization])
 
-    @property  # type: ignore[misc]
-    @implements(CdtVisionDataModule)
+    @property
+    @override
     def _default_test_transforms(self) -> A.Compose:
         base_transforms = A.Compose(
             [
@@ -62,7 +60,7 @@ class Camelyon17DataModule(CdtVisionDataModule[Camelyon17, SampleType]):
 
         return A.Compose([base_transforms, normalization])
 
-    @implements(CdtDataModule)
+    @override
     def _get_splits(self) -> TrainValTestSplit[Camelyon17]:
         # Split the data according to the pre-defined split indices
         if self.use_predefined_splits:

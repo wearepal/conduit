@@ -1,12 +1,11 @@
 """PACS Dataset."""
-from enum import Enum, auto
+from enum import auto
 from pathlib import Path
-from typing import ClassVar, List, Optional, Union, cast
+from typing import ClassVar, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from ranzen import parsable, str_to_enum
-from ranzen.decorators import enum_name_str
+from ranzen import StrEnum, parsable, str_to_enum
 import torch
 from torch import Tensor
 from typing_extensions import Self, TypeAlias
@@ -24,12 +23,11 @@ __all__ = [
 SampleType: TypeAlias = TernarySample
 
 
-@enum_name_str
-class PacsDomain(Enum):
-    photo = auto()
-    art_painting = auto()
-    cartoon = auto()
-    sketch = auto()
+class PacsDomain(StrEnum):
+    PHOTO = auto()
+    ART_PAINTING = auto()
+    CARTOON = auto()
+    SKETCH = auto()
 
 
 class PACS(CdtVisionDataset[TernarySample, Tensor, Tensor]):
@@ -60,10 +58,10 @@ class PACS(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     ) -> None:
 
         if isinstance(domains, str):
-            self.domains = str_to_enum(str_=domains, enum=PacsDomain)
+            self.domains = PacsDomain(domains)
         elif isinstance(domains, list):
-            domains = [str_to_enum(str_=elem, enum=PacsDomain) for elem in domains]
-            self.domains = cast(List[PacsDomain], domains)
+            domains_ = [PacsDomain(elem) for elem in domains]
+            self.domains = domains_
         else:
             self.domains = domains
 
@@ -117,11 +115,8 @@ class PACS(CdtVisionDataset[TernarySample, Tensor, Tensor]):
             image_paths.extend(self._base_dir.glob(f"**/*.{ext}"))
         image_paths_str = [str(image.relative_to(self._base_dir)) for image in image_paths]
         filepaths = pd.Series(image_paths_str)
-        metadata = cast(
-            pd.DataFrame,
-            filepaths.str.split("/", expand=True).rename(  # type: ignore[attr-defined]
-                columns={0: "domain", 1: "class", 2: "filename"}
-            ),
+        metadata = filepaths.str.split("/", expand=True).rename(
+            columns={0: "domain", 1: "class", 2: "filename"}
         )
         metadata["filepath"] = filepaths
         metadata.sort_index(axis=1, inplace=True)

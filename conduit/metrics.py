@@ -185,11 +185,10 @@ def merge_indices(
     """
     group_ids_ls = list(indices)
     index_set = group_ids_ls.pop().clone().squeeze()
-    cards = None
     if index_set.dtype != torch.long:
         raise TypeError("All index tensors must have dtype `torch.long'.")
 
-    cards = None
+    cards: Optional[List[int]] = None
     if return_cardinalities:
         cards = []
     for elem in group_ids_ls:

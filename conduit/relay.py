@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Optional, Type, Union
 import attr
 from hydra.utils import to_absolute_path
 import pytorch_lightning as pl
-from ranzen.decorators import implements
 from ranzen.hydra import Option, Relay
+from typing_extensions import override
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.models.base import CdtModel
@@ -40,7 +40,7 @@ class CdtRelay(Relay):
         )
         super().with_hydra(root=root, clear_cache=clear_cache, **configs)
 
-    @implements(Relay)
+    @override
     def run(self, raw_config: Optional[Dict[str, Any]] = None) -> None:
         self.log(f"Current working directory: '{os.getcwd()}'")
         if raw_config is not None:

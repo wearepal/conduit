@@ -3,10 +3,9 @@ from typing import Callable, Generic, List, Optional, TypeVar, Union
 
 from PIL import Image
 import numpy as np
-from ranzen.decorators import implements
 from ranzen.misc import gcopy
 from torch import Tensor
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 from conduit.data.datasets.utils import ImageTform, apply_image_transform
 from conduit.data.structures import InputContainer, RawImage, concatenate_inputs
@@ -24,13 +23,13 @@ class FixMatchPair(InputContainer[X]):
     strong: X
     weak: X
 
-    @implements(InputContainer)
+    @override
     def __len__(self) -> int:
         if isinstance(self.strong, Image.Image):
             return 1
         return len(self.strong)
 
-    @implements(InputContainer)
+    @override
     def __add__(self, other: Self) -> Self:
         copy = gcopy(self, deep=False)
         is_batched = isinstance(self.strong, (Tensor, np.ndarray)) and (self.strong.ndim == 4)

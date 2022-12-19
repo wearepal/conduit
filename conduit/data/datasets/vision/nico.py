@@ -1,12 +1,11 @@
 """NICO Dataset."""
-from enum import Enum, auto
+from enum import auto
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union, cast
 
 from PIL import Image, UnidentifiedImageError
 import pandas as pd
-from ranzen import parsable, str_to_enum
-from ranzen.decorators import enum_name_str
+from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor
 from typing_extensions import TypeAlias
@@ -21,10 +20,9 @@ __all__ = [
 ]
 
 
-@enum_name_str
-class NicoSuperclass(Enum):
-    animals = auto()
-    vehicles = auto()
+class NicoSuperclass(StrEnum):
+    ANIMALS = auto()
+    VEHICLES = auto()
 
 
 SampleType: TypeAlias = TernarySample
@@ -48,14 +46,10 @@ class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         *,
         download: bool = True,
         transform: Optional[ImageTform] = None,
-        superclass: Optional[Union[NicoSuperclass, str]] = NicoSuperclass.animals,
+        superclass: Optional[Union[NicoSuperclass, str]] = NicoSuperclass.ANIMALS,
     ) -> None:
 
-        self.superclass = (
-            str_to_enum(str_=superclass, enum=NicoSuperclass)
-            if isinstance(superclass, str)
-            else superclass
-        )
+        self.superclass = NicoSuperclass(superclass) if isinstance(superclass, str) else superclass
         self.root = Path(root)
         self.download = download
         self._base_dir = self.root / self.__class__.__name__
@@ -108,7 +102,7 @@ class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         filepaths = pd.Series(image_paths_str)
         metadata = cast(
             pd.DataFrame,
-            filepaths.str.split("/", expand=True).rename(  # type: ignore[attr-defined]
+            filepaths.str.split("/", expand=True).rename(
                 columns={0: "superclass", 1: "concept", 2: "context", 3: "filename"}
             ),
         )

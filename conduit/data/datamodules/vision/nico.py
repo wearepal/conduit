@@ -3,10 +3,8 @@ from typing import Any, Optional
 
 import albumentations as A  # type: ignore
 import attr
-from pytorch_lightning import LightningDataModule
-from ranzen import implements
+from typing_extensions import override
 
-from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.utils import stratified_split
 from conduit.data.datasets.vision.nico import NICO, NicoSuperclass, SampleType
@@ -21,10 +19,10 @@ class NICODataModule(CdtVisionDataModule[NICO, SampleType]):
 
     image_size: int = 224
     class_train_props: Optional[dict] = None
-    superclass: NicoSuperclass = NicoSuperclass.animals
+    superclass: NicoSuperclass = NicoSuperclass.ANIMALS
 
-    @property  # type: ignore[misc]
-    @implements(CdtVisionDataModule)
+    @property
+    @override
     def _default_train_transforms(self) -> A.Compose:
         base_transforms = A.Compose(
             [
@@ -35,16 +33,16 @@ class NICODataModule(CdtVisionDataModule[NICO, SampleType]):
         normalization = super()._default_train_transforms
         return A.Compose([base_transforms, normalization])
 
-    @property  # type: ignore[misc]
-    @implements(CdtVisionDataModule)
+    @property
+    @override
     def _default_test_transforms(self) -> A.Compose:
         return self._default_train_transforms
 
-    @implements(LightningDataModule)
+    @override
     def prepare_data(self, *args: Any, **kwargs: Any) -> None:
         NICO(root=self.root, download=True)
 
-    @implements(CdtDataModule)
+    @override
     def _get_splits(self) -> TrainValTestSplit[NICO]:
         all_data = NICO(root=self.root, superclass=self.superclass, transform=None)
         train_val_prop = 1 - self.test_prop

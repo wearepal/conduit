@@ -122,7 +122,7 @@ def load_image(filepath: Union[Path, str], *, backend: ImageLoadingBackend = "op
         if isinstance(filepath, Path):
             # cv2 can only read string filepaths
             filepath = str(filepath)
-        image = cv2.imread(filepath)  # type: ignore
+        image = cv2.imread(filepath)
         if image is None:
             raise OSError(f"Image-file could not be read from location '{filepath}'")
         return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # type: ignore
@@ -258,10 +258,10 @@ def extract_labels_from_dataset(
         base_dataset, indices = extract_base_dataset(dataset=dataset, return_subset_indices=True)
         _s = None
         _y = None
-        if getattr(base_dataset, "s", None) is not None:
-            _s = base_dataset.s[indices]  # type: ignore
-        if getattr(base_dataset, "y", None) is not None:
-            _y = base_dataset.y[indices]  # type: ignore
+        if (s := getattr(base_dataset, "s", None)) is not None:
+            _s = s[indices]
+        if (y := getattr(base_dataset, "y", None)) is not None:
+            _y = y[indices]
 
         _s = torch.from_numpy(_s) if isinstance(_s, np.ndarray) else _s
         _y = torch.from_numpy(_y) if isinstance(_y, np.ndarray) else _y

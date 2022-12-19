@@ -5,42 +5,36 @@
     habitats" (Final) [Data set].
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
-from enum import Enum, auto
+from enum import auto
 import math
 from pathlib import Path
 import shutil
-from typing import ClassVar, List, Optional, Tuple, Union, cast
+from typing import ClassVar, Final, List, Optional, Tuple, Union
 import zipfile
 
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_categorical_dtype, is_object_dtype
-from ranzen import parsable
-from ranzen.decorators import enum_name_str, implements
-from ranzen.misc import str_to_enum
+from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor
 import torchaudio  # type: ignore
-from tqdm import tqdm  # type: ignore
-from typing_extensions import Final, TypeAlias
+from tqdm import tqdm
+from typing_extensions import TypeAlias, override
 
 from conduit.data.datasets.audio.base import CdtAudioDataset
 from conduit.data.datasets.utils import AudioTform, UrlFileInfo, download_from_url
 from conduit.data.structures import TernarySample
 
-__all__ = [
-    "Ecoacoustics",
-    "SoundscapeAttr",
-]
+__all__ = ["Ecoacoustics", "SoundscapeAttr"]
 
 
-@enum_name_str
-class SoundscapeAttr(Enum):
-    habitat = auto()
-    site = auto()
-    time = auto()
-    NN = auto()
-    N0 = auto()
+class SoundscapeAttr(StrEnum):
+    HABITAT = auto()
+    SITE = auto()
+    TIME = auto()
+    NN = "NN"
+    N0 = "N0"
 
 
 SampleType: TypeAlias = TernarySample
@@ -98,9 +92,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
         # map provided attributes (as string or enum) to permitted attributes (as strings)
-        self.target_attrs = [
-            str_to_enum(str_=elem, enum=SoundscapeAttr).name for elem in target_attrs
-        ]
+        self.target_attrs = [str(SoundscapeAttr(elem)) for elem in target_attrs]
 
         if self.download:
             self._download_files()
@@ -177,8 +169,8 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
             download_from_url(
                 file_info=finfo, root=self.base_dir, logger=self.logger, remove_finished=True
             )
-        if (self.base_dir / "__MACOSX").exists():
-            shutil.rmtree(self.base_dir / "__MACOSX")
+        if (macosx_dir := self.base_dir / "__MACOSX").exists():
+            shutil.rmtree(macosx_dir)
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
@@ -194,7 +186,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         uk_labels.replace(regex={"BA-": "BALMER-", "KN-": "KNEPP-"}, inplace=True)
         uk_labels["filePath"] = "UK_BIRD/" + uk_labels["fileName"]
 
-        metadata = cast(pd.DataFrame, pd.concat([uk_labels, ec_labels]))
+        metadata = pd.concat([uk_labels, ec_labels])
         metadata = metadata[[(self.base_dir / fp).exists() for fp in metadata["filePath"]]]
         # metadata = self._label_encode_metadata(metadata)
         metadata.to_csv(self._metadata_path, index=False)
@@ -254,7 +246,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
             processed_audio_dir / "filepaths.csv", index=False
         )
 
-    @implements(CdtAudioDataset)
+    @override
     def load_sample(self, index: int) -> Tensor:
         path = self.audio_dir / self.x[index]
 

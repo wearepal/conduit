@@ -48,5 +48,5 @@ class PartialModule(nn.Module):
         self.func = func
         self.bound_kwargs = kwargs
 
-    def __call__(self, *args: Any, **kwargs: Any):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self.func(*args, **kwargs, **self.bound_kwargs)
