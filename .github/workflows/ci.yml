@@ -27,6 +27,7 @@ jobs:
       run: |
         darglint --verbosity 2 --docstring-style sphinx -z long conduit
   ci_suite:
+    needs: [linters]
     runs-on: ubuntu-latest
     steps:
     #----------------------------------------------
