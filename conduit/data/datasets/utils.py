@@ -112,11 +112,12 @@ def load_image(filepath: Union[Path, str], *, backend: Literal["pillow"] = ...) 
 def load_image(filepath: Union[Path, str], *, backend: ImageLoadingBackend = "opencv") -> RawImage:
     """Load an image from disk using the requested backend.
 
-    :param: The path of the image-file to be loaded.
+    :param filepath: The path of the image-file to be loaded.
     :param backend: Backed to use for loading the image: either 'opencv' or 'pillow'.
 
     :returns: The loaded image file as a numpy array if 'opencv' was the selected backend
-    and a PIL image otherwise.
+        and a PIL image otherwise.
+    :raises OSError: if the images can't be read.
     """
     if backend == "opencv":
         if isinstance(filepath, Path):
@@ -138,11 +139,11 @@ def infer_il_backend(transform: Optional[ImageTform]) -> ImageLoadingBackend:
     """Infer which image-loading backend to use based on the type of the image-transform.
 
     :param transform: The image transform from which to infer the image-loading backend.
-    If the transform is derived from Albumentations, then 'opencv' will be selected as the
-    backend, else 'pillow' will be selected.
+        If the transform is derived from Albumentations, then 'opencv' will be selected as the
+        backend, else 'pillow' will be selected.
 
     :returns: The backend to load images with based on the supplied image-transform: either
-    'opencv' or 'pillow'.
+        'opencv' or 'pillow'.
     """
     # Default to openccv is transform is None as numpy arrays are generally
     # more tractable
@@ -217,12 +218,11 @@ def extract_base_dataset(
 
     :param dataset: The dataset from which to extract the base dataset.
 
-    :param return_subset_indices: Whether to return the indices from which
-    the overall subset of the dataset was created (works for multiple levels of
-    subsetting).
+    :param return_subset_indices: Whether to return the indices from which the overall subset of the
+        dataset was created (works for multiple levels of subsetting).
 
-    :returns: The base dataset, which may be the original dataset if one does not
-    exist or cannot be determined.
+    :returns: The base dataset, which may be the original dataset if one does not exist or cannot be
+        determined.
     """
 
     def _closure(
@@ -326,15 +326,17 @@ def make_subset(
 ) -> PCD:
     """Create a subset of the dataset from the given indices.
 
+    :param dataset: The dataset to split.
     :param indices: The sample-indices from which to create the subset.
-    In the case of being a numpy array or tensor, said array or tensor
-    must be 0- or 1-dimensional.
+        In the case of being a numpy array or tensor, said array or tensor
+        must be 0- or 1-dimensional.
 
-    :param deep: Whether to create a copy of the underlying dataset as
-    a basis for the subset. If False then the data of the subset will be
-    a view of original dataset's data.
+    :param deep: Whether to create a copy of the underlying dataset as a basis for the subset.
+        If False then the data of the subset will be a view of original dataset's data.
 
     :returns: A subset of the dataset from the given indices.
+    :raises ValueError: if the indices don't have the correct shape.
+    :raises TypeError: if the dataset is not an instance of ``CdtDataset``.
     """
     if isinstance(indices, (np.ndarray, Tensor)):
         if indices.ndim > 1:
@@ -681,16 +683,16 @@ def random_split(
 ) -> Union[List[PCD], List[List[int]]]:
     """Randomly split the dataset into subsets according to the given proportions.
 
+    :param dataset: The dataset to split.
     :param props: The fractional size of each subset into which to randomly split the data.
-    Elements must be non-negative and sum to 1 or less; if less then the size of the final
-    split will be computed by complement.
+        Elements must be non-negative and sum to 1 or less; if less then the size of the final
+        split will be computed by complement.
 
-    :param deep: Whether to create a copy of the underlying dataset as
-    a basis for the random subsets. If False then the data of the subsets will be
-    views of original dataset's data.
+    :param deep: Whether to create a copy of the underlying dataset as a basis for the random
+        subsets. If False then the data of the subsets will be views of original dataset's data.
 
     :param as_indices: Whether to return the raw train/test indices instead of subsets of the
-    dataset constructed from them.
+        dataset constructed from them.
 
     :param seed: PRNG seed to use for splitting the data.
 
@@ -749,21 +751,20 @@ def stratified_split(
 ) -> Union[TrainTestSplit[PCD], TrainTestSplit[List[int]]]:
     """Splits the data into train/test sets conditional on super- and sub-class labels.
 
+    :param dataset: The dataset to split.
     :param default_train_prop: Proportion of samples for a given to sample for
-    the training set for those y-s combinations not specified in ``train_props``.
-
+        the training set for those y-s combinations not specified in ``train_props``.
     :param train_props: Proportion of each superclass-subclass combination to sample for
-    the training set. Keys correspond to the superclass while values can be either a float,
-    in which case the proportion is applied to the superclass as a whole, or a dict, in which
-    case the sampling is applied only to the subclasses of the superclass given by the keys.
-    If ``None`` then the function reduces to a simple random split of the data.
-
+        the training set. Keys correspond to the superclass while values can be either a float,
+        in which case the proportion is applied to the superclass as a whole, or a dict, in which
+        case the sampling is applied only to the subclasses of the superclass given by the keys.
+        If ``None`` then the function reduces to a simple random split of the data.
     :param as_indices: Whether to return the raw train/test indices instead of subsets of the
-    dataset constructed from them.
-
+        dataset constructed from them.
     :param seed: PRNG seed to use for determining the splits.
-
     :returns: Train-test subsets (``as_indices=False``) or indices (``as_indices=True``).
+    :raises TypeError: if no superclass labels are available.
+    :raises ValueError: if the labels are not as expected.
     """
     if dataset.y is None:
         raise TypeError(

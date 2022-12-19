@@ -66,10 +66,7 @@ isort = "*"
 mypy = "*"
 neoconfigen = {version = ">=2.3.3"}
 pre-commit = "*"
-pydocstyle = "*"
-pylint = "^2.11.1"
 pytest = "*"
-python-type-stubs = {git = "https://github.com/predictive-analytics-lab/python-type-stubs.git", branch = "main" }
 pandas-stubs = "*"
 types-tqdm = "*"
 

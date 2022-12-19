@@ -174,13 +174,11 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
     ) -> Self:
         """Create a subset of the dataset from the given indices.
 
-        :param indices: The sample-indices from which to create the subset.
-        In the case of being a numpy array or tensor, said array or tensor
-        must be 0- or 1-dimensional.
+        :param indices: The sample-indices from which to create the subset. In the case of being a
+            numpy array or tensor, said array or tensor must be 0- or 1-dimensional.
 
-        :param deep: Whether to create a copy of the underlying dataset as
-        a basis for the subset. If False then the data of the subset will be
-        a view of original dataset's data.
+        :param deep: Whether to create a copy of the underlying dataset as a basis for the subset.
+            If False then the data of the subset will be a view of original dataset's data.
 
         :returns: A subset of the dataset from the given indices.
         """
@@ -222,15 +220,14 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         """Randomly split the dataset into subsets according to the given proportions.
 
         :param props: The fractional size of each subset into which to randomly split the data.
-        Elements must be non-negative and sum to 1 or less; if less then the size of the final
-        split will be computed by complement.
+            Elements must be non-negative and sum to 1 or less; if less then the size of the final
+            split will be computed by complement.
 
-        :param deep: Whether to create a copy of the underlying dataset as
-        a basis for the random subsets. If False then the data of the subsets will be
-        views of original dataset's data.
+        :param deep: Whether to create a copy of the underlying dataset as a basis for the random
+            subsets. If False then the data of the subsets will be views of original dataset's data.
 
         :param as_indices: Whether to return the raw train/test indices instead of subsets of the
-        dataset constructed from them.
+            dataset constructed from them.
 
         :param seed: PRNG seed to use for splitting the data.
 
@@ -242,20 +239,18 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         return random_split(self, props=props, deep=deep, seed=seed, as_indices=as_indices)
 
     @overload
-    def cat(self: Self, other: Self, *, inplace: Literal[True] = ..., deep: bool = False) -> None:
+    def cat(self, other: Self, *, inplace: Literal[True] = ..., deep: bool = False) -> None:
         ...
 
     @overload
-    def cat(self: Self, other: Self, *, inplace: Literal[False] = ..., deep: bool = False) -> Self:
+    def cat(self, other: Self, *, inplace: Literal[False] = ..., deep: bool = False) -> Self:
         ...
 
-    def cat(
-        self: Self, other: Self, *, inplace: bool = False, deep: bool = False
-    ) -> Optional[Self]:
-        """
-        Concatenate this ``self`` with another dataset of the same type.
+    def cat(self, other: Self, *, inplace: bool = False, deep: bool = False) -> Optional[Self]:
+        """Concatenate this ``self`` with another dataset of the same type.
 
-        :parma other: Other dataset to concatenate with this instance
+        :param other: Other dataset to concatenate with this instance
+        :param inplace: Whether to concatenate in place.
         :param deep: Whether to create a deep copy of this dataset as the basis for the superset.
 
         :returns: A concatenation of ``self`` with ``other``.
