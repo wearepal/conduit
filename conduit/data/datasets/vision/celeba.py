@@ -5,7 +5,7 @@ from typing import ClassVar, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from ranzen import StrEnum, parsable, str_to_enum
+from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor
 from typing_extensions import TypeAlias

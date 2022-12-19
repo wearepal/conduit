@@ -75,8 +75,8 @@ class ColoredMNISTDataModule(CdtVisionDataModule[ColoredMNIST, SampleType]):
         # Use the predefined train and test splits, sampling the val split
         # randomly from the train split
         if self.use_predefined_splits:
-            train_data = fact_func(split=ColoredMNISTSplit.train)
-            test_data = fact_func(split=ColoredMNISTSplit.test)
+            train_data = fact_func(split=ColoredMNISTSplit.TRAIN)
+            test_data = fact_func(split=ColoredMNISTSplit.TEST)
             val_data, train_data = train_data.random_split(props=self.val_prop)
         else:
             # Split the data randomly according to val- and test-prop

@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 import torch
 from torch import Tensor
-import torchaudio.transforms as AT  # type: ignore
 from torchvision import transforms as T  # type: ignore
 from typing_extensions import Type
 
@@ -73,10 +72,10 @@ def test_colorizer(
     "dm", [ColoredMNISTDataModule, CelebADataModule, NICODataModule, WaterbirdsDataModule]
 )
 def test_vision_datamodules(root, dm: Type[CdtVisionDataModule]):
-    dm = dm(root=root)
-    dm.prepare_data()
-    dm.setup()
-    _ = next(iter(dm.train_dataloader()))
+    dm_ = dm(root=root)
+    dm_.prepare_data()
+    dm_.setup()
+    _ = next(iter(dm_.train_dataloader()))
 
 
 @pytest.mark.slow
@@ -103,7 +102,12 @@ def test_str_for_enum(root: Path) -> None:
     """Confirm that the conversion from ``str`` to ``Enum`` works."""
     try:
         Camelyon17(
-            root, download=False, superclass="tumor", subclass="center", split_scheme="official"
+            root,
+            download=False,
+            superclass="tumor",
+            subclass="center",
+            split_scheme="official",
+            split="id_val",
         )
     except FileNotFoundError:
         pass
@@ -125,6 +129,11 @@ def test_str_for_enum(root: Path) -> None:
 
     try:
         Ecoacoustics(str(root), download=False, target_attrs=[SoundscapeAttr.N0])
+    except FileNotFoundError:
+        pass
+
+    try:
+        SSRP(str(root), download=False, split="Pre_Train")
     except FileNotFoundError:
         pass
 
@@ -184,7 +193,7 @@ def test_ecoacoustics_dm(root: Path):
         root=str(root),
         segment_len=30.0,
         target_attrs=[SoundscapeAttr.HABITAT],
-        train_transforms=AT.Spectrogram(),
+        # train_transforms=AT.Spectrogram(),
     )
     dm.prepare_data()
     dm.setup()
@@ -194,9 +203,9 @@ def test_ecoacoustics_dm(root: Path):
     test_sample = next(iter(train_dl))
 
     # Test size().
-    assert test_sample.x.size()[1] == dm.dims[0]
-    assert test_sample.x.size()[2] == dm.dims[1]
-    assert test_sample.x.size()[3] == dm.dims[2]
+    assert test_sample.x.size()[1] == dm.dim_x[0]
+    assert test_sample.x.size()[2] == dm.dim_x[1]
+    assert test_sample.x.size()[3] == dm.dim_x[2]
 
 
 @pytest.mark.slow
@@ -208,7 +217,7 @@ def test_ecoacoustics_dm_batch_multi_label(root: Path, train_batch_size: int) ->
         segment_len=30.0,
         train_batch_size=train_batch_size,
         target_attrs=target_attrs,
-        train_transforms=AT.Spectrogram(),
+        # train_transforms=AT.Spectrogram(),
     )
     data_module.prepare_data()
     data_module.setup()

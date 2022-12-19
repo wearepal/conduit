@@ -1,9 +1,9 @@
-from enum import Enum
+from enum import auto
 from pathlib import Path
-from typing import ClassVar, Optional, Union, cast
+from typing import ClassVar, Optional, Union
 
 import pandas as pd
-from ranzen import parsable, str_to_enum
+from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor
 from typing_extensions import TypeAlias
@@ -15,10 +15,10 @@ from conduit.data.structures import TernarySample
 __all__ = ["Waterbirds", "WaterbirdsSplit"]
 
 
-class WaterbirdsSplit(Enum):
-    train = 0
-    val = 1
-    test = 2
+class WaterbirdsSplit(StrEnum):
+    TRAIN = auto()
+    VAL = auto()
+    TEST = auto()
 
 
 SampleType: TypeAlias = TernarySample
@@ -55,9 +55,7 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         split: Optional[Union[WaterbirdsSplit, str]] = None,
     ) -> None:
 
-        self.split = (
-            str_to_enum(str_=split, enum=WaterbirdsSplit) if isinstance(split, str) else split
-        )
+        self.split = WaterbirdsSplit(split) if isinstance(split, str) else split
         self.root = Path(root)
         self._base_dir = self.root / self.__class__.__name__
         self.download = download
@@ -80,7 +78,7 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         # of the data
         if self.split is not None:
             split_indices = self.metadata["split"] == self.split.value
-            self.metadata = cast(pd.DataFrame, self.metadata[split_indices])
+            self.metadata = self.metadata.loc[split_indices]
 
         # Extract filenames
         x = self.metadata['img_filename'].to_numpy()

@@ -1,6 +1,6 @@
-from enum import Enum, auto
+from enum import auto
 from pathlib import Path
-from typing import ClassVar, Optional, Union, cast
+from typing import ClassVar, Optional, Union
 
 import pandas as pd
 from ranzen.decorators import parsable
@@ -27,11 +27,11 @@ class Camelyon17SplitScheme(StrEnum):
     """
 
 
-class Camelyon17Split(Enum):
-    train = 0
-    id_val = 1
-    test = 2
-    val = 3
+class Camelyon17Split(StrEnum):
+    TRAIN = auto()
+    ID_VAL = auto()
+    TEST = auto()
+    VAL = auto()
 
 
 class Camelyon17Attr(StrEnum):
@@ -141,17 +141,17 @@ class Camelyon17(CdtVisionDataset[SampleType, Tensor, Tensor]):
             # we move slide 23 (corresponding to patient 042, node 3 in the original dataset)
             # from the test set to the training set
             slide_mask = self.metadata["slide"] == 23
-            self.metadata.loc[slide_mask, "split"] = Camelyon17Split.train.value
+            self.metadata.loc[slide_mask, "split"] = Camelyon17Split.TRAIN.value
         # Use an official split of the data, if 'split' is specified, else just use all
         # of the data
         val_center_mask = self.metadata["center"] == self._VAL_CENTER
         test_center_mask = self.metadata["center"] == self._TEST_CENTER
-        self.metadata.loc[val_center_mask, "split"] = Camelyon17Split.val.value
-        self.metadata.loc[test_center_mask, "split"] = Camelyon17Split.test.value
+        self.metadata.loc[val_center_mask, "split"] = Camelyon17Split.VAL.value
+        self.metadata.loc[test_center_mask, "split"] = Camelyon17Split.TEST.value
 
         if self.split is not None:
             split_indices = self.metadata["split"] == self.split.value
-            self.metadata = cast(pd.DataFrame, self.metadata[split_indices])
+            self.metadata = self.metadata.loc[split_indices]
 
         # Construct filepaths from metadata
         def build_fp(row: pd.DataFrame) -> str:

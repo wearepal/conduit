@@ -1,7 +1,7 @@
 """PACS Dataset."""
 from enum import auto
 from pathlib import Path
-from typing import ClassVar, List, Optional, Union, cast
+from typing import ClassVar, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -115,11 +115,8 @@ class PACS(CdtVisionDataset[TernarySample, Tensor, Tensor]):
             image_paths.extend(self._base_dir.glob(f"**/*.{ext}"))
         image_paths_str = [str(image.relative_to(self._base_dir)) for image in image_paths]
         filepaths = pd.Series(image_paths_str)
-        metadata = cast(
-            pd.DataFrame,
-            filepaths.str.split("/", expand=True).rename(
-                columns={0: "domain", 1: "class", 2: "filename"}
-            ),
+        metadata = filepaths.str.split("/", expand=True).rename(
+            columns={0: "domain", 1: "class", 2: "filename"}
         )
         metadata["filepath"] = filepaths
         metadata.sort_index(axis=1, inplace=True)

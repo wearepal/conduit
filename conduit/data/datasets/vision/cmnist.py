@@ -1,12 +1,12 @@
 """ColoredMNIST Dataset."""
-from enum import Enum
+from enum import auto
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Tuple, Union, cast
 
 from PIL import Image
 import numpy as np
 import numpy.typing as npt
-from ranzen import parsable, str_to_enum
+from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor
 from torchvision.datasets import MNIST  # type: ignore
@@ -17,11 +17,7 @@ from conduit.data.datasets.vision.base import CdtVisionDataset
 from conduit.data.structures import TernarySample
 from conduit.types import NDArrayR
 
-__all__ = [
-    "ColoredMNIST",
-    "ColoredMNISTSplit",
-    "MNISTColorizer",
-]
+__all__ = ["ColoredMNIST", "ColoredMNISTSplit", "MNISTColorizer"]
 
 
 class MNISTColorizer:
@@ -103,8 +99,10 @@ class MNISTColorizer:
     ) -> Tensor:
         """Apply the transformation.
 
-        :param images:  Greyscale images to be colorized. Expected to be unnormalized (in the range [0, 255]).
-        :param labels: Indexes (0-9) indicating the gaussian distribution from which to sample each image's color.
+        :param images:  Greyscale images to be colorized. Expected to be unnormalized (in the range
+            [0, 255]).
+        :param labels: Indexes (0-9) indicating the gaussian distribution from which to sample each
+            image's color.
         :returns: Images converted to RGB.
         """
         if isinstance(images, np.ndarray):
@@ -156,9 +154,9 @@ def _filter_data_by_labels(
     return data[final_mask], targets[final_mask]
 
 
-class ColoredMNISTSplit(Enum):
-    train = 1
-    test = 0
+class ColoredMNISTSplit(StrEnum):
+    TRAIN = auto()
+    TEST = auto()
 
 
 SampleType: TypeAlias = TernarySample
@@ -186,9 +184,7 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
         split: Optional[Union[ColoredMNISTSplit, str]] = None,
         seed: Optional[int] = 42,
     ) -> None:
-        self.split = (
-            str_to_enum(str_=split, enum=ColoredMNISTSplit) if isinstance(split, str) else split
-        )
+        self.split = ColoredMNISTSplit(split) if isinstance(split, str) else split
         self.label_map = label_map
         self.scale = scale
         self.num_colors = num_colors
@@ -202,7 +198,7 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
         # digit and class while a correlation coefficient of '-1' corresponds to perfect
         # anti-correlation.
         if correlation is None:
-            correlation = 1.0 if split is ColoredMNISTSplit.train else 0.5
+            correlation = 1.0 if split is ColoredMNISTSplit.TRAIN else 0.5
         if not 0 <= correlation <= 1:
             raise ValueError(
                 "Strength of correlation between colour and targets must be between 0 and 1."
@@ -213,7 +209,7 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
             x_ls, y_ls = [], []
             for _split in ColoredMNISTSplit:
                 base_dataset = MNIST(
-                    root=str(root), download=download, train=_split is ColoredMNISTSplit.train
+                    root=str(root), download=download, train=_split is ColoredMNISTSplit.TRAIN
                 )
                 x_ls.append(base_dataset.data)
                 y_ls.append(base_dataset.targets)
@@ -221,7 +217,7 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
             y = torch.cat(y_ls, dim=0)
         else:
             base_dataset = MNIST(
-                root=str(root), download=download, train=self.split is ColoredMNISTSplit.train
+                root=str(root), download=download, train=self.split is ColoredMNISTSplit.TRAIN
             )
             x = base_dataset.data
             y = base_dataset.targets

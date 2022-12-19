@@ -79,7 +79,7 @@ class NICOConf:
 class SSRPConf:
     _target_: str = "conduit.data.datasets.SSRP"
     root: Union[str, Path] = MISSING
-    split: Union[SSRPSplit, str] = SSRPSplit.pretrain
+    split: Union[SSRPSplit, str] = SSRPSplit.PRETRAIN
     download: bool = True
     transform: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
 

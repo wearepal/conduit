@@ -9,7 +9,7 @@ from enum import auto
 import math
 from pathlib import Path
 import shutil
-from typing import ClassVar, Final, List, Optional, Tuple, Union, cast
+from typing import ClassVar, Final, List, Optional, Tuple, Union
 import zipfile
 
 import numpy as np
@@ -186,7 +186,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         uk_labels.replace(regex={"BA-": "BALMER-", "KN-": "KNEPP-"}, inplace=True)
         uk_labels["filePath"] = "UK_BIRD/" + uk_labels["fileName"]
 
-        metadata = cast(pd.DataFrame, pd.concat([uk_labels, ec_labels]))
+        metadata = pd.concat([uk_labels, ec_labels])
         metadata = metadata[[(self.base_dir / fp).exists() for fp in metadata["filePath"]]]
         # metadata = self._label_encode_metadata(metadata)
         metadata.to_csv(self._metadata_path, index=False)
