@@ -2,7 +2,7 @@ from enum import auto
 from pathlib import Path
 from typing import ClassVar, Optional, Union
 
-import pandas as pd
+import pandas as pd  # type: ignore
 from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor
@@ -25,7 +25,7 @@ SampleType: TypeAlias = TernarySample
 
 
 class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
-    """The Waterbirds dataset.
+    """The Waterbirds dataset introduced in `GDRO`_.
 
     The dataset was constructed by cropping out birds from the Caltech-UCSD Birds-200-2011 (CUB) dataset
     and transferring them onto backgrounds from the Places dataset.
@@ -37,6 +37,9 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     This allows us to more accurately measure the performance of the rare groups, and it is particularly
     important for the Waterbirds dataset because of its relatively small size; otherwise, the smaller groups
     (waterbirds on land and landbirds on water) would have too few samples to accurately estimate performance on.
+
+    .. _GDRO:
+        Generalization<https://arxiv.org/abs/1911.08731>`__
     """
 
     _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(

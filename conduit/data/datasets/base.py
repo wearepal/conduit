@@ -31,6 +31,7 @@ from conduit.data.structures import (
     UnloadedData,
 )
 from conduit.logging import init_logger
+from conduit.metrics import merge_indices
 from conduit.types import IndexType
 
 __all__ = ["CdtDataset", "I", "S", "X", "Y"]
@@ -53,8 +54,8 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
             y = torch.as_tensor(y)
         if isinstance(s, np.ndarray):
             s = torch.as_tensor(s)
-        self.y: Y = y if y is None else y.squeeze()
-        self.s: S = s if s is None else s.squeeze()
+        self.y = cast(Y, y if y is None else y.squeeze())
+        self.s = cast(S, s if s is None else s.squeeze())
 
         self._dim_x: Optional[torch.Size] = None
         self._dim_s: Optional[torch.Size] = None
@@ -165,6 +166,29 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         if self._card_s is None:
             self._card_s = len(self.s.unique())
         return self._card_s
+
+    @property
+    @final
+    def groups(
+        self,
+    ) -> Tensor:
+        valid_s = (self.s is not None) and (self.s.dtype is torch.long)
+        valid_y = (self.y is not None) and (self.y.dtype is torch.long)
+        if not valid_y and not valid_s:
+            raise AttributeError(
+                "Unable to compute group ids for dataset because 'y' and 's' are both 'None' or are"
+                "not of dtype `torch.long`."
+            )
+        indices = []
+        # 'merge_indices' takes the last element of the 'indices' argument as the seed
+        # for the merged index set -- for consistency we use the 'y' label as the seed
+        # such that the binary version of merge_indices produces the bijective mapping
+        # g <- y * card(s) + s.
+        if valid_s:
+            indices.append(cast(Tensor, self.s))
+        if valid_y:
+            indices.append(cast(Tensor, self.y))
+        return merge_indices(*indices, return_cardinalities=False)
 
     def subset(
         self: Self,

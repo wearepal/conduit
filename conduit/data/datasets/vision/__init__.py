@@ -8,3 +8,4 @@ from .nih import *
 from .pacs import *
 from .ssrp import *
 from .waterbirds import *
+from .iwildcam import *
