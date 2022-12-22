@@ -11,7 +11,7 @@ from conduit.data.datasets.utils import ImageTform, UrlFileInfo, download_from_u
 from conduit.data.datasets.vision.base import CdtVisionDataset
 from conduit.data.structures import SubgroupSample, TernarySample
 
-__all__ = ["iWildCam", "iWildCamSplit"]
+__all__ = ["iWildCam", "iWildCamSplit", "iWildCamUnlabeled"]
 
 
 class iWildCamSplit(StrEnum):
@@ -51,6 +51,8 @@ class iWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
     _BASE_DIR_NAME: ClassVar[str] = "iwildcam_v2.0"
     _IMG_DIR_NAME: ClassVar[str] = "train"
+    _METADATA_FILENAME: ClassVar[str] = "metadata.csv"
+
     _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
         name="iwildcam.tar.gz",
         url="https://worksheets.codalab.org/rest/bundles/0xff56ea50fbf64aabbc4d09b2e8d50e18/contents/blob/",
@@ -66,6 +68,17 @@ class iWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         transform: Optional[ImageTform] = None,
         split: Optional[Union[iWildCamSplit, str]] = None,
     ) -> None:
+        """
+        :param root: Root directory of the dataset.
+        :param split: Which predefined split of the dataset to use. If ``None`` then the full
+            (unsplit) dataset will be returned.
+        :param transform: A function/transform that takes in a PIL or ndarray image and returns a
+            transformed version. E.g, ``transforms.RandomCrop``.
+        :param download: If ``True``, downloads the dataset from the internet and puts it in the
+            root directory. If the dataset is already downloaded, it is not downloaded again.
+        :raises FileNotFoundError: If ``download=False`` and an existing dataset cannot be found in
+            the root directory.
+        """
         self.split = iWildCamSplit(split) if isinstance(split, str) else split
         self.root = Path(root)
         self._base_dir = self.root / self._BASE_DIR_NAME
@@ -85,7 +98,7 @@ class iWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
             )
 
         # Read in metadata
-        self.metadata = pd.read_csv(self._base_dir / 'metadata.csv')
+        self.metadata = pd.read_csv(self._base_dir / self._METADATA_FILENAME)
         # Use an official split of the data, if specified, else just use all of the data
         if self.split is not None:
             split_indices = self.metadata["split"] == self.split.value
@@ -96,7 +109,7 @@ class iWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         # Extract class (species) labels
         y = torch.as_tensor(self.metadata["y"].to_numpy(), dtype=torch.long)
         # Extract camera-trap-location labels
-        s = torch.as_tensor(self.metadata["location"].to_numpy(), dtype=torch.long)
+        s = torch.as_tensor(self.metadata["location_remapped"].to_numpy(), dtype=torch.long)
 
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._img_dir)
 
@@ -160,7 +173,7 @@ class iWildCamUnlabeled(CdtVisionDataset[SubgroupSample, None, Tensor]):
         # Extract filenames
         x = self.metadata['filename'].to_numpy()
         # Extract camera-trap-location labels
-        s = torch.as_tensor(self.metadata["location"].to_numpy(), dtype=torch.long)
+        s = torch.as_tensor(self.metadata["location_remapped"].to_numpy(), dtype=torch.long)
 
         super().__init__(x=x, y=None, s=s, transform=transform, image_dir=self._img_dir)
 

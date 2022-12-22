@@ -2,10 +2,11 @@ from .base import *
 from .camelyon17 import *
 from .celeba import *
 from .cmnist import *
+from .fmow import *
 from .isic import *
+from .iwildcam import *
 from .nico import *
 from .nih import *
 from .pacs import *
 from .ssrp import *
 from .waterbirds import *
-from .iwildcam import *

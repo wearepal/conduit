@@ -42,6 +42,12 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         Generalization<https://arxiv.org/abs/1911.08731>`__
     """
 
+    SampleType: TypeAlias = TernarySample
+    Split: TypeAlias = WaterbirdsSplit
+
+    _BASE_DIR_NAME: ClassVar[str] = "Waterbirds"
+    _METADATA_FILENAME: ClassVar[str] = "metadata.csv"
+
     _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
         name="Waterbirds.tar.gz",
         url="https://worksheets.codalab.org/rest/bundles/0x505056d5cdea4e4eaa0e242cbfe2daa4/contents/blob/",
@@ -60,7 +66,7 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
         self.split = WaterbirdsSplit(split) if isinstance(split, str) else split
         self.root = Path(root)
-        self._base_dir = self.root / self.__class__.__name__
+        self._base_dir = self.root / self._BASE_DIR_NAME
         self.download = download
         if self.download:
             download_from_url(
@@ -76,7 +82,7 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
         # Read in metadata
         # Note: metadata is one-indexed.
-        self.metadata = pd.read_csv(self._base_dir / 'metadata.csv')
+        self.metadata = pd.read_csv(self._base_dir / self._METADATA_FILENAME)
         # Use an official split of the data, if specified, else just use all
         # of the data
         if self.split is not None:

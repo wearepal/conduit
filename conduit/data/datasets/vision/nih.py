@@ -102,7 +102,7 @@ class NIHChestXRays(CdtVisionDataset):
         download: bool = True,
     ) -> None:
         """
-        :param root: Root directory of dataset.
+        :param root: Root directory of the dataset.
         :param target: Attribute to set as the target attribute ('y').
         :param subgroup: Attribute to set as the subgroup attribute ('s').
         :param split: Which predefined split of the dataset to use. If ``None`` then the full
@@ -112,7 +112,7 @@ class NIHChestXRays(CdtVisionDataset):
         :param num_quantiles: Number of quantiles (equal-sized buckets) to bin 'Patient Age' into
             (only applicable when ``sens_attr=NIHSensAttr.AGE``). E.g. 10 for deciles, 4 for
             quartiles.
-        :param download: If ``True``, down;oads the dataset from the internet and puts it in the
+        :param download: If ``True``, downloads the dataset from the internet and puts it in the
             root directory. If the dataset is already downloaded, it is not downloaded again.
             This requires kaggle credentials.
         :raises FileNotFoundError: If ``download=False`` and an existing dataset cannot be found in
