@@ -84,18 +84,19 @@ class iWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         self._base_dir = self.root / self._BASE_DIR_NAME
         self._img_dir = self._base_dir / self._IMG_DIR_NAME
         self.download = download
-        if self.download:
-            download_from_url(
-                file_info=self._FILE_INFO,
-                root=self.root,
-                logger=self.logger,
-                remove_finished=True,
-            )
+        if not self._check_unzipped():
+            if self.download:
+                download_from_url(
+                    file_info=self._FILE_INFO,
+                    root=self.root,
+                    logger=self.logger,
+                    remove_finished=True,
+                )
 
-        elif not self._check_unzipped():
-            raise FileNotFoundError(
-                f"Data not found at location {self._base_dir.resolve()}. Have you downloaded it?"
-            )
+            else:
+                raise FileNotFoundError(
+                    f"Data not found at location {self._base_dir.resolve()}. Have you downloaded it?"
+                )
 
         # Read in metadata
         self.metadata = pd.read_csv(self._base_dir / self._METADATA_FILENAME)
