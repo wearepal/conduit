@@ -2,7 +2,7 @@ from enum import auto
 from pathlib import Path
 from typing import ClassVar, Optional, Union
 
-import pandas as pd
+import pandas as pd  # type: ignore
 from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor
@@ -25,7 +25,7 @@ SampleType: TypeAlias = TernarySample
 
 
 class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
-    """The Waterbirds dataset.
+    """The Waterbirds dataset introduced in `GDRO`_.
 
     The dataset was constructed by cropping out birds from the Caltech-UCSD Birds-200-2011 (CUB) dataset
     and transferring them onto backgrounds from the Places dataset.
@@ -37,7 +37,16 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     This allows us to more accurately measure the performance of the rare groups, and it is particularly
     important for the Waterbirds dataset because of its relatively small size; otherwise, the smaller groups
     (waterbirds on land and landbirds on water) would have too few samples to accurately estimate performance on.
+
+    .. _GDRO:
+        Generalization<https://arxiv.org/abs/1911.08731>`__
     """
+
+    SampleType: TypeAlias = TernarySample
+    Split: TypeAlias = WaterbirdsSplit
+
+    _BASE_DIR_NAME: ClassVar[str] = "Waterbirds"
+    _METADATA_FILENAME: ClassVar[str] = "metadata.csv"
 
     _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
         name="Waterbirds.tar.gz",
@@ -57,7 +66,7 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
         self.split = WaterbirdsSplit(split) if isinstance(split, str) else split
         self.root = Path(root)
-        self._base_dir = self.root / self.__class__.__name__
+        self._base_dir = self.root / self._BASE_DIR_NAME
         self.download = download
         if self.download:
             download_from_url(
@@ -73,7 +82,7 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
         # Read in metadata
         # Note: metadata is one-indexed.
-        self.metadata = pd.read_csv(self._base_dir / 'metadata.csv')
+        self.metadata = pd.read_csv(self._base_dir / self._METADATA_FILENAME)
         # Use an official split of the data, if specified, else just use all
         # of the data
         if self.split is not None:
