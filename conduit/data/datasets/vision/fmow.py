@@ -2,7 +2,7 @@ from enum import auto
 from pathlib import Path
 from typing import ClassVar, Optional, Union
 
-import pandas as pd  # type: ignore
+import pandas as pd
 from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor
