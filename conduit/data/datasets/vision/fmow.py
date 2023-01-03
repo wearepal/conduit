@@ -12,10 +12,10 @@ from conduit.data.datasets.utils import ImageTform, UrlFileInfo, download_from_u
 from conduit.data.datasets.vision.base import CdtVisionDataset
 from conduit.data.structures import TernarySample
 
-__all__ = ["fMoW", "fMoWSplit", "fMoWSplitScheme"]
+__all__ = ["FMoW", "FMoWSplit", "FMoWSplitScheme"]
 
 
-class fMoWSplit(StrEnum):
+class FMoWSplit(StrEnum):
     TRAIN = "train"
     VAL = "val"
     ID_VAL = "id_val"
@@ -23,7 +23,7 @@ class fMoWSplit(StrEnum):
     ID_TEST = "id_test"
 
 
-class fMoWSplitScheme(StrEnum):
+class FMoWSplitScheme(StrEnum):
     # Since 3 years are set aside for validation, the earliest year that can be used for splitting
     # -- such that the training set is not empty -- is 2003 + 3 = 2006.
     POST_2006 = auto()
@@ -46,7 +46,7 @@ class fMoWSplitScheme(StrEnum):
 SampleType: TypeAlias = TernarySample
 
 
-class fMoW(CdtVisionDataset[TernarySample, Tensor, Tensor]):
+class FMoW(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     """The functional Map of the World (fMoW; land use / building classification) dataset.
     This is a port of the iWildCam dataset from `WILDS`_ which defines a preprocessing procedure for
     the dataset introduced in `fMoW`_.
@@ -72,8 +72,8 @@ class fMoW(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     """
 
     SampleType: TypeAlias = TernarySample
-    Split: TypeAlias = fMoWSplit
-    SplitScheme: TypeAlias = fMoWSplitScheme
+    Split: TypeAlias = FMoWSplit
+    SplitScheme: TypeAlias = FMoWSplitScheme
 
     _NUM_VAL_YEARS: ClassVar[int] = 3
     _BASE_DIR_NAME: ClassVar[str] = "fmow"
@@ -92,8 +92,8 @@ class fMoW(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         self,
         root: Union[str, Path],
         *,
-        split: Optional[Union[fMoWSplit, str]] = None,
-        split_scheme: Optional[Union[fMoWSplitScheme, str]] = fMoWSplitScheme.OFFICIAL,
+        split: Optional[Union[FMoWSplit, str]] = None,
+        split_scheme: Optional[Union[FMoWSplitScheme, str]] = FMoWSplitScheme.OFFICIAL,
         drop_other: bool = True,
         transform: Optional[ImageTform] = None,
         download: bool = True,
@@ -115,9 +115,9 @@ class fMoW(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         :raises FileNotFoundError: If ``download=False`` and an existing dataset cannot be found in
             the root directory.
         """
-        self.split = fMoWSplit(split) if isinstance(split, str) else split
+        self.split = FMoWSplit(split) if isinstance(split, str) else split
         self.split_scheme = (
-            fMoWSplitScheme(split_scheme) if isinstance(split_scheme, str) else split_scheme
+            FMoWSplitScheme(split_scheme) if isinstance(split_scheme, str) else split_scheme
         )
         self.root = Path(root)
         self._base_dir = self.root / self._BASE_DIR_NAME
@@ -169,10 +169,10 @@ class fMoW(CdtVisionDataset[TernarySample, Tensor, Tensor]):
             if self.split_scheme is not None:
                 test_threshold = int(self.split_scheme.value.split('_')[-1])
                 # OOD test split
-                if self.split is fMoWSplit.TEST:
+                if self.split is FMoWSplit.TEST:
                     scheme_mask = self.metadata.year >= test_threshold
                 # OOD validation split
-                elif self.split is fMoWSplit.VAL:
+                elif self.split is FMoWSplit.VAL:
                     # # set aside the final years of the training set for validation
                     scheme_mask = (self.metadata.year < test_threshold) > (
                         self.metadata.year >= (test_threshold - self._NUM_VAL_YEARS)

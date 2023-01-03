@@ -11,10 +11,10 @@ from conduit.data.datasets.utils import ImageTform, UrlFileInfo, download_from_u
 from conduit.data.datasets.vision.base import CdtVisionDataset
 from conduit.data.structures import SubgroupSample, TernarySample
 
-__all__ = ["iWildCam", "iWildCamSplit", "iWildCamUnlabeled"]
+__all__ = ["IWildCam", "IWildCamSplit", "IWildCamUnlabeled"]
 
 
-class iWildCamSplit(StrEnum):
+class IWildCamSplit(StrEnum):
     TRAIN = "train"
     VAL = "val"
     ID_VAL = "id_val"
@@ -22,7 +22,7 @@ class iWildCamSplit(StrEnum):
     ID_TEST = "id_test"
 
 
-class iWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
+class IWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     """The iWildCam2020-WILDS dataset.
     This is a port of the iWildCam dataset from `WILDS`_ which itself is a  modified version of the
     original iWildCam2020 competition dataset introduced in `iWildCam`_.
@@ -47,7 +47,7 @@ class iWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     """
 
     SampleType: TypeAlias = TernarySample
-    Split: TypeAlias = iWildCamSplit
+    Split: TypeAlias = IWildCamSplit
 
     _BASE_DIR_NAME: ClassVar[str] = "iwildcam_v2.0"
     _IMG_DIR_NAME: ClassVar[str] = "train"
@@ -66,7 +66,7 @@ class iWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         *,
         download: bool = True,
         transform: Optional[ImageTform] = None,
-        split: Optional[Union[iWildCamSplit, str]] = None,
+        split: Optional[Union[IWildCamSplit, str]] = None,
     ) -> None:
         """
         :param root: Root directory of the dataset.
@@ -79,7 +79,7 @@ class iWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         :raises FileNotFoundError: If ``download=False`` and an existing dataset cannot be found in
             the root directory.
         """
-        self.split = iWildCamSplit(split) if isinstance(split, str) else split
+        self.split = IWildCamSplit(split) if isinstance(split, str) else split
         self.root = Path(root)
         self._base_dir = self.root / self._BASE_DIR_NAME
         self._img_dir = self._base_dir / self._IMG_DIR_NAME
@@ -118,7 +118,7 @@ class iWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         return (self._img_dir).is_dir()
 
 
-class iWildCamUnlabeled(CdtVisionDataset[SubgroupSample, None, Tensor]):
+class IWildCamUnlabeled(CdtVisionDataset[SubgroupSample, None, Tensor]):
     """An extra unlablled (with respect to 'y') split of the WILDS, introduced in `Ext_WILDS`_.
 
     `_Ext_WILDS`_ extends the WILDS benchmark to include curated unlabeled data that would be
@@ -132,7 +132,7 @@ class iWildCamUnlabeled(CdtVisionDataset[SubgroupSample, None, Tensor]):
     """
 
     SampleType: TypeAlias = SubgroupSample
-    Split: TypeAlias = iWildCamSplit
+    Split: TypeAlias = IWildCamSplit
 
     _BASE_DIR_NAME: ClassVar[str] = "iwildcam_unlabeled_v1.0"
     _IMG_DIR_NAME: ClassVar[str] = "images"
