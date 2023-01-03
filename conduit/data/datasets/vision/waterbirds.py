@@ -1,9 +1,9 @@
-from enum import auto
+from enum import Enum
 from pathlib import Path
 from typing import ClassVar, Optional, Union
 
-import pandas as pd  # type: ignore
-from ranzen import StrEnum, parsable
+import pandas as pd
+from ranzen import parsable
 import torch
 from torch import Tensor
 from typing_extensions import TypeAlias
@@ -15,10 +15,10 @@ from conduit.data.structures import TernarySample
 __all__ = ["Waterbirds", "WaterbirdsSplit"]
 
 
-class WaterbirdsSplit(StrEnum):
-    TRAIN = auto()
-    VAL = auto()
-    TEST = auto()
+class WaterbirdsSplit(Enum):
+    TRAIN = 0
+    VAL = 1
+    TEST = 2
 
 
 SampleType: TypeAlias = TernarySample
@@ -63,8 +63,7 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         transform: Optional[ImageTform] = None,
         split: Optional[Union[WaterbirdsSplit, str]] = None,
     ) -> None:
-
-        self.split = WaterbirdsSplit(split) if isinstance(split, str) else split
+        self.split = WaterbirdsSplit[split.upper()] if isinstance(split, str) else split
         self.root = Path(root)
         self._base_dir = self.root / self._BASE_DIR_NAME
         self.download = download

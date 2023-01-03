@@ -1,4 +1,4 @@
-from enum import auto
+from enum import Enum, auto
 from pathlib import Path
 from typing import ClassVar, Optional, Union
 
@@ -27,11 +27,11 @@ class Camelyon17SplitScheme(StrEnum):
     """
 
 
-class Camelyon17Split(StrEnum):
-    TRAIN = auto()
-    ID_VAL = auto()
-    TEST = auto()
-    VAL = auto()
+class Camelyon17Split(Enum):
+    TRAIN = 0
+    ID_VAL = 1
+    TEST = 2
+    VAL = 3
 
 
 class Camelyon17Attr(StrEnum):
@@ -88,6 +88,10 @@ class Camelyon17(CdtVisionDataset[SampleType, Tensor, Tensor]):
         https://creativecommons.org/publicdomain/zero/1.0/
     """
 
+    SampleType: TypeAlias = TernarySample
+    Attr: TypeAlias = Camelyon17Split
+    SplitScheme: TypeAlias = Camelyon17SplitScheme
+
     _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
         name="camelyon17_v1.0.tar.gz",
         url="https://worksheets.codalab.org/rest/bundles/0xe45e15f39fb54e9d9e919556af67aabe/contents/blob/",
@@ -109,13 +113,13 @@ class Camelyon17(CdtVisionDataset[SampleType, Tensor, Tensor]):
         subclass: Union[Camelyon17Attr, str] = Camelyon17Attr.CENTER,
     ) -> None:
 
-        self.superclass = Camelyon17Attr(superclass)
-        self.subclass = Camelyon17Attr(subclass)
-
-        self.split = Camelyon17Split(split) if split is not None else split
+        self.superclass = Camelyon17Attr(superclass) if isinstance(split, str) else split
+        self.subclass = Camelyon17Attr(subclass) if isinstance(split, str) else split
+        self.split = Camelyon17Split[split.upper()] if isinstance(split, str) else split
         self.split_scheme = (
-            Camelyon17SplitScheme(split_scheme) if split_scheme is not None else split_scheme
+            Camelyon17SplitScheme(split_scheme) if isinstance(split_scheme, str) else split_scheme
         )
+
         self.root = Path(root)
         self._base_dir = self.root / "camelyon17_v1.0"
         self.download = download

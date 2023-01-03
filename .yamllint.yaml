@@ -1,0 +1,41 @@
+---
+yaml-files:
+  - '*.yaml'
+  - '*.yml'
+  - '.yamllint'
+
+rules:
+  braces:
+    # Require each key-value pair to be demarcated with identation
+    forbid: true
+  brackets:
+    # Require each element to be on a new line (beginning with - )
+    forbud: true
+  colons: enable
+  commas: enable
+  comments:
+    level: warning
+  comments-indentation:
+    level: warning
+  document-end: disable
+  document-start:
+    level: warning
+  empty-lines: enable
+  empty-values: disable
+  float-values: disable
+  hyphens: enable
+  indentation:
+    spaces: consistent
+    check-multi-line-strings: true
+  key-duplicates: enable
+  key-ordering: disable
+  line-length:
+    max: 100
+  new-line-at-end-of-file: enable
+  new-lines: enable
+  octal-values: disable
+  quoted-strings: disable
+  trailing-spaces: enable
+  truthy:
+    allowed-values: ['true', 'false']
+    check-keys: true

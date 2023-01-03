@@ -33,6 +33,9 @@ class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     'Towards Non-I.I.D. Image Classification: A Dataset and Baselines'
     """
 
+    SampleType: TypeAlias = TernarySample
+    Superclass: TypeAlias = NicoSuperclass
+
     _FILE_INFO: ClassVar[GdriveFileInfo] = GdriveFileInfo(
         name="NICO.zip",
         id="1L6cHNhuwwvrolukBklFyhFu7Y8WUUIQ7",

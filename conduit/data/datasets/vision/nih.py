@@ -6,10 +6,12 @@ import pandas as pd
 from ranzen import parsable, str_to_enum
 from sklearn.preprocessing import MultiLabelBinarizer  # type: ignore
 import torch
+from torch import Tensor
 from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import ImageTform
 from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.structures import TernarySample
 
 __all__ = [
     "NIHChestXRays",
@@ -67,7 +69,7 @@ class NIHTarget(Enum):
     FINDING = "No Finding"
 
 
-class NIHChestXRays(CdtVisionDataset):
+class NIHChestXRays(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     """ "
     National Institutes of Health (NIH) chest X-Rays dataset.
     This NIH Chest X-rays dataset is comprised of 112,120 X-ray images with disease labels from
@@ -82,6 +84,7 @@ class NIHChestXRays(CdtVisionDataset):
     The dataset can be downloaded by following the above link or from `kaggle <https://www.kaggle.com/datasets/nih-chest-xrays/data>`__
     """
 
+    SampleType: TypeAlias = TernarySample
     Target: TypeAlias = NIHTarget
     Subgroup: TypeAlias = NIHSubgroup
     Split: TypeAlias = NIHSplit

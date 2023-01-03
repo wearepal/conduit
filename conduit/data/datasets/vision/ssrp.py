@@ -1,11 +1,13 @@
 """SSRP Dataset."""
+from enum import Enum
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union, cast
 
 import pandas as pd
-from ranzen import StrEnum, parsable
+from ranzen import parsable
 import torch
 from torch import Tensor
+from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
 from conduit.data.datasets.vision.base import CdtVisionDataset
@@ -14,12 +16,15 @@ from conduit.data.structures import TernarySample
 __all__ = ["SSRP", "SSRPSplit"]
 
 
-class SSRPSplit(StrEnum):
+class SSRPSplit(Enum):
     TASK = "Task"
     PRETRAIN = "Pre_Train"
 
 
 class SSRP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
+    SampleType: TypeAlias = TernarySample
+    Split: TypeAlias = SSRPSplit
+
     _FILE_INFO: ClassVar[GdriveFileInfo] = GdriveFileInfo(
         name="ghaziabad.zip", id="1RE4srtC63VnyU0e1qx16QNdjyyQXg2hj"
     )

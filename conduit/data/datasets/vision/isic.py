@@ -40,6 +40,9 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
     'Skin Lesion Analysis Toward Melanoma Detection 2018: A Challenge Hosted by the International
     Skin Imaging Collaboration (ISIC)',"""
 
+    SampleType: TypeAlias = TernarySample
+    Attr: TypeAlias = IsicAttr
+
     LABELS_FILENAME: ClassVar[str] = "labels.csv"
     METADATA_FILENAME: ClassVar[str] = "metadata.csv"
     _PBAR_COL: ClassVar[str] = "#fac000"
@@ -52,10 +55,14 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
         *,
         download: bool = True,
         max_samples: int = 25_000,  # default is the number of samples used for the NSLB paper
-        context_attr: IsicAttr = IsicAttr.HISTO,
         target_attr: IsicAttr = IsicAttr.MALIGNANT,
+        context_attr: IsicAttr = IsicAttr.HISTO,
         transform: Optional[ImageTform] = None,
     ) -> None:
+        self.target_attr = IsicAttr(target_attr) if isinstance(target_attr, str) else target_attr
+        self.context_attr = (
+            IsicAttr(context_attr) if isinstance(context_attr, str) else context_attr
+        )
 
         self.root = Path(root)
         self.download = download
@@ -79,8 +86,8 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
         # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # considerably slower than indexing with numpy/torch
         x = self.metadata["path"].to_numpy()
-        s = torch.as_tensor(self.metadata[str(context_attr)], dtype=torch.int32)
-        y = torch.as_tensor(self.metadata[str(target_attr)], dtype=torch.int32)
+        s = torch.as_tensor(self.metadata[str(self.context_attr)], dtype=torch.int32)
+        y = torch.as_tensor(self.metadata[str(self.target_attr)], dtype=torch.int32)
 
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._processed_dir)
 
