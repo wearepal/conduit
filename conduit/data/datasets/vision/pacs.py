@@ -39,6 +39,7 @@ class PACS(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         https://arxiv.org/abs/1710.03077
     """
 
+    SampleType: TypeAlias = TernarySample
     Domain: TypeAlias = PacsDomain
 
     _FILE_INFO: ClassVar[GdriveFileInfo] = GdriveFileInfo(
