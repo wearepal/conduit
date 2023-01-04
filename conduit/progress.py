@@ -1,7 +1,7 @@
 from __future__ import annotations
 from enum import Enum
 from functools import partial
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, Callable, Dict, Optional, Union, cast
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.rich_progress import (
@@ -75,9 +75,12 @@ def _google_theme() -> RichProgressBarTheme:
 
 
 class ProgressBarTheme(Enum):
-    QUATERION = partial(_quaterion_theme)
-    CYBERPUNK = partial(_cyberpunk_theme)
-    GOOGLE = partial(_google_theme)
+    QUATERION = (_quaterion_theme,)
+    CYBERPUNK = (_cyberpunk_theme,)
+    GOOGLE = (_google_theme,)
+
+    def __init__(self, load: Callable[..., RichProgressBarTheme]) -> None:
+        self.load = load
 
 
 class CdtProgressBar(RichProgressBar):
@@ -94,7 +97,7 @@ class CdtProgressBar(RichProgressBar):
         console_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         if isinstance(theme, ProgressBarTheme):
-            theme = cast(RichProgressBarTheme, theme.value())
+            theme = cast(RichProgressBarTheme, theme.load())
 
         super().__init__(
             refresh_rate=refresh_rate,
