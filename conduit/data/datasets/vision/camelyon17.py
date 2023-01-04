@@ -89,7 +89,8 @@ class Camelyon17(CdtVisionDataset[SampleType, Tensor, Tensor]):
     """
 
     SampleType: TypeAlias = TernarySample
-    Attr: TypeAlias = Camelyon17Split
+    Attr: TypeAlias = Camelyon17Attr
+    Split: TypeAlias = Camelyon17Split
     SplitScheme: TypeAlias = Camelyon17SplitScheme
 
     _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
