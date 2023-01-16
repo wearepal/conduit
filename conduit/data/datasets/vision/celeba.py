@@ -108,7 +108,6 @@ class CelebA(CdtVisionDataset[SampleType, Tensor, Tensor]):
         transform: Optional[ImageTform] = None,
         split: Optional[Union[CelebASplit, str]] = None,
     ) -> None:
-
         self.superclass = CelebAttr(superclass) if isinstance(superclass, str) else superclass
         self.subclass = CelebAttr(subclass) if isinstance(subclass, str) else subclass
         self.split = CelebASplit[split.upper()] if isinstance(split, str) else split

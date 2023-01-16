@@ -211,9 +211,11 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
 
             if frac_remainder >= 0.5:
                 self.logger.debug(
-                    f"Length of audio file '{path.resolve()}' is not integer-divisible by "
-                    f"{self.segment_len}: terminally zero-padding the file along the "
-                    f"time-axis to compensate.",
+                    (
+                        f"Length of audio file '{path.resolve()}' is not integer-divisible by "
+                        f"{self.segment_len}: terminally zero-padding the file along the "
+                        "time-axis to compensate."
+                    ),
                 )
                 padding = torch.zeros(
                     waveform.size(0),
@@ -223,9 +225,11 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
                 num_segments += 1
             if 0 < frac_remainder < 0.5:
                 self.logger.debug(
-                    f"Length of audio file '{path.resolve()}' is not integer-divisible by "
-                    f"{self.segment_len} and not of sufficient length to be padded "
-                    f"(fractional remainder must be greater than 0.5): discarding terminal segment.",
+                    (
+                        f"Length of audio file '{path.resolve()}' is not integer-divisible by"
+                        f" {self.segment_len} and not of sufficient length to be padded (fractional"
+                        " remainder must be greater than 0.5): discarding terminal segment."
+                    ),
                 )
                 waveform = waveform[:, : int(num_segments * self.segment_len * sr)]
 

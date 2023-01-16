@@ -627,7 +627,6 @@ class DatasetWrapper(SizedDataset[R_co], Protocol):
 
 @attr.define(kw_only=True)
 class TrainTestSplit(Generic[D]):
-
     train: D
     test: D
 

@@ -51,7 +51,6 @@ class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         transform: Optional[ImageTform] = None,
         superclass: Optional[Union[NicoSuperclass, str]] = NicoSuperclass.ANIMALS,
     ) -> None:
-
         self.superclass = NicoSuperclass(superclass) if isinstance(superclass, str) else superclass
         self.root = Path(root)
         self.download = download
@@ -62,7 +61,7 @@ class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
             download_from_gdrive(file_info=self._FILE_INFO, root=self.root, logger=self.logger)
         elif not self._check_unzipped():
             raise FileNotFoundError(
-                f"Data not found at location {self._base_dir.resolve()}. " "Have you downloaded it?"
+                f"Data not found at location {self._base_dir.resolve()}. Have you downloaded it?"
             )
         if not self._metadata_path.exists():
             self._extract_metadata()

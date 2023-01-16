@@ -19,7 +19,6 @@ D = TypeVar("D", bound=SizedDataset)
 
 @attr.define(kw_only=True)
 class CdtAudioDataModule(CdtDataModule[D, I]):
-
     root: str = attr.field(kw_only=False)
     _train_transforms: Optional[AudioTform] = None
     _test_transforms: Optional[AudioTform] = None

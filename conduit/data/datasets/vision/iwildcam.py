@@ -95,7 +95,8 @@ class IWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
             else:
                 raise FileNotFoundError(
-                    f"Data not found at location {self._base_dir.resolve()}. Have you downloaded it?"
+                    f"Data not found at location {self._base_dir.resolve()}. Have you"
+                    " downloaded it?"
                 )
 
         # Read in metadata

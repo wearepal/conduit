@@ -32,7 +32,6 @@ class DummyVisionDataset(CdtVisionDataset[SampleType, Tensor, Tensor]):
 
     @override
     def _load_image(self, index: int) -> npt.NDArray[np.uint8]:
-
         return np.random.randint(
             0, 256, size=(self.height, self.width, self.channels), dtype="uint8"
         )

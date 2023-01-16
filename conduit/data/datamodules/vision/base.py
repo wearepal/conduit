@@ -22,7 +22,6 @@ D = TypeVar("D", bound=SizedDataset)
 
 @attr.define(kw_only=True)
 class CdtVisionDataModule(CdtDataModule[D, I]):
-
     root: Union[str, Path] = attr.field(kw_only=False)
     _train_transforms: Optional[ImageTform] = None
     _test_transforms: Optional[ImageTform] = None

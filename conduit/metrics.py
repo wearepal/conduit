@@ -248,7 +248,8 @@ def _apply_groupwise_metric(
         for elem in group_ids_ls:
             if len(y_pred) != len(y_true) != len(elem):
                 raise ValueError(
-                    "'y_pred', 'y_true', and all elements of 'group_ids' must match in size at dimension 0."
+                    "'y_pred', 'y_true', and all elements of 'group_ids' must match in size at"
+                    " dimension 0."
                 )
             elem = elem.squeeze()
             unique_vals, inv_indices = elem.unique(return_inverse=True)
