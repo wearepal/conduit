@@ -1,3 +1,10 @@
 # conduit :electron:
 
-Lightweight framework for channeling the power of PyTorch Lightning.
+Al lightweight framework for channeling the power of PyTorch Lightning.
+
+## Installation
+Albumentations requires Python 3.8 or higher. To install the latest version from PyPI:
+
+```
+pip install -U torch-conduit
+```
