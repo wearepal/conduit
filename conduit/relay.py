@@ -32,7 +32,6 @@ class CdtRelay(Relay):
         model: List[Union[Type[Any], Option]],
         clear_cache: bool = False,
     ) -> None:
-
         configs = dict(
             datamodule=datamodule,
             model=model,

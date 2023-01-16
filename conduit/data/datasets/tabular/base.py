@@ -13,7 +13,6 @@ __all__ = ["CdtTabularDataset"]
 
 
 class CdtTabularDataset(CdtDataset):
-
     x: Tensor
 
     def __init__(

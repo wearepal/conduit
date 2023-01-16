@@ -111,8 +111,7 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
         """Downloads the metadata CSV from the ISIC website."""
         self._raw_dir.mkdir(parents=True, exist_ok=True)
         req = requests.get(
-            f"{self._REST_API_URL}/image?limit={self.max_samples}"
-            f"&sort=name&sortdir=1&detail=false"
+            f"{self._REST_API_URL}/image?limit={self.max_samples}&sort=name&sortdir=1&detail=false"
         )
         image_ids = req.json()
         image_ids = [image_id["_id"] for image_id in image_ids]
@@ -150,7 +149,7 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
         if not metadata_path.is_file():
             raise FileNotFoundError(
                 f"{self.METADATA_FILENAME} not downloaded. "
-                f"Run 'download_isic_data` before this function."
+                "Run 'download_isic_data` before this function."
             )
         metadata_df = pd.read_csv(metadata_path)
         metadata_df = metadata_df.set_index("_id")
@@ -289,12 +288,12 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
             self.logger.info("Metadata and images already preprocessed.")
             return
         self.logger.info(
-            f"Preprocessing metadata (adding columns, removing uncertain diagnoses) and saving into "
-            f"{str(self._processed_dir / self.LABELS_FILENAME)}..."
+            "Preprocessing metadata (adding columns, removing uncertain diagnoses) and saving into"
+            f" {str(self._processed_dir / self.LABELS_FILENAME)}..."
         )
         self._preprocess_isic_metadata()
         self.logger.info(
-            f"Preprocessing images (transforming to 3-channel RGB, resizing to 224x224) and saving "
+            "Preprocessing images (transforming to 3-channel RGB, resizing to 224x224) and saving "
             f"into{str(self._processed_dir / 'ISIC-images')}..."
         )
         self._preprocess_isic_images()

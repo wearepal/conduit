@@ -93,7 +93,6 @@ class TabularNormalize(TabularTransform):
 
 
 class ZScoreNormalize(TabularNormalize):
-
     mean: Tensor
     std: Tensor
 
@@ -115,7 +114,6 @@ class ZScoreNormalize(TabularNormalize):
 
 
 class QuantileNormalize(TabularNormalize):
-
     iqr: Tensor
     median: Tensor
 
@@ -164,7 +162,6 @@ class QuantileNormalize(TabularNormalize):
 
 
 class MinMaxNormalize(TabularNormalize):
-
     orig_max: Tensor
     orig_min: Tensor
     orig_range: Tensor

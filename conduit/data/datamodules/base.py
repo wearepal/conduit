@@ -166,9 +166,10 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
             num_samples_per_group = batch_size // num_groups
             if batch_size % num_groups:
                 self.logger.info(
-                    f"For stratified sampling, the batch size must be a multiple of the number of groups."
-                    f"Since the batch size is not integer divisible by the number of groups ({num_groups}),"
-                    f"the batch size is being reduced to {num_samples_per_group * num_groups}."
+                    "For stratified sampling, the batch size must be a multiple of the number of"
+                    " groups.Since the batch size is not integer divisible by the number of groups"
+                    f" ({num_groups}),the batch size is being reduced to"
+                    f" {num_samples_per_group * num_groups}."
                 )
             batch_sampler = StratifiedBatchSampler(
                 group_ids=group_ids.squeeze().tolist(),
@@ -223,8 +224,8 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
         if hasattr(dataset, "__len__"):
             return len(dataset)
         raise AttributeError(
-            f"Number of samples cannot be determined as dataset of type '{dataset.__class__.__name__}' "
-            "has no '__len__' attribute defined."
+            "Number of samples cannot be determined as dataset of type"
+            f" '{dataset.__class__.__name__}' has no '__len__' attribute defined."
         )
 
     @property

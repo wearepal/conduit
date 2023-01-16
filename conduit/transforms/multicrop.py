@@ -216,7 +216,6 @@ class MultiCropTransform(Generic[LT]):
         local_crops_scale: Tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
     ) -> "MultiCropTransform":
-
         flip_and_color_jitter = T.Compose(
             [
                 T.RandomHorizontalFlip(p=0.5),

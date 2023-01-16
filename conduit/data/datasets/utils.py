@@ -545,7 +545,6 @@ def download_from_url(
     logger: Optional[logging.Logger] = None,
     remove_finished: bool = True,
 ) -> None:
-
     logger = logging.getLogger(__name__) if logger is None else logger
     file_info_ls = file_info if isinstance(file_info, list) else [file_info]
     if not isinstance(root, Path):

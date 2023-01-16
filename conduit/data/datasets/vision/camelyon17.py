@@ -113,7 +113,6 @@ class Camelyon17(CdtVisionDataset[SampleType, Tensor, Tensor]):
         superclass: Union[Camelyon17Attr, str] = Camelyon17Attr.TUMOR,
         subclass: Union[Camelyon17Attr, str] = Camelyon17Attr.CENTER,
     ) -> None:
-
         self.superclass = Camelyon17Attr(superclass) if isinstance(split, str) else split
         self.subclass = Camelyon17Attr(subclass) if isinstance(split, str) else split
         self.split = Camelyon17Split[split.upper()] if isinstance(split, str) else split
