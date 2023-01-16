@@ -95,8 +95,7 @@ class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         return all((self._base_dir / sc.name).exists() for sc in NicoSuperclass)
 
     def _extract_metadata(self) -> None:
-        """Extract concept/context/superclass information from the image filepaths and it save to csv.
-        """
+        """Extract concept/context/superclass information from the image filepaths and it save to csv."""
         self.logger.info("Extracting metadata.")
         image_paths: List[Path] = []
         for ext in ("jpg", "jpeg", "png"):

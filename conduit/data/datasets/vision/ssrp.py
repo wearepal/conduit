@@ -66,8 +66,7 @@ class SSRP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         return (self._base_dir / "Ghaziabad").is_dir()
 
     def _extract_metadata(self) -> None:
-        """Extract concept/context/superclass information from the image filepaths and it save to csv.
-        """
+        """Extract concept/context/superclass information from the image filepaths and it save to csv."""
         self.logger.info("Extracting metadata.")
         image_paths: List[Path] = []
         for ext in ("jpg", "jpeg", "png"):
