@@ -297,7 +297,6 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
             return superset
 
     @override
-    @final
     def __getitem__(self: Self, index: IndexType) -> I:
         x = self._sample_x(index, coerce_to_tensor=False)
         y = self._sample_y(index)
