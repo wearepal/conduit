@@ -46,7 +46,7 @@ jobs:
     - name: Install dependencies
       run: |
         poetry env use 3.8
-        poetry install --no-interaction --no-root --with fair
+        poetry install --no-interaction --no-root -E all --with torch
     # - name: Setup node.js (for pyright)
     #   uses: actions/setup-node@v1
     #   with:

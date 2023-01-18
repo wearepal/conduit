@@ -28,36 +28,41 @@ python = ">=3.8.0,<3.11"
 ranzen = {version = ">=2.0.0", extras = ["hydra"]}
 scikit-learn = "^1.2.0"
 typing-extensions = ">=4.4.0"
+# optional dependencies
+albumentations = {version = "^1.0.0", optional = true}
+ethicml = {verion = ">=1.0.2", extras = ["data"], optional = true}
+gdown = {version = "^3.13.0", optional = true}
+hydra-core = {verion = "^1.1.1", optional = true}
+kaggle = {version = "^1.5.12", optional = true}
+opencv-python = {version = "^4.5.3", optional = true}
+rich = {verion = "^12.5.1", optional = true}
+soundfile = {version = "*", markers = "platform_system == 'Windows'", optional = true}
+sox = {version = "*", markers = "platform_system == 'Linux' or platform_system == 'macOS'", optional = true}
+
+[tool.poetry.extras]
+download = ["gdown", "kaggle"]
+image = ["albumentations", "opencv-python"]
+audio = ["soundfile", "sox"]
+hydra = ["hydra-core"]
+logging = ["rich"]
+fair = ["ethicml"]
+all = [
+    "gdown", "kaggle",  # download
+    "albumentations", "opencv-python",  # image
+    "soundfile", "sox",  # audio
+    "hydra-core",  # hydra
+    "rich",  # logging
+    "ethicml",  # fair
+]
+
+[tool.poetry.group.torch]
+optional = true
 
 [tool.poetry.group.torch.dependencies]
 pytorch-lightning = "^1.5.0"
 torch = ">=1.12.0"
 torchaudio = ">=0.12.0"
 torchvision = ">=0.10.1"
-
-[tool.poetry.group.download.dependencies]
-gdown = "^3.13.0"
-kaggle = "^1.5.12"
-
-[tool.poetry.group.image.dependencies]
-albumentations = "^1.0.0"
-opencv-python = "^4.5.3"
-
-[tool.poetry.group.audio.dependencies]
-soundfile = {version = "*", markers = "platform_system == 'Windows'"}
-sox = {version = "*", markers = "platform_system == 'Linux' or platform_system == 'macOS'"}
-
-[tool.poetry.group.hydra.dependencies]
-hydra-core = "^1.1.1"
-
-[tool.poetry.group.logging.dependencies]
-rich = "^12.5.1"
-
-[tool.poetry.group.fair]
-optional = true
-
-[tool.poetry.group.fair.dependencies]
-ethicml = ">=1.0.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "*"
