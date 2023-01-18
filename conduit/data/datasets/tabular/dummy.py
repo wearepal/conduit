@@ -6,6 +6,8 @@ import torch
 
 from conduit.data.datasets.tabular import CdtTabularDataset
 
+__all__ = ["RandomTabularDataset"]
+
 
 class RandomTabularDataset(CdtTabularDataset):
     def __init__(

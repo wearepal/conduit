@@ -22,14 +22,10 @@ from typing import (
     TypeVar,
     Union,
     cast,
-    get_args,
     overload,
 )
 from zipfile import BadZipFile
 
-from PIL import Image
-import albumentations as A  # type: ignore
-import cv2
 import numpy as np
 import numpy.typing as npt
 from ranzen.misc import gcopy
@@ -49,7 +45,6 @@ from torchvision.datasets.utils import (  # type: ignore
     download_url,
     extract_archive,
 )
-from torchvision.transforms import functional as TF  # type: ignore
 from typing_extensions import TypeAlias, TypeGuard
 
 from conduit.data.datasets.base import CdtDataset
@@ -59,7 +54,6 @@ from conduit.data.structures import (
     LoadedData,
     NamedSample,
     PseudoCdtDataset,
-    RawImage,
     SampleBase,
     SizedDataset,
     TernarySample,
@@ -67,15 +61,10 @@ from conduit.data.structures import (
 )
 
 __all__ = [
-    "AlbumentationsTform",
     "AudioTform",
     "CdtDataLoader",
     "GdriveFileInfo",
-    "ImageLoadingBackend",
-    "ImageTform",
-    "PillowTform",
     "UrlFileInfo",
-    "apply_image_transform",
     "cdt_collate",
     "check_integrity",
     "download_from_gdrive",
@@ -83,97 +72,12 @@ __all__ = [
     "extract_base_dataset",
     "extract_labels_from_dataset",
     "get_group_ids",
-    "img_to_tensor",
     "infer_al_backend",
-    "infer_il_backend",
     "infer_sample_cls",
     "is_tensor_list",
-    "load_image",
     "make_subset",
     "stratified_split",
 ]
-
-
-ImageLoadingBackend: TypeAlias = Literal["opencv", "pillow"]
-
-
-@overload
-def load_image(
-    filepath: Union[Path, str], *, backend: Literal["opencv"] = ...
-) -> npt.NDArray[np.integer]:
-    ...
-
-
-@overload
-def load_image(filepath: Union[Path, str], *, backend: Literal["pillow"] = ...) -> Image.Image:
-    ...
-
-
-def load_image(filepath: Union[Path, str], *, backend: ImageLoadingBackend = "opencv") -> RawImage:
-    """Load an image from disk using the requested backend.
-
-    :param filepath: The path of the image-file to be loaded.
-    :param backend: Backed to use for loading the image: either 'opencv' or 'pillow'.
-
-    :returns: The loaded image file as a numpy array if 'opencv' was the selected backend
-        and a PIL image otherwise.
-    :raises OSError: if the images can't be read.
-    """
-    if backend == "opencv":
-        if isinstance(filepath, Path):
-            # cv2 can only read string filepaths
-            filepath = str(filepath)
-        image = cv2.imread(filepath)
-        if image is None:
-            raise OSError(f"Image-file could not be read from location '{filepath}'")
-        return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # type: ignore
-    return Image.open(filepath)
-
-
-AlbumentationsTform: TypeAlias = Union[A.Compose, A.BasicTransform]
-PillowTform: TypeAlias = Callable[[Image.Image], Any]
-ImageTform: TypeAlias = Union[AlbumentationsTform, PillowTform]
-
-
-def infer_il_backend(transform: Optional[ImageTform]) -> ImageLoadingBackend:
-    """Infer which image-loading backend to use based on the type of the image-transform.
-
-    :param transform: The image transform from which to infer the image-loading backend.
-        If the transform is derived from Albumentations, then 'opencv' will be selected as the
-        backend, else 'pillow' will be selected.
-
-    :returns: The backend to load images with based on the supplied image-transform: either
-        'opencv' or 'pillow'.
-    """
-    # Default to openccv is transform is None as numpy arrays are generally
-    # more tractable
-    if transform is None or isinstance(transform, get_args(AlbumentationsTform)):
-        return "opencv"
-    return "pillow"
-
-
-def apply_image_transform(
-    image: RawImage, *, transform: Optional[ImageTform]
-) -> Union[RawImage, Tensor]:
-    image_ = image
-    if transform is not None:
-        if isinstance(transform, (A.Compose, A.BasicTransform)):
-            if isinstance(image, Image.Image):
-                image = np.array(image)
-            image_ = transform(image=image)["image"]
-        else:
-            if isinstance(image, np.ndarray):
-                image = Image.fromarray(image)
-            image_ = transform(image)
-    return image_
-
-
-def img_to_tensor(img: Union[Image.Image, np.ndarray]) -> Tensor:
-    if isinstance(img, Image.Image):
-        return TF.pil_to_tensor(img)
-    return torch.from_numpy(
-        np.moveaxis(img / (255.0 if img.dtype == np.uint8 else 1), -1, 0).astype(np.float32)
-    )
 
 
 AudioLoadingBackend: TypeAlias = Literal["sox_io", "soundfile"]
@@ -422,8 +326,8 @@ class cdt_collate:
             # not is ill-posed given that the dimensionality of samples varies with modality; the
             # current solution is tailored for tabular and image data.
             if (ndims > 0) and ((ndims % 2) == 0):
-                return torch.cat(batch, dim=0, out=out)  # type: ignore
-            return torch.stack(batch, dim=0, out=out)  # type: ignore
+                return torch.cat(batch, dim=0, out=out)
+            return torch.stack(batch, dim=0, out=out)
         # NumPy array
         elif (
             elem_type.__module__ == "numpy"

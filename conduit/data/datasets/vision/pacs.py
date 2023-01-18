@@ -10,9 +10,11 @@ import torch
 from torch import Tensor
 from typing_extensions import Self, TypeAlias
 
-from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
-from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.datasets.utils import GdriveFileInfo, download_from_gdrive
 from conduit.data.structures import TernarySample, TrainTestSplit
+
+from .base import CdtVisionDataset
+from .utils import ImageTform
 
 __all__ = [
     "PACS",

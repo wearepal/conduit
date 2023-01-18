@@ -10,13 +10,12 @@ from typing_extensions import override
 
 from conduit.data.datasets.utils import (
     AudioTform,
-    ImageTform,
     apply_audio_transform,
-    apply_image_transform,
     compute_instance_weights,
     extract_base_dataset,
 )
 from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.datasets.vision.utils import ImageTform, apply_image_transform
 from conduit.data.structures import (
     BinarySample,
     BinarySampleIW,

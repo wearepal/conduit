@@ -12,10 +12,11 @@ from torch import Tensor
 from torchvision.datasets import MNIST  # type: ignore
 from typing_extensions import TypeAlias, override
 
-from conduit.data.datasets.utils import ImageTform, RawImage
-from conduit.data.datasets.vision.base import CdtVisionDataset
 from conduit.data.structures import TernarySample
 from conduit.types import NDArrayR
+
+from .base import CdtVisionDataset
+from .utils import ImageTform, RawImage
 
 __all__ = ["ColoredMNIST", "ColoredMNISTSplit", "MNISTColorizer"]
 

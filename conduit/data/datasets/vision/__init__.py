@@ -9,4 +9,5 @@ from .nico import *
 from .nih import *
 from .pacs import *
 from .ssrp import *
+from .utils import *
 from .waterbirds import *

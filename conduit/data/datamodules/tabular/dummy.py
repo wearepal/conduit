@@ -3,8 +3,9 @@ from typing import Optional
 import attr
 from typing_extensions import override
 
-from conduit.data import CdtDataModule, TrainValTestSplit
-from conduit.data.datasets.tabular.dummy import RandomTabularDataset
+from conduit.data import TrainValTestSplit
+from conduit.data.datamodules import CdtDataModule
+from conduit.data.datasets.tabular import RandomTabularDataset
 
 
 @attr.define(kw_only=True)
