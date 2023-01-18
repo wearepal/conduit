@@ -10,8 +10,12 @@ from typing_extensions import final, override
 from conduit.data.constants import IMAGENET_STATS
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.base import I
-from conduit.data.datasets.utils import AlbumentationsTform, ImageTform
-from conduit.data.datasets.wrappers import ImageTransformer, InstanceWeightedDataset
+from conduit.data.datasets.vision import (
+    AlbumentationsTform,
+    ImageTform,
+    ImageTransformer,
+)
+from conduit.data.datasets.wrappers import InstanceWeightedDataset
 from conduit.data.structures import ImageSize, MeanStd, SizedDataset
 from conduit.types import Stage
 

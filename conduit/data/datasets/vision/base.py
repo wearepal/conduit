@@ -11,7 +11,7 @@ from torch import Tensor
 from typing_extensions import Self, TypeAlias, override
 
 from conduit.data.datasets.base import CdtDataset, I, S, Y
-from conduit.data.datasets.utils import (
+from conduit.data.datasets.vision.utils import (
     ImageLoadingBackend,
     ImageTform,
     RawImage,

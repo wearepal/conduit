@@ -2,7 +2,8 @@
 import attr
 from typing_extensions import override
 
-from conduit.data import CdtVisionDataModule, TrainValTestSplit
+from conduit.data import TrainValTestSplit
+from conduit.data.datamodules.vision import CdtVisionDataModule
 from conduit.data.datasets.vision.dummy import DummyVisionDataset, SampleType
 
 

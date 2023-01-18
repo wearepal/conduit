@@ -6,8 +6,9 @@ import torch
 from torch import Tensor
 from typing_extensions import TypeAlias, override
 
-from conduit.data.datasets.vision.base import CdtVisionDataset
 from conduit.data.structures import TernarySample
+
+from .base import CdtVisionDataset
 
 SampleType: TypeAlias = TernarySample
 

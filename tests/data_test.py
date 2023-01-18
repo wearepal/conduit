@@ -12,31 +12,36 @@ from typing_extensions import Type
 from conduit.data import (
     BinarySample,
     BinarySampleIW,
-    Camelyon17,
-    CdtVisionDataModule,
-    CelebA,
-    CelebADataModule,
-    ColoredMNISTDataModule,
-    ImageTform,
     NamedSample,
-    NICO,
-    NICODataModule,
-    PACS,
     SampleBase,
-    SoundscapeAttr,
-    SSRP,
     TernarySample,
     TernarySampleIW,
-    Waterbirds,
+)
+from conduit.data.datamodules.audio import EcoacousticsDataModule
+from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
+from conduit.data.datamodules.vision import (
+    CdtVisionDataModule,
+    CelebADataModule,
+    ColoredMNISTDataModule,
+    NICODataModule,
     WaterbirdsDataModule,
 )
-from conduit.data.datamodules import EcoacousticsDataModule
-from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
 from conduit.data.datamodules.vision.dummy import DummyVisionDataModule
-from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
-from conduit.data.datasets.utils import get_group_ids, stratified_split
-from conduit.data.datasets.vision.cmnist import MNISTColorizer
-from conduit.fair.data.datasets.dummy import DummyDataset
+from conduit.data.datasets import get_group_ids, stratified_split
+from conduit.data.datasets.audio import Ecoacoustics, SoundscapeAttr
+from conduit.data.datasets.vision import (
+    Camelyon17,
+    CelebA,
+    ColoredMNIST,
+    ImageTform,
+    ISIC,
+    MNISTColorizer,
+    NICO,
+    PACS,
+    SSRP,
+    Waterbirds,
+)
+from conduit.fair.data.datasets import DummyDataset
 
 
 @pytest.mark.parametrize("greyscale", [True, False])

@@ -8,9 +8,11 @@ import torch
 from torch import Tensor
 from typing_extensions import TypeAlias
 
-from conduit.data.datasets.utils import ImageTform, UrlFileInfo, download_from_url
-from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.datasets.utils import UrlFileInfo, download_from_url
 from conduit.data.structures import TernarySample
+
+from .base import CdtVisionDataset
+from .utils import ImageTform
 
 __all__ = ["FMoW", "FMoWSplit", "FMoWSplitScheme"]
 

@@ -9,9 +9,10 @@ import torch
 from torch import Tensor
 from typing_extensions import TypeAlias
 
-from conduit.data.datasets.utils import ImageTform
-from conduit.data.datasets.vision.base import CdtVisionDataset
 from conduit.data.structures import TernarySample
+
+from .base import CdtVisionDataset
+from .utils import ImageTform
 
 __all__ = [
     "NIHChestXRays",
