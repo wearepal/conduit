@@ -26,8 +26,24 @@ jobs:
     - name: Lint with darglint
       run: |
         darglint --verbosity 2 --docstring-style sphinx -z long conduit
+  test_minimal_dependencies:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install poetry
+      run: pipx install poetry
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+    - name: Install minimal dependencies
+      run: |
+        poetry env use 3.8
+        poetry install --no-interaction --no-root --with torch --without image --without hydra
+    - name: Verify audio datamodule can be imported
+      run: |
+        poetry run python -c "from conduit.data.datamodules.audio import EcoacousticsDataModule"
   ci_suite:
-    needs: [linters]
+    needs: [linters, test_minimal_dependencies]
     runs-on: ubuntu-latest
     steps:
     #----------------------------------------------
@@ -46,7 +62,7 @@ jobs:
     - name: Install dependencies
       run: |
         poetry env use 3.8
-        poetry install --no-interaction --no-root -E all --with torch --with fair
+        poetry install --no-interaction --no-root --with torch --with fair
     # - name: Setup node.js (for pyright)
     #   uses: actions/setup-node@v1
     #   with:
