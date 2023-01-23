@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Callable, Optional, Type, TypeVar, Union, cast
+from typing import Callable, Optional, TypeVar, Union, cast
 
 import torch
 from torch import Tensor

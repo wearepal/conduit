@@ -45,7 +45,7 @@ class ColoredMNISTDataModule(CdtVisionDataModule[ColoredMNIST, SampleType]):
             normalization = A.Compose(
                 [A.Normalize(mean=self.norm_values.mean, std=self.norm_values.std), ToTensorV2()]
             )
-            transforms.append(normalization)  # type: ignore
+            transforms.append(normalization)
         return A.Compose(transforms)
 
     @property
