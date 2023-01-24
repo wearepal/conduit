@@ -48,7 +48,25 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     Split: TypeAlias = WaterbirdsSplit
 
     _BASE_DIR_NAME: ClassVar[str] = "Waterbirds"
-    _METADATA_FILENAME: ClassVar[str] = "metadata.csv"
+    _ORIGINAL_METADATA_FILENAME: ClassVar[str] = "metadata.csv"
+    # Path to the 'fixed' metadata featured in 'MaskTune' and downloaded from the link provided in
+    # the official repo of said paper:
+    # 'https://drive.google.com/file/d/1xPNYQskEXuPhuqT5Hj4hXPeJa9jh7liL/view'.
+    # To quote the paper:
+    # "We discovered and fixed two problems with the Waterbirds dataset: a) Because the background
+    # images in the Places dataset (Zhou et al., 2017) may already contain bird images, multiple
+    # birds may appear in an image after overlaying the segmented bird images from the Caltech-UCSD
+    # Birds- 200-2011 (CUB) dataset (Wah et al., 2011). For example, the label of an image may be
+    # “landbird”, but the image contains both land and water birds. Such images were removed from
+    # the dataset. b) Because the names of the species are similar, some land birds have been
+    # mislabeled as waterbirds"
+    _FIXED_METADATA_FILEPATH: ClassVar[Path] = Path(
+        "conduit",
+        "data",
+        "datasets",
+        "csvs",
+        "waterbirds_fixed.csv",
+    )
 
     _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
         name="Waterbirds.tar.gz",
@@ -64,10 +82,12 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         download: bool = True,
         transform: Optional[ImageTform] = None,
         split: Optional[Union[WaterbirdsSplit, str]] = None,
+        fixed: bool = False,
     ) -> None:
         self.split = WaterbirdsSplit[split.upper()] if isinstance(split, str) else split
         self.root = Path(root)
         self._base_dir = self.root / self._BASE_DIR_NAME
+        self.fixed = fixed
         self.download = download
         if self.download:
             download_from_url(
@@ -81,9 +101,14 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
                 f"Data not found at location {self._base_dir.resolve()}. Have you downloaded it?"
             )
 
+        metadata_fp = (
+            self._FIXED_METADATA_FILEPATH
+            if self.fixed
+            else self._base_dir / self._ORIGINAL_METADATA_FILENAME
+        )
         # Read in metadata
         # Note: metadata is one-indexed.
-        self.metadata = pd.read_csv(self._base_dir / self._METADATA_FILENAME)
+        self.metadata = pd.read_csv(metadata_fp)
         # Use an official split of the data, if specified, else just use all
         # of the data
         if self.split is not None:
