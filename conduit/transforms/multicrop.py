@@ -9,7 +9,7 @@ import torchvision.transforms.functional as TF  # type: ignore
 from typing_extensions import Self, override
 
 from conduit.data.constants import IMAGENET_STATS
-from conduit.data.datasets.utils import (
+from conduit.data.datasets.vision.utils import (
     ImageTform,
     PillowTform,
     apply_image_transform,

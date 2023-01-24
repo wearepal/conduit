@@ -7,7 +7,7 @@ from ranzen.misc import gcopy
 from torch import Tensor
 from typing_extensions import Self, override
 
-from conduit.data.datasets.utils import ImageTform, apply_image_transform
+from conduit.data.datasets.vision.utils import ImageTform, apply_image_transform
 from conduit.data.structures import InputContainer, RawImage, concatenate_inputs
 
 __all__ = [

@@ -288,6 +288,7 @@ def test_tabular_dummy_data(
         if y_card is None:
             assert isinstance(sample, (NamedSample))
         else:
+            assert isinstance(sample, BinarySample)
             assert sample.y.shape == (batch_size,)
         for group in dm.train_data.feature_groups:
             assert sample.x[:, group].sum() == batch_size
@@ -309,7 +310,7 @@ def test_vision_dummy_data(
     channels, transforms = channels_transforms
     dm = DummyVisionDataModule(
         train_batch_size=batch_size,
-        eval_batch_size=batch_size,  # type: ignore
+        eval_batch_size=batch_size,
         height=size,
         width=size,
         s_card=s_card,

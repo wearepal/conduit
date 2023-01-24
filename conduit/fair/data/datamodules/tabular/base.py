@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Union, cast
 import attr
 import ethicml as em
 from ethicml.data import Dataset, FeatureOrder
-from sklearn.preprocessing import StandardScaler  # type: ignore
+from sklearn.preprocessing import StandardScaler
 from typing_extensions import final, override
 
 from conduit.data.datamodules import CdtDataModule

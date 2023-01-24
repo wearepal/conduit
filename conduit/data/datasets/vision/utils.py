@@ -4,7 +4,7 @@ from typing import Any, Callable, Literal, Optional, Union, get_args, overload
 
 from PIL import Image
 import albumentations as A  # type: ignore
-import cv2  # type: ignore
+import cv2
 import numpy as np
 import numpy.typing as npt
 import torch
