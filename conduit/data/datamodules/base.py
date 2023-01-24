@@ -65,7 +65,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     """
 
     train_batch_size: int = 64
-    _eval_batch_size: Optional[int] = None
+    _eval_batch_size: Optional[int] = attr.field(alias="eval_batch_size", default=None)
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0

@@ -4,7 +4,7 @@ from typing import ClassVar, Optional, Union, cast
 
 import pandas as pd
 from ranzen import parsable, str_to_enum
-from sklearn.preprocessing import MultiLabelBinarizer  # type: ignore
+from sklearn.preprocessing import MultiLabelBinarizer
 import torch
 from torch import Tensor
 from typing_extensions import TypeAlias
@@ -14,12 +14,7 @@ from conduit.data.structures import TernarySample
 from .base import CdtVisionDataset
 from .utils import ImageTform
 
-__all__ = [
-    "NIHChestXRays",
-    "NIHSplit",
-    "NIHSubgroup",
-    "NIHTarget",
-]
+__all__ = ["NIHChestXRays", "NIHSplit", "NIHSubgroup", "NIHTarget"]
 
 
 class NIHSplit(Enum):
@@ -166,7 +161,7 @@ class NIHChestXRays(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         findings_str = self.metadata["Finding Labels"].str.split("|")
         self.encoder = MultiLabelBinarizer().fit(findings_str)
         findings_ml = pd.DataFrame(
-            self.encoder.transform(findings_str), columns=self.encoder.classes_
+            self.encoder.transform(findings_str), columns=self.encoder.classes_  # type: ignore
         )
         self.metadata = pd.concat((self.metadata, findings_ml), axis=1)
         if self.target is None:
