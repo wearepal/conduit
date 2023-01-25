@@ -65,7 +65,7 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         "data",
         "datasets",
         "csvs",
-        "waterbirds_fixed.csv",
+        "waterbirds_fixed.csv.zip",
     )
 
     _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
