@@ -411,18 +411,18 @@ files = [
 
 [[package]]
 name = "ethicml"
-version = "1.0.2"
+version = "1.1.0"
 description = "EthicML is a library for performing and assessing algorithmic fairness. Unlike other libraries, EthicML isn't an education tool, but rather a researcher's toolkit."
 category = "main"
 optional = false
 python-versions = ">=3.8,<3.11"
 files = [
-    {file = "ethicml-1.0.2-py3-none-any.whl", hash = "sha256:ff183d4a19fec9c71997c084bd4d388d981e56460d964ae2aa8acd7013103d28"},
-    {file = "ethicml-1.0.2.tar.gz", hash = "sha256:6808ca3e42415f6330e4cea781099e0cf1939fa42801779f213a68ecfde1c831"},
+    {file = "ethicml-1.1.0-py3-none-any.whl", hash = "sha256:9ad96e172b5edd97db51991436b2ba1c3e9b4828f616a841e7cfa966aa0a9f75"},
+    {file = "ethicml-1.1.0.tar.gz", hash = "sha256:2d5932dd5d64a05bfbdcf4e483602637d8ac591d4a723a332a55dd30277987fa"},
 ]
 
 [package.dependencies]
-folktables = {version = ">=0.0.11,<0.0.12", optional = true, markers = "extra == \"data\" or extra == \"all\" or extra == \"ci\""}
+folktables = {version = ">=0.0.11,<0.0.12", optional = true, markers = "extra == \"data\" or extra == \"all\""}
 joblib = ">=1.1.0,<2.0.0"
 numpy = ">=1.20.1"
 pandas = ">=1.0,<2.0"
@@ -431,11 +431,10 @@ teext = ">=0.1.3,<0.2.0"
 typing-extensions = ">=4.4"
 
 [package.extras]
-all = ["GitPython (>=3.1.20,<4.0.0)", "cloudpickle (>=2.0.0,<3.0.0)", "fairlearn (==0.7.0)", "folktables (>=0.0.11,<0.0.12)", "gitdb2 (==4.0.2)", "matplotlib (>=3.0.2)", "pipenv (>=2018.11.26,<2022.8.5)", "scikit-learn (>=0.20.1)", "scipy (>=1.7.2,<2.0.0)", "seaborn (>=0.9.0)", "smmap2 (==3.0.1)"]
-ci = ["GitPython (>=3.1.20,<4.0.0)", "cloudpickle (>=2.0.0,<3.0.0)", "fairlearn (==0.7.0)", "folktables (>=0.0.11,<0.0.12)", "gitdb2 (==4.0.2)", "matplotlib (>=3.0.2)", "omegaconf (>=2.2.2)", "pipenv (>=2018.11.26,<2022.8.5)", "scikit-learn (>=0.20.1)", "scipy (>=1.7.2,<2.0.0)", "seaborn (>=0.9.0)", "smmap2 (==3.0.1)"]
+all = ["GitPython (>=3.1.20,<4.0.0)", "cloudpickle (>=2.0.0,<3.0.0)", "fairlearn (==0.7.0)", "folktables (>=0.0.11,<0.0.12)", "gitdb2 (==4.0.2)", "matplotlib (>=3.0.2)", "pdm (>=2.4.0,<3.0.0)", "scikit-learn (>=0.20.1)", "scipy (>=1.7.2,<2.0.0)", "seaborn (>=0.9.0)", "smmap2 (==3.0.1)"]
 data = ["folktables (>=0.0.11,<0.0.12)"]
 metrics = ["scikit-learn (>=0.20.1)"]
-models = ["GitPython (>=3.1.20,<4.0.0)", "cloudpickle (>=2.0.0,<3.0.0)", "fairlearn (==0.7.0)", "gitdb2 (==4.0.2)", "pipenv (>=2018.11.26,<2022.8.5)", "scikit-learn (>=0.20.1)", "scipy (>=1.7.2,<2.0.0)", "smmap2 (==3.0.1)"]
+models = ["GitPython (>=3.1.20,<4.0.0)", "cloudpickle (>=2.0.0,<3.0.0)", "fairlearn (==0.7.0)", "gitdb2 (==4.0.2)", "pdm (>=2.4.0,<3.0.0)", "scikit-learn (>=0.20.1)", "scipy (>=1.7.2,<2.0.0)", "smmap2 (==3.0.1)"]
 plot = ["matplotlib (>=3.0.2)", "seaborn (>=0.9.0)"]
 
 [[package]]
