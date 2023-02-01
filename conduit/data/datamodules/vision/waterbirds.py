@@ -6,18 +6,14 @@ import attr
 from typing_extensions import override
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
-from conduit.data.datasets.vision.waterbirds import (
-    SampleType,
-    Waterbirds,
-    WaterbirdsSplit,
-)
+from conduit.data.datasets.vision.waterbirds import Waterbirds
 from conduit.data.structures import TrainValTestSplit
 
 __all__ = ["WaterbirdsDataModule"]
 
 
 @attr.define(kw_only=True)
-class WaterbirdsDataModule(CdtVisionDataModule[Waterbirds, SampleType]):
+class WaterbirdsDataModule(CdtVisionDataModule[Waterbirds, Waterbirds.SampleType]):
     """Data-module for the Waterbirds dataset."""
 
     image_size: int = 224
@@ -53,7 +49,7 @@ class WaterbirdsDataModule(CdtVisionDataModule[Waterbirds, SampleType]):
         # Split the data according to the pre-defined split indices
         if self.use_predefined_splits:
             train_data, val_data, test_data = (
-                Waterbirds(root=self.root, split=split) for split in WaterbirdsSplit
+                Waterbirds(root=self.root, split=split) for split in Waterbirds.Split
             )
         # Split the data randomly according to test- and val-prop
         else:

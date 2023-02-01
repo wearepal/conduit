@@ -263,11 +263,15 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         return random_split(self, props=props, deep=deep, seed=seed, as_indices=as_indices)
 
     @overload
-    def cat(self, other: Self, *, inplace: Literal[True] = ..., deep: bool = False) -> None:
+    def cat(self, other: Self, *, inplace: Literal[True], deep: bool = ...) -> None:
         ...
 
     @overload
-    def cat(self, other: Self, *, inplace: Literal[False] = ..., deep: bool = False) -> Self:
+    def cat(self, other: Self, *, inplace: Literal[False] = ..., deep: bool = ...) -> Self:
+        ...
+
+    @overload
+    def cat(self, other: Self, *, inplace: bool = ..., deep: bool = ...) -> Optional[Self]:
         ...
 
     def cat(self, other: Self, *, inplace: bool = False, deep: bool = False) -> Optional[Self]:
