@@ -9,12 +9,14 @@ from torch import Tensor
 from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import UrlFileInfo, download_from_url
+from conduit.data.datasets.vision import CdtVisionDataset, ImageTform
 from conduit.data.structures import TernarySample
 
-from .base import CdtVisionDataset
-from .utils import ImageTform
-
-__all__ = ["Waterbirds", "WaterbirdsSplit"]
+__all__ = [
+    "Waterbirds",
+    "WaterbirdsSplit",
+    "SampleType",
+]
 
 
 class WaterbirdsSplit(Enum):
@@ -60,13 +62,7 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     # “landbird”, but the image contains both land and water birds. Such images were removed from
     # the dataset. b) Because the names of the species are similar, some land birds have been
     # mislabeled as waterbirds"
-    _FIXED_METADATA_FILEPATH: ClassVar[Path] = Path(
-        "conduit",
-        "data",
-        "datasets",
-        "csvs",
-        "waterbirds_fixed.csv.zip",
-    )
+    _FIXED_METADATA_FILEPATH: ClassVar[Path] = Path(__file__).parent / "waterbirds_fixed.csv.zip"
 
     _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
         name="Waterbirds.tar.gz",
