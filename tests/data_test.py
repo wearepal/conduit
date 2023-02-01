@@ -146,7 +146,6 @@ def test_str_for_enum(root: Path) -> None:
 @pytest.mark.slow
 @pytest.mark.parametrize("segment_len", [1, 15, 30])
 def test_audio_dataset(root: Path, segment_len: float) -> None:
-
     ds = Ecoacoustics(
         root=str(root),
         download=True,
