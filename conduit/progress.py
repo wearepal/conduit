@@ -1,6 +1,5 @@
 from __future__ import annotations
 from enum import Enum
-from functools import partial
 from typing import Any, Callable, Dict, Optional, Union, cast
 
 import pytorch_lightning as pl
@@ -95,6 +94,7 @@ class CdtProgressBar(RichProgressBar):
         leave: bool = False,
         theme: Union[RichProgressBarTheme, Theme] = Theme.CYBERPUNK,
         console_kwargs: Optional[Dict[str, Any]] = None,
+        predict_description: str = "Predicting",
     ) -> None:
         if isinstance(theme, ProgressBarTheme):
             theme = cast(RichProgressBarTheme, theme.load())
@@ -106,9 +106,10 @@ class CdtProgressBar(RichProgressBar):
             console_kwargs=console_kwargs,
         )
         self.predict_progress_bar_id = None
+        self._predict_description = predict_description
 
     @override
-    def configure_columns(self, *args: Any, **kwargs: Any) -> list:
+    def configure_columns(self, *args: Any, **kwargs: Any) -> list:  # pyright: ignore
         return [
             TextColumn(
                 "[progress.description]{task.description}",
@@ -134,10 +135,11 @@ class CdtProgressBar(RichProgressBar):
     @property
     @override
     def total_train_batches(self) -> Union[int, float]:
-        """The total number of training batches, which may change from epoch to epoch.
+        """
+        The total number of training batches, which may change from epoch to epoch.
 
-        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the training
-        dataloader is of infinite size.
+        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if
+        the training dataloader is of infinite size.
         """
         if self.trainer.max_steps >= 0:
             return self.trainer.max_steps
@@ -146,7 +148,7 @@ class CdtProgressBar(RichProgressBar):
     @override
     def _add_task(
         self, total_batches: float, description: str, visible: bool = True
-    ) -> Optional[int]:
+    ) -> Optional[TaskID]:
         if self.progress is not None:
             return self.progress.add_task(
                 f"[{self.theme.description}]{description}", total=total_batches, visible=visible
@@ -181,7 +183,7 @@ class CdtProgressBar(RichProgressBar):
         return train_description
 
     @override
-    def on_train_epoch_start(self, trainer: pl.Trainer, pl_module) -> None:
+    def on_train_epoch_start(self, trainer: pl.Trainer, pl_module) -> None:  # pyright: ignore
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
         if total_train_batches != float("inf"):
@@ -207,7 +209,12 @@ class CdtProgressBar(RichProgressBar):
         self.refresh()
 
     @override
-    def on_validation_batch_end(self, trainer: pl.Trainer, *args: Any, **kwargs: Any) -> None:
+    def on_validation_batch_end(
+        self,
+        trainer: pl.Trainer,
+        *args: Any,  # pyright: ignore
+        **kwargs: Any,  # pyright: ignore
+    ) -> None:
         if trainer.sanity_checking:
             self._update(self.val_sanity_progress_bar_id, self.val_batch_idx)  # type: ignore
         elif self.val_progress_bar_id is not None:
@@ -215,13 +222,21 @@ class CdtProgressBar(RichProgressBar):
             self._update(self.val_progress_bar_id, self.val_batch_idx)
         self.refresh()
 
+    @property
+    def predict_description(self) -> str:
+        return self._predict_description
+
+    @predict_description.setter
+    def predict_description(self, value: str) -> None:
+        self._predict_description = value
+
     @override
     def on_predict_batch_start(
         self,
-        trainer: pl.Trainer,
-        pl_module: pl.LightningModule,
-        batch: Any,
-        batch_idx: int,
+        trainer: pl.Trainer,  # pyright: ignore
+        pl_module: pl.LightningModule,  # pyright: ignore
+        batch: Any,  # pyright: ignore
+        batch_idx: int,  # pyright: ignore
         dataloader_idx: int,
     ) -> None:
         if self.has_dataloader_changed(dataloader_idx):
