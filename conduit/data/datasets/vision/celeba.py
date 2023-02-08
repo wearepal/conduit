@@ -1,72 +1,82 @@
 """CelebA Dataset."""
-from enum import Enum, auto
+from enum import Enum
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from ranzen import parsable, str_to_enum
-from ranzen.decorators import enum_name_str
+from ranzen import parsable
 import torch
+from torch import Tensor
+from typing_extensions import TypeAlias
 
-from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
-from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.datasets import GdriveFileInfo, download_from_gdrive
+from conduit.data.structures import TernarySample
+
+from .base import CdtVisionDataset
+from .utils import ImageTform
 
 __all__ = ["CelebA", "CelebAttr", "CelebASplit"]
 
 
-@enum_name_str
 class CelebAttr(Enum):
-    Five_o_Clock_Shadow = auto()
-    Arched_Eyebrows = auto()
-    Attractive = auto()
-    Bags_Under_Eyes = auto()
-    Bald = auto()
-    Bangs = auto()
-    Big_Lips = auto()
-    Big_Nose = auto()
-    Black_Hair = auto()
-    Blond_Hair = auto()
-    Blurry = auto()
-    Brown_Hair = auto()
-    Bushy_Eyebrows = auto()
-    Chubby = auto()
-    Double_Chin = auto()
-    Eyeglasses = auto()
-    Goatee = auto()
-    Gray_Hair = auto()
-    Heavy_Makeup = auto()
-    High_Cheekbones = auto()
-    Male = auto()
-    Mouth_Slightly_Open = auto()
-    Mustache = auto()
-    Narrow_Eyes = auto()
-    No_Beard = auto()
-    Oval_Face = auto()
-    Pale_Skin = auto()
-    Pointy_Nose = auto()
-    Receding_Hairline = auto()
-    Rosy_Cheeks = auto()
-    Sideburns = auto()
-    Smiling = auto()
-    Straight_Hair = auto()
-    Wavy_Hair = auto()
-    Wearing_Earrings = auto()
-    Wearing_Hat = auto()
-    Wearing_Lipstick = auto()
-    Wearing_Necklace = auto()
-    Wearing_Necktie = auto()
-    Young = auto()
+    FIVE_O_CLOCK_SHADOW = "Five_o_Clock_Shadow"
+    ARCHED_EYEBROWS = "Arched_Eyebrows"
+    ATTRACTIVE = "Attractive"
+    BAGS_UNDER_EYES = "Bags_Under_Eyes"
+    BALD = "Bald"
+    BANGS = "Bangs"
+    BIG_LIPS = "Big_Lips"
+    BIG_NOSE = "Big_Nose"
+    BLACK_HAIR = "Black_Hair"
+    BLOND_HAIR = "Blond_Hair"
+    BLURRY = "Blurry"
+    BROWN_HAIR = "Brown_Hair"
+    BUSHY_EYEBROWS = "Bushy_Eyebrows"
+    CHUBBY = "Chubby"
+    DOUBLE_CHIN = "Double_Chin"
+    EYEGLASSES = "Eyeglasses"
+    GOATEE = "Goatee"
+    GRAY_HAIR = "Gray_Hair"
+    HEAVY_MAKEUP = "Heavy_Makeup"
+    HIGH_CHEEKBONES = "High_Cheekbones"
+    MALE = "Male"
+    MOUTH_SLIGHTLY_OPEN = "Mouth_Slightly_Open"
+    MUSTACHE = "Mustache"
+    NARROW_EYES = "Narrow_Eyes"
+    NO_BEARD = "No_Beard"
+    OVAL_FACE = "Oval_Face"
+    PALE_SKIN = "Pale_Skin"
+    POINTY_NOSE = "Pointy_Nose"
+    RECEDING_HAIRLINE = "Receding_Hairline"
+    ROSY_CHEEKS = "Rosy_Cheeks"
+    SIDEBURNS = "Sideburns"
+    SMILING = "Smiling"
+    STRAIGHT_HAIR = "Straight_Hair"
+    WAVY_HAIR = "Wavy_Hair"
+    WEARING_EARRINGS = "Wearing_Earrings"
+    WEARING_HAT = "Wearing_Hat"
+    WEARING_LIPSTICK = "Wearing_Lipstick"
+    WEARING_NECKLACE = "Wearing_Necklace"
+    WEARING_NECKTIE = "Wearing_Necktie"
+    YOUNG = "Young"
 
 
 class CelebASplit(Enum):
-    train = 0
-    val = 1
-    test = 2
+    TRAIN = 0
+    VAL = 1
+    TEST = 2
 
 
-class CelebA(CdtVisionDataset):
+SampleType: TypeAlias = TernarySample
+
+
+class CelebA(CdtVisionDataset[SampleType, Tensor, Tensor]):
     """CelebA dataset."""
+
+    SampleType: TypeAlias = TernarySample
+    Attr: TypeAlias = CelebAttr
+    Split: TypeAlias = CelebASplit
 
     # The data is downloaded to `download_dir` / `CelebA` / `_IMAGE_DIR`.
     _IMAGE_DIR: ClassVar[str] = "img_align_celeba"
@@ -95,15 +105,14 @@ class CelebA(CdtVisionDataset):
         root: Union[str, Path],
         *,
         download: bool = True,
-        superclass: Union[CelebAttr, str] = CelebAttr.Smiling,
-        subclass: Union[CelebAttr, str] = CelebAttr.Male,
+        superclass: Union[CelebAttr, str] = CelebAttr.SMILING,
+        subclass: Union[CelebAttr, str] = CelebAttr.MALE,
         transform: Optional[ImageTform] = None,
         split: Optional[Union[CelebASplit, str]] = None,
     ) -> None:
-
-        self.superclass = str_to_enum(str_=superclass, enum=CelebAttr)
-        self.subclass = str_to_enum(str_=subclass, enum=CelebAttr)
-        self.split = str_to_enum(str_=split, enum=CelebASplit) if isinstance(split, str) else split
+        self.superclass = CelebAttr(superclass) if isinstance(superclass, str) else superclass
+        self.subclass = CelebAttr(subclass) if isinstance(subclass, str) else subclass
+        self.split = CelebASplit[split.upper()] if isinstance(split, str) else split
 
         self.root = Path(root)
         self._base_dir = self.root / self.__class__.__name__
@@ -134,13 +143,13 @@ class CelebA(CdtVisionDataset):
             self._base_dir / "list_attr_celeba.txt",
             delim_whitespace=True,
             header=1,
-            usecols=[self.superclass.name, self.subclass.name],
-            skiprows=skiprows,
+            usecols=[self.superclass.value, self.subclass.value],
+            skiprows=skiprows,  # pyright: ignore
         )
 
         x = np.array(attrs.index)
-        s_unmapped = torch.as_tensor(attrs[self.subclass.name].to_numpy())
-        y_unmapped = torch.as_tensor(attrs[self.superclass.name].to_numpy())
+        s_unmapped = torch.as_tensor(attrs[self.subclass.value].to_numpy())
+        y_unmapped = torch.as_tensor(attrs[self.superclass.value].to_numpy())
         # map from {-1, 1} to {0, 1}
         s_binary = torch.div(s_unmapped + 1, 2, rounding_mode='floor')
         y_binary = torch.div(y_unmapped + 1, 2, rounding_mode='floor')

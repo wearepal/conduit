@@ -5,48 +5,46 @@
     habitats" (Final) [Data set].
     Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
-from enum import Enum, auto
-import logging
+from enum import auto
 import math
 from pathlib import Path
 import shutil
-from typing import ClassVar, List, Optional, Tuple, Union, cast
+from typing import ClassVar, Final, List, Optional, Tuple, Union
 import zipfile
 
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_categorical_dtype, is_object_dtype
-from ranzen import parsable
-from ranzen.decorators import enum_name_str, implements
-from ranzen.misc import str_to_enum
+from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor
-import torchaudio
+import torchaudio  # type: ignore
 from tqdm import tqdm
+from typing_extensions import TypeAlias, override
 
 from conduit.data.datasets.audio.base import CdtAudioDataset
 from conduit.data.datasets.utils import AudioTform, UrlFileInfo, download_from_url
+from conduit.data.structures import TernarySample
 
-__all__ = [
-    "Ecoacoustics",
-    "SoundscapeAttr",
-]
+__all__ = ["Ecoacoustics", "SoundscapeAttr"]
 
 
-@enum_name_str
-class SoundscapeAttr(Enum):
-    habitat = auto()
-    site = auto()
-    time = auto()
-    NN = auto()
-    N0 = auto()
+class SoundscapeAttr(StrEnum):
+    HABITAT = auto()
+    SITE = auto()
+    TIME = auto()
+    NN = "NN"
+    N0 = "N0"
 
 
-class Ecoacoustics(CdtAudioDataset):
+SampleType: TypeAlias = TernarySample
+
+
+class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
     """Dataset for audio data collected in various geographic locations."""
 
-    INDICES_DIR: ClassVar[str] = "AvianID_AcousticIndices"
-    METADATA_FILENAME: ClassVar[str] = "metadata.csv"
+    _INDICES_DIR: ClassVar[str] = "AvianID_AcousticIndices"
+    _METADATA_FILENAME: ClassVar[str] = "metadata.csv"
     _PBAR_COL: ClassVar[str] = "#00FF00"
 
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
@@ -70,40 +68,31 @@ class Ecoacoustics(CdtAudioDataset):
         ),
     ]
 
-    SAMPLE_RATE: ClassVar[int] = 48_000
-    AUDIO_LEN: ClassVar[int] = 60
-    NUM_FRAMES_TOTAL: ClassVar[int] = SAMPLE_RATE * AUDIO_LEN
-    _num_frames_in_segment: Optional[int]
+    num_frames_in_segment: int
+    _MAX_AUDIO_LEN: Final[int] = 60
 
     @parsable
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str,
         *,
+        target_attrs: List[SoundscapeAttr],
         transform: Optional[AudioTform] = None,
         download: bool = True,
-        target_attrs: Union[
-            Union[SoundscapeAttr, str], List[Union[SoundscapeAttr, str]]
-        ] = SoundscapeAttr.habitat,
-        segment_len: Optional[float] = 15,
-        preprocess: bool = False,
+        segment_len: float = 15,
+        sample_rate: int = 48_000,  # This is the value that is present in the dataset
     ) -> None:
-
         self.root = Path(root).expanduser()
         self.download = download
         self.base_dir = self.root / self.__class__.__name__
-        self.labels_dir = self.base_dir / self.INDICES_DIR
+        self.labels_dir = self.base_dir / self._INDICES_DIR / self._INDICES_DIR
+        self.sample_rate = sample_rate  # set prior to segment length
         self.segment_len = segment_len
-        self.preprocess = preprocess
-        self._metadata_path = self.base_dir / self.METADATA_FILENAME
+        self._metadata_path = self.base_dir / self._METADATA_FILENAME
         self.ec_labels_path = self.labels_dir / self._EC_LABELS_FILENAME
         self.uk_labels_path = self.labels_dir / self._UK_LABELS_FILENAME
-
-        if not isinstance(target_attrs, list):
-            target_attrs = [target_attrs]
-        self.target_attrs = [
-            str(str_to_enum(str_=elem, enum=SoundscapeAttr)) for elem in target_attrs
-        ]
+        # map provided attributes (as string or enum) to permitted attributes (as strings)
+        self.target_attrs = [str(SoundscapeAttr(elem)) for elem in target_attrs]
 
         if self.download:
             self._download_files()
@@ -113,17 +102,7 @@ class Ecoacoustics(CdtAudioDataset):
         if not self._metadata_path.exists():
             self._extract_metadata()
 
-        self.metadata = pd.read_csv(self.base_dir / self.METADATA_FILENAME)
-
-        if self.preprocess and (self.num_frames_in_segment is not None):
-            # data directory depends on the segment length
-            processed_audio_dir = self.base_dir / f"segment_len={self.segment_len}"
-            if not (processed_audio_dir / "filepaths.csv").exists():
-                self._preprocess_files()
-
-            filepaths = pd.read_csv(processed_audio_dir / "filepaths.csv")
-            self.metadata.drop("filePath", inplace=True, axis=1)
-            self.metadata = filepaths.merge(self.metadata, how='left', on='fileName')
+        self.metadata = pd.read_csv(self.base_dir / self._METADATA_FILENAME)
 
         x = self.metadata["filePath"].to_numpy()
         y = torch.as_tensor(
@@ -133,19 +112,16 @@ class Ecoacoustics(CdtAudioDataset):
         super().__init__(x=x, y=y, transform=transform, audio_dir=self.base_dir)
 
     @property
-    def segment_len(self) -> Optional[float]:
+    def segment_len(self) -> float:
         return self._segment_len
 
     @segment_len.setter
-    def segment_len(self, value: Optional[float]) -> None:
+    def segment_len(self, value: float) -> None:
+        if value <= 0:
+            raise ValueError("Segment length must be positive.")
+        value = min(value, self._MAX_AUDIO_LEN)
         self._segment_len = value
-        self._num_frames_in_segment = (
-            None if self.segment_len is None else int(self.segment_len * self.SAMPLE_RATE)
-        )
-
-    @property
-    def num_frames_in_segment(self) -> Optional[int]:
-        return self._num_frames_in_segment
+        self.num_frames_in_segment = int(self.segment_len * self.sample_rate)
 
     def _check_files(self) -> None:
         """Check necessary files are present and unzipped."""
@@ -193,8 +169,8 @@ class Ecoacoustics(CdtAudioDataset):
             download_from_url(
                 file_info=finfo, root=self.base_dir, logger=self.logger, remove_finished=True
             )
-        if (self.base_dir / "__MACOSX").exists():
-            shutil.rmtree(self.base_dir / "__MACOSX")
+        if (macosx_dir := self.base_dir / "__MACOSX").exists():
+            shutil.rmtree(macosx_dir)
 
     def _extract_metadata(self) -> None:
         """Extract information such as labels from relevant csv files, combining them along with
@@ -210,7 +186,7 @@ class Ecoacoustics(CdtAudioDataset):
         uk_labels.replace(regex={"BA-": "BALMER-", "KN-": "KNEPP-"}, inplace=True)
         uk_labels["filePath"] = "UK_BIRD/" + uk_labels["fileName"]
 
-        metadata = cast(pd.DataFrame, pd.concat([uk_labels, ec_labels]))
+        metadata = pd.concat([uk_labels, ec_labels])
         metadata = metadata[[(self.base_dir / fp).exists() for fp in metadata["filePath"]]]
         # metadata = self._label_encode_metadata(metadata)
         metadata.to_csv(self._metadata_path, index=False)
@@ -235,9 +211,11 @@ class Ecoacoustics(CdtAudioDataset):
 
             if frac_remainder >= 0.5:
                 self.logger.debug(
-                    f"Length of audio file '{path.resolve()}' is not integer-divisible by "
-                    f"{self.segment_len}: terminally zero-padding the file along the "
-                    f"time-axis to compensate.",
+                    (
+                        f"Length of audio file '{path.resolve()}' is not integer-divisible by "
+                        f"{self.segment_len}: terminally zero-padding the file along the "
+                        "time-axis to compensate."
+                    ),
                 )
                 padding = torch.zeros(
                     waveform.size(0),
@@ -247,9 +225,11 @@ class Ecoacoustics(CdtAudioDataset):
                 num_segments += 1
             if 0 < frac_remainder < 0.5:
                 self.logger.debug(
-                    f"Length of audio file '{path.resolve()}' is not integer-divisible by "
-                    f"{self.segment_len} and not of sufficient length to be padded "
-                    f"(fractional remainder must be greater than 0.5): discarding terminal segment.",
+                    (
+                        f"Length of audio file '{path.resolve()}' is not integer-divisible by"
+                        f" {self.segment_len} and not of sufficient length to be padded (fractional"
+                        " remainder must be greater than 0.5): discarding terminal segment."
+                    ),
                 )
                 waveform = waveform[:, : int(num_segments * self.segment_len * sr)]
 
@@ -270,21 +250,32 @@ class Ecoacoustics(CdtAudioDataset):
             processed_audio_dir / "filepaths.csv", index=False
         )
 
-    @implements(CdtAudioDataset)
+    @override
     def load_sample(self, index: int) -> Tensor:
         path = self.audio_dir / self.x[index]
-        # Segmentation is being done dynamically.
-        if (not self.preprocess) and (self.num_frames_in_segment is not None):
-            #  Randomly sample a segment of length 'segment_len' from the waveform
-            frame_offset = torch.randint(
-                low=0, high=self.NUM_FRAMES_TOTAL - self.num_frames_in_segment, size=(1,)
-            )
-            # Slicing the tensor while decoding is more efficient than loading the full tensor
-            # and then slicing.
-            waveform, _ = torchaudio.load(  # type: ignore
-                path, frame_offset=frame_offset, num_frames=self.num_frames_in_segment
-            )
-        else:
-            waveform, _ = torchaudio.load(path)  # type: ignore
+
+        # get metadata first
+        metadata = torchaudio.info(path)  # type: ignore
+
+        # compute number of frames to take with the real sample rate
+        num_frames_segment = int(
+            self.num_frames_in_segment / self.sample_rate * metadata.sample_rate
+        )
+
+        # get random sub-sample
+        high = max(1, metadata.num_frames - num_frames_segment)
+        frame_offset = torch.randint(low=0, high=high, size=(1,))
+
+        # load segment
+        waveform, _ = torchaudio.load(  # type: ignore
+            path, num_frames=num_frames_segment, frame_offset=frame_offset
+        )
+
+        # resample to correct sample rate
+        waveform = torchaudio.functional.resample(
+            waveform,
+            orig_freq=metadata.sample_rate,
+            new_freq=self.sample_rate,
+        )
 
         return waveform

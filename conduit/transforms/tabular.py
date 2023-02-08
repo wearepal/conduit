@@ -1,11 +1,10 @@
 from abc import abstractmethod
 import math
-from typing import ClassVar, List, Union
+from typing import ClassVar, List, Union, final
 
-from ranzen import implements
 import torch
 from torch import Tensor
-from typing_extensions import final
+from typing_extensions import override
 
 __all__ = [
     "TabularTransform",
@@ -94,21 +93,20 @@ class TabularNormalize(TabularTransform):
 
 
 class ZScoreNormalize(TabularNormalize):
-
     mean: Tensor
     std: Tensor
 
-    @implements(TabularNormalize)
+    @override
     def _fit(self, data: Tensor) -> None:
         self.std, self.mean = torch.std_mean(data, dim=0, keepdim=True, unbiased=True)
 
-    @implements(TabularNormalize)
+    @override
     def _inverse_transform(self, data: Tensor) -> Tensor:
         data *= self.std
         data += self.mean
         return data
 
-    @implements(TabularNormalize)
+    @override
     def _transform(self, data: Tensor) -> Tensor:
         data -= self.mean
         data /= self.std.clamp_min(self._EPS)
@@ -116,7 +114,6 @@ class ZScoreNormalize(TabularNormalize):
 
 
 class QuantileNormalize(TabularNormalize):
-
     iqr: Tensor
     median: Tensor
 
@@ -140,7 +137,7 @@ class QuantileNormalize(TabularNormalize):
             q_quantile += (sorted_values[q_ind_int + 1] - q_quantile) * q_ind_frac
         return q_quantile
 
-    @implements(TabularNormalize)
+    @override
     def _fit(self, data: Tensor) -> None:
         sorted_values = data.sort(dim=0, descending=False).values
         # Compute the 'lower quantile'
@@ -151,13 +148,13 @@ class QuantileNormalize(TabularNormalize):
         self.iqr = q_max_quantile - q_min_quantile
         self.median = self._compute_quantile(q=0.5, sorted_values=sorted_values)
 
-    @implements(TabularNormalize)
+    @override
     def _inverse_transform(self, data: Tensor) -> Tensor:
         data *= self.iqr
         data += self.median
         return data
 
-    @implements(TabularNormalize)
+    @override
     def _transform(self, data: Tensor) -> Tensor:
         data -= self.median
         data /= self.iqr.clamp_min(self._EPS)
@@ -165,7 +162,6 @@ class QuantileNormalize(TabularNormalize):
 
 
 class MinMaxNormalize(TabularNormalize):
-
     orig_max: Tensor
     orig_min: Tensor
     orig_range: Tensor
@@ -178,13 +174,13 @@ class MinMaxNormalize(TabularNormalize):
         self.new_max = new_max
         self.new_range = self.new_max - self.new_min
 
-    @implements(TabularNormalize)
+    @override
     def _fit(self, data: Tensor) -> None:
         self.orig_min = torch.min(data, dim=0, keepdim=True).values
         self.orig_max = torch.max(data, dim=0, keepdim=True).values
         self.orig_range = self.orig_max - self.orig_min
 
-    @implements(TabularNormalize)
+    @override
     def _inverse_transform(self, data: Tensor) -> Tensor:
         data -= self.new_min
         data /= self.new_range + self._EPS
@@ -192,7 +188,7 @@ class MinMaxNormalize(TabularNormalize):
         data += self.orig_min
         return data
 
-    @implements(TabularNormalize)
+    @override
     def _transform(self, data: Tensor) -> Tensor:
         data -= self.orig_min
         data /= self.orig_range.clamp_min(self._EPS)

@@ -1,16 +1,20 @@
 """NICO Dataset."""
-from enum import Enum, auto
+from enum import auto
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union, cast
 
 from PIL import Image, UnidentifiedImageError
 import pandas as pd
-from ranzen import parsable, str_to_enum
-from ranzen.decorators import enum_name_str
+from ranzen import StrEnum, parsable
 import torch
+from torch import Tensor
+from typing_extensions import TypeAlias
 
-from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
-from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.datasets.utils import GdriveFileInfo, download_from_gdrive
+from conduit.data.structures import TernarySample
+
+from .base import CdtVisionDataset
+from .utils import ImageTform
 
 __all__ = [
     "NICO",
@@ -18,16 +22,21 @@ __all__ = [
 ]
 
 
-@enum_name_str
-class NicoSuperclass(Enum):
-    animals = auto()
-    vehicles = auto()
+class NicoSuperclass(StrEnum):
+    ANIMALS = auto()
+    VEHICLES = auto()
 
 
-class NICO(CdtVisionDataset):
+SampleType: TypeAlias = TernarySample
+
+
+class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     """Datset for Non-I.I.D. image classification introduced in
     'Towards Non-I.I.D. Image Classification: A Dataset and Baselines'
     """
+
+    SampleType: TypeAlias = TernarySample
+    Superclass: TypeAlias = NicoSuperclass
 
     _FILE_INFO: ClassVar[GdriveFileInfo] = GdriveFileInfo(
         name="NICO.zip",
@@ -42,14 +51,9 @@ class NICO(CdtVisionDataset):
         *,
         download: bool = True,
         transform: Optional[ImageTform] = None,
-        superclass: Optional[Union[NicoSuperclass, str]] = NicoSuperclass.animals,
+        superclass: Optional[Union[NicoSuperclass, str]] = NicoSuperclass.ANIMALS,
     ) -> None:
-
-        self.superclass = (
-            str_to_enum(str_=superclass, enum=NicoSuperclass)
-            if isinstance(superclass, str)
-            else superclass
-        )
+        self.superclass = NicoSuperclass(superclass) if isinstance(superclass, str) else superclass
         self.root = Path(root)
         self.download = download
         self._base_dir = self.root / self.__class__.__name__
@@ -59,7 +63,7 @@ class NICO(CdtVisionDataset):
             download_from_gdrive(file_info=self._FILE_INFO, root=self.root, logger=self.logger)
         elif not self._check_unzipped():
             raise FileNotFoundError(
-                f"Data not found at location {self._base_dir.resolve()}. " "Have you downloaded it?"
+                f"Data not found at location {self._base_dir.resolve()}. Have you downloaded it?"
             )
         if not self._metadata_path.exists():
             self._extract_metadata()
@@ -102,7 +106,7 @@ class NICO(CdtVisionDataset):
         filepaths = pd.Series(image_paths_str)
         metadata = cast(
             pd.DataFrame,
-            filepaths.str.split("/", expand=True).rename(  # type: ignore[attr-defined]
+            filepaths.str.split("/", expand=True).rename(
                 columns={0: "superclass", 1: "concept", 2: "context", 3: "filename"}
             ),
         )

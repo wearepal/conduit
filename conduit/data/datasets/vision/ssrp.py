@@ -4,21 +4,29 @@ from pathlib import Path
 from typing import ClassVar, List, Optional, Union, cast
 
 import pandas as pd
-from ranzen import parsable, str_to_enum
+from ranzen import parsable
 import torch
+from torch import Tensor
+from typing_extensions import TypeAlias
 
-from conduit.data.datasets.utils import GdriveFileInfo, ImageTform, download_from_gdrive
-from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.datasets.utils import GdriveFileInfo, download_from_gdrive
+from conduit.data.structures import TernarySample
+
+from .base import CdtVisionDataset
+from .utils import ImageTform
 
 __all__ = ["SSRP", "SSRPSplit"]
 
 
 class SSRPSplit(Enum):
-    task = "Task"
-    pretrain = "Pre_Train"
+    TASK = "Task"
+    PRETRAIN = "Pre_Train"
 
 
-class SSRP(CdtVisionDataset):
+class SSRP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
+    SampleType: TypeAlias = TernarySample
+    Split: TypeAlias = SSRPSplit
+
     _FILE_INFO: ClassVar[GdriveFileInfo] = GdriveFileInfo(
         name="ghaziabad.zip", id="1RE4srtC63VnyU0e1qx16QNdjyyQXg2hj"
     )
@@ -28,7 +36,7 @@ class SSRP(CdtVisionDataset):
         self,
         root: Union[str, Path],
         *,
-        split: Union[SSRPSplit, str] = SSRPSplit.pretrain,
+        split: Union[SSRPSplit, str] = SSRPSplit.PRETRAIN,
         download: bool = True,
         transform: Optional[ImageTform] = None,
     ) -> None:
@@ -36,7 +44,7 @@ class SSRP(CdtVisionDataset):
         self._base_dir = self.root / self.__class__.__name__
         self._metadata_path = self._base_dir / "metadata.csv"
         self.download = download
-        self.split = str_to_enum(str_=split, enum=SSRPSplit)
+        self.split = SSRPSplit(split)
 
         if self.download:
             download_from_gdrive(file_info=self._FILE_INFO, root=self._base_dir, logger=self.logger)
@@ -48,9 +56,7 @@ class SSRP(CdtVisionDataset):
             self._extract_metadata()
 
         self.metadata = pd.read_csv(self._base_dir / "metadata.csv")
-        self.metadata = cast(
-            pd.DataFrame, self.metadata[self.metadata.split.values == self.split.value]
-        )
+        self.metadata = self.metadata.loc[self.metadata["split"].to_numpy() == self.split.value]
 
         x = self.metadata["filepath"].to_numpy()
         y = torch.as_tensor(self.metadata["class_le"].to_numpy(), dtype=torch.long)
@@ -72,12 +78,12 @@ class SSRP(CdtVisionDataset):
         filepaths = pd.Series(image_paths_str)
         metadata = cast(
             pd.DataFrame,
-            filepaths.str.split("/", expand=True)  # type: ignore[attr-defined]
+            filepaths.str.split("/", expand=True)
             .dropna(axis=1)
             .rename(columns={0: "region", 1: "split", 2: "class", 3: "filename"}),
         )
         # Extract the seasonal metadata from the filenames
-        metadata["season"] = metadata["filename"].str.split(r"\((.*?)\s.*", expand=True)[1]  # type: ignore[attr-defined]
+        metadata["season"] = metadata["filename"].str.split(r"\((.*?)\s.*", expand=True)[1]
         metadata["filepath"] = filepaths
         metadata.sort_index(axis=1, inplace=True)
         metadata.sort_values(by=["filepath"], axis=0, inplace=True)

@@ -1,26 +1,24 @@
 """ColoredMNIST Dataset."""
-from enum import Enum
+from enum import auto
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Tuple, Union, cast
 
 from PIL import Image
 import numpy as np
 import numpy.typing as npt
-from ranzen.decorators import implements, parsable
-from ranzen.misc import str_to_enum
+from ranzen import StrEnum, parsable
 import torch
-from torch.functional import Tensor
-from torchvision.datasets import MNIST
+from torch import Tensor
+from torchvision.datasets import MNIST  # type: ignore
+from typing_extensions import TypeAlias, override
 
-from conduit.data.datasets.utils import ImageTform, RawImage
-from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.structures import TernarySample
 from conduit.types import NDArrayR
 
-__all__ = [
-    "ColoredMNIST",
-    "ColoredMNISTSplit",
-    "MNISTColorizer",
-]
+from .base import CdtVisionDataset
+from .utils import ImageTform, RawImage
+
+__all__ = ["ColoredMNIST", "ColoredMNISTSplit", "MNISTColorizer"]
 
 
 class MNISTColorizer:
@@ -69,7 +67,7 @@ class MNISTColorizer:
         :param background: Whether to color the background instead of the foreground.
         :param black: Whether not to invert the black. Defaults to True.
         :param greyscale: Whether to greyscale the colorised images. Defaults to False.
-        :param color_indices: Choose specific colors if you don't need all 10
+        :param color_indices: Choose specific colors if you don't need all 10.
         :param seed: Random seed used for sampling colors.
         """
         super().__init__()
@@ -102,8 +100,10 @@ class MNISTColorizer:
     ) -> Tensor:
         """Apply the transformation.
 
-        :param images:  Greyscale images to be colorized. Expected to be unnormalized (in the range [0, 255]).
-        :param labels: Indexes (0-9) indicating the gaussian distribution from which to sample each image's color.
+        :param images:  Greyscale images to be colorized. Expected to be unnormalized (in the range
+            [0, 255]).
+        :param labels: Indexes (0-9) indicating the gaussian distribution from which to sample each
+            image's color.
         :returns: Images converted to RGB.
         """
         if isinstance(images, np.ndarray):
@@ -155,12 +155,15 @@ def _filter_data_by_labels(
     return data[final_mask], targets[final_mask]
 
 
-class ColoredMNISTSplit(Enum):
-    train = 1
-    test = 0
+class ColoredMNISTSplit(StrEnum):
+    TRAIN = auto()
+    TEST = auto()
 
 
-class ColoredMNIST(CdtVisionDataset):
+SampleType: TypeAlias = TernarySample
+
+
+class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
     x: npt.NDArray[np.floating]
 
     @parsable
@@ -182,9 +185,7 @@ class ColoredMNIST(CdtVisionDataset):
         split: Optional[Union[ColoredMNISTSplit, str, List[int]]] = None,
         seed: Optional[int] = 42,
     ) -> None:
-        self.split = (
-            str_to_enum(str_=split, enum=ColoredMNISTSplit) if isinstance(split, str) else split
-        )
+        self.split = ColoredMNISTSplit(split) if isinstance(split, str) else split
         self.label_map = label_map
         self.scale = scale
         self.num_colors = num_colors
@@ -194,14 +195,11 @@ class ColoredMNIST(CdtVisionDataset):
         self.black = black
         self.greyscale = greyscale
         self.seed = seed
-        self.generator = (
-            torch.default_generator
-            if self.seed is None
-            else torch.Generator().manual_seed(self.seed)
-        )
-
+        # Note: a correlation coefficient of '1' corresponds to perfect correlation between
+        # digit and class while a correlation coefficient of '-1' corresponds to perfect
+        # anti-correlation.
         if correlation is None:
-            correlation = 1.0 if split is ColoredMNISTSplit.train else 0.0
+            correlation = 1.0 if split is ColoredMNISTSplit.TRAIN else 0.5
         if not 0 <= correlation <= 1:
             raise ValueError(
                 "Strength of correlation between colour and targets must be between 0 and 1."
@@ -218,7 +216,7 @@ class ColoredMNIST(CdtVisionDataset):
             x_ls, y_ls = [], []
             for _split in ColoredMNISTSplit:
                 base_dataset = MNIST(
-                    root=str(root), download=download, train=_split is ColoredMNISTSplit.train
+                    root=str(root), download=download, train=_split is ColoredMNISTSplit.TRAIN
                 )
                 x_ls.append(base_dataset.data)
                 y_ls.append(base_dataset.targets)
@@ -229,26 +227,29 @@ class ColoredMNIST(CdtVisionDataset):
                 x = x[self.split]
                 y = y[self.split]
 
-        # Convert the greyscale iamges of shape ( H, W ) into 'colour' images of shape ( C, H, W )
+        # Convert the greyscale images of shape ( H, W ) into 'colour' images of shape ( C, H, W )
         if self.label_map is not None:
             x, y = _filter_data_by_labels(data=x, targets=y, label_map=self.label_map)
         s = y % self.num_colors
+        s_unique, s_unique_inv = s.unique(return_inverse=True)
 
-        # Special-case where every s-label needs to be randomly reassigned to a new value.
-        if self.correlation == 0:
-            torch.randint(
-                low=0, high=self.num_colors, size=s.size(), dtype=s.dtype, generator=self.generator
-            )
-        elif self.correlation < 1:
+        generator = (
+            torch.default_generator
+            if self.seed is None
+            else torch.Generator().manual_seed(self.seed)
+        )
+        inv_card_s = 1 / len(s_unique)
+        if self.correlation < 1:
+            flip_prop = self.correlation * (1.0 - inv_card_s) + inv_card_s
             # Change the values of randomly-selected labels to values other than their original ones
-            to_flip = torch.rand(s.size(0), generator=self.generator) > self.correlation
-            s[to_flip] += torch.randint(
-                low=1, high=self.num_colors, size=(int(to_flip.count_nonzero()),)
-            )  # type: ignore
+            num_to_flip = round((1 - flip_prop) * len(s))
+            to_flip = torch.randperm(len(s), generator=generator)[:num_to_flip]
+            s_unique_inv[to_flip] += torch.randint(low=1, high=len(s_unique), size=(num_to_flip,))
             # s labels live inside the Z/(num_colors * Z) ring
-            s[to_flip] %= self.num_colors
+            s_unique_inv[to_flip] %= len(s_unique)
+            s = s_unique[s_unique_inv]
 
-        # Colorize the greyscale images
+        # Convert the greyscale iamges of shape ( H, W ) into 'colour' images of shape ( C, H, W )
         colorizer = MNISTColorizer(
             scale=self.scale,
             background=self.background,
@@ -264,7 +265,7 @@ class ColoredMNIST(CdtVisionDataset):
 
         super().__init__(x=x_colorized, y=y, s=s, transform=transform, image_dir=root)
 
-    @implements(CdtVisionDataset)
+    @override
     def _load_image(self, index: int) -> RawImage:
         image = self.x[index]
         if self._il_backend == "pillow":

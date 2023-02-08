@@ -1,12 +1,11 @@
 """Test DataModules."""
 from __future__ import annotations
 from pathlib import Path
-from typing import Any
+from typing import Any, Final, Type
 
 import ethicml as em
 import pytest
 import torch
-from typing_extensions import Final, Type
 
 from conduit.data.datamodules.vision.celeba import CelebADataModule
 from conduit.fair.data import CrimeDataModule, HealthDataModule
@@ -28,7 +27,7 @@ def _create_dm(
 ) -> EthicMlDataModule:
     extra_args = {} if extra_args is None else extra_args
     dm_kwargs = dict(train_batch_size=BATCHSIZE, stratified_sampling=stratified, **extra_args)
-    dm = dm_cls(**dm_kwargs)  # type: ignore[arg-type]
+    dm = dm_cls(**dm_kwargs)
     dm.prepare_data()
     dm.setup()
     return dm
@@ -51,7 +50,7 @@ def test_data_modules(dm_cls: Type[EthicMlDataModule], stratified: bool) -> None
     dm = _create_dm(dm_cls, stratified)
     loader = dm.train_dataloader()
     batch = next(iter(loader))
-    assert batch.x.size() == torch.Size([BATCHSIZE, *dm.size()])  # type: ignore
+    assert batch.x.size() == torch.Size([BATCHSIZE, *dm.size()])
     assert batch.s.size() == torch.Size([BATCHSIZE])
     assert batch.y.size() == torch.Size([BATCHSIZE])
 
@@ -59,8 +58,8 @@ def test_data_modules(dm_cls: Type[EthicMlDataModule], stratified: bool) -> None
     loader = dm_2.train_dataloader()
     batch_2 = next(iter(loader))
 
-    torch.testing.assert_allclose(batch.x, batch_2.x)
-    torch.testing.assert_allclose(batch.y, batch_2.y)
+    torch.testing.assert_close(batch.x, batch_2.x)  # type: ignore
+    torch.testing.assert_close(batch.y, batch_2.y)  # type: ignore
     with pytest.raises(AssertionError):
         torch.testing.assert_allclose(batch.s, batch_2.s)
 
@@ -107,6 +106,6 @@ def test_persist_param(root: Path) -> None:
     dm.setup()
     loader = dm.train_dataloader()
     batch = next(iter(loader))
-    assert batch.x.size() == torch.Size([32, *dm.size()])  # type: ignore
+    assert batch.x.size() == torch.Size([32, *dm.size()])
     assert batch.s.size() == torch.Size([32])
     assert batch.y.size() == torch.Size([32])

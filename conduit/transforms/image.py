@@ -4,8 +4,8 @@ from typing import Sequence, Tuple, Union
 from PIL import Image, ImageFilter, ImageOps
 import torch
 from torch import Tensor
-import torchvision.transforms as T
-import torchvision.transforms.functional as TF
+import torchvision.transforms as T  # type: ignore
+import torchvision.transforms.functional as TF  # type: ignore
 
 from conduit.types import NDArrayR
 
@@ -101,6 +101,4 @@ class RandomSolarize:
         self.p = p
 
     def __call__(self, img: Image.Image) -> Image.Image:
-        if random.random() < self.p:
-            return ImageOps.solarize(img)
-        return img
+        return ImageOps.solarize(img) if random.random() < self.p else img

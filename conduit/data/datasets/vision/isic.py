@@ -1,6 +1,6 @@
 """ISIC Dataset."""
 from __future__ import annotations
-from enum import Enum, auto
+from enum import auto
 from itertools import islice
 import os
 from pathlib import Path
@@ -9,34 +9,40 @@ from typing import ClassVar, Iterable, Iterator, List, Optional, TypeVar, Union
 import zipfile
 
 from PIL import Image
-import numpy as np
 import pandas as pd
-from ranzen import flatten_dict
-from ranzen.decorators import enum_name_str, parsable
+from ranzen import StrEnum, flatten_dict
+from ranzen.decorators import parsable
 import requests
 import torch
+from torch import Tensor
 from tqdm import tqdm
+from typing_extensions import TypeAlias
 
-from conduit.data.datasets.utils import ImageTform
-from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.structures import TernarySample
+
+from .base import CdtVisionDataset
+from .utils import ImageTform
 
 __all__ = ["IsicAttr", "ISIC"]
 
 
-@enum_name_str
-class IsicAttr(Enum):
-    histo = auto()
-    malignant = auto()
-    patch = auto()
+class IsicAttr(StrEnum):
+    HISTO = auto()
+    MALIGNANT = auto()
+    PATCH = auto()
 
 
 T = TypeVar("T")
+SampleType: TypeAlias = TernarySample
 
 
-class ISIC(CdtVisionDataset):
+class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
     """PyTorch Dataset for the ISIC 2018 dataset from
     'Skin Lesion Analysis Toward Melanoma Detection 2018: A Challenge Hosted by the International
     Skin Imaging Collaboration (ISIC)',"""
+
+    SampleType: TypeAlias = TernarySample
+    Attr: TypeAlias = IsicAttr
 
     LABELS_FILENAME: ClassVar[str] = "labels.csv"
     METADATA_FILENAME: ClassVar[str] = "metadata.csv"
@@ -50,10 +56,14 @@ class ISIC(CdtVisionDataset):
         *,
         download: bool = True,
         max_samples: int = 25_000,  # default is the number of samples used for the NSLB paper
-        context_attr: IsicAttr = IsicAttr.histo,
-        target_attr: IsicAttr = IsicAttr.malignant,
+        target_attr: IsicAttr = IsicAttr.MALIGNANT,
+        context_attr: IsicAttr = IsicAttr.HISTO,
         transform: Optional[ImageTform] = None,
     ) -> None:
+        self.target_attr = IsicAttr(target_attr) if isinstance(target_attr, str) else target_attr
+        self.context_attr = (
+            IsicAttr(context_attr) if isinstance(context_attr, str) else context_attr
+        )
 
         self.root = Path(root)
         self.download = download
@@ -77,8 +87,8 @@ class ISIC(CdtVisionDataset):
         # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # considerably slower than indexing with numpy/torch
         x = self.metadata["path"].to_numpy()
-        s = torch.as_tensor(self.metadata[str(context_attr)], dtype=torch.int32)
-        y = torch.as_tensor(self.metadata[str(target_attr)], dtype=torch.int32)
+        s = torch.as_tensor(self.metadata[str(self.context_attr)], dtype=torch.int32)
+        y = torch.as_tensor(self.metadata[str(self.target_attr)], dtype=torch.int32)
 
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._processed_dir)
 
@@ -102,8 +112,7 @@ class ISIC(CdtVisionDataset):
         """Downloads the metadata CSV from the ISIC website."""
         self._raw_dir.mkdir(parents=True, exist_ok=True)
         req = requests.get(
-            f"{self._REST_API_URL}/image?limit={self.max_samples}"
-            f"&sort=name&sortdir=1&detail=false"
+            f"{self._REST_API_URL}/image?limit={self.max_samples}&sort=name&sortdir=1&detail=false"
         )
         image_ids = req.json()
         image_ids = [image_id["_id"] for image_id in image_ids]
@@ -141,7 +150,7 @@ class ISIC(CdtVisionDataset):
         if not metadata_path.is_file():
             raise FileNotFoundError(
                 f"{self.METADATA_FILENAME} not downloaded. "
-                f"Run 'download_isic_data` before this function."
+                "Run 'download_isic_data` before this function."
             )
         metadata_df = pd.read_csv(metadata_path)
         metadata_df = metadata_df.set_index("_id")
@@ -186,7 +195,7 @@ class ISIC(CdtVisionDataset):
         labels_df = self._add_patch_column(labels_df)
 
         labels_df["path"] = (
-            str(self._processed_dir)  # type: ignore
+            str(self._processed_dir)
             + os.sep
             + "ISIC-images"
             + os.sep
@@ -227,7 +236,7 @@ class ISIC(CdtVisionDataset):
                 image = image.resize((224, 224))  # Resize the images to be of size 224 x 224
                 if image.mode in ("RGBA", "P"):
                     image = image.convert("RGB")
-                image.save(image_path.rename(image_path.with_suffix(".jpg")))
+                image.save(str(image_path.rename(image_path.with_suffix(".jpg"))))
                 pbar.update()
 
     @staticmethod
@@ -236,13 +245,13 @@ class ISIC(CdtVisionDataset):
             metadata_df["meta.clinical.benign_malignant"].isin({"benign", "malignant"})
         ]  # throw out unknowns
         malignant_mask = labels_df["meta.clinical.benign_malignant"] == "malignant"
-        labels_df["malignant"] = malignant_mask.astype(np.uint8)
+        labels_df["malignant"] = malignant_mask.astype("uint8")
 
         labels_df["meta.clinical.diagnosis_confirm_type"].fillna(
             value="non-histopathology", inplace=True
         )
         histopathology_mask = labels_df["meta.clinical.diagnosis_confirm_type"] == "histopathology"
-        labels_df["histo"] = histopathology_mask.astype(np.uint8)  # type: ignore[arg-type]
+        labels_df["histo"] = histopathology_mask.astype("uint8")
 
         return labels_df
 
@@ -252,8 +261,8 @@ class ISIC(CdtVisionDataset):
         patch_mask = labels_df["dataset.name"] == "SONIC"
         # add to labels_df
         labels_df["patch"] = None
-        labels_df.loc[patch_mask, "patch"] = 1  # type: ignore[index]
-        labels_df.loc[~patch_mask, "patch"] = 0  # type: ignore[index]
+        labels_df.loc[patch_mask, "patch"] = 1
+        labels_df.loc[~patch_mask, "patch"] = 0
         assert all(patch is not None for patch in labels_df["patch"])
         return labels_df
 
@@ -280,12 +289,12 @@ class ISIC(CdtVisionDataset):
             self.logger.info("Metadata and images already preprocessed.")
             return
         self.logger.info(
-            f"Preprocessing metadata (adding columns, removing uncertain diagnoses) and saving into "
-            f"{str(self._processed_dir / self.LABELS_FILENAME)}..."
+            "Preprocessing metadata (adding columns, removing uncertain diagnoses) and saving into"
+            f" {str(self._processed_dir / self.LABELS_FILENAME)}..."
         )
         self._preprocess_isic_metadata()
         self.logger.info(
-            f"Preprocessing images (transforming to 3-channel RGB, resizing to 224x224) and saving "
+            "Preprocessing images (transforming to 3-channel RGB, resizing to 224x224) and saving "
             f"into{str(self._processed_dir / 'ISIC-images')}..."
         )
         self._preprocess_isic_images()

@@ -1,28 +1,28 @@
 from enum import Enum, auto
 from pathlib import Path
-from typing import ClassVar, Optional, Union, cast
+from typing import ClassVar, Optional, Union
 
 import pandas as pd
-from ranzen.decorators import enum_name_str, parsable
-from ranzen.misc import str_to_enum
+from ranzen.decorators import parsable
+from ranzen.misc import StrEnum
 import torch
+from torch import Tensor
+from typing_extensions import TypeAlias
 
-from conduit.data.datasets.utils import ImageTform, UrlFileInfo, download_from_url
-from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.datasets import UrlFileInfo, download_from_url
+from conduit.data.structures import TernarySample
 
-__all__ = [
-    "Camelyon17",
-    "Camelyon17Split",
-    "Camelyon17SplitScheme",
-]
+from .base import CdtVisionDataset
+from .utils import ImageTform
+
+__all__ = ["Camelyon17", "Camelyon17Split", "Camelyon17SplitScheme"]
 
 
-@enum_name_str
-class Camelyon17SplitScheme(Enum):
-    official = auto()
+class Camelyon17SplitScheme(StrEnum):
+    OFFICIAL = auto()
     """Oficial split."""
 
-    mixed_to_test = auto()
+    MIXED_TO_TEST = auto()
     """ 
     For the mixed-to-test setting, slide 23 (corresponding to patient 042, node 3 in the
     original dataset) is moved from the test set to the training set
@@ -30,25 +30,27 @@ class Camelyon17SplitScheme(Enum):
 
 
 class Camelyon17Split(Enum):
-    train = 0
-    id_val = 1
-    test = 2
-    val = 3
+    TRAIN = 0
+    ID_VAL = 1
+    TEST = 2
+    VAL = 3
 
 
-@enum_name_str
-class Camelyon17Attr(Enum):
-    tumor = auto()
-    center = auto()
-    slide = auto()
+class Camelyon17Attr(StrEnum):
+    TUMOR = auto()
+    CENTER = auto()
+    SLIDE = auto()
 
 
-class Camelyon17(CdtVisionDataset):
-    """
-    The CAMELYON17-WILDS histopathology dataset.
+SampleType: TypeAlias = TernarySample
+
+
+class Camelyon17(CdtVisionDataset[SampleType, Tensor, Tensor]):
+    """The CAMELYON17-WILDS histopathology dataset.
+
     This is a modified version of the original CAMELYON17 dataset.
 
-    Supported `split_scheme`:
+    Supported ``split_scheme``:
         - 'official'
         - 'mixed-to-test'
 
@@ -66,9 +68,15 @@ class Camelyon17(CdtVisionDataset):
         https://camelyon17.grand-challenge.org/
 
     Original publication:
+
+    .. code-block:: bibtex
+
         @article{bandi2018detection,
-          title={From detection of individual metastases to classification of lymph node status at the patient level: the camelyon17 challenge},
-          author={Bandi, Peter and Geessink, Oscar and Manson, Quirine and Van Dijk, Marcory and Balkenhol, Maschenka and Hermsen, Meyke and Bejnordi, Babak Ehteshami and Lee, Byungjae and Paeng, Kyunghyun and Zhong, Aoxiao and others},
+          title={From detection of individual metastases to classification of lymph node status at
+                 the patient level: the camelyon17 challenge},
+          author={Bandi, Peter and Geessink, Oscar and Manson, Quirine and Van Dijk, Marcory
+                  and Balkenhol, Maschenka and Hermsen, Meyke and Bejnordi, Babak Ehteshami
+                  and Lee, Byungjae and Paeng, Kyunghyun and Zhong, Aoxiao and others},
           journal={IEEE transactions on medical imaging},
           volume={38},
           number={2},
@@ -81,6 +89,11 @@ class Camelyon17(CdtVisionDataset):
         This dataset is in the public domain and is distributed under CC0.
         https://creativecommons.org/publicdomain/zero/1.0/
     """
+
+    SampleType: TypeAlias = TernarySample
+    Attr: TypeAlias = Camelyon17Attr
+    Split: TypeAlias = Camelyon17Split
+    SplitScheme: TypeAlias = Camelyon17SplitScheme
 
     _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
         name="camelyon17_v1.0.tar.gz",
@@ -98,22 +111,17 @@ class Camelyon17(CdtVisionDataset):
         download: bool = True,
         transform: Optional[ImageTform] = None,
         split: Optional[Union[Camelyon17Split, str]] = None,
-        split_scheme: Union[Camelyon17SplitScheme, str] = Camelyon17SplitScheme.official,
-        superclass: Union[Camelyon17Attr, str] = Camelyon17Attr.tumor,
-        subclass: Union[Camelyon17Attr, str] = Camelyon17Attr.center,
+        split_scheme: Union[Camelyon17SplitScheme, str] = Camelyon17SplitScheme.OFFICIAL,
+        superclass: Union[Camelyon17Attr, str] = Camelyon17Attr.TUMOR,
+        subclass: Union[Camelyon17Attr, str] = Camelyon17Attr.CENTER,
     ) -> None:
-
-        self.superclass = str_to_enum(str_=superclass, enum=Camelyon17Attr)
-        self.subclass = str_to_enum(str_=subclass, enum=Camelyon17Attr)
-
-        self.split = (
-            str_to_enum(str_=split, enum=Camelyon17Split) if isinstance(split, str) else split
-        )
+        self.superclass = Camelyon17Attr(superclass) if isinstance(split, str) else split
+        self.subclass = Camelyon17Attr(subclass) if isinstance(split, str) else split
+        self.split = Camelyon17Split[split.upper()] if isinstance(split, str) else split
         self.split_scheme = (
-            str_to_enum(str_=split_scheme, enum=Camelyon17SplitScheme)
-            if isinstance(split_scheme, str)
-            else split_scheme
+            Camelyon17SplitScheme(split_scheme) if isinstance(split_scheme, str) else split_scheme
         )
+
         self.root = Path(root)
         self._base_dir = self.root / "camelyon17_v1.0"
         self.download = download
@@ -134,22 +142,22 @@ class Camelyon17(CdtVisionDataset):
         self.metadata = pd.read_csv(
             self._base_dir / 'metadata.csv', index_col=0, dtype={"patient": "str"}
         )
-        if self.split_scheme is Camelyon17SplitScheme.mixed_to_test:
+        if self.split_scheme is Camelyon17SplitScheme.MIXED_TO_TEST:
             # For the mixed-to-test setting,
             # we move slide 23 (corresponding to patient 042, node 3 in the original dataset)
             # from the test set to the training set
             slide_mask = self.metadata["slide"] == 23
-            self.metadata.loc[slide_mask, "split"] = Camelyon17Split.train.value
+            self.metadata.loc[slide_mask, "split"] = Camelyon17Split.TRAIN.value
         # Use an official split of the data, if 'split' is specified, else just use all
         # of the data
         val_center_mask = self.metadata["center"] == self._VAL_CENTER
         test_center_mask = self.metadata["center"] == self._TEST_CENTER
-        self.metadata.loc[val_center_mask, "split"] = Camelyon17Split.val.value
-        self.metadata.loc[test_center_mask, "split"] = Camelyon17Split.test.value
+        self.metadata.loc[val_center_mask, "split"] = Camelyon17Split.VAL.value
+        self.metadata.loc[test_center_mask, "split"] = Camelyon17Split.TEST.value
 
         if self.split is not None:
             split_indices = self.metadata["split"] == self.split.value
-            self.metadata = cast(pd.DataFrame, self.metadata[split_indices])
+            self.metadata = self.metadata.loc[split_indices]
 
         # Construct filepaths from metadata
         def build_fp(row: pd.DataFrame) -> str:

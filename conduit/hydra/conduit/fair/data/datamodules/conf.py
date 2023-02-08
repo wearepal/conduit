@@ -5,15 +5,15 @@
 # flake8: noqa
 
 from dataclasses import dataclass, field
-from conduit.fair.data.datamodules.tabular.admissions import AdmissionsSens
-from conduit.fair.data.datamodules.tabular.adult import AdultSens
-from conduit.fair.data.datamodules.tabular.compas import CompasSens
-from conduit.fair.data.datamodules.tabular.credit import CreditSens
-from conduit.fair.data.datamodules.tabular.crime import CrimeSens
-from conduit.fair.data.datamodules.tabular.german import GermanSens
-from conduit.fair.data.datamodules.tabular.health import HealthSens
-from conduit.fair.data.datamodules.tabular.law import LawSens
-from conduit.fair.data.datamodules.tabular.sqf import SqfSens
+from ethicml.data.tabular_data.admissions import AdmissionsSplits
+from ethicml.data.tabular_data.adult import AdultSplits
+from ethicml.data.tabular_data.compas import CompasSplits
+from ethicml.data.tabular_data.credit import CreditSplits
+from ethicml.data.tabular_data.crime import CrimeSplits
+from ethicml.data.tabular_data.german import GermanSplits
+from ethicml.data.tabular_data.health import HealthSplits
+from ethicml.data.tabular_data.law import LawSplits
+from ethicml.data.tabular_data.sqf import SqfSplits
 from omegaconf import MISSING
 from ranzen.torch.data import TrainingMode
 from typing import Any
@@ -36,7 +36,7 @@ class AdmissionsDataModuleConf:
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
     invert_s: bool = False
-    sens_feat: AdmissionsSens = AdmissionsSens.gender
+    sens_feat: AdmissionsSplits = AdmissionsSplits.GENDER
     disc_feats_only: bool = False
 
 
@@ -57,7 +57,7 @@ class AdultDataModuleConf:
     scaler: Any = MISSING  # ScalerType
     invert_s: bool = False
     bin_nationality: bool = False
-    sens_feat: AdultSens = AdultSens.sex
+    sens_feat: AdultSplits = AdultSplits.SEX
     bin_race: bool = False
     disc_feats_only: bool = False
 
@@ -78,7 +78,7 @@ class CompasDataModuleConf:
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
     invert_s: bool = False
-    sens_feat: CompasSens = CompasSens.sex
+    sens_feat: CompasSplits = CompasSplits.SEX
     disc_feats_only: bool = False
 
 
@@ -98,7 +98,7 @@ class CreditDataModuleConf:
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
     invert_s: bool = False
-    sens_feat: CreditSens = CreditSens.sex
+    sens_feat: CreditSplits = CreditSplits.SEX
     disc_feats_only: bool = False
 
 
@@ -118,7 +118,7 @@ class CrimeDataModuleConf:
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
     invert_s: bool = False
-    sens_feat: CrimeSens = CrimeSens.raceBinary
+    sens_feat: CrimeSplits = CrimeSplits.RACE_BINARY
     disc_feats_only: bool = False
 
 
@@ -138,7 +138,7 @@ class GermanDataModuleConf:
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
     invert_s: bool = False
-    sens_feat: GermanSens = GermanSens.sex
+    sens_feat: GermanSplits = GermanSplits.SEX
     disc_feats_only: bool = False
 
 
@@ -158,7 +158,7 @@ class HealthDataModuleConf:
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
     invert_s: bool = False
-    sens_feat: HealthSens = HealthSens.sex
+    sens_feat: HealthSplits = HealthSplits.SEX
     disc_feats_only: bool = False
 
 
@@ -178,7 +178,7 @@ class LawDataModuleConf:
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
     invert_s: bool = False
-    sens_feat: LawSens = LawSens.sex
+    sens_feat: LawSplits = LawSplits.SEX
     disc_feats_only: bool = False
 
 
@@ -198,5 +198,5 @@ class SqfDataModuleConf:
     training_mode: TrainingMode = TrainingMode.epoch
     scaler: Any = MISSING  # ScalerType
     invert_s: bool = False
-    sens_feat: SqfSens = SqfSens.sex
+    sens_feat: SqfSplits = SqfSplits.SEX
     disc_feats_only: bool = False

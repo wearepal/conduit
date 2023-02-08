@@ -10,11 +10,15 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Final,
+    Iterator,
     List,
+    Literal,
     NamedTuple,
     Optional,
     Sequence,
     Tuple,
+    Type,
     TypeVar,
     Union,
     cast,
@@ -22,48 +26,45 @@ from typing import (
 )
 from zipfile import BadZipFile
 
-from PIL import Image
-import albumentations as A
-import cv2
 import numpy as np
 import numpy.typing as npt
 from ranzen.misc import gcopy
-from ranzen.torch.data import prop_random_split
+from ranzen.torch.data import Subset, prop_random_split
 import torch
 from torch import Tensor
 from torch._six import string_classes
-from torch.utils.data import ConcatDataset, Dataset, Subset
+from torch.utils.data import ConcatDataset
 from torch.utils.data._utils.collate import (
     default_collate_err_msg_format,
     np_str_obj_array_pattern,
 )
 from torch.utils.data.dataloader import DataLoader, _worker_init_fn_t
 from torch.utils.data.sampler import Sampler
-from torchvision.datasets.utils import _detect_file_type, download_url, extract_archive
-from torchvision.transforms import functional as TF
-from typing_extensions import Final, Literal, TypeAlias, get_args
+from torchvision.datasets.utils import (  # type: ignore
+    _detect_file_type,
+    download_url,
+    extract_archive,
+)
+from typing_extensions import TypeAlias, TypeGuard
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import (
     BinarySample,
+    Dataset,
+    LoadedData,
     NamedSample,
     PseudoCdtDataset,
     SampleBase,
+    SizedDataset,
     TernarySample,
     TrainTestSplit,
 )
 
 __all__ = [
-    "AlbumentationsTform",
     "AudioTform",
     "CdtDataLoader",
     "GdriveFileInfo",
-    "ImageLoadingBackend",
-    "ImageTform",
-    "PillowTform",
-    "RawImage",
     "UrlFileInfo",
-    "apply_image_transform",
     "cdt_collate",
     "check_integrity",
     "download_from_gdrive",
@@ -71,95 +72,12 @@ __all__ = [
     "extract_base_dataset",
     "extract_labels_from_dataset",
     "get_group_ids",
-    "img_to_tensor",
     "infer_al_backend",
-    "infer_il_backend",
-    "load_image",
+    "infer_sample_cls",
+    "is_tensor_list",
     "make_subset",
     "stratified_split",
 ]
-
-
-ImageLoadingBackend: TypeAlias = Literal["opencv", "pillow"]
-RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
-D = TypeVar("D", bound=Dataset)
-DC = TypeVar("DC", bound=CdtDataset)
-
-
-@overload
-def load_image(filepath: Union[Path, str], *, backend: Literal["opencv"] = ...) -> np.ndarray:
-    ...
-
-
-@overload
-def load_image(filepath: Union[Path, str], *, backend: Literal["pillow"] = ...) -> Image.Image:
-    ...
-
-
-def load_image(filepath: Union[Path, str], *, backend: ImageLoadingBackend = "opencv") -> RawImage:
-    """Load an image from disk using the requested backend.
-
-    :param: The path of the image-file to be loaded.
-    :param backend: Backed to use for loading the image: either 'opencv' or 'pillow'.
-
-    :returns: The loaded image file as a numpy array if 'opencv' was the selected backend
-    and a PIL image otherwise.
-    """
-    if backend == "opencv":
-        if isinstance(filepath, Path):
-            # cv2 can only read string filepaths
-            filepath = str(filepath)
-        image = cv2.imread(filepath)  # type: ignore
-        if image is None:
-            raise OSError(f"Image-file could not be read from location '{filepath}'")
-        return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # type: ignore
-    return Image.open(filepath)
-
-
-AlbumentationsTform: TypeAlias = Union[A.Compose, A.BasicTransform]
-PillowTform: TypeAlias = Callable[[Image.Image], Any]
-ImageTform: TypeAlias = Union[AlbumentationsTform, PillowTform]
-
-
-def infer_il_backend(transform: Optional[ImageTform]) -> ImageLoadingBackend:
-    """Infer which image-loading backend to use based on the type of the image-transform.
-
-    :param transform: The image transform from which to infer the image-loading backend.
-    If the transform is derived from Albumentations, then 'opencv' will be selected as the
-    backend, else 'pillow' will be selected.
-
-    :returns: The backend to load images with based on the supplied image-transform: either
-    'opencv' or 'pillow'.
-    """
-    # Default to openccv is transform is None as numpy arrays are generally
-    # more tractable
-    if transform is None or isinstance(transform, get_args(AlbumentationsTform)):
-        return "opencv"
-    return "pillow"
-
-
-def apply_image_transform(
-    image: RawImage, *, transform: Optional[ImageTform]
-) -> Union[RawImage, Image.Image, Tensor]:
-    image_ = image
-    if transform is not None:
-        if isinstance(transform, (A.Compose, A.BasicTransform)):
-            if isinstance(image, Image.Image):
-                image = np.array(image)
-            image_ = transform(image=image)["image"]
-        else:
-            if isinstance(image, np.ndarray):
-                image = Image.fromarray(image)
-            image_ = transform(image)
-    return image_
-
-
-def img_to_tensor(img: Union[Image.Image, np.ndarray]) -> Tensor:
-    if isinstance(img, Image.Image):
-        return TF.pil_to_tensor(img)
-    return torch.from_numpy(
-        np.moveaxis(img / (255.0 if img.dtype == np.uint8 else 1), -1, 0).astype(np.float32)
-    )
 
 
 AudioLoadingBackend: TypeAlias = Literal["sox_io", "soundfile"]
@@ -204,12 +122,11 @@ def extract_base_dataset(
 
     :param dataset: The dataset from which to extract the base dataset.
 
-    :param return_subset_indices: Whether to return the indices from which
-    the overall subset of the dataset was created (works for multiple levels of
-    subsetting).
+    :param return_subset_indices: Whether to return the indices from which the overall subset of the
+        dataset was created (works for multiple levels of subsetting).
 
-    :returns: The base dataset, which may be the original dataset if one does not
-    exist or cannot be determined.
+    :returns: The base dataset, which may be the original dataset if one does not exist or cannot be
+        determined.
     """
 
     def _closure(
@@ -235,27 +152,30 @@ def extract_base_dataset(
 
 
 @lru_cache(typed=True)
-def extract_labels_from_dataset(dataset: Dataset) -> Tuple[Optional[Tensor], Optional[Tensor]]:
+def extract_labels_from_dataset(
+    dataset: PseudoCdtDataset,
+) -> Tuple[Optional[Tensor], Optional[Tensor]]:
     """Attempt to extract s/y labels from a dataset."""
+    base_dataset = dataset
 
     def _closure(dataset: Dataset) -> Tuple[Optional[Tensor], Optional[Tensor]]:
-        dataset, indices = extract_base_dataset(dataset=dataset, return_subset_indices=True)
+        base_dataset, indices = extract_base_dataset(dataset=dataset, return_subset_indices=True)
         _s = None
         _y = None
-        if getattr(dataset, "s", None) is not None:
-            _s = dataset.s[indices]  # type: ignore
-        if getattr(dataset, "y", None) is not None:
-            _y = dataset.y[indices]  # type: ignore
+        if (s := getattr(base_dataset, "s", None)) is not None:
+            _s = s[indices]
+        if (y := getattr(base_dataset, "y", None)) is not None:
+            _y = y[indices]
 
         _s = torch.from_numpy(_s) if isinstance(_s, np.ndarray) else _s
         _y = torch.from_numpy(_y) if isinstance(_y, np.ndarray) else _y
 
         return _s, _y
 
-    if isinstance(dataset, (ConcatDataset)):
+    if isinstance(base_dataset, (ConcatDataset)):
         s_all_ls: List[Tensor] = []
         y_all_ls: List[Tensor] = []
-        for _dataset in dataset.datasets:
+        for _dataset in base_dataset.datasets:
             s, y = _closure(_dataset)
             if s is not None:
                 s_all_ls.append(s)
@@ -264,11 +184,11 @@ def extract_labels_from_dataset(dataset: Dataset) -> Tuple[Optional[Tensor], Opt
         s_all = torch.cat(s_all_ls, dim=0) if s_all_ls else None
         y_all = torch.cat(y_all_ls, dim=0) if y_all_ls else None
     else:
-        s_all, y_all = _closure(dataset)
+        s_all, y_all = _closure(base_dataset)
     return s_all, y_all
 
 
-def get_group_ids(dataset: PseudoCdtDataset) -> Tensor:
+def get_group_ids(dataset: Dataset) -> Tensor:
     s_all, y_all = extract_labels_from_dataset(dataset)
     # group_ids: Optional[Tensor] = None
     if s_all is None:
@@ -284,7 +204,7 @@ def get_group_ids(dataset: PseudoCdtDataset) -> Tensor:
     return group_ids.long()
 
 
-def compute_instance_weights(dataset: PseudoCdtDataset, upweight: bool = False) -> Tensor:
+def compute_instance_weights(dataset: Dataset, *, upweight: bool = False) -> Tensor:
     group_ids = get_group_ids(dataset)
     _, inv_indexes, counts = group_ids.unique(return_inverse=True, return_counts=True)
     # Upweight samples according to the cardinality of their intersectional group
@@ -294,27 +214,33 @@ def compute_instance_weights(dataset: PseudoCdtDataset, upweight: bool = False) 
     # - this approach should be preferred due to being more numerically stable
     # (very small counts can lead to very large weighted loss values when upweighting)
     else:
-        group_weights = 1 - (counts / len(group_ids))
+        counts_r = counts.reciprocal()
+        group_weights = counts_r / counts_r.sum()
     return group_weights[inv_indexes]
 
 
+PCD = TypeVar("PCD", bound=PseudoCdtDataset)
+
+
 def make_subset(
-    dataset: Union[DC, Subset[DC]],
+    dataset: Union[PCD, Subset[PCD]],
     *,
     indices: Optional[Union[List[int], npt.NDArray[np.uint64], Tensor, slice]],
     deep: bool = False,
-) -> DC:
+) -> PCD:
     """Create a subset of the dataset from the given indices.
 
+    :param dataset: The dataset to split.
     :param indices: The sample-indices from which to create the subset.
-    In the case of being a numpy array or tensor, said array or tensor
-    must be 0- or 1-dimensional.
+        In the case of being a numpy array or tensor, said array or tensor
+        must be 0- or 1-dimensional.
 
-    :param deep: Whether to create a copy of the underlying dataset as
-    a basis for the subset. If False then the data of the subset will be
-    a view of original dataset's data.
+    :param deep: Whether to create a copy of the underlying dataset as a basis for the subset.
+        If False then the data of the subset will be a view of original dataset's data.
 
     :returns: A subset of the dataset from the given indices.
+    :raises ValueError: if the indices don't have the correct shape.
+    :raises TypeError: if the dataset is not an instance of ``CdtDataset``.
     """
     if isinstance(indices, (np.ndarray, Tensor)):
         if indices.ndim > 1:
@@ -329,7 +255,7 @@ def make_subset(
                 f"Subsets can only be created from {CdtDataset.__name__} instances or PyTorch "
                 "Subsets of them."
             )
-        base_dataset = cast(DC, base_dataset)
+        base_dataset = cast(PCD, base_dataset)
 
         if isinstance(current_indices, Tensor):
             current_indices = current_indices.tolist()
@@ -337,7 +263,7 @@ def make_subset(
         base_dataset = dataset
     subset = gcopy(base_dataset, deep=deep)
 
-    def _subset_from_indices(_dataset: DC, _indices: Union[List[int], slice]) -> DC:
+    def _subset_from_indices(_dataset: PCD, _indices: Union[List[int], slice]) -> PCD:
         _dataset.x = _dataset.x[_indices]
         if _dataset.y is not None:
             _dataset.y = _dataset.y[_indices]
@@ -353,25 +279,56 @@ def make_subset(
     return subset
 
 
-class cdt_collate:
-    def __init__(self, cast_to_sample: bool = True) -> None:
-        self.cast_to_sample = cast_to_sample
+def infer_sample_cls(
+    sample: Union[List[LoadedData], Tuple[LoadedData, ...], Dict[str, LoadedData], LoadedData]
+) -> Type[NamedSample]:
+    """ "Attempt to infer the appropriate sample class based on the length of the input."""
+    if not isinstance(sample, (list, tuple, dict)) or (len(sample) == 1):
+        return NamedSample
+    elif len(sample) == 2:
+        return BinarySample
+    elif len(sample) == 3:
+        return TernarySample
+    else:
+        raise ValueError("Only items with 3 or fewer elements can be cast to 'Sample' instances.")
 
-    def _collate(self, batch: Sequence[Any]) -> Any:
+
+class cdt_collate:
+    def __init__(
+        self, cast_to_sample: bool = True, *, converter: Optional[Union[Type[Any], Callable]] = None
+    ) -> None:
+        self.cast_to_sample = cast_to_sample
+        self.converter = converter
+
+    def _collate(self, batch: Any) -> Any:
         elem = batch[0]
         elem_type = type(elem)
-        if isinstance(elem, Tensor):
+        # dataclass
+        if is_dataclass(elem):
+            return elem_type(
+                **{
+                    field.name: self._collate([getattr(d, field.name) for d in batch])
+                    for field in fields(elem)
+                }
+            )
+        # Tensor
+        elif isinstance(elem, Tensor):
             out = None
             if torch.utils.data.get_worker_info() is not None:  # type: ignore
                 # If we're in a background process, concatenate directly into a
                 # shared memory tensor to avoid an extra copy
                 numel = sum(x.numel() for x in batch)
                 storage = elem.storage()._new_shared(numel)
-                out = elem.new(storage)
+                out = elem.new(storage).resize_(len(batch), *list(elem.size()))
             ndims = elem.dim()
+            # If 'batch' is a sequence of sub-batched tensors we concatenate the elements along the
+            # batch dimesion. Note, the problem of inferring whether the tensors are sub-batched or
+            # not is ill-posed given that the dimensionality of samples varies with modality; the
+            # current solution is tailored for tabular and image data.
             if (ndims > 0) and ((ndims % 2) == 0):
-                return torch.cat(batch, dim=0, out=out)  # type: ignore
-            return torch.stack(batch, dim=0, out=out)  # type: ignore
+                return torch.cat(batch, dim=0, out=out)
+            return torch.stack(batch, dim=0, out=out)
+        # NumPy array
         elif (
             elem_type.__module__ == "numpy"
             and elem_type.__name__ != "str_"
@@ -383,45 +340,37 @@ class cdt_collate:
                 if np_str_obj_array_pattern.search(elem.dtype.str) is not None:
                     raise TypeError(default_collate_err_msg_format.format(elem.dtype))
                 return self._collate([torch.as_tensor(b) for b in batch])
+        # Float
         elif isinstance(elem, float):
-            return torch.tensor(batch, dtype=torch.float64)
+            return torch.tensor(batch, dtype=torch.float32)
+        # Integer
         elif isinstance(elem, int):
             return torch.tensor(batch)
+        # String
         elif isinstance(elem, string_classes):
             return batch
+        # Mapping
         elif isinstance(elem, Mapping):
-            return {key: self._collate([d[key] for d in batch]) for key in elem}
+            return elem_type({key: self._collate([d[key] for d in batch]) for key in elem})
+        # NamedTuple
         elif isinstance(elem, tuple) and hasattr(elem, "_fields"):  # namedtuple
             return elem_type(**(self._collate(samples) for samples in zip(*batch)))
-        elif is_dataclass(elem):  # dataclass
-            return elem_type(
-                **{
-                    field.name: self._collate([getattr(d, field.name) for d in batch])
-                    for field in fields(elem)
-                }
-            )
+        # Tuple or List
         elif isinstance(elem, (tuple, list)):
             transposed = zip(*batch)
-            return [self._collate(samples) for samples in transposed]
+            return elem_type([self._collate(samples) for samples in transposed])
+        # Invalid (uncollatable) type
         raise TypeError(default_collate_err_msg_format.format(elem_type))
 
-    def __call__(self, batch: Sequence[Any]) -> Any:
+    def __call__(self, batch: Any) -> Any:
         collated_batch = self._collate(batch=batch)
+        if self.converter is not None:
+            collated_batch = self.converter(collated_batch)
         if self.cast_to_sample and (not isinstance(collated_batch, SampleBase)):
             if isinstance(collated_batch, Tensor):
                 collated_batch = NamedSample(x=collated_batch)
             elif isinstance(collated_batch, (tuple, list, dict)):
-                if len(collated_batch) == 1:
-                    sample_cls = NamedSample
-                elif len(collated_batch) == 2:
-                    sample_cls = BinarySample
-                elif len(collated_batch) == 3:
-                    sample_cls = TernarySample
-                else:
-                    raise ValueError(
-                        "Only items with 3 or fewer elements can be cast to 'Sample' instances."
-                    )
-
+                sample_cls = infer_sample_cls(collated_batch)
                 if not isinstance(collated_batch, dict):
                     collated_batch = dict(zip(["x", "y", "s"], collated_batch))
                 collated_batch = sample_cls(**collated_batch)
@@ -433,12 +382,15 @@ class cdt_collate:
         return collated_batch
 
 
-class CdtDataLoader(DataLoader):
+I = TypeVar("I", bound=NamedSample)
+
+
+class CdtDataLoader(DataLoader[I]):
     def __init__(
         self,
-        dataset: Dataset,
+        dataset: SizedDataset[I],
         *,
-        batch_size: Optional[int],
+        batch_size: Optional[int] = 1,
         shuffle: bool = False,
         sampler: Optional[Sampler[int]] = None,
         batch_sampler: Optional[Sampler[Sequence[int]]] = None,
@@ -452,15 +404,16 @@ class CdtDataLoader(DataLoader):
         prefetch_factor: int = 2,
         persistent_workers: bool = False,
         cast_to_sample: bool = True,
+        converter: Optional[Union[Type[Any], Callable]] = None,
     ) -> None:
         super().__init__(
-            dataset,
+            dataset,  # type: ignore
             batch_size=batch_size,
             shuffle=shuffle,
             sampler=sampler,
             batch_sampler=batch_sampler,
             num_workers=num_workers,
-            collate_fn=cdt_collate(cast_to_sample=cast_to_sample),
+            collate_fn=cdt_collate(cast_to_sample=cast_to_sample, converter=converter),
             pin_memory=pin_memory,
             drop_last=drop_last,
             timeout=timeout,
@@ -470,6 +423,9 @@ class CdtDataLoader(DataLoader):
             prefetch_factor=prefetch_factor,
             persistent_workers=persistent_workers,
         )
+
+    def __iter__(self) -> Iterator[I]:
+        return super().__iter__()
 
 
 def check_integrity(*, filepath: Path, md5: Optional[str]) -> None:
@@ -493,7 +449,6 @@ def download_from_url(
     logger: Optional[logging.Logger] = None,
     remove_finished: bool = True,
 ) -> None:
-
     logger = logging.getLogger(__name__) if logger is None else logger
     file_info_ls = file_info if isinstance(file_info, list) else [file_info]
     if not isinstance(root, Path):
@@ -563,7 +518,7 @@ def download_from_gdrive(
         if filepath.exists():
             logger.info(f"File '{info.name}' already downloaded.")
         else:
-            import gdown
+            import gdown  # type: ignore
 
             logger.info(f"Downloading file '{info.name}' from Google Drive.")
             gdown.cached_download(
@@ -585,50 +540,134 @@ def download_from_gdrive(
                     fhandle.extractall(str(root))
 
 
+@overload
 def random_split(
-    dataset: Union[DC, Subset[DC]],
+    dataset: PseudoCdtDataset,
+    *,
+    props: Union[Sequence[float], float],
+    deep: bool = ...,
+    as_indices: Literal[True],
+    seed: Optional[int] = ...,
+) -> List[List[int]]:
+    ...
+
+
+@overload
+def random_split(
+    dataset: PCD,
+    *,
+    props: Union[Sequence[float], float],
+    deep: bool = ...,
+    as_indices: Literal[False] = ...,
+    seed: Optional[int] = ...,
+) -> List[PCD]:
+    ...
+
+
+@overload
+def random_split(
+    dataset: PCD,
+    *,
+    props: Union[Sequence[float], float],
+    deep: bool = ...,
+    as_indices: bool,
+    seed: Optional[int] = ...,
+) -> Union[List[PCD], List[List[int]]]:
+    ...
+
+
+def random_split(
+    dataset: PCD,
+    *,
     props: Union[Sequence[float], float],
     deep: bool = False,
-) -> List[DC]:
+    as_indices: bool = False,
+    seed: Optional[int] = None,
+) -> Union[List[PCD], List[List[int]]]:
     """Randomly split the dataset into subsets according to the given proportions.
 
+    :param dataset: The dataset to split.
     :param props: The fractional size of each subset into which to randomly split the data.
-    Elements must be non-negative and sum to 1 or less; if less then the size of the final
-    split will be computed by complement.
+        Elements must be non-negative and sum to 1 or less; if less then the size of the final
+        split will be computed by complement.
 
-    :param deep: Whether to create a copy of the underlying dataset as
-    a basis for the random subsets. If False then the data of the subsets will be
-    views of original dataset's data.
+    :param deep: Whether to create a copy of the underlying dataset as a basis for the random
+        subsets. If False then the data of the subsets will be views of original dataset's data.
 
-    :returns: Random subsets of the data of the requested proportions.
+    :param as_indices: Whether to return the raw train/test indices instead of subsets of the
+        dataset constructed from them.
+
+    :param seed: PRNG seed to use for splitting the data.
+
+    :returns: Random subsets of the data (or their associated indices) of the requested proportions.
     """
-    assert isinstance(dataset, Dataset)
-    splits = prop_random_split(dataset=dataset, props=props)
-    splits = cast(List[DC], [make_subset(split, indices=None, deep=deep) for split in splits])
+    split_indices = prop_random_split(dataset=dataset, props=props, as_indices=True, seed=seed)
+    if as_indices:
+        return split_indices
+    splits = [make_subset(dataset, indices=indices, deep=deep) for indices in split_indices]
     return splits
 
 
+@overload
 def stratified_split(
-    dataset: DC,
+    dataset: PseudoCdtDataset,
+    *,
+    default_train_prop: float,
+    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = ...,
+    seed: Optional[int] = ...,
+    as_indices: Literal[True],
+) -> TrainTestSplit[List[int]]:
+    ...
+
+
+@overload
+def stratified_split(
+    dataset: PCD,
+    *,
+    default_train_prop: float,
+    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = ...,
+    seed: Optional[int] = ...,
+    as_indices: Literal[False] = ...,
+) -> TrainTestSplit[PCD]:
+    ...
+
+
+@overload
+def stratified_split(
+    dataset: PCD,
+    *,
+    default_train_prop: float,
+    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = ...,
+    seed: Optional[int] = ...,
+    as_indices: bool,
+) -> Union[TrainTestSplit[PCD], TrainTestSplit[List[int]]]:
+    ...
+
+
+def stratified_split(
+    dataset: PCD,
     *,
     default_train_prop: float,
     train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = None,
     seed: Optional[int] = None,
-) -> TrainTestSplit[DC]:
+    as_indices: bool = False,
+) -> Union[TrainTestSplit[PCD], TrainTestSplit[List[int]]]:
     """Splits the data into train/test sets conditional on super- and sub-class labels.
 
+    :param dataset: The dataset to split.
     :param default_train_prop: Proportion of samples for a given to sample for
-    the training set for those y-s combinations not specified in ``train_props``.
-
+        the training set for those y-s combinations not specified in ``train_props``.
     :param train_props: Proportion of each superclass-subclass combination to sample for
-    the training set. Keys correspond to the superclass while values can be either a float,
-    in which case the proportion is applied to the superclass as a whole, or a dict, in which
-    case the sampling is applied only to the subclasses of the superclass given by the keys.
-    If ``None`` then the function reduces to a simple random split of the data.
-
-    :param seed: PRNG seed to use for sampling.
-
-    :returns: Train-test split.
+        the training set. Keys correspond to the superclass while values can be either a float,
+        in which case the proportion is applied to the superclass as a whole, or a dict, in which
+        case the sampling is applied only to the subclasses of the superclass given by the keys.
+        If ``None`` then the function reduces to a simple random split of the data.
+    :param as_indices: Whether to return the raw train/test indices instead of subsets of the
+        dataset constructed from them.
+    :param seed: PRNG seed to use for determining the splits.
+    :returns: Train-test subsets (``as_indices=False``) or indices (``as_indices=True``).
+    :raises TypeError: if no superclass labels are available.
+    :raises ValueError: if the labels are not as expected.
     """
     if dataset.y is None:
         raise TypeError(
@@ -699,7 +738,14 @@ def stratified_split(
     train_inds = perm_inds[torch.cat(train_test_inds[0::2])]
     test_inds = perm_inds[torch.cat(train_test_inds[1::2])]
 
+    if as_indices:
+        return TrainTestSplit(train=train_inds.tolist(), test=test_inds.tolist())
+
     train_data = make_subset(dataset=dataset, indices=train_inds)
     test_data = make_subset(dataset=dataset, indices=test_inds)
 
     return TrainTestSplit(train=train_data, test=test_data)
+
+
+def is_tensor_list(ls: List[Any]) -> TypeGuard[List[Tensor]]:
+    return isinstance(ls[0], Tensor)

@@ -1,3 +1,4 @@
+---
 defaults:
   - configen_schema
 
@@ -16,10 +17,12 @@ configen:
 
   # list of modules to generate configs for
   modules:
-    - name: conduit.models.self_supervised
+    - name: conduit.models.self_supervised.loss
       classes:
-        - MoCoV2
-        - DINO
+        - DecoupledContrastiveLoss
+    - name: conduit.models.self_supervised.memory_bank
+      classes:
+        - MemoryBank
     - name: conduit.data.datasets
       classes:
         - CelebA
@@ -28,15 +31,17 @@ configen:
         - NICO
         - SSRP
         - Waterbirds
+        - Camelyon17
+        - Ecoacoustics
+
     - name: conduit.data.datamodules
       classes:
         - CelebADataModule
         - ColoredMNISTDataModule
         - NICODataModule
         - WaterbirdsDataModule
-    - name: conduit.models
-      classes:
-        - ERMClassifier
+        - Camelyon17DataModule
+        - EcoacousticsDataModule
 
     - name: conduit.fair.data.datamodules
       classes:
@@ -49,11 +54,3 @@ configen:
         - HealthDataModule
         - LawDataModule
         - SqfDataModule
-    - name: conduit.fair.models
-      classes:
-        - DANN
-        - ERMClassifierF
-        - FairMixup
-        - GPD
-        - KC
-        - LAFTR

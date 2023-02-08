@@ -8,15 +8,16 @@ __all__ = ["DummyDataset"]
 
 
 class DummyDataset(CdtDataset):
-    """Generate a dummy dataset."""
+    """Generate a dummy dataset.
+
+    :param shapes: list of shapes
+    :param num_samples: how many samples to use in this dataset
+    :param seed: random seed
+    """
 
     def __init__(
         self, *shapes: Tuple[int, ...], num_samples: int = 10000, seed: Optional[int] = None
     ) -> None:
-        """
-        :param *shapes: list of shapes
-        :param num_samples: how many samples to use in this dataset
-        """
         self.shapes = shapes
         self.num_samples = num_samples
 

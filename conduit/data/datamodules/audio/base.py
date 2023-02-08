@@ -1,30 +1,36 @@
 """Base class for audio datasets."""
-from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, TypeVar, final
 
 import attr
-from ranzen.decorators import implements
-from typing_extensions import final
+import torchaudio.transforms as T  # type: ignore
+from typing_extensions import override
 
 from conduit.data.datamodules.base import CdtDataModule
+from conduit.data.datasets.base import I
 from conduit.data.datasets.utils import AudioTform
 from conduit.data.datasets.wrappers import AudioTransformer, InstanceWeightedDataset
+from conduit.data.structures import SizedDataset
 from conduit.types import Stage
 
 __all__ = ["CdtAudioDataModule"]
 
+D = TypeVar("D", bound=SizedDataset)
+
 
 @attr.define(kw_only=True)
-class CdtAudioDataModule(CdtDataModule):
-
-    root: Union[str, Path] = attr.field(kw_only=False)
+class CdtAudioDataModule(CdtDataModule[D, I]):
+    root: str = attr.field(kw_only=False)
     _train_transforms: Optional[AudioTform] = None
     _test_transforms: Optional[AudioTform] = None
 
     @property
     @final
-    def train_transforms(self) -> Optional[AudioTform]:
-        return self._train_transforms
+    def train_transforms(self) -> AudioTform:
+        return (
+            self._default_train_transforms
+            if self._train_transforms is None
+            else self._train_transforms
+        )
 
     @train_transforms.setter
     def train_transforms(self, transform: Optional[AudioTform]) -> None:
@@ -34,8 +40,12 @@ class CdtAudioDataModule(CdtDataModule):
 
     @property
     @final
-    def test_transforms(self) -> Optional[AudioTform]:
-        return self._test_transforms
+    def test_transforms(self) -> AudioTform:
+        return (
+            self._default_test_transforms
+            if self._test_transforms is None
+            else self._test_transforms
+        )
 
     @test_transforms.setter
     @final
@@ -46,7 +56,15 @@ class CdtAudioDataModule(CdtDataModule):
         if isinstance(self._test_data, AudioTransformer):
             self._test_data.transform = transform
 
-    @implements(CdtDataModule)
+    @property
+    def _default_train_transforms(self) -> T.Spectrogram:
+        return T.Spectrogram()
+
+    @property
+    def _default_test_transforms(self) -> T.Spectrogram:
+        return T.Spectrogram()
+
+    @override
     @final
     def _setup(self, stage: Optional[Stage] = None) -> None:
         train, val, test = self._get_splits()

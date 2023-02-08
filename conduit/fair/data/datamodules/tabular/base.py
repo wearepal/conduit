@@ -4,12 +4,9 @@ from typing import Dict, List, Optional, Union, cast
 
 import attr
 import ethicml as em
-from ethicml import DataTuple
-from ethicml.preprocessing.scaling import ScalerType
-from pytorch_lightning import LightningDataModule
-from ranzen import implements
+from ethicml.data import Dataset, FeatureOrder
 from sklearn.preprocessing import StandardScaler
-from typing_extensions import final
+from typing_extensions import final, override
 
 from conduit.data.datamodules import CdtDataModule
 from conduit.data.structures import TrainValTestSplit
@@ -22,9 +19,9 @@ __all__ = ["EthicMlDataModule"]
 class EthicMlDataModule(CdtDataModule):
     """Base data-module for tabular datasets."""
 
-    scaler: ScalerType = attr.field(factory=StandardScaler)
+    scaler: em.ScalerType = attr.field(factory=StandardScaler)
     invert_s: bool = False
-    _datatuple: Optional[DataTuple] = attr.field(default=None, init=False)
+    _datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
     _train_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
     _val_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
     _test_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
@@ -36,13 +33,13 @@ class EthicMlDataModule(CdtDataModule):
 
     @property
     @final
-    def datatuple(self) -> DataTuple:
+    def datatuple(self) -> em.DataTuple:
         self._check_setup_called("datatuple")
-        return cast(DataTuple, self._datatuple)
+        return cast(em.DataTuple, self._datatuple)
 
     @property
     @abstractmethod
-    def em_dataset(self) -> em.Dataset:
+    def em_dataset(self) -> Dataset:
         ...
 
     @staticmethod
@@ -60,13 +57,13 @@ class EthicMlDataModule(CdtDataModule):
 
         return splits
 
-    @implements(LightningDataModule)
+    @override
     def prepare_data(self) -> None:
         self.make_feature_groups()
 
-    @implements(CdtDataModule)
+    @override
     def _get_splits(self) -> TrainValTestSplit[DataTupleDataset]:
-        self._datatuple = self.em_dataset.load(ordered=True)
+        self._datatuple = self.em_dataset.load(order=FeatureOrder.disc_first)
 
         data_len = int(self._datatuple.x.shape[0])
         num_train_val, num_test = self._get_split_sizes(data_len, test_prop=self.test_prop)
@@ -83,7 +80,7 @@ class EthicMlDataModule(CdtDataModule):
         )
 
         self._train_datatuple, self.scaler = em.scale_continuous(
-            self.em_dataset, datatuple=train_data, scaler=self.scaler  # type: ignore
+            self.em_dataset, datatuple=train_data, scaler=self.scaler
         )
         self._val_datatuple, _ = em.scale_continuous(
             self.em_dataset, datatuple=val_data, scaler=self.scaler, fit=False

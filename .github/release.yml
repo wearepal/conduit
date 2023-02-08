@@ -1,0 +1,21 @@
+# settings for auto-generated release notes
+
+changelog:
+  exclude:
+    labels:
+      - version-bump
+    authors:
+      - dependabot
+  categories:
+    - title: Breaking Changes 🛠
+      labels:
+        - breaking-change
+    - title: New Features 🎉
+      labels:
+        - enhancement
+    - title: Bug fixes 🐞
+      labels:
+        - bugfix
+    - title: Other Changes
+      labels:
+        - "*"

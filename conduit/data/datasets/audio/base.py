@@ -1,14 +1,14 @@
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union, overload
 
 import numpy as np
 import numpy.typing as npt
-from ranzen import implements
 import torch
 from torch import Tensor
-import torchaudio
+import torchaudio  # type: ignore
+from typing_extensions import override
 
-from conduit.data.datasets.base import CdtDataset
+from conduit.data.datasets.base import CdtDataset, I, S, Y
 from conduit.data.datasets.utils import (
     AudioLoadingBackend,
     AudioTform,
@@ -16,20 +16,21 @@ from conduit.data.datasets.utils import (
     infer_al_backend,
 )
 from conduit.data.structures import TargetData
+from conduit.types import IndexType
 
 __all__ = ["CdtAudioDataset"]
 
 
-class CdtAudioDataset(CdtDataset):
+class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
     """Base dataset for audio data."""
 
     x: npt.NDArray[np.string_]
 
     def __init__(
         self,
+        audio_dir: Union[Path, str],
         *,
         x: npt.NDArray[np.string_],
-        audio_dir: Union[Path, str],
         y: Optional[TargetData] = None,
         s: Optional[TargetData] = None,
         transform: Optional[AudioTform] = None,
@@ -49,7 +50,7 @@ class CdtAudioDataset(CdtDataset):
         torchaudio.set_audio_backend(self.al_backend)
 
     def __repr__(self) -> str:
-        head = "Dataset " + self.__class__.__name__
+        head = f"Dataset {self.__class__.__name__}"
         body = [
             f"Number of datapoints: {len(self)}",
             f"Base audio-directory location: {self.audio_dir.resolve()}",
@@ -60,11 +61,25 @@ class CdtAudioDataset(CdtDataset):
         lines = [head] + [" " * self._repr_indent + line for line in body]
         return '\n'.join(lines)
 
-    def load_sample(self, index: int) -> Tensor:
-        path = self.audio_dir / self.x[index]
-        return torchaudio.load(path)[0]  # type: ignore
+    def load_sample(self, index: IndexType) -> Tensor:
+        def _load(_filename: Path) -> Tensor:
+            return torchaudio.load(self.audio_dir / _filename)[0]  # type: ignore
 
-    @implements(CdtDataset)
-    def _sample_x(self, index: int, *, coerce_to_tensor: bool = False) -> Tensor:
+        if isinstance(index, int):
+            return _load(self.audio_dir / self.x[index])
+        return torch.cat([_load(filepath) for filepath in self.x[index]], dim=0)
+
+    @overload
+    def _sample_x(self, index: int, *, coerce_to_tensor: bool = ...) -> Tensor:
+        ...
+
+    @overload
+    def _sample_x(self, index: List[int], *, coerce_to_tensor: bool = ...) -> List[Tensor]:
+        ...
+
+    @override
+    def _sample_x(
+        self, index: IndexType, *, coerce_to_tensor: bool = False
+    ) -> Union[Tensor, List[Tensor]]:
         waveform = self.load_sample(index)
         return apply_audio_transform(waveform, transform=None)

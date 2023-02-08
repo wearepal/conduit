@@ -1,40 +1,47 @@
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
-from albumentations.pytorch import ToTensorV2
+from albumentations.pytorch import ToTensorV2  # type: ignore
 import numpy as np
 import pytest
 import torch
 from torch import Tensor
-import torchaudio.transforms as AT
-from torchvision import transforms as T
+from torchvision import transforms as T  # type: ignore
 from typing_extensions import Type
 
 from conduit.data import (
-    NICO,
-    SSRP,
     BinarySample,
     BinarySampleIW,
-    CdtVisionDataModule,
-    CelebA,
-    CelebADataModule,
-    ColoredMNISTDataModule,
-    ImageTform,
     NamedSample,
-    NICODataModule,
     SampleBase,
     TernarySample,
     TernarySampleIW,
-    Waterbirds,
+)
+from conduit.data.datamodules.audio import EcoacousticsDataModule
+from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
+from conduit.data.datamodules.vision import (
+    CdtVisionDataModule,
+    CelebADataModule,
+    ColoredMNISTDataModule,
+    NICODataModule,
     WaterbirdsDataModule,
 )
-from conduit.data.datamodules import EcoacousticsDataModule
-from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
 from conduit.data.datamodules.vision.dummy import DummyVisionDataModule
-from conduit.data.datasets import ISIC, ColoredMNIST, Ecoacoustics
-from conduit.data.datasets.utils import get_group_ids, stratified_split
-from conduit.data.datasets.vision.cmnist import MNISTColorizer
-from conduit.fair.data.datasets.dummy import DummyDataset
+from conduit.data.datasets import get_group_ids, stratified_split
+from conduit.data.datasets.audio import Ecoacoustics, SoundscapeAttr
+from conduit.data.datasets.vision import (
+    Camelyon17,
+    CelebA,
+    ColoredMNIST,
+    ImageTform,
+    ISIC,
+    MNISTColorizer,
+    NICO,
+    PACS,
+    SSRP,
+    Waterbirds,
+)
+from conduit.fair.data.datasets import DummyDataset
 
 
 @pytest.mark.parametrize("greyscale", [True, False])
@@ -70,10 +77,10 @@ def test_colorizer(
     "dm", [ColoredMNISTDataModule, CelebADataModule, NICODataModule, WaterbirdsDataModule]
 )
 def test_vision_datamodules(root, dm: Type[CdtVisionDataModule]):
-    dm = dm(root=root)
-    dm.prepare_data()
-    dm.setup()
-    _ = next(iter(dm.train_dataloader()))
+    dm_ = dm(root=root)
+    dm_.prepare_data()
+    dm_.setup()
+    _ = next(iter(dm_.train_dataloader()))
 
 
 @pytest.mark.slow
@@ -85,6 +92,7 @@ def test_vision_datasets(
     ],
 ) -> None:
     """Basic test for datasets.
+
     Confirms that the datasets can be instantiated and have a functional __getitem__ method.
     """
     transform = T.ToTensor()
@@ -95,63 +103,101 @@ def test_vision_datasets(
         break
 
 
-@pytest.mark.slow
-@pytest.mark.parametrize("preprocess", [False, True])
-@pytest.mark.parametrize("segment_len", [None, 15, 30])
-def test_audio_dataset(root: Path, preprocess: bool, segment_len: float) -> None:
+def test_str_for_enum(root: Path) -> None:
+    """Confirm that the conversion from ``str`` to ``Enum`` works."""
+    try:
+        Camelyon17(
+            root,
+            download=False,
+            superclass="tumor",
+            subclass="center",
+            split_scheme="official",
+            split="id_val",
+        )
+    except FileNotFoundError:
+        pass
 
+    try:
+        CelebA(root, download=False, superclass="Smiling", subclass="Male", split="val")
+    except FileNotFoundError:
+        pass
+
+    try:
+        NICO(root, download=False, superclass="animals")
+    except FileNotFoundError:
+        pass
+
+    try:
+        PACS(root, download=False, domains="photo")
+    except FileNotFoundError:
+        pass
+
+    try:
+        Ecoacoustics(str(root), download=False, target_attrs=[SoundscapeAttr.N0])
+    except FileNotFoundError:
+        pass
+
+    try:
+        SSRP(str(root), download=False, split="Pre_Train")
+    except FileNotFoundError:
+        pass
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("segment_len", [1, 15, 30])
+def test_audio_dataset(root: Path, segment_len: float) -> None:
     ds = Ecoacoustics(
-        root=root,
+        root=str(root),
         download=True,
-        target_attrs=["habitat", "site"],
+        target_attrs=[SoundscapeAttr.HABITAT, SoundscapeAttr.SITE],
         transform=None,
         segment_len=segment_len,
-        preprocess=preprocess,
     )
 
-    if preprocess:
-        assert (ds.base_dir / f"segment_len={segment_len}" / "filepaths.csv").exists()
     assert len(ds) == len(ds.x) == len(ds.metadata)
     assert ds.y is not None
     assert ds.y.shape == (len(ds), 2)
     assert ds.y.dtype == torch.long
+    num_frames = (
+        ds._MAX_AUDIO_LEN * ds.sample_rate if segment_len is None else segment_len * ds.sample_rate
+    )
     for idx in (0, -1):
         sample = ds[idx]
         assert isinstance(sample, BinarySample)
         assert isinstance(sample.x, Tensor)
-        num_frames = (
-            ds.AUDIO_LEN * ds.SAMPLE_RATE if segment_len is None else segment_len * ds.SAMPLE_RATE
-        )
         assert sample.x.shape == (1, num_frames)
 
 
 @pytest.mark.slow
-def test_ecouacoustics_labels(root: Path):
-    target_attr = "habitat"
+def test_ecoacoustics_metadata_labels(root: Path):
+    target_attr = [SoundscapeAttr.HABITAT]
     ds = Ecoacoustics(
-        root=root,
+        root=str(root),
         download=True,
         target_attrs=target_attr,
-        segment_len=None,
+        segment_len=1,
         transform=None,
     )
     # Test metadata aligns with labels file.
     audio_samples_to_check = [
-        "FS-08_0_20150802_0625=0.pt",
-        "PL-10_0_20150604_0445=0.pt",
-        "KNEPP-02_0_20150510_0730=0.pt",
+        "FS-08_0_20150802_0625.wav",
+        "PL-10_0_20150604_0445.wav",
+        "KNEPP-02_0_20150510_0730.wav",
     ]
     habitat_target_attributes = ["EC2", "UK1", np.nan]
     for sample, label in zip(audio_samples_to_check, habitat_target_attributes):
         matched_row = ds.metadata.loc[ds.metadata["fileName"] == sample]
-        if type(label) == str:
-            assert matched_row.iloc[0][target_attr] == label
+        if isinstance(label, str):
+            assert matched_row.iloc[0][str(target_attr[0])] == label
 
 
 @pytest.mark.slow
 def test_ecoacoustics_dm(root: Path):
     dm = EcoacousticsDataModule(
-        root=root, segment_len=30.0, target_attrs="habitat", train_transforms=AT.Spectrogram()
+        root=str(root),
+        segment_len=30.0,
+        target_attrs=[SoundscapeAttr.HABITAT],
+        # train_transforms=AT.Spectrogram(),
     )
     dm.prepare_data()
     dm.setup()
@@ -161,9 +207,30 @@ def test_ecoacoustics_dm(root: Path):
     test_sample = next(iter(train_dl))
 
     # Test size().
-    assert test_sample.x.size()[1] == dm.dims[0]
-    assert test_sample.x.size()[2] == dm.dims[1]
-    assert test_sample.x.size()[3] == dm.dims[2]
+    assert test_sample.x.size()[1] == dm.dim_x[0]
+    assert test_sample.x.size()[2] == dm.dim_x[1]
+    assert test_sample.x.size()[3] == dm.dim_x[2]
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("train_batch_size", [1, 2, 8])
+def test_ecoacoustics_dm_batch_multi_label(root: Path, train_batch_size: int) -> None:
+    target_attrs = [SoundscapeAttr.HABITAT, SoundscapeAttr.SITE]
+    data_module = EcoacousticsDataModule(
+        root=str(root),
+        segment_len=30.0,
+        train_batch_size=train_batch_size,
+        target_attrs=target_attrs,
+        # train_transforms=AT.Spectrogram(),
+    )
+    data_module.prepare_data()
+    data_module.setup()
+
+    train_dl = data_module.train_dataloader()
+    sample = next(iter(train_dl))
+
+    assert sample.y.size(1) == len(target_attrs)
+    assert sample.x.size(0) == sample.y.size(0) == train_batch_size
 
 
 def test_add_field() -> None:
@@ -220,6 +287,7 @@ def test_tabular_dummy_data(
         if y_card is None:
             assert isinstance(sample, (NamedSample))
         else:
+            assert isinstance(sample, BinarySample)
             assert sample.y.shape == (batch_size,)
         for group in dm.train_data.feature_groups:
             assert sample.x[:, group].sum() == batch_size
@@ -241,7 +309,7 @@ def test_vision_dummy_data(
     channels, transforms = channels_transforms
     dm = DummyVisionDataModule(
         train_batch_size=batch_size,
-        eval_batch_size=batch_size,  # type: ignore
+        eval_batch_size=batch_size,
         height=size,
         width=size,
         s_card=s_card,

@@ -1,28 +1,23 @@
 """Dataset wrappers."""
 from dataclasses import is_dataclass, replace
-from typing import Any, Optional, Union
+from typing import Any, Optional, Tuple, Union
 
-from PIL import Image
-import numpy as np
-from ranzen.decorators import implements
 from torch import Tensor
-from torch.utils.data import Dataset
+from typing_extensions import override
 
 from conduit.data.datasets.utils import (
     AudioTform,
-    ImageTform,
     apply_audio_transform,
-    apply_image_transform,
     compute_instance_weights,
-    extract_base_dataset,
 )
-from conduit.data.datasets.vision.base import CdtVisionDataset
 from conduit.data.structures import (
     BinarySample,
     BinarySampleIW,
+    Dataset,
+    DatasetWrapper,
+    NamedSample,
     SampleBase,
     SubgroupSample,
-    SubgroupSampleIW,
     TernarySample,
     TernarySampleIW,
     _BinarySampleMixin,
@@ -32,63 +27,12 @@ from conduit.transforms.tabular import TabularTransform
 
 __all__ = [
     "AudioTransformer",
-    "ImageTransformer",
     "InstanceWeightedDataset",
     "TabularTransformer",
 ]
 
 
-class ImageTransformer(Dataset):
-    """
-    Wrapper class for applying image transformations.
-
-    Useful when wanting to have different transformations for different subsets of the data
-    that share the same underlying dataset.
-    """
-
-    def __init__(self, dataset: Dataset, *, transform: Optional[ImageTform]) -> None:
-        self.dataset = dataset
-        self._transform: Optional[ImageTform] = None
-        self.transform = transform
-
-    def __len__(self) -> Optional[int]:
-        if hasattr(self.dataset, "__len__"):
-            return len(self.dataset)  # type: ignore
-        return None
-
-    @property
-    def transform(self) -> Optional[ImageTform]:
-        return self._transform
-
-    @transform.setter
-    def transform(self, transform: Optional[ImageTform]) -> None:
-        base_dataset = extract_base_dataset(self.dataset, return_subset_indices=False)
-        if isinstance(base_dataset, CdtVisionDataset):
-            base_dataset.update_il_backend(transform)
-        self._transform = transform
-
-    def __getitem__(self, index: int) -> Any:
-        sample = self.dataset[index]
-        if self.transform is not None:
-            if isinstance(sample, (Image.Image, np.ndarray)):
-                sample = apply_image_transform(image=sample, transform=self.transform)
-            elif isinstance(sample, SampleBase):
-                image = sample.x
-                if not isinstance(image, (Image.Image, np.ndarray)):
-                    raise TypeError(
-                        f"Image transform cannot be applied to input of type '{type(image)}'"
-                        "(must be a PIL Image or a numpy array)."
-                    )
-                image = apply_image_transform(image=image, transform=self.transform)
-                sample = replace(sample, x=image)
-            else:
-                image = apply_image_transform(image=sample[0], transform=self.transform)
-                data_type = type(sample)
-                sample = data_type(image, *sample[1:])
-        return sample
-
-
-class AudioTransformer(Dataset):
+class AudioTransformer(DatasetWrapper[Any]):
     """
     Wrapper class for applying image transformations.
 
@@ -98,15 +42,10 @@ class AudioTransformer(Dataset):
 
     def __init__(self, dataset: Dataset, *, transform: Optional[AudioTform]) -> None:
         self.dataset = dataset
-        self._transform: Optional[ImageTform] = None
+        self._transform: Optional[AudioTform] = None
         self.transform = transform
 
-    def __len__(self) -> Optional[int]:
-        if hasattr(self.dataset, "__len__"):
-            return len(self.dataset)  # type: ignore
-        return None
-
-    @implements(Dataset)
+    @override
     def __getitem__(self, index: int) -> Any:
         sample = self.dataset[index]
         if self.transform is not None:
@@ -127,7 +66,7 @@ class AudioTransformer(Dataset):
         return sample
 
 
-class TabularTransformer(Dataset):
+class TabularTransformer(DatasetWrapper[Any]):
     """
     Wrapper class for applying transformations to tabular data.
 
@@ -146,12 +85,7 @@ class TabularTransformer(Dataset):
         self.transform = transform
         self.target_transform = target_transform
 
-    def __len__(self) -> Optional[int]:
-        if hasattr(self.dataset, "__len__"):
-            return len(self.dataset)  # type: ignore
-        return None
-
-    @implements(Dataset)
+    @override
     def __getitem__(self, index: int) -> Any:
         sample = self.dataset[index]
         if self.transform is not None:
@@ -185,15 +119,15 @@ class TabularTransformer(Dataset):
         return sample
 
 
-class InstanceWeightedDataset(Dataset):
+class InstanceWeightedDataset(DatasetWrapper[Any]):
     """Wrapper endowing datasets with instance-weights."""
 
     def __init__(self, dataset: Dataset) -> None:
         self.dataset = dataset
         self.iw = compute_instance_weights(dataset)
 
-    @implements(Dataset)
-    def __getitem__(self, index: int) -> Union[BinarySampleIW, SubgroupSampleIW, TernarySampleIW]:
+    @override
+    def __getitem__(self, index: int) -> Union[NamedSample, Tuple[Any, ...]]:
         sample = self.dataset[index]
         iw = self.iw[index]
         if isinstance(sample, (BinarySample, SubgroupSample, TernarySample)):

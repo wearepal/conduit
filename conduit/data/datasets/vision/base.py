@@ -1,13 +1,17 @@
+from functools import reduce
+import operator
 from pathlib import Path
-from typing import Optional, Sequence, Union, cast
+from typing import List, Optional, Sequence, Union, cast, overload
 
 import numpy as np
 import numpy.typing as npt
-from ranzen import implements
+from ranzen.types import Addable
+import torch
 from torch import Tensor
+from typing_extensions import Self, TypeAlias, override
 
-from conduit.data.datasets.base import CdtDataset
-from conduit.data.datasets.utils import (
+from conduit.data.datasets.base import CdtDataset, I, S, Y
+from conduit.data.datasets.vision.utils import (
     ImageLoadingBackend,
     ImageTform,
     RawImage,
@@ -17,11 +21,14 @@ from conduit.data.datasets.utils import (
     load_image,
 )
 from conduit.data.structures import TargetData
+from conduit.types import IndexType
 
 __all__ = ["CdtVisionDataset"]
 
+ItemType: TypeAlias = Union[RawImage, Tensor, Sequence[RawImage], Sequence[Tensor]]
 
-class CdtVisionDataset(CdtDataset):
+
+class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
     def __init__(
         self,
         *,
@@ -57,14 +64,37 @@ class CdtVisionDataset(CdtDataset):
         lines = [head] + [" " * self._repr_indent + line for line in body]
         return '\n'.join(lines)
 
-    def _load_image(self, index: int) -> RawImage:
+    def _load_image(self, index: IndexType) -> RawImage:
         filepath = cast(str, self.x[index])
         return load_image(self.image_dir / filepath, backend=self._il_backend)
 
-    @implements(CdtDataset)
+    @overload
+    def _sample_x(self, index: int, *, coerce_to_tensor: bool = ...) -> ItemType:
+        ...
+
+    @overload
+    def _sample_x(self, index: List[int], *, coerce_to_tensor: bool = ...) -> List[ItemType]:
+        ...
+
+    @override
     def _sample_x(
-        self, index: int, *, coerce_to_tensor: bool = False
-    ) -> Union[RawImage, Tensor, Sequence[RawImage], Sequence[Tensor]]:
+        self, index: IndexType, *, coerce_to_tensor: bool = False
+    ) -> Union[ItemType, List[ItemType]]:
+        if isinstance(index, slice):
+            index = list(range(len(self)))[index]
+        if isinstance(index, list):
+            sample_ls = [self._sample_x(index=i, coerce_to_tensor=coerce_to_tensor) for i in index]
+            elem = sample_ls[0]
+            if isinstance(elem, Addable):
+                summed = reduce(operator.add, sample_ls)
+                return cast(ItemType, summed)
+            if isinstance(elem, Tensor):
+                sample_ls = cast(List[Tensor], sample_ls)
+                return torch.stack(sample_ls, dim=0)
+            elif isinstance(sample_ls[0], np.ndarray):
+                return np.stack(sample_ls, axis=0)
+            return sample_ls
+
         image = self._load_image(index)
         image = apply_image_transform(image=image, transform=self.transform)
         if coerce_to_tensor and (not isinstance(image, Tensor)):
@@ -73,3 +103,27 @@ class CdtVisionDataset(CdtDataset):
             else:
                 image = img_to_tensor(image)
         return image
+
+    @override
+    def subset(
+        self,
+        indices: Union[List[int], npt.NDArray[np.uint64], Tensor, slice],
+        deep: bool = False,
+        transform: Optional[ImageTform] = None,
+    ) -> Self:
+        """Create a subset of the dataset from the given indices.
+
+        :param indices: The sample-indices from which to create the subset. In the case of being a
+            numpy array or tensor, said array or tensor must be 0- or 1-dimensional.
+
+        :param deep: Whether to create a copy of the underlying dataset as a basis for the subset.
+            If False then the data of the subset will be a view of original dataset's data.
+
+        :param transform: Image transform to assign to the resulting subset.
+
+        :returns: A subset of the dataset from the given indices.
+        """
+        subset = super().subset(indices=indices, deep=deep)
+        if transform is not None:
+            subset.transform = transform
+        return subset
