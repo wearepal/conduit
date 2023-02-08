@@ -110,12 +110,12 @@ C_co = TypeVar("C_co", bound=Comparator, covariant=True)
 
 @torch.no_grad()
 def nanmax(x: Tensor) -> Tensor:
-    return torch.max(torch.nan_to_num(x, nan=float("-inf")))
+    return torch.max(torch.nan_to_num(x, nan=-torch.inf))
 
 
 @torch.no_grad()
 def nanmin(x: Tensor) -> Tensor:
-    return torch.min(torch.nan_to_num(x, nan=float("inf")))
+    return torch.min(torch.nan_to_num(x, nan=torch.inf))
 
 
 @torch.no_grad()
@@ -486,15 +486,31 @@ def fscore(
         ``y_pred``.
     """
     # map the predicted and ground-truth labels to a common basis
-    y_true, y_pred = torch.unique(torch.cat((y_true, y_pred)), return_inverse=True)[1].chunk(2)
-    card_y = len(y_true.unique())
+    y_unique, rel_indices = torch.unique(torch.cat((y_true, y_pred)), return_inverse=True)
+    y_true, y_pred = rel_indices.chunk(2)
+    card_y = len(y_unique)
 
     if s is None:
+        gather_inds, _ = y_true.unique(return_inverse=True)
         rec_ids = y_true
         card_s = None
+        prec_ids = y_pred
+        target_size = card_y
     else:
-        rec_ids, card_ls = merge_indices(s, y_true, return_cardinalities=True)
-        card_s = card_ls[1]
+        s_u, s_inv = s.unique(return_inverse=True)
+        card_s = len(s_u)
+        prec_ids = y_pred * card_s + s_inv
+        rec_ids = y_true * card_s + s_inv
+        gather_inds = rec_ids.unique()
+        target_size = card_y * card_s
+
+    precs = _apply_groupwise_metric(
+        prec_ids,
+        comparator=equal,
+        y_pred=y_pred,
+        y_true=y_true,
+        aggregator=None,
+    )
     recs = _apply_groupwise_metric(
         rec_ids,
         comparator=equal,
@@ -503,40 +519,17 @@ def fscore(
         aggregator=None,
     )
 
-    rec_ids_u = rec_ids.unique()
-    target_size = card_y if card_s is None else card_y * card_s
-    mask = y_pred < card_y
-    if mask.count_nonzero():
-        y_pred_m = y_pred[mask]
-        prec_ids = (y_pred_m,) if s is None else (s[mask], y_pred_m)
-        precs = _apply_groupwise_metric(
-            *prec_ids,
-            comparator=equal,
-            y_pred=y_pred_m,
-            y_true=y_true[mask],
-            aggregator=None,
-        )
-        recs = _apply_groupwise_metric(
-            rec_ids,
-            comparator=equal,
-            y_pred=y_pred,
-            y_true=y_true,
-            aggregator=None,
-        )
+    if len(precs) < target_size:
+        precs = pad_to_size(size=target_size, index=gather_inds, src=precs, value=torch.nan)
+    if len(recs) < target_size:
+        recs = pad_to_size(size=target_size, index=gather_inds, src=recs, value=torch.nan)
 
-        if len(precs) < target_size:
-            precs = pad_to_size(size=target_size, index=rec_ids_u, src=precs, value=torch.nan)
-        if len(recs) < target_size:
-            recs = pad_to_size(size=target_size, index=rec_ids_u, src=recs, value=torch.nan)
-
-        beta_sq = beta**2
-        f1s = (1 + beta_sq) * (precs * recs) / (beta_sq * precs + recs)
-    else:
-        f1s = nans(target_size)
-
+    beta_sq = beta**2
+    f1s = (1 + beta_sq) * (precs * recs) / (beta_sq * precs + recs)
+    f1s = f1s.gather(0, gather_inds)
     # only fill in nan values if they arise from mispredictions,
     # not if they arise from missing s-y combinations.
-    f1s[rec_ids_u] = torch.nan_to_num_(f1s[rec_ids_u], nan=0.0)
+    f1s = torch.nan_to_num_(f1s, nan=0.0)
 
     if (inner_summand is not None) and (s is not None):
         card_s = len(torch.unique(s))
