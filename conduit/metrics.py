@@ -25,7 +25,7 @@ __all__ = [
     "accuracy_per_subclass",
     "balanced_accuracy",
     "fscore",
-    "fscore",
+    "fscore_per_class",
     "fscore_per_group",
     "fscore_per_subclass",
     "groupwise_metric",
@@ -110,12 +110,12 @@ C_co = TypeVar("C_co", bound=Comparator, covariant=True)
 
 @torch.no_grad()
 def nanmax(x: Tensor) -> Tensor:
-    return torch.max(torch.nan_to_num(x, nan=float("-inf")))
+    return torch.max(torch.nan_to_num(x, nan=-torch.inf))
 
 
 @torch.no_grad()
 def nanmin(x: Tensor) -> Tensor:
-    return torch.min(torch.nan_to_num(x, nan=float("inf")))
+    return torch.min(torch.nan_to_num(x, nan=torch.inf))
 
 
 @torch.no_grad()
@@ -187,14 +187,18 @@ def merge_indices(
 
     :raises TypeError: If any elemnts of ``indices`` do not have dtype ``torch.long``.
     """
-    group_ids_ls = list(indices)
-    index_set = group_ids_ls.pop().clone().squeeze()
-    if index_set.dtype != torch.long:
-        raise TypeError("All index tensors must have dtype `torch.long'.")
-
     cards: Optional[List[int]] = None
     if return_cardinalities:
         cards = []
+    group_ids_ls = list(indices)
+    first_elem = group_ids_ls.pop().clone().squeeze()
+    if first_elem.dtype != torch.long:
+        raise TypeError("All index tensors must have dtype `torch.long'.")
+    unique_vals, unique_inv = first_elem.unique(return_inverse=True)
+    index_set = unique_inv
+    if cards is not None:
+        cards.append(len(unique_vals))
+
     for elem in group_ids_ls:
         elem = elem.squeeze()
         if elem.dtype != torch.long:
@@ -209,6 +213,14 @@ def merge_indices(
     if cards is None:
         return index_set
     return index_set, cards
+
+
+def nans(*sizes: int, device: Optional[torch.device] = None) -> Tensor:
+    return torch.full(tuple(sizes), fill_value=torch.nan, device=device)
+
+
+def nans_like(tensor: Tensor, *, device: Optional[torch.device] = None) -> Tensor:
+    return torch.full_like(tensor, fill_value=torch.nan, device=device)
 
 
 @torch.no_grad()
@@ -243,7 +255,8 @@ def _apply_groupwise_metric(
 
     if group_ids:
         group_ids_ls = list(group_ids)
-        index_set = group_ids_ls.pop().clone().squeeze()
+        first_elem = group_ids_ls.pop().clone().squeeze()
+        index_set = first_elem.unique(return_inverse=True)[1]
 
         for elem in group_ids_ls:
             if len(y_pred) != len(y_true) != len(elem):
@@ -253,7 +266,7 @@ def _apply_groupwise_metric(
                 )
             elem = elem.squeeze()
             unique_vals, inv_indices = elem.unique(return_inverse=True)
-            index_set *= int(len(unique_vals))
+            index_set *= len(unique_vals)
             index_set += cast(Tensor, inv_indices)
 
     res = comparator(y_pred=y_pred, y_true=y_true)
@@ -265,7 +278,7 @@ def _apply_groupwise_metric(
     if index_set is not None:
         res = index_set.max()
         scores = torch.scatter_reduce(
-            input=torch.zeros(int(index_set.max() + 1)),
+            input=nans(int(index_set.max() + 1)),
             src=comps,
             dim=0,
             index=index_set[comp_mask],
@@ -444,9 +457,9 @@ robust_tnr = subclasswise_metric(
 
 
 @torch.no_grad()
-def _pad_with_nans(n: int, *, src: Tensor, index: Tensor) -> Tensor:
-    nan_tensor = src.new_full((n,), fill_value=torch.nan)
-    return nan_tensor.scatter(0, src=src, index=index)
+def pad_to_size(size: int, *, src: Tensor, index: Tensor, value=0.0) -> Tensor:
+    padding = src.new_full((size,), fill_value=value)
+    return padding.scatter_(dim=0, src=src, index=index)
 
 
 def fscore(
@@ -472,7 +485,25 @@ def fscore(
     :returns: The (optionally aggregated) F-beta score given predictions ``y_pred`` and targets
         ``y_pred``.
     """
-    prec_ids = y_pred if s is None else merge_indices(s, y_pred)
+    # map the predicted and ground-truth labels to a common basis
+    y_unique, rel_indices = torch.unique(torch.cat((y_true, y_pred)), return_inverse=True)
+    y_true, y_pred = rel_indices.chunk(2)
+    card_y = len(y_unique)
+
+    if s is None:
+        gather_inds, _ = y_true.unique(return_inverse=True)
+        rec_ids = y_true
+        card_s = None
+        prec_ids = y_pred
+        target_size = card_y
+    else:
+        s_u, s_inv = s.unique(return_inverse=True)
+        card_s = len(s_u)
+        prec_ids = y_pred * card_s + s_inv
+        rec_ids = y_true * card_s + s_inv
+        gather_inds = rec_ids.unique()
+        target_size = card_y * card_s
+
     precs = _apply_groupwise_metric(
         prec_ids,
         comparator=equal,
@@ -480,12 +511,6 @@ def fscore(
         y_true=y_true,
         aggregator=None,
     )
-    if s is None:
-        rec_ids = y_true
-        card_s = None
-    else:
-        rec_ids, s_card_ls = merge_indices(s, y_true, return_cardinalities=True)
-        card_s = s_card_ls[0]
     recs = _apply_groupwise_metric(
         rec_ids,
         comparator=equal,
@@ -493,22 +518,24 @@ def fscore(
         y_true=y_true,
         aggregator=None,
     )
-    y_true_supp = y_true.unique()
-    y_pred_supp = y_pred.unique()
-    # Pad the missing group entries with nans.
-    torch.all
-    if not torch.equal(y_true_supp, y_pred_supp):
-        card_joint = len(torch.cat((y_true_supp, y_pred_supp)).unique())
-        if card_s is not None:
-            card_joint *= card_s
-        precs = _pad_with_nans(n=card_joint, src=precs, index=prec_ids.unique())
-        recs = _pad_with_nans(n=card_joint, src=recs, index=rec_ids.unique())
+
+    if len(precs) < target_size:
+        precs = pad_to_size(size=target_size, index=gather_inds, src=precs, value=torch.nan)
+    if len(recs) < target_size:
+        recs = pad_to_size(size=target_size, index=gather_inds, src=recs, value=torch.nan)
 
     beta_sq = beta**2
-    f1s = (1 + beta_sq) * precs * recs / (beta_sq * precs + recs)
-    if (inner_summand is not None) and (card_s is not None):
+    f1s = (1 + beta_sq) * (precs * recs) / (beta_sq * precs + recs)
+    f1s = f1s.gather(0, gather_inds)
+    # only fill in nan values if they arise from mispredictions,
+    # not if they arise from missing s-y combinations.
+    f1s = torch.nan_to_num_(f1s, nan=0.0)
+
+    if (inner_summand is not None) and (s is not None):
+        card_s = len(torch.unique(s))
         reduction_dim = int(inner_summand == "s")
         f1s = f1s.view(-1, card_s).nanmean(reduction_dim)
+
     if aggregator is None:
         return f1s
     return aggregator(f1s)
@@ -522,6 +549,16 @@ def robust_fscore(y_pred: Tensor, *, y_true: Tensor, s: Tensor, beta: float = 1.
         beta=beta,
         inner_summand="y_true",
         aggregator=Aggregator.MIN,
+    )
+
+
+def fscore_per_class(y_pred: Tensor, *, y_true: Tensor, beta: float = 1.0) -> Tensor:
+    return fscore(
+        y_pred=y_pred,
+        y_true=y_true,
+        beta=beta,
+        inner_summand=None,
+        aggregator=None,
     )
 
 
