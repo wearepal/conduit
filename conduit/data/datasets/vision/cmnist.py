@@ -67,7 +67,7 @@ class MNISTColorizer:
         :param background: Whether to color the background instead of the foreground.
         :param black: Whether not to invert the black. Defaults to True.
         :param greyscale: Whether to greyscale the colorised images. Defaults to False.
-        :param color_indices: Choose specific colors if you don't need all 10
+        :param color_indices: Choose specific colors if you don't need all 10.
         :param seed: Random seed used for sampling colors.
         """
         super().__init__()
@@ -182,7 +182,7 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
         greyscale: bool = False,
         background: bool = False,
         black: bool = True,
-        split: Optional[Union[ColoredMNISTSplit, str]] = None,
+        split: Optional[Union[ColoredMNISTSplit, str, List[int]]] = None,
         seed: Optional[int] = 42,
     ) -> None:
         self.split = ColoredMNISTSplit(split) if isinstance(split, str) else split
@@ -206,7 +206,13 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
             )
         self.correlation = correlation
 
-        if self.split is None:
+        if isinstance(self.split, ColoredMNISTSplit):
+            base_dataset = MNIST(
+                root=str(root), download=download, train=self.split is ColoredMNISTSplit.train
+            )
+            x = base_dataset.data
+            y = base_dataset.targets
+        else:
             x_ls, y_ls = [], []
             for _split in ColoredMNISTSplit:
                 base_dataset = MNIST(
@@ -216,12 +222,10 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
                 y_ls.append(base_dataset.targets)
             x = torch.cat(x_ls, dim=0)
             y = torch.cat(y_ls, dim=0)
-        else:
-            base_dataset = MNIST(
-                root=str(root), download=download, train=self.split is ColoredMNISTSplit.TRAIN
-            )
-            x = base_dataset.data
-            y = base_dataset.targets
+            # custom split
+            if self.split is not None:
+                x = x[self.split]
+                y = y[self.split]
 
         if self.label_map is not None:
             x, y = _filter_data_by_labels(data=x, targets=y, label_map=self.label_map)
@@ -244,7 +248,7 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
             s_unique_inv[to_flip] %= len(s_unique)
             s = s_unique[s_unique_inv]
 
-        # Convert the greyscale iamges of shape ( H, W ) into 'colour' images of shape ( C, H, W )
+        # Convert the greyscale images of shape ( H, W ) into 'colour' images of shape ( C, H, W )
         colorizer = MNISTColorizer(
             scale=self.scale,
             background=self.background,
