@@ -82,21 +82,25 @@ def test_groupwise_metrics(
         tps_ref = cdtm.nans(card_s)
     assert_close(tps_ref, tps)
 
-    ra = cdtm.robust_accuracy(y_pred=y_pred, y_true=y_true, s=s)
-    assert ra.ndim == 0
-
-    rg = cdtm.robust_gap(y_pred=y_pred, y_true=y_true, s=s)
-    assert rg.ndim == 0
-
-    td = cdtm.tpr_differences(y_pred=y_pred, y_true=y_true, s=s)
-    td_ref = torch.pdist(tps.view(-1, 1)).squeeze()
-    assert_close(td_ref, td)
-
     apc = cdtm.accuracy_per_class(y_pred=y_pred, y_true=y_true)
     _, y_counts = y_true.unique(return_counts=True)
     cw_hits = cdtm.nans(NUM_SAMPLES, card_y).scatter_(-1, index=y_true, src=hits)
     apc_ref = cw_hits.nansum(0).div_(y_counts)
     assert_close(apc_ref, apc)
+
+    ra = cdtm.robust_accuracy(y_pred=y_pred, y_true=y_true, s=s)
+    ra_ref = aps_ref.amin()
+    assert ra.ndim == 0
+    assert_close(ra_ref, ra)
+
+    rg = cdtm.robust_gap(y_pred=y_pred, y_true=y_true, s=s)
+    rg_ref = (aps - aps.unsqueeze(-1)).abs().amax()
+    assert rg.ndim == 0
+    assert_close(rg, rg_ref)
+
+    td = cdtm.tpr_differences(y_pred=y_pred, y_true=y_true, s=s)
+    td_ref = (tps - tps.unsqueeze(-1)).abs().squeeze()
+    assert_close(td_ref, td)
 
     apg = cdtm.accuracy_per_group(y_pred=y_pred, y_true=y_true, s=s)
     assert len(apg) == card_sy

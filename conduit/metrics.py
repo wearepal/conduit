@@ -35,6 +35,7 @@ __all__ = [
     "merge_indices",
     "nanmax",
     "nanmin",
+    "pdist_1d",
     "precision_at_k",
     "robust_accuracy",
     "robust_fscore",
@@ -110,24 +111,22 @@ C_co = TypeVar("C_co", bound=Comparator, covariant=True)
 
 @torch.no_grad()
 def nanmax(x: Tensor) -> Tensor:
-    return torch.max(torch.nan_to_num(x, nan=-torch.inf))
+    return torch.amax(torch.nan_to_num(x, nan=-torch.inf))
 
 
 @torch.no_grad()
 def nanmin(x: Tensor) -> Tensor:
-    return torch.min(torch.nan_to_num(x, nan=torch.inf))
+    return torch.amin(torch.nan_to_num(x, nan=torch.inf))
 
 
 @torch.no_grad()
-def _pdist_1d(x: Tensor) -> Tensor:
-    return torch.pdist(x.view(-1, 1)).squeeze()
+def pdist_1d(x: Tensor) -> Tensor:
+    return (x - x.unsqueeze(-1)).abs().squeeze()
 
 
 @torch.no_grad()
 def max_difference_1d(x: Tensor) -> Tensor:
-    if x.numel() == 1:
-        return x.squeeze()
-    return nanmax(_pdist_1d(x))
+    return nanmax(pdist_1d(x))
 
 
 class Aggregator(Enum):
@@ -139,7 +138,7 @@ class Aggregator(Enum):
     "Aggregate by taking the mean."
     MEADIAN = (torch.nanmedian,)
     "Aggregate by taking the median."
-    DIFF = (_pdist_1d,)
+    DIFF = (pdist_1d,)
     "Aggregate by taking the pairwise (absolute) differences."
     MAX_DIFF = (max_difference_1d,)
     "Aggregate by taking the maximum of the pairwise (absolute) differences."
