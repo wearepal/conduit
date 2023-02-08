@@ -536,7 +536,7 @@ def fscore(
 
     # only fill in nan values if they arise from mispredictions,
     # not if they arise from missing s-y combinations.
-    f1s[rec_ids_u] = torch.nan_to_num(f1s[rec_ids_u], nan=0.0)
+    f1s[rec_ids_u] = torch.nan_to_num_(f1s[rec_ids_u], nan=0.0)
 
     if (inner_summand is not None) and (s is not None):
         card_s = len(torch.unique(s))
