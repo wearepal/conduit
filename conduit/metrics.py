@@ -215,6 +215,14 @@ def merge_indices(
     return index_set, cards
 
 
+def nans(*sizes: int, device: Optional[torch.device] = None) -> Tensor:
+    return torch.full(tuple(sizes), fill_value=torch.nan, device=device)
+
+
+def nans_like(tensor: Tensor, *, device: Optional[torch.device] = None) -> Tensor:
+    return torch.full_like(tensor, fill_value=torch.nan, device=device)
+
+
 @torch.no_grad()
 def _apply_groupwise_metric(
     *group_ids: Tensor,
@@ -270,8 +278,7 @@ def _apply_groupwise_metric(
     if index_set is not None:
         res = index_set.max()
         scores = torch.scatter_reduce(
-            # input=torch.full((card,), fill_value=torch.nan),
-            input=torch.zeros(int(index_set.max() + 1)),
+            input=nans(int(index_set.max() + 1)),
             src=comps,
             dim=0,
             index=index_set[comp_mask],
@@ -451,8 +458,8 @@ robust_tnr = subclasswise_metric(
 
 @torch.no_grad()
 def pad_to_size(size: int, *, src: Tensor, index: Tensor, value=0.0) -> Tensor:
-    nan_tensor = src.new_full((size,), fill_value=value)
-    return nan_tensor.scatter_(dim=0, src=src, index=index)
+    padding = src.new_full((size,), fill_value=value)
+    return padding.scatter_(dim=0, src=src, index=index)
 
 
 def fscore(
@@ -525,7 +532,7 @@ def fscore(
         beta_sq = beta**2
         f1s = (1 + beta_sq) * (precs * recs) / (beta_sq * precs + recs)
     else:
-        f1s = torch.full((target_size,), torch.nan)
+        f1s = nans(target_size)
 
     # only fill in nan values if they arise from mispredictions,
     # not if they arise from missing s-y combinations.
