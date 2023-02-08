@@ -227,7 +227,6 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
                 x = x[self.split]
                 y = y[self.split]
 
-        # Convert the greyscale images of shape ( H, W ) into 'colour' images of shape ( C, H, W )
         if self.label_map is not None:
             x, y = _filter_data_by_labels(data=x, targets=y, label_map=self.label_map)
         s = y % self.num_colors
@@ -249,7 +248,7 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
             s_unique_inv[to_flip] %= len(s_unique)
             s = s_unique[s_unique_inv]
 
-        # Convert the greyscale iamges of shape ( H, W ) into 'colour' images of shape ( C, H, W )
+        # Convert the greyscale images of shape ( H, W ) into 'colour' images of shape ( C, H, W )
         colorizer = MNISTColorizer(
             scale=self.scale,
             background=self.background,
