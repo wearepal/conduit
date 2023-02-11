@@ -132,8 +132,14 @@ def max_difference_1d(x: Tensor) -> Tensor:
 
 @torch.no_grad()
 def weighted_nanmean(x: Tensor, *, weights: Tensor) -> Tensor:
-    weights = weights / weights.nansum(keepdim=True)
-    return (weights * x).nansum()
+    if x.numel() != weights.numel():
+        raise RuntimeError(
+            "'weights' and the input tensor being weighted, 'x', must match in size."
+        )
+    if torch.any(weights < 0):
+        raise RuntimeError("'weights' must contain only non-negative elements ")
+    denom = weights.nansum()
+    return (weights * x).nansum() / denom
 
 
 class Aggregator(Enum):
