@@ -495,7 +495,6 @@ def fscore(
     :param aggregator: Function with which to aggregate over the scores.
         If ``None`` then no aggregation will be applied and scores will be returned for each group.
 
-
     :returns: The (optionally aggregated) F-beta score given predictions ``y_pred`` and targets
         ``y_pred``.
     """
