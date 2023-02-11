@@ -505,7 +505,7 @@ def fscore(
 
     if s is None:
         rec_ids = y_true
-        rec_ids_u, _ = rec_ids.unique(return_inverse=True)
+        rec_ids_u = rec_ids.unique()
         card_s = None
         prec_ids = y_pred
         target_size = card_y
