@@ -48,6 +48,7 @@ __all__ = [
     "tnr_per_subclass",
     "tpr_differences",
     "tpr_per_subclass",
+    "weighted_nanmean",
 ]
 
 
@@ -127,6 +128,18 @@ def pdist_1d(x: Tensor) -> Tensor:
 @torch.no_grad()
 def max_difference_1d(x: Tensor) -> Tensor:
     return nanmax(pdist_1d(x))
+
+
+@torch.no_grad()
+def weighted_nanmean(x: Tensor, *, weights: Tensor) -> Tensor:
+    if x.numel() != weights.numel():
+        raise RuntimeError(
+            "'weights' and the input tensor being weighted, 'x', must match in size."
+        )
+    if torch.any(weights < 0):
+        raise RuntimeError("'weights' must contain only non-negative elements ")
+    denom = weights.nansum()
+    return (weights * x).nansum() / denom
 
 
 class Aggregator(Enum):
@@ -467,8 +480,9 @@ def fscore(
     y_true: Tensor,
     s: Optional[Tensor] = None,
     beta: float = 1.0,
-    aggregator: Optional[Aggregator] = None,
     inner_summand: Optional[Literal["y_true", "s"]] = None,
+    ignore_unsupported: bool = True,
+    aggregator: Optional[Aggregator] = None,
 ) -> Tensor:
     """Computes F-beta score between ``y_pred`` and ``y_true`` with optional subclass-conditioning.
 
@@ -479,8 +493,14 @@ def fscore(
         ``beta < 1`` lends more weight to precision, while ``beta > 1`` favors recal
     :param inner_summand: Which conditioning factor, if any, to sum over prior to the final
         aggregation when conditioning on the subclass labels.
+    :param ignore_unsupported: Whether to ignore ``y_pred`` values that are unsupported by
+        ``y_true`` (labels appearing in the predicted but not ground-truth labels). Note that
+        class:`sklearn.metrics.f1_score` does *not* do this and instead includes unsupported values
+        in its aggregation, i.e. classes included only in ``y_pred`` are included in the
+        class-conditional F-scores as 0 components that influence the aggregation step.
     :param aggregator: Function with which to aggregate over the scores.
         If ``None`` then no aggregation will be applied and scores will be returned for each group.
+
     :returns: The (optionally aggregated) F-beta score given predictions ``y_pred`` and targets
         ``y_pred``.
     """
@@ -490,8 +510,8 @@ def fscore(
     card_y = len(y_unique)
 
     if s is None:
-        gather_inds, _ = y_true.unique(return_inverse=True)
         rec_ids = y_true
+        rec_ids_u = rec_ids.unique()
         card_s = None
         prec_ids = y_pred
         target_size = card_y
@@ -500,7 +520,7 @@ def fscore(
         card_s = len(s_u)
         prec_ids = y_pred * card_s + s_inv
         rec_ids = y_true * card_s + s_inv
-        gather_inds = rec_ids.unique()
+        rec_ids_u = rec_ids.unique()
         target_size = card_y * card_s
 
     precs = _apply_groupwise_metric(
@@ -519,16 +539,16 @@ def fscore(
     )
 
     if len(precs) < target_size:
-        precs = pad_to_size(size=target_size, index=gather_inds, src=precs, value=torch.nan)
+        precs = pad_to_size(size=target_size, index=prec_ids.unique(), src=precs, value=torch.nan)
     if len(recs) < target_size:
-        recs = pad_to_size(size=target_size, index=gather_inds, src=recs, value=torch.nan)
+        recs = pad_to_size(size=target_size, index=rec_ids_u, src=recs, value=torch.nan)
 
     beta_sq = beta**2
     f1s = (1 + beta_sq) * (precs * recs) / (beta_sq * precs + recs)
-    f1s = f1s.gather(0, gather_inds)
-    # only fill in nan values if they arise from mispredictions,
-    # not if they arise from missing s-y combinations.
-    f1s = torch.nan_to_num_(f1s, nan=0.0)
+    if ignore_unsupported:
+        # Ignore predictions that are unsupported by the ground-truth label set, supp(``y_true``).
+        f1s = f1s.gather(0, rec_ids_u)
+    f1s = f1s.nan_to_num_(nan=0.0)
 
     if (inner_summand is not None) and (s is not None):
         card_s = len(torch.unique(s))
@@ -540,66 +560,112 @@ def fscore(
     return aggregator(f1s)
 
 
-def robust_fscore(y_pred: Tensor, *, y_true: Tensor, s: Tensor, beta: float = 1.0) -> Tensor:
+def robust_fscore(
+    y_pred: Tensor,
+    *,
+    y_true: Tensor,
+    s: Tensor,
+    beta: float = 1.0,
+    ignore_unsupported: bool = True,
+) -> Tensor:
     return fscore(
         y_pred=y_pred,
         y_true=y_true,
         s=s,
         beta=beta,
         inner_summand="y_true",
+        ignore_unsupported=ignore_unsupported,
         aggregator=Aggregator.MIN,
     )
 
 
-def fscore_per_class(y_pred: Tensor, *, y_true: Tensor, beta: float = 1.0) -> Tensor:
+def fscore_per_class(
+    y_pred: Tensor,
+    *,
+    y_true: Tensor,
+    beta: float = 1.0,
+    ignore_unsupported: bool = True,
+) -> Tensor:
     return fscore(
         y_pred=y_pred,
         y_true=y_true,
         beta=beta,
         inner_summand=None,
+        ignore_unsupported=ignore_unsupported,
         aggregator=None,
     )
 
 
-def fscore_per_subclass(y_pred: Tensor, *, y_true: Tensor, s: Tensor, beta: float = 1.0) -> Tensor:
+def fscore_per_subclass(
+    y_pred: Tensor,
+    *,
+    y_true: Tensor,
+    s: Tensor,
+    beta: float = 1.0,
+    ignore_unsupported: bool = True,
+) -> Tensor:
     return fscore(
         y_pred=y_pred,
         y_true=y_true,
         s=s,
         beta=beta,
         inner_summand="y_true",
+        ignore_unsupported=ignore_unsupported,
         aggregator=None,
     )
 
 
-def macro_fscore(y_pred: Tensor, *, y_true: Tensor, beta: float = 1.0) -> Tensor:
+def macro_fscore(
+    y_pred: Tensor,
+    *,
+    y_true: Tensor,
+    beta: float = 1.0,
+    ignore_unsupported: bool = True,
+) -> Tensor:
     return fscore(
         y_pred=y_pred,
         y_true=y_true,
         s=None,
         beta=beta,
         inner_summand=None,
+        ignore_unsupported=ignore_unsupported,
         aggregator=Aggregator.MEAN,
     )
 
 
-def fscore_per_group(y_pred: Tensor, *, y_true: Tensor, s: Tensor, beta: float = 1.0) -> Tensor:
+def fscore_per_group(
+    y_pred: Tensor,
+    *,
+    y_true: Tensor,
+    s: Tensor,
+    beta: float = 1.0,
+    ignore_unsupported: bool = True,
+) -> Tensor:
     return fscore(
         y_pred=y_pred,
         y_true=y_true,
         s=s,
         beta=beta,
         inner_summand=None,
+        ignore_unsupported=ignore_unsupported,
         aggregator=None,
     )
 
 
-def robust_fscore_gap(y_pred: Tensor, *, y_true: Tensor, s: Tensor, beta: float = 1.0) -> Tensor:
+def robust_fscore_gap(
+    y_pred: Tensor,
+    *,
+    y_true: Tensor,
+    s: Tensor,
+    beta: float = 1.0,
+    ignore_unsupported: bool = True,
+) -> Tensor:
     return fscore(
         y_pred=y_pred,
         y_true=y_true,
         s=s,
         beta=beta,
         inner_summand="y_true",
+        ignore_unsupported=ignore_unsupported,
         aggregator=Aggregator.MAX_DIFF,
     )
