@@ -2279,14 +2279,14 @@ files = [
 
 [[package]]
 name = "types-tqdm"
-version = "4.64.7.16"
+version = "4.65.0.0"
 description = "Typing stubs for tqdm"
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "types-tqdm-4.64.7.16.tar.gz", hash = "sha256:5aff3fd0b790d6a983094d8d732acedc7826a45b830b0a2799bd59a76511d73e"},
-    {file = "types_tqdm-4.64.7.16-py3-none-any.whl", hash = "sha256:a9c942351b4654813efb68f80109a8c6282b91f5e98a67516cd71f5b3756273c"},
+    {file = "types-tqdm-4.65.0.0.tar.gz", hash = "sha256:8707a0dd16a1f2061e316ddc5ef07908d7465193f0d2ed24be75b55e6b9e6cbe"},
+    {file = "types_tqdm-4.65.0.0-py3-none-any.whl", hash = "sha256:3377b5e34396b4e1661f8df7390051490918b8be36ae0f7b6864c1d806e95ef5"},
 ]
 
 [[package]]
