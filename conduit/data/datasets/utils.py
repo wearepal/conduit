@@ -400,7 +400,7 @@ class CdtDataLoader(DataLoader[I]):
         worker_init_fn: Optional[_worker_init_fn_t] = None,
         multiprocessing_context: Optional[Union[BaseContext, str]] = None,
         generator: Optional[torch.Generator] = None,
-        prefetch_factor: int = 2,
+        prefetch_factor: Optional[int] = None,
         persistent_workers: bool = False,
         cast_to_sample: bool = True,
         converter: Optional[Union[Type[Any], Callable]] = None,
@@ -433,7 +433,6 @@ def check_integrity(*, filepath: Path, md5: Optional[str]) -> None:
     ext = filepath.suffix
     if ext not in [".zip", ".7z"] and check_integrity(fpath=str(filepath), md5=md5):
         raise RuntimeError('Dataset corrupted; try deleting it and redownloading it.')
-
 
 class UrlFileInfo(NamedTuple):
     name: str
