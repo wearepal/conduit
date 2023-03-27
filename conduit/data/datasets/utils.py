@@ -434,6 +434,7 @@ def check_integrity(*, filepath: Path, md5: Optional[str]) -> None:
     if ext not in [".zip", ".7z"] and check_integrity(fpath=str(filepath), md5=md5):
         raise RuntimeError('Dataset corrupted; try deleting it and redownloading it.')
 
+
 class UrlFileInfo(NamedTuple):
     name: str
     url: str
