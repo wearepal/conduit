@@ -1764,15 +1764,25 @@ typing-extensions = "*"
 
 [[package]]
 name = "ranzen"
-version = "2.0.6"
+version = "2.1.1"
 description = "A toolkit facilitating machine-learning experimentation."
 category = "main"
 optional = false
-python-versions = ">=3.8.0,<3.11"
+python-versions = ">=3.8.0,<3.12"
 files = [
-    {file = "ranzen-2.0.6-py3-none-any.whl", hash = "sha256:cc6354684036a698a11525ee36d07366db88cb801f4ffa052d11843007103340"},
-    {file = "ranzen-2.0.6.tar.gz", hash = "sha256:c8aa6babe08d78ff49a22ac606a7ef907e3da3a0f18c6f469b86bbaa80fe0524"},
+    {file = "ranzen-2.1.1-py3-none-any.whl", hash = "sha256:66319856e0695284bfe29530183646c9bf2cd04bf78cf28c91e1fa51621f1253"},
+    {file = "ranzen-2.1.1.tar.gz", hash = "sha256:da403bd226be5a0632372a6d57da4f2d2d54e3b59db53ea0005e799b292760e2"},
 ]
+
+[package.dependencies]
+typing-extensions = ">=4.5.0"
+
+[package.extras]
+all = ["hydra-core (>=1.3.0,<2.0.0)", "loguru (>=0.6.0,<0.7.0)", "neoconfigen (>=2.3.3)", "numpy (>=1.23.2,<2.0.0)", "pandas (>=1.5.0,<2.0.0)", "torch (>=1.12.1)", "wandb (>=0.12,<0.14)"]
+hydra = ["hydra-core (>=1.3.0,<2.0.0)", "neoconfigen (>=2.3.3)"]
+logging = ["loguru (>=0.6.0,<0.7.0)"]
+torch = ["numpy (>=1.23.2,<2.0.0)", "torch (>=1.12.1)"]
+wandb = ["pandas (>=1.5.0,<2.0.0)", "wandb (>=0.12,<0.14)"]
 
 [[package]]
 name = "requests"
@@ -2002,6 +2012,7 @@ files = [
     {file = "soundfile-0.12.1-py2.py3-none-any.whl", hash = "sha256:828a79c2e75abab5359f780c81dccd4953c45a2c4cd4f05ba3e233ddf984b882"},
     {file = "soundfile-0.12.1-py2.py3-none-macosx_10_9_x86_64.whl", hash = "sha256:d922be1563ce17a69582a352a86f28ed8c9f6a8bc951df63476ffc310c064bfa"},
     {file = "soundfile-0.12.1-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:bceaab5c4febb11ea0554566784bcf4bc2e3977b53946dda2b12804b4fe524a8"},
+    {file = "soundfile-0.12.1-py2.py3-none-manylinux_2_17_x86_64.whl", hash = "sha256:2dc3685bed7187c072a46ab4ffddd38cef7de9ae5eb05c03df2ad569cf4dacbc"},
     {file = "soundfile-0.12.1-py2.py3-none-manylinux_2_31_x86_64.whl", hash = "sha256:074247b771a181859d2bc1f98b5ebf6d5153d2c397b86ee9e29ba602a8dfe2a6"},
     {file = "soundfile-0.12.1-py2.py3-none-win32.whl", hash = "sha256:59dfd88c79b48f441bbf6994142a19ab1de3b9bb7c12863402c2bc621e49091a"},
     {file = "soundfile-0.12.1-py2.py3-none-win_amd64.whl", hash = "sha256:0d86924c00b62552b650ddd28af426e3ff2d4dc2e9047dae5b3d8452e0a49a77"},
