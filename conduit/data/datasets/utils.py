@@ -32,7 +32,6 @@ from ranzen.misc import gcopy
 from ranzen.torch.data import Subset, prop_random_split
 import torch
 from torch import Tensor
-from torch._six import string_classes
 from torch.utils.data import ConcatDataset
 from torch.utils.data._utils.collate import (
     default_collate_err_msg_format,
@@ -347,7 +346,7 @@ class cdt_collate:
         elif isinstance(elem, int):
             return torch.tensor(batch)
         # String
-        elif isinstance(elem, string_classes):
+        elif isinstance(elem, str):
             return batch
         # Mapping
         elif isinstance(elem, Mapping):
