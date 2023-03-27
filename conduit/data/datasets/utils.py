@@ -600,7 +600,7 @@ def random_split(
 
     :returns: Random subsets of the data (or their associated indices) of the requested proportions.
     """
-    split_indices = prop_random_split(dataset=dataset, props=props, as_indices=True, seed=seed)
+    split_indices = prop_random_split(dataset, props=props, as_indices=True, seed=seed)
     if as_indices:
         return split_indices
     splits = [make_subset(dataset, indices=indices, deep=deep) for indices in split_indices]
