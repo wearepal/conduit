@@ -4,7 +4,7 @@ from typing import Final
 
 import numpy as np
 import pytest
-from sklearn.metrics import f1_score  # pyright: ignore
+from sklearn.metrics import f1_score
 import torch
 from torch import Tensor
 
@@ -18,18 +18,14 @@ def generator() -> torch.Generator:
     return torch.Generator().manual_seed(47)
 
 
-def assert_close(
-    ref: Tensor | np.ndarray | float,
-    res: Tensor | np.ndarray | float,
-    /,
-) -> None:
+def assert_close(ref: Tensor | np.ndarray | float, res: Tensor | np.ndarray | float, /) -> None:
     if isinstance(ref, (np.ndarray, float)):
         ref = torch.as_tensor(ref, dtype=torch.float32)
     if isinstance(res, (np.ndarray, float)):
         res = torch.as_tensor(res, dtype=torch.float32)
     ref = torch.nan_to_num(ref, nan=torch.inf)
     res = torch.nan_to_num(res, nan=torch.inf)
-    torch.testing.assert_close(ref, res)  # pyright: ignore
+    torch.testing.assert_close(ref, res)
 
 
 @pytest.mark.filterwarnings("ignore::UserWarning")
@@ -112,7 +108,7 @@ def test_groupwise_metrics(
     fs = cdtm.macro_fscore(y_pred=y_pred, y_true=y_true)
     assert fs.ndim == 0
     fs_ref = f1_score(y_true=y_true, y_pred=y_pred, average="macro")
-    assert_close(fs, fs_ref)
+    assert_close(fs, fs_ref)  # type: ignore
 
     fpg = cdtm.fscore_per_group(y_pred=y_pred, y_true=y_true, s=s)
     assert len(fpg) == card_sy
