@@ -413,6 +413,9 @@ class CdtDataLoader(DataLoader[I]):
         converter: Optional[Union[Type[Any], Callable]] = None,
         **kwargs: Unpack[_DataLoaderKwargs],
     ) -> None:
+        # pytorch_lightning inspects the signature and if it sees `**kwargs`, it assumes that
+        # the __init__ takes all arguments that DataLoader.__init__ takes, so we have to
+        # manually remove "collate_fn" here in order to avoid passing it in *twice*.
         if "collate_fn" in kwargs:
             del kwargs["collate_fn"]  # type: ignore
         super().__init__(
