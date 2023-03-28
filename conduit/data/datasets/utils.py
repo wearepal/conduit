@@ -388,6 +388,17 @@ I = TypeVar("I", bound=NamedSample)
 class _DataLoaderKwargs(TypedDict):
     """Dictionary of keyword arguments with which we can avoid specifying default values."""
 
+    batch_size: NotRequired[Optional[int]]
+    shuffle: NotRequired[bool]
+    sampler: NotRequired[Optional[Sampler[int]]]
+    batch_sampler: NotRequired[Optional[Sampler[Sequence[int]]]]
+    num_workers: NotRequired[int]
+    pin_memory: NotRequired[bool]
+    drop_last: NotRequired[bool]
+    timeout: NotRequired[float]
+    worker_init_fn: NotRequired[Optional[_worker_init_fn_t]]
+    multiprocessing_context: NotRequired[Optional[Union[BaseContext, str]]]
+    generator: NotRequired[Optional[torch.Generator]]
     prefetch_factor: NotRequired[int]
     persistent_workers: NotRequired[bool]
     pin_memory_device: NotRequired[str]
@@ -398,35 +409,15 @@ class CdtDataLoader(DataLoader[I]):
         self,
         dataset: SizedDataset[I],
         *,
-        batch_size: Optional[int] = 1,
-        shuffle: bool = False,
-        sampler: Optional[Sampler[int]] = None,
-        batch_sampler: Optional[Sampler[Sequence[int]]] = None,
-        num_workers: int = 0,
-        pin_memory: bool = False,
-        drop_last: bool = False,
-        timeout: float = 0,
-        worker_init_fn: Optional[_worker_init_fn_t] = None,
-        multiprocessing_context: Optional[Union[BaseContext, str]] = None,
-        generator: Optional[torch.Generator] = None,
         cast_to_sample: bool = True,
         converter: Optional[Union[Type[Any], Callable]] = None,
         **kwargs: Unpack[_DataLoaderKwargs],
     ) -> None:
+        if "collate_fn" in kwargs:
+            raise TypeError("__init__ got unexpected keyword argument 'collate_fn'")
         super().__init__(
             dataset,  # type: ignore
-            batch_size=batch_size,
-            shuffle=shuffle,
-            sampler=sampler,
-            batch_sampler=batch_sampler,
-            num_workers=num_workers,
             collate_fn=cdt_collate(cast_to_sample=cast_to_sample, converter=converter),
-            pin_memory=pin_memory,
-            drop_last=drop_last,
-            timeout=timeout,
-            worker_init_fn=worker_init_fn,
-            multiprocessing_context=multiprocessing_context,
-            generator=generator,
             **kwargs,
         )
 
