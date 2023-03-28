@@ -45,7 +45,7 @@ from torchvision.datasets.utils import (  # type: ignore
     download_url,
     extract_archive,
 )
-from typing_extensions import NotRequired, TypeAlias, TypeGuard, Unpack
+from typing_extensions import TypeAlias, TypeGuard, Unpack
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import (
@@ -385,23 +385,23 @@ class cdt_collate:
 I = TypeVar("I", bound=NamedSample)
 
 
-class _DataLoaderKwargs(TypedDict):
-    """Dictionary of keyword arguments with which we can avoid specifying default values."""
+class _DataLoaderKwargs(TypedDict, total=False):
+    """Dictionary of keyword arguments used to avoid specifying the default values."""
 
-    batch_size: NotRequired[Optional[int]]
-    shuffle: NotRequired[bool]
-    sampler: NotRequired[Optional[Sampler[int]]]
-    batch_sampler: NotRequired[Optional[Sampler[Sequence[int]]]]
-    num_workers: NotRequired[int]
-    pin_memory: NotRequired[bool]
-    drop_last: NotRequired[bool]
-    timeout: NotRequired[float]
-    worker_init_fn: NotRequired[Optional[_worker_init_fn_t]]
-    multiprocessing_context: NotRequired[Optional[Union[BaseContext, str]]]
-    generator: NotRequired[Optional[torch.Generator]]
-    prefetch_factor: NotRequired[int]
-    persistent_workers: NotRequired[bool]
-    pin_memory_device: NotRequired[str]
+    batch_size: Optional[int]
+    shuffle: bool
+    sampler: Optional[Sampler[int]]
+    batch_sampler: Optional[Sampler[Sequence[int]]]
+    num_workers: int
+    pin_memory: bool
+    drop_last: bool
+    timeout: float
+    worker_init_fn: Optional[_worker_init_fn_t]
+    multiprocessing_context: Optional[Union[BaseContext, str]]
+    generator: Optional[torch.Generator]
+    prefetch_factor: int
+    persistent_workers: bool
+    pin_memory_device: str
 
 
 class CdtDataLoader(DataLoader[I]):
@@ -414,7 +414,7 @@ class CdtDataLoader(DataLoader[I]):
         **kwargs: Unpack[_DataLoaderKwargs],
     ) -> None:
         if "collate_fn" in kwargs:
-            raise TypeError("__init__ got unexpected keyword argument 'collate_fn'")
+            del kwargs["collate_fn"]  # type: ignore
         super().__init__(
             dataset,  # type: ignore
             collate_fn=cdt_collate(cast_to_sample=cast_to_sample, converter=converter),
