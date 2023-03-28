@@ -20,6 +20,7 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
+    TypedDict,
     Union,
     cast,
     overload,
@@ -44,7 +45,7 @@ from torchvision.datasets.utils import (  # type: ignore
     download_url,
     extract_archive,
 )
-from typing_extensions import TypeAlias, TypeGuard
+from typing_extensions import NotRequired, TypeAlias, TypeGuard, Unpack
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import (
@@ -384,6 +385,14 @@ class cdt_collate:
 I = TypeVar("I", bound=NamedSample)
 
 
+class _DataLoaderKwargs(TypedDict):
+    """Dictionary of keyword arguments with which we can avoid specifying default values."""
+
+    prefetch_factor: NotRequired[int]
+    persistent_workers: NotRequired[bool]
+    pin_memory_device: NotRequired[str]
+
+
 class CdtDataLoader(DataLoader[I]):
     def __init__(
         self,
@@ -400,10 +409,9 @@ class CdtDataLoader(DataLoader[I]):
         worker_init_fn: Optional[_worker_init_fn_t] = None,
         multiprocessing_context: Optional[Union[BaseContext, str]] = None,
         generator: Optional[torch.Generator] = None,
-        prefetch_factor: Optional[int] = None,
-        persistent_workers: bool = False,
         cast_to_sample: bool = True,
         converter: Optional[Union[Type[Any], Callable]] = None,
+        **kwargs: Unpack[_DataLoaderKwargs],
     ) -> None:
         super().__init__(
             dataset,  # type: ignore
@@ -419,8 +427,7 @@ class CdtDataLoader(DataLoader[I]):
             worker_init_fn=worker_init_fn,
             multiprocessing_context=multiprocessing_context,
             generator=generator,
-            prefetch_factor=prefetch_factor,
-            persistent_workers=persistent_workers,
+            **kwargs,
         )
 
     def __iter__(self) -> Iterator[I]:
