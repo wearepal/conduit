@@ -19,6 +19,7 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    TypedDict,
     TypeVar,
     Union,
     cast,
@@ -44,7 +45,7 @@ from torchvision.datasets.utils import (  # type: ignore
     download_url,
     extract_archive,
 )
-from typing_extensions import TypeAlias, TypeGuard
+from typing_extensions import TypeAlias, TypeGuard, Unpack
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import (
@@ -384,43 +385,43 @@ class cdt_collate:
 I = TypeVar("I", bound=NamedSample)
 
 
+class _DataLoaderKwargs(TypedDict, total=False):
+    """Dictionary of keyword arguments used to avoid specifying the default values."""
+
+    batch_size: Optional[int]
+    shuffle: bool
+    sampler: Optional[Sampler[int]]
+    batch_sampler: Optional[Sampler[Sequence[int]]]
+    num_workers: int
+    pin_memory: bool
+    drop_last: bool
+    timeout: float
+    worker_init_fn: Optional[_worker_init_fn_t]
+    multiprocessing_context: Optional[Union[BaseContext, str]]
+    generator: Optional[torch.Generator]
+    prefetch_factor: int
+    persistent_workers: bool
+    pin_memory_device: str
+
+
 class CdtDataLoader(DataLoader[I]):
     def __init__(
         self,
         dataset: SizedDataset[I],
         *,
-        batch_size: Optional[int] = 1,
-        shuffle: bool = False,
-        sampler: Optional[Sampler[int]] = None,
-        batch_sampler: Optional[Sampler[Sequence[int]]] = None,
-        num_workers: int = 0,
-        pin_memory: bool = False,
-        drop_last: bool = False,
-        timeout: float = 0,
-        worker_init_fn: Optional[_worker_init_fn_t] = None,
-        multiprocessing_context: Optional[Union[BaseContext, str]] = None,
-        generator: Optional[torch.Generator] = None,
-        prefetch_factor: int = 2,
-        persistent_workers: bool = False,
         cast_to_sample: bool = True,
         converter: Optional[Union[Type[Any], Callable]] = None,
+        **kwargs: Unpack[_DataLoaderKwargs],
     ) -> None:
+        # pytorch_lightning inspects the signature and if it sees `**kwargs`, it assumes that
+        # the __init__ takes all arguments that DataLoader.__init__ takes, so we have to
+        # manually remove "collate_fn" here in order to avoid passing it in *twice*.
+        if "collate_fn" in kwargs:
+            del kwargs["collate_fn"]  # type: ignore
         super().__init__(
             dataset,  # type: ignore
-            batch_size=batch_size,
-            shuffle=shuffle,
-            sampler=sampler,
-            batch_sampler=batch_sampler,
-            num_workers=num_workers,
             collate_fn=cdt_collate(cast_to_sample=cast_to_sample, converter=converter),
-            pin_memory=pin_memory,
-            drop_last=drop_last,
-            timeout=timeout,
-            worker_init_fn=worker_init_fn,
-            multiprocessing_context=multiprocessing_context,
-            generator=generator,
-            prefetch_factor=prefetch_factor,
-            persistent_workers=persistent_workers,
+            **kwargs,
         )
 
     def __iter__(self) -> Iterator[I]:
