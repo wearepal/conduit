@@ -19,11 +19,12 @@ __all__ = [
     "NDArrayR",
     "Sized",
     "Stage",
+    "METRIC_COLLECTION",
 ]
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
-_METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
+METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
 
 
 class Loss(Protocol):
