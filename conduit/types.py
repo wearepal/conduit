@@ -19,11 +19,12 @@ __all__ = [
     "NDArrayR",
     "Sized",
     "Stage",
+    "METRIC_COLLECTION",
 ]
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
-_METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
+METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
 
 
 class Loss(Protocol):
@@ -46,7 +47,7 @@ class Stage(StrEnum):
 
 
 LRScheduler: TypeAlias = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
-MetricDict: TypeAlias = Dict[str, _METRIC_COLLECTION]
+MetricDict: TypeAlias = Dict[str, METRIC_COLLECTION]
 NDArrayR: TypeAlias = Union[npt.NDArray[np.floating], npt.NDArray[np.integer]]
 IndexType: TypeAlias = Union[int, List[int], slice]
 
