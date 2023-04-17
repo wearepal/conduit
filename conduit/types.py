@@ -47,7 +47,7 @@ class Stage(StrEnum):
 
 
 LRScheduler: TypeAlias = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
-MetricDict: TypeAlias = Dict[str, _METRIC_COLLECTION]
+MetricDict: TypeAlias = Dict[str, METRIC_COLLECTION]
 NDArrayR: TypeAlias = Union[npt.NDArray[np.floating], npt.NDArray[np.integer]]
 IndexType: TypeAlias = Union[int, List[int], slice]
 
