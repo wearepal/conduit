@@ -11,6 +11,7 @@ from pytorch_lightning.callbacks.progress.rich_progress import (
     RichProgressBar,
     RichProgressBarTheme,
 )
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from rich.console import RenderableType
 from rich.progress import Task, TaskID, TextColumn
 from rich.table import Column
@@ -182,6 +183,17 @@ class CdtProgressBar(RichProgressBar):
                 train_description += " "
         return train_description
 
+    @property
+    def _progress_bar_id(self) -> Optional[TaskID]:
+        return getattr(self, "train_progress_bar_id", getattr(self, "main_progress_bar_id", None))
+
+    @_progress_bar_id.setter
+    def _progress_bar_id(self, value: Optional[TaskID]) -> None:
+        if hasattr(self, "train_progress_bar_id"):
+            self.train_progress_bar_id = value
+        if hasattr(self, "main_progress_bar_id"):
+            self.main_progress_bar_id = value
+
     @override
     def on_train_epoch_start(self, trainer: pl.Trainer, pl_module) -> None:  # pyright: ignore
         total_train_batches = self.total_train_batches
@@ -194,14 +206,14 @@ class CdtProgressBar(RichProgressBar):
         iteration_based = self._is_iteration_based(trainer)
         current_epoch = None if iteration_based else trainer.current_epoch
         train_description = self._get_train_description(current_epoch)
-        if self.main_progress_bar_id is not None and self._leave:
+        if self._progress_bar_id is not None and self._leave:
             self._stop_progress()
             self._init_progress(trainer)
-        if self.main_progress_bar_id is None:
-            self.main_progress_bar_id = self._add_task(total_train_batches, train_description)
+        if self._progress_bar_id is None:
+            self._progress_bar_id = self._add_task(total_train_batches, train_description)
         elif (not iteration_based) and (self.progress is not None):
             self.progress.reset(
-                TaskID(self.main_progress_bar_id),
+                TaskID(self._progress_bar_id),
                 total=total_train_batches,
                 description=train_description,
                 visible=True,
@@ -212,14 +224,17 @@ class CdtProgressBar(RichProgressBar):
     def on_validation_batch_end(
         self,
         trainer: pl.Trainer,
-        *args: Any,  # pyright: ignore
-        **kwargs: Any,  # pyright: ignore
+        pl_module: pl.LightningModule,  # pyright: ignore
+        outputs: Optional[STEP_OUTPUT],  # pyright: ignore
+        batch: Any,  # pyright: ignore
+        batch_idx: int,
+        dataloader_idx: int = 0,  # pyright: ignore
     ) -> None:
         if trainer.sanity_checking:
-            self._update(self.val_sanity_progress_bar_id, self.val_batch_idx)  # type: ignore
+            self._update(self.val_sanity_progress_bar_id, batch_idx + 1)  # type: ignore
         elif self.val_progress_bar_id is not None:
             # check to see if we should update the main training progress bar
-            self._update(self.val_progress_bar_id, self.val_batch_idx)
+            self._update(self.val_progress_bar_id, batch_idx + 1)
         self.refresh()
 
     @property
@@ -237,7 +252,7 @@ class CdtProgressBar(RichProgressBar):
         pl_module: pl.LightningModule,  # pyright: ignore
         batch: Any,  # pyright: ignore
         batch_idx: int,  # pyright: ignore
-        dataloader_idx: int,
+        dataloader_idx: int = 0,
     ) -> None:
         if self.has_dataloader_changed(dataloader_idx):
             if (self.predict_progress_bar_id is not None) and (self.progress is not None):
