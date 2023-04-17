@@ -1,7 +1,7 @@
 import inspect
-from typing import Any, Callable, Dict, TypeVar
+from typing import Any, Callable, Dict, List, TypeVar
 
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from ranzen.misc import gcopy
 import torch
 from torch import Tensor, nn
@@ -13,6 +13,7 @@ __all__ = [
     "make_no_grad",
     "prefix_keys",
 ]
+EPOCH_OUTPUT = List[STEP_OUTPUT]
 
 
 @torch.no_grad()
