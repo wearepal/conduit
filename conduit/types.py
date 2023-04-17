@@ -1,13 +1,13 @@
 from enum import auto
-from typing import Any, Dict, List, Protocol, TypeVar, Union, runtime_checkable
+from typing import Any, Dict, List, Mapping, Protocol, TypeVar, Union, runtime_checkable
 
 import numpy as np
 import numpy.typing as npt
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 from ranzen import StrEnum
 from ranzen.torch.loss import ReductionType
 from torch import Tensor
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR
+from torchmetrics import Metric
 from typing_extensions import TypeAlias
 
 __all__ = [
@@ -20,6 +20,10 @@ __all__ = [
     "Sized",
     "Stage",
 ]
+
+_NUMBER = Union[int, float]
+_METRIC = Union[Metric, Tensor, _NUMBER]
+_METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
 
 
 class Loss(Protocol):
