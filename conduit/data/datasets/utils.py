@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 from functools import lru_cache
 import logging
@@ -14,6 +13,7 @@ from typing import (
     Iterator,
     List,
     Literal,
+    Mapping,
     NamedTuple,
     Optional,
     Sequence,
