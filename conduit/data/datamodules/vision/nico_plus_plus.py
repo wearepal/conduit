@@ -1,5 +1,5 @@
 """NICO++ data-module."""
-from typing import Any
+from typing import Any, Optional
 
 import albumentations as A  # type: ignore
 import attr
@@ -18,7 +18,7 @@ class NICOPPDataModule(CdtVisionDataModule[NICOPP, SampleType]):
     """Data-module for the NICO dataset."""
 
     image_size: int = 224
-    superclass: NicoPPTarget = NicoPPTarget.AIRPLANE
+    superclass: Optional[NicoPPTarget] = None
     make_biased: bool = True
 
     @property
