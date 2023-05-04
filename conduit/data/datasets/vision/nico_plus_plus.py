@@ -2,7 +2,7 @@
 from enum import auto
 from functools import cached_property
 from pathlib import Path
-from typing import ClassVar, Dict, List, Literal, Optional, Set, Tuple, Union
+from typing import ClassVar, Dict, List, Literal, Optional, Sequence, Set, Tuple, Union
 
 import pandas as pd
 from ranzen import StrEnum, parsable
@@ -135,9 +135,12 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         root: Union[str, Path],
         *,
         transform: Optional[ImageTform] = None,
-        superclass: Optional[Union[NicoPPTarget, str]] = None,
+        superclasses: Optional[Sequence[Union[NicoPPTarget, str]]] = None,
     ) -> None:
-        self.superclass = NicoPPTarget(superclass) if isinstance(superclass, str) else superclass
+        self.superclasses: Optional[List[NicoPPTarget]] = None
+        if superclasses is not None:
+            assert superclasses, "superclasses should be a non-empty list"
+            self.superclasses = [NicoPPTarget(superclass) for superclass in superclasses]
         self.root = Path(root)
         self._base_dir = self.root / "nico_plus_plus" / "track_1" / "public_dg_0416" / "train"
         self._metadata_path = self._base_dir / "metadata.csv"
@@ -151,8 +154,8 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
         self.metadata = pd.read_csv(self._base_dir / "metadata.csv")
 
-        if self.superclass is not None:
-            self.metadata = self.metadata[self.metadata["superclass"] == str(self.superclass)]
+        if self.superclasses is not None:
+            self.metadata = self.metadata[self.metadata["superclass"].isin(self.superclasses)]
         # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # substantially slower than indexing with numpy/torch
         x = self.metadata["filepath"].to_numpy()
@@ -162,7 +165,7 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._base_dir)
 
     @property
-    def train_props(self) -> Dict[int, Dict[int, float]]:
+    def default_train_props(self) -> Dict[int, Dict[int, float]]:
         """Zero out the (s,y) pairs which have fewer than 75 samples."""
         atoi = self.subclass_label_encoder
         ytoi = self.superclass_label_encoder

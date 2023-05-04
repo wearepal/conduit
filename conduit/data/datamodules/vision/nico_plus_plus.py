@@ -1,5 +1,5 @@
 """NICO++ data-module."""
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 import albumentations as A  # type: ignore
 import attr
@@ -18,7 +18,7 @@ class NICOPPDataModule(CdtVisionDataModule[NICOPP, SampleType]):
     """Data-module for the NICO dataset."""
 
     image_size: int = 224
-    superclass: Optional[NicoPPTarget] = None
+    superclasses: Optional[List[NicoPPTarget]] = None
     make_biased: bool = True
 
     @property
@@ -44,12 +44,12 @@ class NICOPPDataModule(CdtVisionDataModule[NICOPP, SampleType]):
 
     @override
     def _get_splits(self) -> TrainValTestSplit[NICOPP]:
-        all_data = NICOPP(root=self.root, superclass=self.superclass, transform=None)
+        all_data = NICOPP(root=self.root, superclasses=self.superclasses, transform=None)
         train_val_prop = 1 - self.test_prop
         train_val_data, test_data = stratified_split(
             all_data,
             default_train_prop=train_val_prop,
-            train_props=all_data.train_props if self.make_biased else None,
+            train_props=all_data.default_train_props if self.make_biased else None,
             seed=self.seed,
         )
         val_data, train_data = train_val_data.random_split(
