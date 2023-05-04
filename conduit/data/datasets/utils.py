@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 from functools import lru_cache
 import logging
@@ -14,6 +13,7 @@ from typing import (
     Iterator,
     List,
     Literal,
+    Mapping,
     NamedTuple,
     Optional,
     Sequence,
@@ -424,7 +424,7 @@ class CdtDataLoader(DataLoader[I]):
             **kwargs,
         )
 
-    def __iter__(self) -> Iterator[I]:
+    def __iter__(self) -> Iterator[I]:  # type: ignore
         return super().__iter__()
 
 
@@ -613,7 +613,7 @@ def stratified_split(
     dataset: PseudoCdtDataset,
     *,
     default_train_prop: float,
-    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = ...,
+    train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = ...,
     seed: Optional[int] = ...,
     as_indices: Literal[True],
 ) -> TrainTestSplit[List[int]]:
@@ -625,7 +625,7 @@ def stratified_split(
     dataset: PCD,
     *,
     default_train_prop: float,
-    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = ...,
+    train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = ...,
     seed: Optional[int] = ...,
     as_indices: Literal[False] = ...,
 ) -> TrainTestSplit[PCD]:
@@ -637,7 +637,7 @@ def stratified_split(
     dataset: PCD,
     *,
     default_train_prop: float,
-    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = ...,
+    train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = ...,
     seed: Optional[int] = ...,
     as_indices: bool,
 ) -> Union[TrainTestSplit[PCD], TrainTestSplit[List[int]]]:
@@ -648,7 +648,7 @@ def stratified_split(
     dataset: PCD,
     *,
     default_train_prop: float,
-    train_props: Optional[Dict[int, Union[Dict[int, float], float]]] = None,
+    train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = None,
     seed: Optional[int] = None,
     as_indices: bool = False,
 ) -> Union[TrainTestSplit[PCD], TrainTestSplit[List[int]]]:

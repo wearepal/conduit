@@ -6,6 +6,7 @@ from .fmow import *
 from .isic import *
 from .iwildcam import *
 from .nico import *
+from .nico_plus_plus import *
 from .nih import *
 from .pacs import *
 from .ssrp import *

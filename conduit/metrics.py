@@ -469,7 +469,7 @@ robust_tnr = subclasswise_metric(
 
 
 @torch.no_grad()
-def pad_to_size(size: int, *, src: Tensor, index: Tensor, value=0.0) -> Tensor:
+def pad_to_size(size: int, *, src: Tensor, index: Tensor, value: float = 0.0) -> Tensor:
     padding = src.new_full((size,), fill_value=value)
     return padding.scatter_(dim=0, src=src, index=index)
 

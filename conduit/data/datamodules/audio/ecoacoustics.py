@@ -7,7 +7,7 @@ from typing_extensions import override
 
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
 from conduit.data.datasets.utils import AudioTform, CdtDataLoader
-from conduit.data.structures import BinarySample, TernarySample, TrainValTestSplit
+from conduit.data.structures import BinarySample, TrainValTestSplit
 from conduit.transforms.audio import Compose, Framing, LogMelSpectrogram
 
 from .base import CdtAudioDataModule
@@ -16,7 +16,7 @@ __all__ = ["EcoacousticsDataModule"]
 
 
 @attr.define(kw_only=True)
-class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
+class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, BinarySample]):
     """Data-module for the Ecoacoustics dataset."""
 
     segment_len: float = 15
@@ -27,6 +27,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, TernarySample]):
     def _batch_converter(batch: BinarySample) -> BinarySample:
         return BinarySample(x=batch.x, y=batch.y)
 
+    @override
     def make_dataloader(
         self,
         ds: Ecoacoustics,

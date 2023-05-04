@@ -225,13 +225,13 @@ class SampleBase(InputContainer[X]):
         copy.x = concatenate_inputs(copy.x, other.x, is_batched=True)
         return copy
 
-    def astuple(self, deep=False) -> Tuple[X]:
+    def astuple(self, deep: bool = False) -> Tuple[X]:
         tuple_ = tuple(iter(self))
         if deep:
             tuple_ = gcopy(tuple_, deep=True)
         return tuple_
 
-    def asdict(self, deep=False) -> Dict[str, X]:
+    def asdict(self, deep: bool = False) -> Dict[str, X]:
         if deep:
             asdict(self)
         return shallow_asdict(self)
@@ -324,7 +324,7 @@ class BinarySample(NamedSample[X], _BinarySampleMixin):
         return self
 
     @override
-    def __iter__(self) -> Iterator[LoadedData]:
+    def __iter__(self) -> Iterator[LoadedData]:  # type: ignore
         yield from (self.x, self.y)
 
     @override
@@ -369,7 +369,7 @@ class SubgroupSample(NamedSample[X], _SubgroupSampleMixin):
         return self
 
     @override
-    def __iter__(self) -> Iterator[LoadedData]:
+    def __iter__(self) -> Iterator[LoadedData]:  # type: ignore
         yield from (self.x, self.s)
 
     @override
@@ -585,7 +585,7 @@ class SizedDataset(Dataset[R_co], Sized, Protocol):
         ...
 
     @override
-    def __len__(self) -> int:
+    def __len__(self) -> Optional[int]:
         ...
 
 
