@@ -145,7 +145,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
 
     @staticmethod
     def _label_encode(
-        data: Union[pd.DataFrame, pd.Series], inplace=True
+        data: Union[pd.DataFrame, pd.Series], inplace: bool = True
     ) -> Union[pd.DataFrame, pd.Series]:
         """Label encode the extracted concept/context/superclass information."""
         data = data.copy(deep=not inplace)

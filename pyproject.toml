@@ -158,12 +158,14 @@ reportMissingTypeArgument = "none"
 reportCallInDefaultInitializer = "warning"
 reportPropertyTypeMismatch = "none"
 reportUninitializedInstanceVariable = "warning"
+reportPrivateUsage = "none"
 # these errors are a bit annoying
 reportUnknownMemberType = "none"
 reportUnknownVariableType = "none"
 reportUnknownParameterType = "none"
 reportUnknownArgumentType = "none"
 reportUnnecessaryTypeIgnoreComment = "warning"
+ignore = ["conduit/hydra/**"]
 
 [tool.mypy]
 python_version = "3.8"
