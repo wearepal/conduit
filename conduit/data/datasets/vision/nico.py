@@ -5,7 +5,7 @@ from typing import ClassVar, List, Optional, Union, cast
 
 from PIL import Image, UnidentifiedImageError
 import pandas as pd
-from ranzen import StrEnum, parsable
+from ranzen import StrEnum, parsable, some
 import torch
 from torch import Tensor
 from typing_extensions import TypeAlias
@@ -83,7 +83,7 @@ class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
             self.metadata[["context", "context_le"]].set_index("context_le").to_dict()["context"]
         )
 
-        if self.superclass is not None:
+        if some(self.superclass):
             self.metadata = self.metadata[self.metadata["superclass"] == str(self.superclass)]
         # # Divide up the dataframe into its constituent arrays because indexing with pandas is
         # # substantially slower than indexing with numpy/torch
@@ -104,11 +104,8 @@ class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
             image_paths.extend(self._base_dir.glob(f"**/*.{ext}"))
         image_paths_str = [str(image.relative_to(self._base_dir)) for image in image_paths]
         filepaths = pd.Series(image_paths_str)
-        metadata = cast(
-            pd.DataFrame,
-            filepaths.str.split("/", expand=True).rename(
-                columns={0: "superclass", 1: "concept", 2: "context", 3: "filename"}
-            ),
+        metadata = filepaths.str.split("/", expand=True).rename(
+            columns={0: "superclass", 1: "concept", 2: "context", 3: "filename"}
         )
         metadata["filepath"] = filepaths
         metadata.sort_index(axis=1, inplace=True)
@@ -120,6 +117,7 @@ class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     def _label_encode_metadata(metadata: pd.DataFrame) -> pd.DataFrame:
         """Label encode the extracted concept/context/superclass information."""
         for col in metadata.columns:
+            col = cast(str, col)
             # Skip over filepath and filename columns
             if "file" not in col:
                 # Add a new column containing the label-encoded data

@@ -4,6 +4,7 @@ from typing import Optional, Tuple, Union
 from albumentations.pytorch import ToTensorV2  # type: ignore
 import numpy as np
 import pytest
+from ranzen import some
 import torch
 from torch import Tensor
 from torchvision import transforms as T  # type: ignore
@@ -54,7 +55,7 @@ def test_colorizer(
 ):
     """Test label dependent transforms."""
     image_shape = [4, 7, 7]
-    if num_channels is not None:
+    if some(num_channels):
         image_shape.insert(1, num_channels)
     images = torch.rand(*image_shape)
     labels = torch.randint(low=0, high=10, size=(len(images),))

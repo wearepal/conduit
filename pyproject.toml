@@ -110,7 +110,7 @@ mypy = "*"
 neoconfigen = {version = ">=2.3.3"}
 pre-commit = "*"
 pytest = "*"
-python-type-stubs = {git = "https://github.com/wearepal/python-type-stubs.git", rev = "2ea8053"}
+# python-type-stubs = {git = "https://github.com/wearepal/python-type-stubs.git", rev = "2ea8053"}
 pandas-stubs = "*"
 types-tqdm = "*"
 
