@@ -7,7 +7,7 @@ from typing_extensions import override
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.utils import stratified_split
-from conduit.data.datasets.vision import NICOPP, NicoPPTarget, SampleType
+from conduit.data.datasets.vision import NICOPP, ClassEnum, SampleType
 from conduit.data.structures import TrainValTestSplit
 
 __all__ = ["NICOPPDataModule"]
@@ -18,7 +18,7 @@ class NICOPPDataModule(CdtVisionDataModule[NICOPP, SampleType]):
     """Data-module for the NICO dataset."""
 
     image_size: int = 224
-    superclasses: Optional[List[NicoPPTarget]] = None
+    superclasses: Optional[List[ClassEnum]] = None
     make_biased: bool = True
 
     @property

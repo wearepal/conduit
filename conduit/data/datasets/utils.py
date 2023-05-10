@@ -68,6 +68,7 @@ __all__ = [
     "cdt_collate",
     "check_integrity",
     "download_from_gdrive",
+    "download_from_dropbox",
     "download_from_url",
     "extract_base_dataset",
     "extract_labels_from_dataset",
@@ -523,6 +524,49 @@ def download_from_gdrive(
             logger.info(f"Downloading file '{info.name}' from Google Drive.")
             gdown.cached_download(
                 url=f"https://drive.google.com/uc?id={info.id}",
+                path=str(filepath),
+                quiet=False,
+                md5=info.md5,
+            )
+        if filepath.suffix == ".zip":
+            if filepath.with_suffix("").exists():
+                logger.info(f"File '{info.name}' already unzipped.")
+            else:
+                check_integrity(filepath=filepath, md5=info.md5)
+                # ------------------------------ Unzip the data ------------------------------
+                import zipfile
+
+                logger.info(f"Unzipping '{filepath.resolve()}'; this could take a while.")
+                with zipfile.ZipFile(filepath, "r") as fhandle:
+                    fhandle.extractall(str(root))
+
+
+def download_from_dropbox(
+    *,
+    file_info: Union[GdriveFileInfo, List[GdriveFileInfo]],
+    root: Union[Path, str],
+    logger: Optional[logging.Logger] = None,
+) -> None:
+    """Attempt to download data if files cannot be found in the root directory."""
+
+    logger = logging.getLogger(__name__) if logger is None else logger
+
+    file_info_ls = file_info if isinstance(file_info, list) else [file_info]
+    if not isinstance(root, Path):
+        root = Path(root).expanduser()
+    # Create the specified root directory if it doesn't already exist
+    root.mkdir(parents=True, exist_ok=True)
+
+    for info in file_info_ls:
+        filepath = root / info.name
+        if filepath.exists():
+            logger.info(f"File '{info.name}' already downloaded.")
+        else:
+            import gdown  # type: ignore
+
+            logger.info(f"Downloading file '{info.name}' from DropBox.")
+            gdown.cached_download(
+                url=f"https://www.dropbox.com/sh/{info.id}",
                 path=str(filepath),
                 quiet=False,
                 md5=info.md5,
