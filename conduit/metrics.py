@@ -14,6 +14,7 @@ from typing import (
     overload,
 )
 
+from ranzen import some
 import torch
 from torch import Tensor
 
@@ -56,16 +57,6 @@ __all__ = [
 def hard_prediction(logits: Tensor) -> Tensor:
     logits = logits.squeeze(1) if logits.ndim == 2 else torch.atleast_1d(logits)
     return (logits > 0).long() if logits.ndim == 1 else logits.argmax(dim=1)
-
-
-@torch.no_grad()
-def accuracy(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
-    y_pred = torch.atleast_1d(y_pred.squeeze())
-    y_true = torch.atleast_1d(y_true.squeeze())
-    if len(y_pred) != len(y_true):
-        raise ValueError("'logits' and 'targets' must match in size at dimension 0.")
-    preds = hard_prediction(y_pred)
-    return (preds == y_true).float().mean()
 
 
 @torch.no_grad()
@@ -208,7 +199,7 @@ def merge_indices(
         raise TypeError("All index tensors must have dtype `torch.long'.")
     unique_vals, unique_inv = first_elem.unique(return_inverse=True)
     index_set = unique_inv
-    if cards is not None:
+    if some(cards):
         cards.append(len(unique_vals))
 
     for elem in group_ids_ls:
@@ -217,7 +208,7 @@ def merge_indices(
             raise TypeError("All index tensors must have dtype `torch.long'.")
         unique_vals, inv_indices = elem.unique(return_inverse=True)
         card = int(len(unique_vals))
-        if cards is not None:
+        if some(cards):
             cards.append(card)
         index_set *= card
         index_set += cast(Tensor, inv_indices)
@@ -287,7 +278,7 @@ def _apply_groupwise_metric(
     else:
         comps, comp_mask = res, slice(None)
 
-    if index_set is not None:
+    if some(index_set):
         res = index_set.max()
         scores = torch.scatter_reduce(
             input=nans(int(index_set.max() + 1)),
@@ -297,7 +288,7 @@ def _apply_groupwise_metric(
             reduce="mean",
             include_self=False,
         )
-        if aggregator is not None:
+        if some(aggregator):
             scores = aggregator(scores)
         return scores
 
@@ -423,12 +414,24 @@ def conditional_equal(
     y_true_cond: Optional[int] = None,
 ) -> Tuple[Tensor, Tensor]:
     mask = torch.ones_like(y_pred, dtype=torch.bool)
-    if y_pred_cond is not None:
+    if some(y_pred_cond):
         mask &= y_pred == y_pred_cond
-    if y_true_cond is not None:
+    if some(y_true_cond):
         mask &= y_true == y_true_cond
     comps = equal(y_pred=y_pred[mask], y_true=y_true[mask])
     return comps, mask
+
+
+@torch.no_grad()
+def accuracy(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
+    """Computes the (aggregate) accuracy given predicted and ground-truth labels.
+
+    :param y_pred: Predictions to be scored.
+    :param y_true: Ground truth (correct) labels.
+
+    :returns: Aggregate accuracy.
+    """
+    return Aggregator.MEAN(equal(y_pred=y_pred, y_true=y_true))
 
 
 robust_accuracy = subclasswise_metric(comparator=equal, aggregator=Aggregator.MIN)
@@ -550,7 +553,7 @@ def fscore(
         f1s = f1s.gather(0, rec_ids_u)
     f1s = f1s.nan_to_num_(nan=0.0)
 
-    if (inner_summand is not None) and (s is not None):
+    if some(inner_summand) and some(s):
         card_s = len(torch.unique(s))
         reduction_dim = int(inner_summand == "s")
         f1s = f1s.view(-1, card_s).nanmean(reduction_dim)
