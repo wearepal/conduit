@@ -431,7 +431,7 @@ def accuracy(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
 
     :returns: Aggregate accuracy.
     """
-    return Aggregator.MEAN(equal(y_pred=y_pred, y_true=y_true))
+    return Aggregator.MEAN(equal(y_pred=y_pred.squeeze(), y_true=y_true.squeeze()))
 
 
 robust_accuracy = subclasswise_metric(comparator=equal, aggregator=Aggregator.MIN)

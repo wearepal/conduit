@@ -18,14 +18,14 @@ def generator() -> torch.Generator:
     return torch.Generator().manual_seed(47)
 
 
-def assert_close(ref: Tensor | np.ndarray | float, res: Tensor | np.ndarray | float, /) -> None:
-    if isinstance(ref, (np.ndarray, float)):
-        ref = torch.as_tensor(ref, dtype=torch.float32)
-    if isinstance(res, (np.ndarray, float)):
-        res = torch.as_tensor(res, dtype=torch.float32)
-    ref = torch.nan_to_num(ref, nan=torch.inf)
-    res = torch.nan_to_num(res, nan=torch.inf)
-    torch.testing.assert_close(ref, res)
+def assert_close(a: Tensor | np.ndarray | float, b: Tensor | np.ndarray | float, /) -> None:
+    if isinstance(a, (np.ndarray, float)):
+        a = torch.as_tensor(a, dtype=torch.float32)
+    if isinstance(b, (np.ndarray, float)):
+        b = torch.as_tensor(b, dtype=torch.float32)
+    a = torch.nan_to_num(a, nan=torch.inf)
+    b = torch.nan_to_num(b, nan=torch.inf)
+    torch.testing.assert_close(a, b)
 
 
 @pytest.mark.filterwarnings("ignore::UserWarning")
@@ -51,6 +51,10 @@ def test_groupwise_metrics(
     card_sy = card_y * card_s
 
     hits = (y_pred == y_true).float()
+    acc = cdtm.accuracy(y_pred=y_pred, y_true=y_true)
+    acc_ref = hits.mean()
+    assert_close(acc, acc_ref)
+
     _, s_counts = s.unique(return_counts=True)
     sw_hits = cdtm.nans(NUM_SAMPLES, card_s).scatter_(-1, index=s, src=hits)
 
