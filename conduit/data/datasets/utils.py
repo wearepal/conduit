@@ -318,7 +318,10 @@ class cdt_collate:
                 # If we're in a background process, concatenate directly into a
                 # shared memory tensor to avoid an extra copy
                 numel = sum(x.numel() for x in batch)
-                storage = elem.storage()._new_shared(numel)
+                if hasattr(elem, "_typed_storage"):  # in PyTorch 2.0, it's called _typed_storage
+                    storage = elem._typed_storage()._new_shared(numel, device=elem.device)
+                else:
+                    storage = elem.storage()._new_shared(numel)
                 out = elem.new(storage).resize_(len(batch), *list(elem.size()))
             ndims = elem.dim()
             # If 'batch' is a sequence of sub-batched tensors we concatenate the elements along the
