@@ -3,7 +3,7 @@ from enum import Enum, auto
 from functools import cached_property
 import json
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Sequence, Set, Tuple, Union
+from typing import ClassVar, Dict, List, Literal, Optional, Sequence, Set, Tuple, Union
 
 import pandas as pd
 from ranzen import StrEnum, parsable
@@ -110,6 +110,8 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     SampleType: TypeAlias = TernarySample
     Superclass: TypeAlias = NicoPPTarget
     Subclass: TypeAlias = NicoPPAttr
+    data_split_seed: ClassVar[int] = 666  # this is the seed from the paper
+    num_samples_val_test: ClassVar[int] = 75  # this is the number from the paper
 
     @parsable
     def __init__(
@@ -188,7 +190,7 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         meta = json.load(open(self._base_dir / "dg_label_id_mapping.json", "r"))
 
         def _make_balanced_testset(
-            df: pd.DataFrame, seed: int = 666, verbose: bool = True, num_samples_val_test: int = 75
+            df: pd.DataFrame, seed: int, num_samples_val_test: int, verbose: bool = True
         ) -> pd.DataFrame:
             # each group has a test set size of (2/3 * num_samples_val_test) and a val set size of
             # (1/3 * num_samples_val_test); if total samples in original group < num_samples_val_test,
@@ -231,6 +233,8 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
                     )
         df = pd.DataFrame(all_data)
         df["g"] = df["a"] + df["y"] * len(attributes)
-        df = _make_balanced_testset(df)
+        df = _make_balanced_testset(
+            df, seed=self.data_split_seed, num_samples_val_test=self.num_samples_val_test
+        )
         df = df.drop(columns=["g"])
         df.to_csv(self._metadata_path, index=False)
