@@ -111,6 +111,8 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     SampleType: TypeAlias = TernarySample
     Superclass: TypeAlias = NicoPPTarget
     Subclass: TypeAlias = NicoPPAttr
+    Split: TypeAlias = NicoPPSplit
+
     data_split_seed: ClassVar[int] = 666  # this is the seed from the paper
     num_samples_val_test: ClassVar[int] = 75  # this is the number from the paper
     subpath: ClassVar[Path] = Path("public_dg_0416") / "train"
