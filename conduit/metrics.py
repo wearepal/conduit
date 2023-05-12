@@ -42,6 +42,7 @@ __all__ = [
     "robust_fscore",
     "robust_fscore_gap",
     "robust_gap",
+    "robust_sensitivity",
     "robust_tnr",
     "robust_tpr",
     "subclass_balanced_accuracy",
