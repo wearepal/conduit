@@ -184,13 +184,13 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
             return False
         return True
 
-    def _extract_metadata(self):
+    def _extract_metadata(self) -> None:
         self.logger.info("Generating metadata for NICO++...")
         attributes = ["autumn", "dim", "grass", "outdoor", "rock", "water"]  # 6 attrs, 60 labels
         meta = json.load(open(self._base_dir / "dg_label_id_mapping.json", "r"))
 
         def _make_balanced_testset(
-            df: pd.DataFrame, seed: int, num_samples_val_test: int, verbose: bool = True
+            df: pd.DataFrame, *, seed: int, num_samples_val_test: int, verbose: bool = True
         ) -> pd.DataFrame:
             # each group has a test set size of (2/3 * num_samples_val_test) and a val set size of
             # (1/3 * num_samples_val_test); if total samples in original group < num_samples_val_test,
