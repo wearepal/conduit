@@ -6,8 +6,7 @@ import attr
 from typing_extensions import override
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
-from conduit.data.datasets.utils import stratified_split
-from conduit.data.datasets.vision import NICOPP, NicoPPTarget, SampleType
+from conduit.data.datasets.vision import NICOPP, NicoPPSplit, NicoPPTarget, SampleType
 from conduit.data.structures import TrainValTestSplit
 
 __all__ = ["NICOPPDataModule"]
@@ -19,7 +18,6 @@ class NICOPPDataModule(CdtVisionDataModule[NICOPP, SampleType]):
 
     image_size: int = 224
     superclasses: Optional[List[NicoPPTarget]] = None
-    make_biased: bool = True
 
     @property
     @override
@@ -44,16 +42,9 @@ class NICOPPDataModule(CdtVisionDataModule[NICOPP, SampleType]):
 
     @override
     def _get_splits(self) -> TrainValTestSplit[NICOPP]:
-        all_data = NICOPP(root=self.root, superclasses=self.superclasses, transform=None)
-        train_val_prop = 1 - self.test_prop
-        train_val_data, test_data = stratified_split(
-            all_data,
-            default_train_prop=train_val_prop,
-            train_props=all_data.default_train_props if self.make_biased else None,
-            seed=self.seed,
-        )
-        val_data, train_data = train_val_data.random_split(
-            props=self.val_prop / train_val_prop, seed=self.seed
+        train_data, val_data, test_data = (
+            NICOPP(root=self.root, superclasses=self.superclasses, transform=None, split=split)
+            for split in NicoPPSplit
         )
 
         return TrainValTestSplit(train=train_data, val=val_data, test=test_data)
