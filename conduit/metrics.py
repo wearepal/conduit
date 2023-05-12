@@ -42,7 +42,7 @@ __all__ = [
     "robust_fscore",
     "robust_fscore_gap",
     "robust_gap",
-    "robust_sensitivity",
+    "robust_classwise_tpr",
     "robust_tnr",
     "robust_tpr",
     "subclass_balanced_accuracy",
@@ -443,7 +443,7 @@ robust_gap = subclasswise_metric(comparator=equal, aggregator=Aggregator.MAX_DIF
 group_balanced_accuracy = groupwise_metric(comparator=equal, aggregator=Aggregator.MEAN)
 accuracy_per_group = groupwise_metric(comparator=equal, aggregator=None)
 # Computes generalised TPR for each subclass and computes the minimum over the resulting set.
-robust_sensitivity = groupwise_metric(comparator=equal, aggregator=Aggregator.MIN)
+robust_classwise_tpr = groupwise_metric(comparator=equal, aggregator=Aggregator.MIN)
 
 accuracy_per_class = classwise_metric(comparator=equal, aggregator=None)
 balanced_accuracy = classwise_metric(
