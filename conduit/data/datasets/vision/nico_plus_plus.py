@@ -3,6 +3,7 @@ from enum import Enum, auto
 from functools import cached_property
 import json
 from pathlib import Path
+import random
 from typing import ClassVar, Dict, List, Literal, Optional, Sequence, Set, Tuple, Union
 
 import pandas as pd
@@ -112,6 +113,7 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     Subclass: TypeAlias = NicoPPAttr
     data_split_seed: ClassVar[int] = 666  # this is the seed from the paper
     num_samples_val_test: ClassVar[int] = 75  # this is the number from the paper
+    subpath: ClassVar[Path] = Path("public_dg_0416") / "train"
 
     @parsable
     def __init__(
@@ -176,9 +178,7 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         )
 
     def _check_unzipped(self) -> bool:
-        if not all(
-            (self._base_dir / "public_dg_0416" / "train" / attr).exists() for attr in NicoPPAttr
-        ):
+        if not all((self._base_dir / self.subpath / attr).exists() for attr in NicoPPAttr):
             return False
         if not (self._base_dir / "dg_label_id_mapping.json").exists():
             return False
@@ -190,12 +190,11 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         meta = json.load(open(self._base_dir / "dg_label_id_mapping.json", "r"))
 
         def _make_balanced_testset(
-            df: pd.DataFrame, *, seed: int, num_samples_val_test: int, verbose: bool = True
+            df: pd.DataFrame, *, seed: int, num_samples_val_test: int
         ) -> pd.DataFrame:
             # each group has a test set size of (2/3 * num_samples_val_test) and a val set size of
             # (1/3 * num_samples_val_test); if total samples in original group < num_samples_val_test,
             # val/test will still be split by 1:2, but no training samples remained
-            import random
 
             random.seed(seed)
             val_set, test_set = [], []
@@ -206,20 +205,21 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
                 split_size = min(len(curr_data), num_samples_val_test)
                 val_set += list(curr_data[: split_size // 3])
                 test_set += list(curr_data[split_size // 3 : split_size])
-            if verbose:
-                print(f"Val: {len(val_set)}\nTest: {len(test_set)}")
+            self.logger.info(f"Val: {len(val_set)}, Test: {len(test_set)}")
             assert len(set(val_set).intersection(set(test_set))) == 0
-            combined_set = dict(zip(val_set, [1 for _ in range(len(val_set))]))
-            combined_set.update(dict(zip(test_set, [2 for _ in range(len(test_set))])))
+            combined_set = dict(zip(val_set, [NicoPPSplit.VAL.value for _ in range(len(val_set))]))
+            combined_set.update(
+                dict(zip(test_set, [NicoPPSplit.TEST.value for _ in range(len(test_set))]))
+            )
             df["split"] = df["filename"].map(combined_set)
-            df["split"].fillna(0, inplace=True)
+            df["split"].fillna(NicoPPSplit.TRAIN.value, inplace=True)
             df["split"] = df.split.astype(int)
             return df
 
         all_data = []
         for c, attr in enumerate(attributes):
             for label in meta:
-                folder_path = self._base_dir / "public_dg_0416" / "train" / attr / label
+                folder_path = self._base_dir / self.subpath / attr / label
                 y = meta[label]
                 for img_path in Path(folder_path).glob("*.jpg"):
                     all_data.append(
