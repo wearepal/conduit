@@ -49,7 +49,7 @@ class RandomTabularDataset(CdtTabularDataset):
             s = torch.as_tensor(rng.integers(low=0, high=s_card, size=num_samples))
 
         super().__init__(
-            x=torch.as_tensor(feats.to_numpy()),
+            x=torch.as_tensor(feats.to_numpy(dtype=np.float32)),
             y=y,
             s=s,
             feature_groups=feature_groups,
