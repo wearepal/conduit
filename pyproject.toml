@@ -24,7 +24,7 @@ readme="README.md"
 [tool.poetry.dependencies]
 attrs = ">=21.2.0"
 numpy = "^1.22.3"
-pandas = "^1.3.3"
+pandas = ">=1.3.3,<3.0"
 python = ">=3.8.0,<3.12"
 ranzen = {version = ">=2.0.0"}
 scikit-learn = "^1.2.0"
@@ -45,7 +45,7 @@ hydra-core = {version = "^1.1.1", optional = true}
 # logging
 rich = {version = "^12.5.1", optional = true}
 # fair
-ethicml = {version = ">=1.0.2", extras = ["data"], optional = true}
+ethicml = {version = "^1.2.1", extras = ["data"], optional = true}
 
 [tool.poetry.group.download.dependencies]
 gdown = "^3.13.0"
@@ -69,7 +69,7 @@ rich = "^12.5.1"
 optional = true
 
 [tool.poetry.group.fair.dependencies]
-ethicml = ">=1.0.2"
+ethicml = "^1.2.1"
 
 [tool.poetry.extras]
 download = ["gdown", "kaggle"]
