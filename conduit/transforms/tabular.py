@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 import math
 from typing import ClassVar, List, Union, final
 
@@ -15,11 +15,12 @@ __all__ = [
 ]
 
 
-class TabularTransform:
+class TabularTransform(ABC):
     """PLaceholder base class."""
 
+    @abstractmethod
     def __call__(self, data: Tensor) -> Tensor:
-        ...
+        raise NotImplementedError()
 
 
 class TabularNormalize(TabularTransform):
@@ -92,6 +93,7 @@ class TabularNormalize(TabularTransform):
         return self.transform(data)
 
 
+@final
 class ZScoreNormalize(TabularNormalize):
     mean: Tensor
     std: Tensor
@@ -113,6 +115,7 @@ class ZScoreNormalize(TabularNormalize):
         return data
 
 
+@final
 class QuantileNormalize(TabularNormalize):
     iqr: Tensor
     median: Tensor
@@ -161,6 +164,7 @@ class QuantileNormalize(TabularNormalize):
         return data
 
 
+@final
 class MinMaxNormalize(TabularNormalize):
     orig_max: Tensor
     orig_min: Tensor
