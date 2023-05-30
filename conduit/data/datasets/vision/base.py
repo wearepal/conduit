@@ -2,13 +2,13 @@ from functools import reduce
 import operator
 from pathlib import Path
 from typing import List, Optional, Sequence, Union, cast, overload
+from typing_extensions import Self, TypeAlias, override
 
 import numpy as np
 import numpy.typing as npt
 from ranzen.types import Addable
 import torch
 from torch import Tensor
-from typing_extensions import Self, TypeAlias, override
 
 from conduit.data.datasets.base import CdtDataset, I, S, Y
 from conduit.data.datasets.vision.utils import (

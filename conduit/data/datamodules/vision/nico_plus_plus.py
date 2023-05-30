@@ -1,9 +1,9 @@
 """NICO++ data-module."""
 from typing import Any, List, Optional
+from typing_extensions import override
 
 import albumentations as A  # type: ignore
 import attr
-from typing_extensions import override
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision import NICOPP, NicoPPSplit, NicoPPTarget, SampleType

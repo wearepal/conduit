@@ -1,5 +1,6 @@
 from enum import auto
 from typing import Any, Dict, List, Mapping, Protocol, TypeVar, Union, runtime_checkable
+from typing_extensions import TypeAlias
 
 import numpy as np
 import numpy.typing as npt
@@ -8,7 +9,6 @@ from ranzen.torch.loss import ReductionType
 from torch import Tensor
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR
 from torchmetrics import Metric
-from typing_extensions import TypeAlias
 
 __all__ = [
     "IndexType",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 from enum import Enum
 from typing import Any, Callable, Dict, Optional, Union, cast
+from typing_extensions import TypeAlias, override
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.rich_progress import (
@@ -16,7 +17,6 @@ from rich.console import RenderableType
 from rich.progress import Task, TaskID, TextColumn
 from rich.table import Column
 from rich.text import Text
-from typing_extensions import TypeAlias, override
 
 __all__ = ["CdtProgressBar", "ProgressBarTheme"]
 

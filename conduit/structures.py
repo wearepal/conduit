@@ -1,7 +1,7 @@
 from typing import Dict, Union
+from typing_extensions import TypeAlias
 
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR
-from typing_extensions import TypeAlias
 
 from .types import METRIC_COLLECTION
 

@@ -1,13 +1,12 @@
 """Base class for vision datasets."""
 from abc import abstractmethod
 from pathlib import Path
-from typing import List, Optional, TypeVar, Union
+from typing import List, Optional, TypeVar, Union, final
+from typing_extensions import override
 
 import albumentations as A  # type: ignore
 from albumentations.pytorch import ToTensorV2  # type: ignore
 import attr
-from typing_extensions import final, override
-
 from torch import Tensor
 
 from conduit.data.constants import IMAGENET_STATS

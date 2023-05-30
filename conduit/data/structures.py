@@ -19,6 +19,7 @@ from typing import (
     overload,
     runtime_checkable,
 )
+from typing_extensions import Self, TypeAlias, override
 
 from PIL import Image
 import attr
@@ -28,7 +29,6 @@ from ranzen.misc import gcopy, reduce_add
 from ranzen.types import Addable
 import torch
 from torch import Tensor
-from typing_extensions import Self, TypeAlias, override
 
 from conduit.types import IndexType, Sized
 

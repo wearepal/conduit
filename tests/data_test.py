@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Optional, Tuple, Union
+from typing_extensions import Type
 
 from albumentations.pytorch import ToTensorV2  # type: ignore
 import numpy as np
@@ -7,7 +8,6 @@ import pytest
 import torch
 from torch import Tensor
 from torchvision import transforms as T  # type: ignore
-from typing_extensions import Type
 
 from conduit.data import (
     BinarySample,

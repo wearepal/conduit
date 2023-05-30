@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from typing import Generic, List, Optional, Sequence, Tuple, TypeVar, Union, overload
+from typing_extensions import Self, override
 
 from ranzen.misc import gcopy
 import torch
 from torch import Tensor
 import torchvision.transforms as T  # type: ignore
 import torchvision.transforms.functional as TF  # type: ignore
-from typing_extensions import Self, override
 
 from conduit.data.constants import IMAGENET_STATS
 from conduit.data.datasets.vision.utils import (

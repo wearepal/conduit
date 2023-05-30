@@ -2,6 +2,7 @@
 from enum import auto
 from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Tuple, Union, cast
+from typing_extensions import TypeAlias, override
 
 from PIL import Image
 import numpy as np
@@ -10,7 +11,6 @@ from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor
 from torchvision.datasets import MNIST  # type: ignore
-from typing_extensions import TypeAlias, override
 
 from conduit.data.structures import TernarySample
 from conduit.types import IndexType, NDArrayR

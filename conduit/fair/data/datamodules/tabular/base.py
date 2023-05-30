@@ -1,13 +1,12 @@
 """Tabular data-module."""
 from abc import abstractmethod
-from typing import Dict, List, Optional, Union, cast
+from typing import Dict, List, Optional, Union, cast, final
+from typing_extensions import override
 
 import attr
 import ethicml as em
 from ethicml.data import Dataset, FeatureOrder
 from sklearn.preprocessing import StandardScaler
-from typing_extensions import final, override
-
 from torch import Tensor
 
 from conduit.data.datamodules import CdtDataModule

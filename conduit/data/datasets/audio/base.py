@@ -1,12 +1,12 @@
 from pathlib import Path
 from typing import List, Optional, Union, overload
+from typing_extensions import override
 
 import numpy as np
 import numpy.typing as npt
 import torch
 from torch import Tensor
 import torchaudio  # type: ignore
-from typing_extensions import override
 
 from conduit.data.datasets.base import CdtDataset, I, S, Y
 from conduit.data.datasets.utils import (

@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Callable, Optional, Protocol, TypeVar, Union, cast
+from typing_extensions import Self
 
 import torch
 from torch import Tensor
@@ -7,7 +8,6 @@ from torch.autograd.function import Function, NestedIOFunction
 import torch.distributed
 import torch.nn as nn
 import torch.nn.functional as F
-from typing_extensions import Self
 
 __all__ = [
     "DecoupledContrastiveLoss",

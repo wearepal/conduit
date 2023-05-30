@@ -25,6 +25,7 @@ from typing import (
     cast,
     overload,
 )
+from typing_extensions import TypeAlias, TypeGuard, Unpack
 from zipfile import BadZipFile
 
 import numpy as np
@@ -45,7 +46,6 @@ from torchvision.datasets.utils import (  # type: ignore
     download_url,
     extract_archive,
 )
-from typing_extensions import TypeAlias, TypeGuard, Unpack
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.structures import (

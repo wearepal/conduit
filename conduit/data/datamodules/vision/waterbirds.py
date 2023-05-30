@@ -1,9 +1,9 @@
 """Waterbirds data-module."""
 from typing import Any
+from typing_extensions import override
 
 import albumentations as A  # type: ignore
 import attr
-from typing_extensions import override
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision.waterbirds import Waterbirds

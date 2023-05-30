@@ -1,13 +1,13 @@
 """ColoredMNIST data-module."""
 from functools import partial
 from typing import Any, Dict, List, Optional
+from typing_extensions import override
 
 import albumentations as A  # type: ignore
 from albumentations.pytorch.transforms import ToTensorV2  # type: ignore
 import attr
 import numpy as np
 from torchvision.datasets import MNIST  # type: ignore
-from typing_extensions import override
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision.cmnist import (

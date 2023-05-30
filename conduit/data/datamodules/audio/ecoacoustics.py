@@ -1,9 +1,9 @@
 """Ecoacoustics data-module."""
 from typing import Any, List, Optional, Sequence
+from typing_extensions import override
 
 import attr
 from torch.utils.data import Sampler
-from typing_extensions import override
 
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
 from conduit.data.datasets.utils import AudioTform, CdtDataLoader

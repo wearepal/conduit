@@ -1,6 +1,7 @@
 """Dummy data-module."""
-import attr
 from typing_extensions import override
+
+import attr
 
 from conduit.data import TrainValTestSplit
 from conduit.data.datamodules.vision import CdtVisionDataModule

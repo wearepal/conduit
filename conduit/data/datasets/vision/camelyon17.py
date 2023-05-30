@@ -1,13 +1,13 @@
 from enum import Enum, auto
 from pathlib import Path
 from typing import ClassVar, Optional, Union
+from typing_extensions import TypeAlias
 
 import pandas as pd
 from ranzen.decorators import parsable
 from ranzen.misc import StrEnum
 import torch
 from torch import Tensor
-from typing_extensions import TypeAlias
 
 from conduit.data.datasets import UrlFileInfo, download_from_url
 from conduit.data.structures import TernarySample

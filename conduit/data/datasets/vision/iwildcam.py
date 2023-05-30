@@ -1,11 +1,11 @@
 from pathlib import Path
 from typing import ClassVar, Optional, Union
+from typing_extensions import TypeAlias
 
 import pandas as pd
 from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor
-from typing_extensions import TypeAlias
 
 from conduit.data.datasets.utils import UrlFileInfo, download_from_url
 from conduit.data.structures import SubgroupSample, TernarySample

@@ -1,11 +1,11 @@
 """Base class for audio datasets."""
 from abc import abstractmethod
 from typing import Optional, final
+from typing_extensions import override
 
 import attr
 from torch import Tensor
 import torchaudio.transforms as T  # type: ignore
-from typing_extensions import override
 
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.audio.base import CdtAudioDataset

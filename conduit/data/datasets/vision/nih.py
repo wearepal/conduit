@@ -1,13 +1,13 @@
 from enum import Enum
 from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
+from typing_extensions import TypeAlias
 
 import pandas as pd
 from ranzen import parsable, str_to_enum
 from sklearn.preprocessing import MultiLabelBinarizer
 import torch
 from torch import Tensor
-from typing_extensions import TypeAlias
 
 from conduit.data.structures import TernarySample
 

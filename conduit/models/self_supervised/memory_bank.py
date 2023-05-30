@@ -1,9 +1,9 @@
 from typing import Optional, Type
+from typing_extensions import Self, override
 
 import torch
 from torch import Tensor, nn
 import torch.nn.functional as F
-from typing_extensions import Self, override
 
 from conduit.types import Indexable, IndexType, Sized
 

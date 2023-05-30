@@ -1,7 +1,7 @@
 from typing import Optional
+from typing_extensions import override
 
 import attr
-from typing_extensions import override
 
 from conduit.data import TrainValTestSplit
 from conduit.data.datamodules import CdtDataModule

@@ -12,13 +12,13 @@ from typing import (
     final,
     overload,
 )
+from typing_extensions import Self, override
 
 import numpy as np
 import numpy.typing as npt
 from ranzen.misc import gcopy
 import torch
 from torch import Tensor
-from typing_extensions import Self, override
 
 from conduit.data.structures import (
     BinarySample,

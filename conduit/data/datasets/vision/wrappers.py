@@ -1,11 +1,11 @@
 from dataclasses import replace
 from typing import Any, Optional, Tuple, Union
+from typing_extensions import override
 
 from PIL import Image
 import numpy as np
 import torch
 from torch import Tensor
-from typing_extensions import override
 
 from conduit.data.datasets.utils import extract_base_dataset
 from conduit.data.datasets.vision.base import CdtVisionDataset

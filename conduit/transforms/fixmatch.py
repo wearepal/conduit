@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import Callable, Generic, List, Optional, TypeVar, Union
+from typing_extensions import Self, override
 
 from PIL import Image
 import numpy as np
 from ranzen.misc import gcopy
 from torch import Tensor
-from typing_extensions import Self, override
 
 from conduit.data.datasets.vision.utils import ImageTform, apply_image_transform
 from conduit.data.structures import InputContainer, RawImage, concatenate_inputs

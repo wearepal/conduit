@@ -10,6 +10,7 @@ import math
 from pathlib import Path
 import shutil
 from typing import ClassVar, Final, List, Optional, Tuple, Union
+from typing_extensions import TypeAlias, override
 import zipfile
 
 import numpy as np
@@ -20,7 +21,6 @@ import torch
 from torch import Tensor
 import torchaudio  # type: ignore
 from tqdm import tqdm
-from typing_extensions import TypeAlias, override
 
 from conduit.data.datasets.audio.base import CdtAudioDataset
 from conduit.data.datasets.utils import AudioTform, UrlFileInfo, download_from_url

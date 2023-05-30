@@ -1,10 +1,10 @@
 from typing import Optional
+from typing_extensions import TypeAlias, override
 
 import numpy as np
 import numpy.typing as npt
 import torch
 from torch import Tensor
-from typing_extensions import TypeAlias, override
 
 from conduit.data.structures import TernarySample
 from conduit.types import IndexType
