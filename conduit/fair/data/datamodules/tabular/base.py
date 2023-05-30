@@ -1,22 +1,23 @@
 """Tabular data-module."""
 from abc import abstractmethod
-from typing import Dict, List, Optional, Union, cast
+from typing import Dict, List, Optional, Union, cast, final
+from typing_extensions import override
 
 import attr
 import ethicml as em
 from ethicml.data import Dataset, FeatureOrder
 from sklearn.preprocessing import StandardScaler
-from typing_extensions import final, override
+from torch import Tensor
 
 from conduit.data.datamodules import CdtDataModule
-from conduit.data.structures import TrainValTestSplit
+from conduit.data.structures import TernarySample, TrainValTestSplit
 from conduit.fair.data.datasets import DataTupleDataset
 
 __all__ = ["EthicMlDataModule"]
 
 
 @attr.define(kw_only=True)
-class EthicMlDataModule(CdtDataModule):
+class EthicMlDataModule(CdtDataModule[DataTupleDataset, TernarySample[Tensor]]):
     """Base data-module for tabular datasets."""
 
     scaler: em.ScalerType = attr.field(factory=StandardScaler)

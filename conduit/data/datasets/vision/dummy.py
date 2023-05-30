@@ -1,12 +1,13 @@
 from typing import Optional
+from typing_extensions import TypeAlias, override
 
 import numpy as np
 import numpy.typing as npt
 import torch
 from torch import Tensor
-from typing_extensions import TypeAlias, override
 
 from conduit.data.structures import TernarySample
+from conduit.types import IndexType
 
 from .base import CdtVisionDataset
 
@@ -32,7 +33,7 @@ class DummyVisionDataset(CdtVisionDataset[SampleType, Tensor, Tensor]):
         super().__init__(x=x, s=s, y=y, image_dir="")
 
     @override
-    def _load_image(self, index: int) -> npt.NDArray[np.uint8]:
+    def _load_image(self, index: IndexType) -> npt.NDArray[np.uint8]:
         return np.random.randint(
             0, 256, size=(self.height, self.width, self.channels), dtype="uint8"
         )

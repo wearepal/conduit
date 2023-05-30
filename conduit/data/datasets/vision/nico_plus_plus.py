@@ -5,12 +5,12 @@ import json
 from pathlib import Path
 import random
 from typing import ClassVar, Dict, List, Literal, Optional, Sequence, Set, Tuple, Union
+from typing_extensions import TypeAlias
 
 import pandas as pd
 from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor
-from typing_extensions import TypeAlias
 
 from conduit.data.structures import TernarySample
 

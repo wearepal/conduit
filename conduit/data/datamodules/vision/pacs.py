@@ -1,9 +1,9 @@
 """PACS datamodule."""
 from typing import Any
+from typing_extensions import override
 
 import albumentations as A  # type: ignore
 import attr
-from typing_extensions import override
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision.pacs import PACS, SampleType
@@ -13,7 +13,7 @@ __all__ = ["PACSDataModule"]
 
 
 @attr.define(kw_only=True)
-class PACSDataModule(CdtVisionDataModule[PACS, SampleType]):
+class PACSDataModule(CdtVisionDataModule[SampleType]):
     """PyTorch Lightning Datamodule for the PACS dataset."""
 
     image_size: int = 224
@@ -41,7 +41,7 @@ class PACSDataModule(CdtVisionDataModule[PACS, SampleType]):
         PACS(root=self.root, download=True)
 
     @override
-    def _get_splits(self) -> TrainValTestSplit[PACS]:
+    def _get_image_splits(self) -> TrainValTestSplit[PACS]:
         all_data = PACS(root=self.root, domains=None, transform=None)
         train_val_data, test_data = all_data.domain_split(target_domains=self.target_domain)
         val_data, train_data = train_val_data.random_split(props=self.val_prop, seed=self.seed)

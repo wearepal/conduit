@@ -1,7 +1,8 @@
 """Base class from which all data-modules in conduit inherit."""
 from abc import abstractmethod
 import logging
-from typing import Generic, Optional, Sequence, Tuple, TypeVar, cast, final
+from typing import Generic, Optional, Sequence, Tuple, TypeVar, Union, cast, final
+from typing_extensions import override
 
 import attr
 import pytorch_lightning as pl
@@ -9,7 +10,6 @@ from ranzen.torch import SequentialBatchSampler, StratifiedBatchSampler, Trainin
 from ranzen.torch.data import num_batches_per_epoch
 import torch
 from torch.utils.data import Sampler
-from typing_extensions import override
 
 from conduit.data.datasets.base import CdtDataset
 from conduit.data.datasets.utils import (
@@ -30,7 +30,7 @@ from conduit.types import Stage
 __all__ = ["CdtDataModule"]
 
 D = TypeVar("D", bound=SizedDataset)
-I = TypeVar("I", bound=NamedSample)
+I = TypeVar("I", bound=NamedSample, covariant=True)
 
 
 @attr.define(kw_only=True)
@@ -82,7 +82,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     _val_data_base: Optional[Dataset] = attr.field(default=None, init=False)
     _test_data_base: Optional[Dataset] = attr.field(default=None, init=False)
 
-    _train_data: Optional[D] = attr.field(default=None, init=False)
+    _train_data: Union[None, D, InstanceWeightedDataset] = attr.field(default=None, init=False)
     _val_data: Optional[D] = attr.field(default=None, init=False)
     _test_data: Optional[D] = attr.field(default=None, init=False)
     _card_s: Optional[int] = attr.field(default=None, init=False)
@@ -200,7 +200,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
         return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.test_data)
 
     @property
-    def dim_x(self) -> Tuple[int, ...]:
+    def dim_x(self) -> Sequence[int]:
         """
         Returns the dimensions of the first input (x).
 
@@ -212,7 +212,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
             self._dim_x = input_size
         return self._dim_x
 
-    def size(self) -> Tuple[int, ...]:
+    def size(self) -> Sequence[int]:
         """Alias for ``dim_x``.
 
         :returns: Tuple containing the dimensions of the (first) input.
@@ -222,7 +222,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     @final
     def _num_samples(self, dataset: D) -> int:
         if hasattr(dataset, "__len__"):
-            return len(dataset)
+            return len(dataset)  # type: ignore
         raise AttributeError(
             "Number of samples cannot be determined as dataset of type"
             f" '{dataset.__class__.__name__}' has no '__len__' attribute defined."
@@ -332,7 +332,11 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
 
     @override
     @final
-    def setup(self, stage: Optional[Stage] = None, force_reset: bool = False) -> None:
+    def setup(  # type: ignore
+        self,
+        stage: Optional[Stage] = None,
+        force_reset: bool = False,
+    ) -> None:
         # Only perform the setup if it hasn't already been done
         if force_reset or (not self.is_set_up):
             self._setup(stage=stage)

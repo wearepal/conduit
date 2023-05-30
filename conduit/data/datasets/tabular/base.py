@@ -5,14 +5,14 @@ import numpy.typing as npt
 import torch
 from torch.functional import Tensor
 
-from conduit.data.datasets.base import CdtDataset
+from conduit.data.datasets.base import CdtDataset, I, S, Y
 from conduit.data.structures import TargetData
 from conduit.transforms.tabular import TabularTransform
 
 __all__ = ["CdtTabularDataset"]
 
 
-class CdtTabularDataset(CdtDataset):
+class CdtTabularDataset(CdtDataset[I, Tensor, Y, S]):
     x: Tensor
 
     def __init__(

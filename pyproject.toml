@@ -148,9 +148,9 @@ exclude = '''
 )
 '''
 [tool.isort]
-known_third_party = ["PIL", "albumentations", "attr", "cv2", "ethicml", "hydra", "numpy", "omegaconf", "pandas", "pytest", "pytorch_lightning", "ranzen", "requests", "rich", "sklearn", "torch", "torchaudio", "torchmetrics", "torchvision", "tqdm", "typing_extensions"]
+known_third_party = ["PIL", "albumentations", "attr", "cv2", "ethicml", "hydra", "numpy", "omegaconf", "pandas", "pytest", "pytorch_lightning", "ranzen", "requests", "rich", "sklearn", "torch", "torchaudio", "torchmetrics", "torchvision", "tqdm"]
 known_future_library = []
-extra_standard_library = ["dataclasses", "__future__", "typing_extensions"]
+extra_standard_library = ["__future__", "typing_extensions"]
 line_length = 88
 profile = "black"
 force_sort_within_sections = "True"
@@ -164,12 +164,15 @@ reportCallInDefaultInitializer = "warning"
 reportPropertyTypeMismatch = "none"
 reportUninitializedInstanceVariable = "warning"
 reportPrivateUsage = "none"
+reportUnnecessaryTypeIgnoreComment = "warning"
+reportUnnecessaryIsInstance = "warning"
+reportUnnecessaryCast = "warning"
+reportUnnecessaryComparison = "warning"
 # these errors are a bit annoying
 reportUnknownMemberType = "none"
 reportUnknownVariableType = "none"
 reportUnknownParameterType = "none"
 reportUnknownArgumentType = "none"
-reportUnnecessaryTypeIgnoreComment = "warning"
 ignore = ["conduit/hydra/**"]
 
 [tool.mypy]

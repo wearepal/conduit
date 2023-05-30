@@ -1,5 +1,6 @@
-from torch import Tensor, nn
 from typing_extensions import override
+
+from torch import Tensor, nn
 
 from conduit.types import Loss
 

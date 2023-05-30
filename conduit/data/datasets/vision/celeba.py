@@ -2,13 +2,13 @@
 from enum import Enum
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union
+from typing_extensions import TypeAlias
 
 import numpy as np
 import pandas as pd
 from ranzen import parsable
 import torch
 from torch import Tensor
-from typing_extensions import TypeAlias
 
 from conduit.data.datasets import GdriveFileInfo, download_from_gdrive
 from conduit.data.structures import TernarySample

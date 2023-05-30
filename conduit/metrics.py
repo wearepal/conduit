@@ -255,7 +255,7 @@ def _apply_groupwise_metric(
     """
     y_pred = y_pred.squeeze()
     y_true = y_true.squeeze()
-    index_set = None
+    index_set: Optional[Tensor] = None
 
     if group_ids:
         group_ids_ls = list(group_ids)

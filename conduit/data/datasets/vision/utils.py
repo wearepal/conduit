@@ -1,6 +1,7 @@
 """Utils for vision datasets."""
 from pathlib import Path
 from typing import Any, Callable, Literal, Optional, Union, get_args, overload
+from typing_extensions import TypeAlias
 
 from PIL import Image
 import albumentations as A  # type: ignore
@@ -10,7 +11,6 @@ import numpy.typing as npt
 import torch
 from torch import Tensor
 from torchvision.transforms import functional as TF  # type: ignore
-from typing_extensions import TypeAlias
 
 from conduit.data.structures import RawImage
 

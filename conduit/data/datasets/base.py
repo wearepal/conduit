@@ -12,13 +12,13 @@ from typing import (
     final,
     overload,
 )
+from typing_extensions import Self, override
 
 import numpy as np
 import numpy.typing as npt
 from ranzen.misc import gcopy
 import torch
 from torch import Tensor
-from typing_extensions import Self, override
 
 from conduit.data.structures import (
     BinarySample,
@@ -39,7 +39,7 @@ __all__ = ["CdtDataset", "I", "S", "X", "Y"]
 X = TypeVar("X", bound=UnloadedData)
 S = TypeVar("S", bound=Optional[Tensor])
 Y = TypeVar("Y", bound=Optional[Tensor])
-I = TypeVar("I", bound=NamedSample)
+I = TypeVar("I", bound=NamedSample, covariant=True)
 
 
 class CdtDataset(SizedDataset, Generic[I, X, Y, S]):

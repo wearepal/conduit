@@ -1,9 +1,9 @@
 """Camelyon17 data-module."""
 from typing import Any
+from typing_extensions import override
 
 import albumentations as A  # type: ignore
 import attr
-from typing_extensions import override
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision.camelyon17 import (
@@ -19,7 +19,7 @@ __all__ = ["Camelyon17DataModule"]
 
 
 @attr.define(kw_only=True)
-class Camelyon17DataModule(CdtVisionDataModule[Camelyon17, SampleType]):
+class Camelyon17DataModule(CdtVisionDataModule[SampleType]):
     """Data-module for the Camelyon17 dataset."""
 
     image_size: int = 96
@@ -61,7 +61,7 @@ class Camelyon17DataModule(CdtVisionDataModule[Camelyon17, SampleType]):
         return A.Compose([base_transforms, normalization])
 
     @override
-    def _get_splits(self) -> TrainValTestSplit[Camelyon17]:
+    def _get_image_splits(self) -> TrainValTestSplit[Camelyon17]:
         # Split the data according to the pre-defined split indices
         if self.use_predefined_splits:
             train_data, val_data, test_data = (

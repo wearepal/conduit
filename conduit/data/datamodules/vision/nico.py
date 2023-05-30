@@ -1,9 +1,9 @@
 """NICO data-module."""
 from typing import Any, Optional
+from typing_extensions import override
 
 import albumentations as A  # type: ignore
 import attr
-from typing_extensions import override
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.utils import stratified_split
@@ -14,7 +14,7 @@ __all__ = ["NICODataModule"]
 
 
 @attr.define(kw_only=True)
-class NICODataModule(CdtVisionDataModule[NICO, SampleType]):
+class NICODataModule(CdtVisionDataModule[SampleType]):
     """Data-module for the NICO dataset."""
 
     image_size: int = 224
@@ -43,7 +43,7 @@ class NICODataModule(CdtVisionDataModule[NICO, SampleType]):
         NICO(root=self.root, download=True)
 
     @override
-    def _get_splits(self) -> TrainValTestSplit[NICO]:
+    def _get_image_splits(self) -> TrainValTestSplit[NICO]:
         all_data = NICO(root=self.root, superclass=self.superclass, transform=None)
         train_val_prop = 1 - self.test_prop
         train_val_data, test_data = stratified_split(

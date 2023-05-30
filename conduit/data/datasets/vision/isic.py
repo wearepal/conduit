@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 from typing import ClassVar, Iterable, Iterator, List, Optional, TypeVar, Union
+from typing_extensions import TypeAlias
 import zipfile
 
 from PIL import Image
@@ -16,7 +17,6 @@ import requests
 import torch
 from torch import Tensor
 from tqdm import tqdm
-from typing_extensions import TypeAlias
 
 from conduit.data.structures import TernarySample
 

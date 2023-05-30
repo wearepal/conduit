@@ -2,13 +2,13 @@ from functools import reduce
 import operator
 from pathlib import Path
 from typing import List, Optional, Sequence, Union, cast, overload
+from typing_extensions import Self, TypeAlias, override
 
 import numpy as np
 import numpy.typing as npt
 from ranzen.types import Addable
 import torch
 from torch import Tensor
-from typing_extensions import Self, TypeAlias, override
 
 from conduit.data.datasets.base import CdtDataset, I, S, Y
 from conduit.data.datasets.vision.utils import (
@@ -92,6 +92,7 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
                 sample_ls = cast(List[Tensor], sample_ls)
                 return torch.stack(sample_ls, dim=0)
             elif isinstance(sample_ls[0], np.ndarray):
+                sample_ls = cast(List[np.ndarray], sample_ls)
                 return np.stack(sample_ls, axis=0)
             return sample_ls
 
@@ -108,6 +109,7 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
     def subset(
         self,
         indices: Union[List[int], npt.NDArray[np.uint64], Tensor, slice],
+        *,
         deep: bool = False,
         transform: Optional[ImageTform] = None,
     ) -> Self:
