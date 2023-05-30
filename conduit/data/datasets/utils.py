@@ -742,12 +742,12 @@ def stratified_split(
     test_inds = perm_inds[torch.cat(train_test_inds[1::2])]
 
     if as_indices:
-        return TrainTestSplit(train=train_inds.tolist(), test=test_inds.tolist())
+        return TrainTestSplit[List[int]](train=train_inds.tolist(), test=test_inds.tolist())
 
     train_data = make_subset(dataset=dataset, indices=train_inds)
     test_data = make_subset(dataset=dataset, indices=test_inds)
 
-    return TrainTestSplit(train=train_data, test=test_data)
+    return TrainTestSplit[PCD](train=train_data, test=test_data)
 
 
 def is_tensor_list(ls: List[Any]) -> TypeGuard[List[Tensor]]:

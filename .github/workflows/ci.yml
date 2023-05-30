@@ -26,6 +26,7 @@ jobs:
     - name: Lint with darglint
       run: |
         darglint --verbosity 2 --docstring-style sphinx -z long conduit
+
   test_minimal_dependencies:
     needs: [linters]
     runs-on: ubuntu-latest
@@ -66,15 +67,16 @@ jobs:
       run: |
         poetry env use 3.8
         poetry install --no-interaction --no-root --with torch --with fair
-    # - name: Setup node.js (for pyright)
-    #   uses: actions/setup-node@v1
-    #   with:
-    #     node-version: "14"
-    # - name: Run type checking
-    #   run: |
-    #    npm install -g pyright
-    #    pyright conduit
-    #    pyright tests
+    - name: Setup node.js (for pyright)
+      uses: actions/setup-node@v3
+      with:
+        node-version: "18"
+    - name: Install pyright
+      run: npm install -g pyright
+    - name: Run pyright
+      run: |
+        poetry run pyright conduit
+        poetry run pyright tests
     - name: Test with pytest
       run: |
         poetry run python -m pytest -vv tests/

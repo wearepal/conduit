@@ -26,22 +26,22 @@ class DummyModel(pl.LightningModule):
     def configure_optimizers(self) -> torch.optim.Optimizer:
         return torch.optim.AdamW(self.model.parameters())
 
-    def training_step(self, sample: TernarySample[Tensor], *args) -> Tensor:
+    def training_step(self, sample: TernarySample[Tensor], *args) -> Tensor:  # type: ignore
         logits = self.model(sample.x)
         time.sleep(self.wait_time)
         return cross_entropy_loss(logits, target=sample.y)
 
-    def validation_step(self, sample: TernarySample[Tensor], *args) -> Tensor:
+    def validation_step(self, sample: TernarySample[Tensor], *args) -> Tensor:  # type: ignore
         logits = self.model(sample.x)
         time.sleep(self.wait_time)
         return cross_entropy_loss(logits, target=sample.y)
 
-    def test_step(self, sample: TernarySample[Tensor], *args) -> Tensor:
+    def test_step(self, sample: TernarySample[Tensor], *args) -> Tensor:  # type: ignore
         logits = self.model(sample.x)
         time.sleep(self.wait_time)
         return cross_entropy_loss(logits, target=sample.y)
 
-    def predict_step(self, sample: TernarySample[Tensor], *args) -> Tensor:
+    def predict_step(self, sample: TernarySample[Tensor], *args) -> Tensor:  # type: ignore
         time.sleep(self.wait_time)
         return self.model(sample.x).argmax(dim=1)
 

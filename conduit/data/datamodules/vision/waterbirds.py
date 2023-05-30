@@ -13,7 +13,7 @@ __all__ = ["WaterbirdsDataModule"]
 
 
 @attr.define(kw_only=True)
-class WaterbirdsDataModule(CdtVisionDataModule[Waterbirds, Waterbirds.SampleType]):
+class WaterbirdsDataModule(CdtVisionDataModule[Waterbirds.SampleType]):
     """Data-module for the Waterbirds dataset."""
 
     image_size: int = 224
@@ -45,7 +45,7 @@ class WaterbirdsDataModule(CdtVisionDataModule[Waterbirds, Waterbirds.SampleType
         return self._default_train_transforms
 
     @override
-    def _get_splits(self) -> TrainValTestSplit[Waterbirds]:
+    def _get_image_splits(self) -> TrainValTestSplit[Waterbirds]:
         # Split the data according to the pre-defined split indices
         if self.use_predefined_splits:
             train_data, val_data, test_data = (

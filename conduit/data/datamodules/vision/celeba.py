@@ -18,7 +18,7 @@ __all__ = ["CelebADataModule"]
 
 
 @attr.define(kw_only=True)
-class CelebADataModule(CdtVisionDataModule[CelebA, SampleType]):
+class CelebADataModule(CdtVisionDataModule[SampleType]):
     """Data-module for the CelebA dataset."""
 
     image_size: int = 224
@@ -48,7 +48,7 @@ class CelebADataModule(CdtVisionDataModule[CelebA, SampleType]):
         return self._default_train_transforms
 
     @override
-    def _get_splits(self) -> TrainValTestSplit[CelebA]:
+    def _get_image_splits(self) -> TrainValTestSplit[CelebA]:
         # Split the data according to the pre-defined split indices
         if self.use_predefined_splits:
             train_data, val_data, test_data = (

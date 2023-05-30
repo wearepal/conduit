@@ -1,4 +1,5 @@
 """Base class for vision datasets."""
+from abc import abstractmethod
 from pathlib import Path
 from typing import List, Optional, TypeVar, Union
 
@@ -6,6 +7,8 @@ import albumentations as A  # type: ignore
 from albumentations.pytorch import ToTensorV2  # type: ignore
 import attr
 from typing_extensions import final, override
+
+from torch import Tensor
 
 from conduit.data.constants import IMAGENET_STATS
 from conduit.data.datamodules.base import CdtDataModule
@@ -15,9 +18,8 @@ from conduit.data.datasets.vision import (
     ImageTform,
     ImageTransformer,
 )
-from conduit.data.datasets.wrappers import InstanceWeightedDataset
-from conduit.data.structures import ImageSize, MeanStd, SizedDataset
-from conduit.types import Stage
+from conduit.data.datasets.vision.base import CdtVisionDataset
+from conduit.data.structures import ImageSize, MeanStd, SizedDataset, TrainValTestSplit
 
 __all__ = ["CdtVisionDataModule"]
 
@@ -25,7 +27,7 @@ D = TypeVar("D", bound=SizedDataset)
 
 
 @attr.define(kw_only=True)
-class CdtVisionDataModule(CdtDataModule[D, I]):
+class CdtVisionDataModule(CdtDataModule[ImageTransformer, I]):
     root: Union[str, Path] = attr.field(kw_only=False)
     _train_transforms: Optional[ImageTform] = None
     _test_transforms: Optional[ImageTform] = None
@@ -87,6 +89,7 @@ class CdtVisionDataModule(CdtDataModule[D, I]):
         """
         return ImageSize(*super().dim_x)
 
+    @override
     def size(self) -> ImageSize:
         """Alias for ``dim_x``.
 
@@ -102,12 +105,15 @@ class CdtVisionDataModule(CdtDataModule[D, I]):
         transform_ls.append(ToTensorV2())
         return A.Compose(transform_ls)
 
+    @abstractmethod
+    def _get_image_splits(self) -> TrainValTestSplit[CdtVisionDataset[I, Tensor, Tensor]]:
+        ...
+
     @override
-    def _setup(self, stage: Optional[Stage] = None) -> None:
-        train, val, test = self._get_splits()
-        train = ImageTransformer(train, transform=self.train_transforms)
-        if self.instance_weighting:
-            train = InstanceWeightedDataset(train)
-        self._train_data = train
-        self._val_data = ImageTransformer(val, transform=self.test_transforms)
-        self._test_data = ImageTransformer(test, transform=self.test_transforms)
+    def _get_splits(self) -> TrainValTestSplit[ImageTransformer]:
+        train, val, test = self._get_image_splits()
+        return TrainValTestSplit(
+            train=ImageTransformer(train, transform=self.train_transforms),
+            val=ImageTransformer(val, transform=self.test_transforms),
+            test=ImageTransformer(test, transform=self.test_transforms),
+        )

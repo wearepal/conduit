@@ -13,7 +13,7 @@ from torchvision.datasets import MNIST  # type: ignore
 from typing_extensions import TypeAlias, override
 
 from conduit.data.structures import TernarySample
-from conduit.types import NDArrayR
+from conduit.types import IndexType, NDArrayR
 
 from .base import CdtVisionDataset
 from .utils import ImageTform, RawImage
@@ -145,11 +145,11 @@ def _filter_data_by_labels(
     data: Tensor,
     *,
     targets: Tensor,
-    label_map: Dict[str, int],
+    label_map: Dict[int, int],
 ) -> Tuple[Tensor, Tensor]:
     final_mask = torch.zeros_like(targets).bool()
     for old_label, new_label in label_map.items():
-        mask = targets == int(old_label)
+        mask = targets == old_label
         targets[mask] = new_label
         final_mask |= mask
     return data[final_mask], targets[final_mask]
@@ -164,7 +164,7 @@ SampleType: TypeAlias = TernarySample
 
 
 class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
-    x: npt.NDArray[np.floating]
+    x: npt.NDArray[np.uint8]
 
     @parsable
     def __init__(
@@ -173,7 +173,7 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
         *,
         download: bool = True,
         transform: Optional[ImageTform] = None,
-        label_map: Optional[Dict[str, int]] = None,
+        label_map: Optional[Dict[int, int]] = None,
         colors: Optional[List[int]] = None,
         num_colors: int = 10,
         scale: float = 0.2,
@@ -208,7 +208,7 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
 
         if isinstance(self.split, ColoredMNISTSplit):
             base_dataset = MNIST(
-                root=str(root), download=download, train=self.split is ColoredMNISTSplit.train
+                root=str(root), download=download, train=self.split is ColoredMNISTSplit.TRAIN
             )
             x = base_dataset.data
             y = base_dataset.targets
@@ -265,8 +265,8 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
         super().__init__(x=x_colorized, y=y, s=s, transform=transform, image_dir=root)
 
     @override
-    def _load_image(self, index: int) -> RawImage:
+    def _load_image(self, index: IndexType) -> RawImage:
         image = self.x[index]
         if self._il_backend == "pillow":
-            image = Image.fromarray(image)
+            return Image.fromarray(image)
         return image

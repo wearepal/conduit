@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Callable, Optional, TypeVar, Union, cast
+from typing import Callable, Optional, Protocol, TypeVar, Union, cast
 
 import torch
 from torch import Tensor
@@ -20,10 +20,15 @@ __all__ = [
 ]
 
 
+class _BatchStore(Protocol):
+    batch_size: int
+
+
 class _Synchronize(Function):
     @staticmethod
-    def forward(ctx: NestedIOFunction, tensor: Tensor) -> Tensor:
-        ctx.batch_size = tensor.shape[0]
+    def forward(ctx: NestedIOFunction, tensor: Tensor) -> Tensor:  # type: ignore
+        context = cast(_BatchStore, ctx)
+        context.batch_size = tensor.shape[0]
 
         gathered_tensor = [
             torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())
@@ -35,17 +40,18 @@ class _Synchronize(Function):
         return gathered_tensor
 
     @staticmethod
-    def backward(ctx: NestedIOFunction, grad_output: Tensor) -> Tensor:
+    def backward(ctx: NestedIOFunction, grad_output: Tensor) -> Tensor:  # type: ignore
+        context = cast(_BatchStore, ctx)
         grad_input = grad_output.clone()
         torch.distributed.all_reduce(grad_input, op=torch.distributed.ReduceOp.SUM, async_op=False)
-        idx_from = torch.distributed.get_rank() * ctx.batch_size
-        idx_to = (torch.distributed.get_rank() + 1) * ctx.batch_size
+        idx_from = torch.distributed.get_rank() * context.batch_size
+        idx_to = (torch.distributed.get_rank() + 1) * context.batch_size
         return grad_input[idx_from:idx_to]
 
 
 def maybe_synchronize(input: Tensor) -> Tensor:
     if torch.distributed.is_available() and torch.distributed.is_initialized():
-        return _Synchronize.apply(input)
+        return _Synchronize.apply(input)  # type: ignore
     return input
 
 

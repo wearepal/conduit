@@ -39,7 +39,7 @@ __all__ = ["CdtDataset", "I", "S", "X", "Y"]
 X = TypeVar("X", bound=UnloadedData)
 S = TypeVar("S", bound=Optional[Tensor])
 Y = TypeVar("Y", bound=Optional[Tensor])
-I = TypeVar("I", bound=NamedSample)
+I = TypeVar("I", bound=NamedSample, covariant=True)
 
 
 class CdtDataset(SizedDataset, Generic[I, X, Y, S]):

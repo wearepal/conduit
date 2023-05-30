@@ -19,7 +19,7 @@ X = TypeVar("X", bound=Union[Tensor, RawImage, List[Image.Image]])
 
 
 @dataclass
-class FixMatchPair(InputContainer[X]):
+class FixMatchPair(InputContainer, Generic[X]):
     strong: X
     weak: X
 

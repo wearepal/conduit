@@ -32,7 +32,7 @@ __all__ = [
 
 
 @dataclass
-class MultiViewPair(InputContainer[Tensor]):
+class MultiViewPair(InputContainer):
     v1: Tensor
     v2: Tensor
 
@@ -77,7 +77,7 @@ class MultiViewPair(InputContainer[Tensor]):
 
 
 @dataclass
-class MultiCropOutput(InputContainer[MultiViewPair]):
+class MultiCropOutput(InputContainer):
     global_views: MultiViewPair
     local_views: Tensor
 

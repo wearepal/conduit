@@ -24,7 +24,8 @@ from typing_extensions import TypeAlias, override
 
 from conduit.data.datasets.audio.base import CdtAudioDataset
 from conduit.data.datasets.utils import AudioTform, UrlFileInfo, download_from_url
-from conduit.data.structures import TernarySample
+from conduit.data.structures import BinarySample
+from conduit.types import IndexType
 
 __all__ = ["Ecoacoustics", "SoundscapeAttr"]
 
@@ -37,7 +38,7 @@ class SoundscapeAttr(StrEnum):
     N0 = "N0"
 
 
-SampleType: TypeAlias = TernarySample
+SampleType: TypeAlias = BinarySample
 
 
 class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
@@ -251,7 +252,8 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         )
 
     @override
-    def load_sample(self, index: int) -> Tensor:
+    def load_sample(self, index: IndexType) -> Tensor:
+        assert isinstance(index, int)
         path = self.audio_dir / self.x[index]
 
         # get metadata first

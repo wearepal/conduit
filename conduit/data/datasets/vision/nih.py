@@ -97,7 +97,7 @@ class NIHChestXRays(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         subgroup: Union[NIHSubgroup, str] = NIHSubgroup.GENDER,
         split: Optional[Union[NIHSplit, str]] = None,
         transform: Optional[ImageTform] = None,
-        num_quantiles: Optional[float] = 4,
+        num_quantiles: Optional[int] = 4,
         download: bool = True,
     ) -> None:
         """
@@ -161,7 +161,7 @@ class NIHChestXRays(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         findings_str = self.metadata["Finding Labels"].str.split("|")
         self.encoder = MultiLabelBinarizer().fit(findings_str)
         findings_ml = pd.DataFrame(
-            self.encoder.transform(findings_str), columns=self.encoder.classes_  # type: ignore
+            self.encoder.transform(findings_str), columns=self.encoder.classes_
         )
         self.metadata = pd.concat((self.metadata, findings_ml), axis=1)
         if self.target is None:

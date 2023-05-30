@@ -92,6 +92,7 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
                 sample_ls = cast(List[Tensor], sample_ls)
                 return torch.stack(sample_ls, dim=0)
             elif isinstance(sample_ls[0], np.ndarray):
+                sample_ls = cast(List[np.ndarray], sample_ls)
                 return np.stack(sample_ls, axis=0)
             return sample_ls
 
@@ -108,6 +109,7 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
     def subset(
         self,
         indices: Union[List[int], npt.NDArray[np.uint64], Tensor, slice],
+        *,
         deep: bool = False,
         transform: Optional[ImageTform] = None,
     ) -> Self:

@@ -76,7 +76,7 @@ def test_colorizer(
 @pytest.mark.parametrize(
     "dm", [ColoredMNISTDataModule, CelebADataModule, NICODataModule, WaterbirdsDataModule]
 )
-def test_vision_datamodules(root, dm: Type[CdtVisionDataModule]):
+def test_vision_datamodules(root: Path, dm: Type[CdtVisionDataModule]) -> None:
     dm_ = dm(root=root)
     dm_.prepare_data()
     dm_.setup()
@@ -289,6 +289,7 @@ def test_tabular_dummy_data(
         else:
             assert isinstance(sample, BinarySample)
             assert sample.y.shape == (batch_size,)
+        assert dm.train_data.feature_groups is not None
         for group in dm.train_data.feature_groups:
             assert sample.x[:, group].sum() == batch_size
         assert sample.x[:, dm.train_data.cont_indexes].shape == (batch_size, cont_feats)

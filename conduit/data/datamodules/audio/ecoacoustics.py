@@ -7,6 +7,7 @@ from typing_extensions import override
 
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
 from conduit.data.datasets.utils import AudioTform, CdtDataLoader
+from conduit.data.datasets.wrappers import AudioTransformer
 from conduit.data.structures import BinarySample, TrainValTestSplit
 from conduit.transforms.audio import Compose, Framing, LogMelSpectrogram
 
@@ -16,7 +17,7 @@ __all__ = ["EcoacousticsDataModule"]
 
 
 @attr.define(kw_only=True)
-class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, BinarySample]):
+class EcoacousticsDataModule(CdtAudioDataModule[BinarySample]):
     """Data-module for the Ecoacoustics dataset."""
 
     segment_len: float = 15
@@ -30,7 +31,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, BinarySample]):
     @override
     def make_dataloader(
         self,
-        ds: Ecoacoustics,
+        ds: AudioTransformer,
         *,
         batch_size: int,
         shuffle: bool = False,
@@ -65,16 +66,16 @@ class EcoacousticsDataModule(CdtAudioDataModule[Ecoacoustics, BinarySample]):
 
     @property
     @override
-    def _default_train_transforms(self) -> AudioTform:
+    def _default_train_transforms(self) -> AudioTform:  # type: ignore
         return self._default_transform
 
     @property
     @override
-    def _default_test_transforms(self) -> AudioTform:
+    def _default_test_transforms(self) -> AudioTform:  # type: ignore
         return self._default_transform
 
     @override
-    def _get_splits(self) -> TrainValTestSplit[Ecoacoustics]:
+    def _get_audio_splits(self) -> TrainValTestSplit[Ecoacoustics]:
         all_data = Ecoacoustics(
             root=self.root,
             transform=None,  # Transform is applied in `CdtAudioDataModule._setup`

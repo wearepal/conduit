@@ -6,10 +6,11 @@ from typing_extensions import override
 from conduit.data import TrainValTestSplit
 from conduit.data.datamodules import CdtDataModule
 from conduit.data.datasets.tabular import RandomTabularDataset
+from conduit.data.structures import TernarySample
 
 
 @attr.define(kw_only=True)
-class DummyTabularDataModule(CdtDataModule):
+class DummyTabularDataModule(CdtDataModule[RandomTabularDataset, TernarySample]):
     num_samples: int
     num_disc_features: int
     num_cont_features: int

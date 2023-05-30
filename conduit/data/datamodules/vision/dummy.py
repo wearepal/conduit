@@ -8,7 +8,7 @@ from conduit.data.datasets.vision.dummy import DummyVisionDataset, SampleType
 
 
 @attr.define(kw_only=True)
-class DummyVisionDataModule(CdtVisionDataModule[DummyVisionDataset, SampleType]):
+class DummyVisionDataModule(CdtVisionDataModule[SampleType]):
     num_samples: int = 1_000
     seed: int = 8
     root: str = ""
@@ -20,7 +20,7 @@ class DummyVisionDataModule(CdtVisionDataModule[DummyVisionDataset, SampleType])
     y_card: int = 2
 
     @override
-    def _get_splits(self) -> TrainValTestSplit[DummyVisionDataset]:
+    def _get_image_splits(self) -> TrainValTestSplit[DummyVisionDataset]:
         # Split the data randomly according to val- and test-prop
         data = DummyVisionDataset(
             channels=self.channels,

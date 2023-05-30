@@ -13,7 +13,7 @@ __all__ = ["NICOPPDataModule"]
 
 
 @attr.define(kw_only=True)
-class NICOPPDataModule(CdtVisionDataModule[NICOPP, SampleType]):
+class NICOPPDataModule(CdtVisionDataModule[SampleType]):
     """Data-module for the NICO dataset."""
 
     image_size: int = 224
@@ -41,7 +41,7 @@ class NICOPPDataModule(CdtVisionDataModule[NICOPP, SampleType]):
         pass
 
     @override
-    def _get_splits(self) -> TrainValTestSplit[NICOPP]:
+    def _get_image_splits(self) -> TrainValTestSplit[NICOPP]:
         train_data, val_data, test_data = (
             NICOPP(root=self.root, superclasses=self.superclasses, transform=None, split=split)
             for split in NicoPPSplit

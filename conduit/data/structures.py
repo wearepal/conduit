@@ -1,6 +1,7 @@
 """Data structures."""
 from __future__ import annotations
 from abc import abstractmethod
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field, fields, is_dataclass
 from typing import (
     Any,
@@ -59,6 +60,41 @@ __all__ = [
     "shallow_astuple",
 ]
 
+
+@runtime_checkable
+class InputContainer(Sized, Addable, Protocol):
+    @classmethod
+    def fromiter(cls, sequence: Iterable[Self]) -> Self:
+        """
+        Collates a sequence of container instances into a single instance.
+
+        :param sequence: Sequence of containers to be collated.
+
+        :returns: A collated container.
+        """
+        return reduce_add(sequence)
+
+    @override
+    def __len__(self) -> int:
+        """Total number of samples in the container."""
+        ...
+
+    @override
+    def __add__(self, other: Self) -> Self:
+        ...
+
+    def to(
+        self,
+        device: Optional[Union[torch.device, str]],
+        *,
+        non_blocking: bool = False,
+    ) -> Self:
+        for name, value in shallow_asdict(self).items():
+            if isinstance(value, (Tensor, InputContainer)):
+                setattr(self, name, value.to(device, non_blocking=non_blocking))
+        return self
+
+
 RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
 UnloadedData: TypeAlias = Union[
     npt.NDArray[np.floating],
@@ -78,7 +114,7 @@ LoadedData: TypeAlias = Union[
     Dict[str, npt.NDArray[np.integer]],
     Dict[str, npt.NDArray[np.string_]],
     List[Image.Image],
-    "InputContainer[X_co]",
+    InputContainer,
 ]
 IndexabledData: TypeAlias = Union[
     Tensor,
@@ -130,42 +166,8 @@ def concatenate_inputs(x1: X, x2: X, *, is_batched: bool) -> X:
     return x1 + x2  # type: ignore
 
 
-@runtime_checkable
-class InputContainer(Sized, Addable, Protocol[X_co]):
-    @classmethod
-    def fromiter(cls, sequence: Iterable[Self]) -> Self:
-        """
-        Collates a sequence of container instances into a single instance.
-
-        :param sequence: Sequence of containers to be collated.
-
-        :returns: A collated container.
-        """
-        return reduce_add(sequence)
-
-    @override
-    def __len__(self) -> int:
-        """Total number of samples in the container."""
-        ...
-
-    @override
-    def __add__(self, other: Self) -> Self:
-        ...
-
-    def to(
-        self,
-        device: Optional[Union[torch.device, str]],
-        *,
-        non_blocking: bool = False,
-    ) -> Self:
-        for name, value in shallow_asdict(self).items():
-            if isinstance(value, (Tensor, InputContainer)):
-                setattr(self, name, value.to(device, non_blocking=non_blocking))
-        return self
-
-
 @dataclass
-class MultiCropOutput(InputContainer[Tensor]):
+class MultiCropOutput(InputContainer):
     global_crops: List[Tensor]
     local_crops: List[Tensor] = field(default_factory=list)
 
@@ -204,11 +206,8 @@ class MultiCropOutput(InputContainer[Tensor]):
         return copy
 
 
-IS = TypeVar("IS", bound="SampleBase[IndexabledData]")
-
-
 @dataclass
-class SampleBase(InputContainer[X]):
+class SampleBase(InputContainer, Generic[X]):
     x: X
 
     @override
@@ -247,23 +246,23 @@ class NamedSample(SampleBase[X]):
         ...
 
     @overload
-    def add_field(self, *, y: Tensor = ..., s: None = ..., iw: None = ...) -> "BinarySample":
+    def add_field(self, *, y: Tensor, s: None = ..., iw: None = ...) -> "BinarySample":
         ...
 
     @overload
-    def add_field(self, *, y: Tensor = ..., s: None = ..., iw: Tensor = ...) -> "BinarySampleIW":
+    def add_field(self, *, y: Tensor, s: None = ..., iw: Tensor) -> "BinarySampleIW":
         ...
 
     @overload
-    def add_field(self, *, y: Tensor = ..., s: Tensor = ..., iw: None = ...) -> "TernarySample":
+    def add_field(self, *, y: Tensor, s: Tensor, iw: None = ...) -> "TernarySample":
         ...
 
     @overload
-    def add_field(self, *, y: Tensor = ..., s: Tensor = ..., iw: Tensor = ...) -> "TernarySampleIW":
+    def add_field(self, *, y: Tensor, s: Tensor, iw: Tensor) -> "TernarySampleIW":
         ...
 
     def add_field(
-        self, y: Optional[Tensor] = None, s: Optional[Tensor] = None, iw: Optional[Tensor] = None
+        self, *, y: Optional[Tensor] = None, s: Optional[Tensor] = None, iw: Optional[Tensor] = None
     ) -> Union[Self, "BinarySample", "BinarySampleIW", "TernarySample", "TernarySampleIW"]:
         if y is not None:
             if s is not None:
@@ -456,7 +455,7 @@ class TernarySample(BinarySample[X], _SubgroupSampleMixin):
         ...
 
     @overload
-    def add_field(self, iw: Tensor) -> Self:
+    def add_field(self, iw: Tensor) -> "TernarySampleIW":
         ...
 
     def add_field(self, iw: Optional[Tensor] = None) -> Union[Self, "TernarySampleIW"]:
@@ -516,7 +515,7 @@ def shallow_asdict(dataclass: object) -> Dict[str, Any]:
 
 
 @attr.define
-class ImageSize:
+class ImageSize(Sequence):
     c: int
     h: int
     w: int
@@ -536,9 +535,26 @@ class ImageSize:
     def __iter__(self) -> Iterator[int]:
         yield from (self.c, self.h, self.w)
 
+    @overload
+    def __getitem__(self, index: int, /) -> int:
+        ...
+
+    @overload
+    def __getitem__(self, index: slice, /) -> Sequence[int]:
+        ...
+
+    def __getitem__(self, index: Union[int, slice], /) -> Union[int, Sequence[int]]:
+        return (self.c, self.h, self.w)[index]
+
+    def __len__(self) -> int:
+        return 3
+
     @property
     def numel(self) -> int:
         return sum(iter(self))
+
+
+ImageSize(0, 0, 0)
 
 
 @attr.define(kw_only=True)
@@ -585,7 +601,7 @@ class SizedDataset(Dataset[R_co], Sized, Protocol):
         ...
 
     @override
-    def __len__(self) -> Optional[int]:
+    def __len__(self) -> Optional[int]:  # type: ignore
         ...
 
 
@@ -607,7 +623,7 @@ class PseudoCdtDataset(Protocol[R_co, X2, Y, S]):
         ...
 
 
-D = TypeVar("D", bound=Union[Dataset, Tensor, List[int]])
+D = TypeVar("D", bound=Union[Dataset, Tensor, List[int]], covariant=True)
 
 
 @runtime_checkable
@@ -621,7 +637,7 @@ class DatasetWrapper(SizedDataset[R_co], Protocol):
     @override
     def __len__(self) -> Optional[int]:
         if isinstance(self.dataset, SizedDataset):
-            return len(self.dataset)
+            return len(self.dataset)  # type: ignore
         return None
 
 

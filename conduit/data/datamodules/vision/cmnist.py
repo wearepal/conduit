@@ -21,7 +21,7 @@ __all__ = ["ColoredMNISTDataModule"]
 
 
 @attr.define(kw_only=True)
-class ColoredMNISTDataModule(CdtVisionDataModule[ColoredMNIST, SampleType]):
+class ColoredMNISTDataModule(CdtVisionDataModule[SampleType]):
     """Data-module for the ColoredMNIST dataset."""
 
     image_size: int = 32
@@ -59,7 +59,7 @@ class ColoredMNISTDataModule(CdtVisionDataModule[ColoredMNIST, SampleType]):
         MNIST(root=str(self.root), download=True, train=False)
 
     @override
-    def _get_splits(self) -> TrainValTestSplit[ColoredMNIST]:
+    def _get_image_splits(self) -> TrainValTestSplit[ColoredMNIST]:
         # TODO: Add more sophisticated (e.g. biased) splits
         fact_func = partial(
             ColoredMNIST,

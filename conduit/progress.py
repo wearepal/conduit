@@ -147,7 +147,7 @@ class CdtProgressBar(RichProgressBar):
         return self.trainer.num_training_batches
 
     @override
-    def _add_task(
+    def _add_task(  # type: ignore
         self, total_batches: float, description: str, visible: bool = True
     ) -> Optional[TaskID]:
         if self.progress is not None:
@@ -156,15 +156,18 @@ class CdtProgressBar(RichProgressBar):
             )
 
     @override
-    def _update(self, progress_bar_id: int, current: int, visible: bool = True) -> None:
+    def _update(
+        self, progress_bar_id: Optional[TaskID], current: int, visible: bool = True
+    ) -> None:
         if self.progress is not None and self.is_enabled:
+            assert progress_bar_id is not None
             total = self.progress.tasks[progress_bar_id].total
             if not self._should_update(current, total):  # type: ignore
                 return
 
             leftover = current % self.refresh_rate
             advance = leftover if (current == total and leftover != 0) else self.refresh_rate
-            self.progress.update(TaskID(progress_bar_id), advance=advance, visible=visible)
+            self.progress.update(progress_bar_id, advance=advance, visible=visible)
             self.refresh()
 
     @override
@@ -195,7 +198,9 @@ class CdtProgressBar(RichProgressBar):
             self.main_progress_bar_id = value
 
     @override
-    def on_train_epoch_start(self, trainer: pl.Trainer, pl_module) -> None:  # pyright: ignore
+    def on_train_epoch_start(
+        self, trainer: pl.Trainer, pl_module: pl.LightningModule  # pyright: ignore
+    ) -> None:
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
         if total_train_batches != float("inf"):
@@ -231,7 +236,7 @@ class CdtProgressBar(RichProgressBar):
         dataloader_idx: int = 0,  # pyright: ignore
     ) -> None:
         if trainer.sanity_checking:
-            self._update(self.val_sanity_progress_bar_id, batch_idx + 1)  # type: ignore
+            self._update(self.val_sanity_progress_bar_id, batch_idx + 1)
         elif self.val_progress_bar_id is not None:
             # check to see if we should update the main training progress bar
             self._update(self.val_progress_bar_id, batch_idx + 1)

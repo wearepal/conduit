@@ -164,12 +164,15 @@ reportCallInDefaultInitializer = "warning"
 reportPropertyTypeMismatch = "none"
 reportUninitializedInstanceVariable = "warning"
 reportPrivateUsage = "none"
+reportUnnecessaryTypeIgnoreComment = "warning"
+reportUnnecessaryIsInstance = "warning"
+reportUnnecessaryCast = "warning"
+reportUnnecessaryComparison = "warning"
 # these errors are a bit annoying
 reportUnknownMemberType = "none"
 reportUnknownVariableType = "none"
 reportUnknownParameterType = "none"
 reportUnknownArgumentType = "none"
-reportUnnecessaryTypeIgnoreComment = "warning"
 ignore = ["conduit/hydra/**"]
 
 [tool.mypy]
