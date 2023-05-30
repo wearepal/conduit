@@ -554,9 +554,6 @@ class ImageSize(Sequence):
         return sum(iter(self))
 
 
-ImageSize(0, 0, 0)
-
-
 @attr.define(kw_only=True)
 class MeanStd:
     mean: Union[Tuple[float, ...], List[float]]
