@@ -1,7 +1,7 @@
 """Base class for vision datasets."""
 from abc import abstractmethod
 from pathlib import Path
-from typing import List, Optional, TypeVar, Union, final
+from typing import List, Optional, Union, final
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
@@ -18,11 +18,9 @@ from conduit.data.datasets.vision import (
     ImageTransformer,
 )
 from conduit.data.datasets.vision.base import CdtVisionDataset
-from conduit.data.structures import ImageSize, MeanStd, SizedDataset, TrainValTestSplit
+from conduit.data.structures import ImageSize, MeanStd, TrainValTestSplit
 
 __all__ = ["CdtVisionDataModule"]
-
-D = TypeVar("D", bound=SizedDataset)
 
 
 @attr.define(kw_only=True)
@@ -106,8 +104,9 @@ class CdtVisionDataModule(CdtDataModule[ImageTransformer, I]):
 
     @abstractmethod
     def _get_image_splits(self) -> TrainValTestSplit[CdtVisionDataset[I, Tensor, Tensor]]:
-        ...
+        raise NotImplementedError()
 
+    @final
     @override
     def _get_splits(self) -> TrainValTestSplit[ImageTransformer]:
         train, val, test = self._get_image_splits()
