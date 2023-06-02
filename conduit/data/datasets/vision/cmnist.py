@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import ClassVar, Dict, List, Optional, Tuple, Union, cast
 from typing_extensions import TypeAlias, override
 
-from PIL import Image
 import numpy as np
 import numpy.typing as npt
+from PIL import Image
 from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor

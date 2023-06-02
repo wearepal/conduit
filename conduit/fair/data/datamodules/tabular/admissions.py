@@ -1,8 +1,7 @@
 """Admissions Dataset."""
 import attr
-from ethicml.data import Admissions
+from ethicml.data import Admissions, Dataset
 from ethicml.data import AdmissionsSplits as AdmissionsSens
-from ethicml.data import Dataset
 
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 

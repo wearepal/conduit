@@ -1,8 +1,7 @@
 """Adult Income Dataset."""
 import attr
-from ethicml.data import Adult
+from ethicml.data import Adult, Dataset
 from ethicml.data import AdultSplits as AdultSens
-from ethicml.data import Dataset
 
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 

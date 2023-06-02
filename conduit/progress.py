@@ -110,7 +110,7 @@ class CdtProgressBar(RichProgressBar):
         self._predict_description = predict_description
 
     @override
-    def configure_columns(self, *args: Any, **kwargs: Any) -> list:  # pyright: ignore
+    def configure_columns(self, *args: Any, **kwargs: Any) -> list:
         return [
             TextColumn(
                 "[progress.description]{task.description}",
@@ -198,9 +198,7 @@ class CdtProgressBar(RichProgressBar):
             self.main_progress_bar_id = value
 
     @override
-    def on_train_epoch_start(
-        self, trainer: pl.Trainer, pl_module: pl.LightningModule  # pyright: ignore
-    ) -> None:
+    def on_train_epoch_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
         if total_train_batches != float("inf"):
@@ -229,11 +227,11 @@ class CdtProgressBar(RichProgressBar):
     def on_validation_batch_end(
         self,
         trainer: pl.Trainer,
-        pl_module: pl.LightningModule,  # pyright: ignore
-        outputs: Optional[STEP_OUTPUT],  # pyright: ignore
-        batch: Any,  # pyright: ignore
+        pl_module: pl.LightningModule,
+        outputs: Optional[STEP_OUTPUT],
+        batch: Any,
         batch_idx: int,
-        dataloader_idx: int = 0,  # pyright: ignore
+        dataloader_idx: int = 0,
     ) -> None:
         if trainer.sanity_checking:
             self._update(self.val_sanity_progress_bar_id, batch_idx + 1)
@@ -253,10 +251,10 @@ class CdtProgressBar(RichProgressBar):
     @override
     def on_predict_batch_start(
         self,
-        trainer: pl.Trainer,  # pyright: ignore
-        pl_module: pl.LightningModule,  # pyright: ignore
-        batch: Any,  # pyright: ignore
-        batch_idx: int,  # pyright: ignore
+        trainer: pl.Trainer,
+        pl_module: pl.LightningModule,
+        batch: Any,
+        batch_idx: int,
         dataloader_idx: int = 0,
     ) -> None:
         if self.has_dataloader_changed(dataloader_idx):

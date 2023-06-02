@@ -1,8 +1,7 @@
 """Crime Dataset."""
 import attr
-from ethicml.data import Crime
+from ethicml.data import Crime, Dataset
 from ethicml.data import CrimeSplits as CrimeSens
-from ethicml.data import Dataset
 
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 

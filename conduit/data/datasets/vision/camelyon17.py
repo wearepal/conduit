@@ -23,7 +23,7 @@ class Camelyon17SplitScheme(StrEnum):
     """Oficial split."""
 
     MIXED_TO_TEST = auto()
-    """ 
+    """
     For the mixed-to-test setting, slide 23 (corresponding to patient 042, node 3 in the
     original dataset) is moved from the test set to the training set
     """

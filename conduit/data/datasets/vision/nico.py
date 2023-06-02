@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import ClassVar, List, Optional, Union, cast
 from typing_extensions import TypeAlias
 
-from PIL import Image, UnidentifiedImageError
 import pandas as pd
+from PIL import Image, UnidentifiedImageError
 from ranzen import StrEnum, parsable
 import torch
 from torch import Tensor

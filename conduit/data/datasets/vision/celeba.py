@@ -144,7 +144,7 @@ class CelebA(CdtVisionDataset[SampleType, Tensor, Tensor]):
             delim_whitespace=True,
             header=1,
             usecols=[self.superclass.value, self.subclass.value],
-            skiprows=skiprows,  # pyright: ignore
+            skiprows=skiprows,  # type: ignore
         )
 
         x = np.array(attrs.index)
