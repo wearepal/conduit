@@ -9,8 +9,8 @@ from typing import ClassVar, Iterable, Iterator, List, Optional, TypeVar, Union
 from typing_extensions import TypeAlias
 import zipfile
 
-from PIL import Image
 import pandas as pd
+from PIL import Image
 from ranzen import StrEnum, flatten_dict
 from ranzen.decorators import parsable
 import requests
@@ -173,7 +173,7 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
                 req = requests.get(f"{self._REST_API_URL}/image/download{args}", stream=True)
                 req.raise_for_status()
                 image_path = raw_image_dir / f"{i}.zip"
-                with open(image_path, "wb") as f:
+                with image_path.open("wb") as f:
                     shutil.copyfileobj(req.raw, f)
                 del req
                 pbar.update()

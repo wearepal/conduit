@@ -1,8 +1,7 @@
 """Credit Dataset."""
 import attr
-from ethicml.data import Credit
+from ethicml.data import Credit, Dataset
 from ethicml.data import CreditSplits as CreditSens
-from ethicml.data import Dataset
 
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 

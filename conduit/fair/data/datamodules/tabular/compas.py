@@ -1,8 +1,7 @@
 """COMPAS Dataset."""
 import attr
-from ethicml.data import Compas
+from ethicml.data import Compas, Dataset
 from ethicml.data import CompasSplits as CompasSens
-from ethicml.data import Dataset
 
 from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 

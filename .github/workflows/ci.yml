@@ -12,17 +12,17 @@ jobs:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
       with:
-        python-version: '3.8'
+        python-version: '3.11'  # may as well use 3.11 as it's faster
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install isort black darglint
+        pip install ruff black darglint
     - name: Format with black
       run: |
         python -m black --check .
-    - name: Format with isort
+    - name: Lint with ruff
       run: |
-        isort --check --diff .
+        ruff check --format=github .
     - name: Lint with darglint
       run: |
         darglint --verbosity 2 --docstring-style sphinx -z long conduit
