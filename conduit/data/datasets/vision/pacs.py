@@ -59,6 +59,7 @@ class PACS(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         transform: Optional[ImageTform] = None,
         domains: Optional[Union[Domain, str, List[Union[str, Domain]]]] = None,
     ) -> None:
+        self.domains: Union[None, PacsDomain, List[PacsDomain]]
         if isinstance(domains, str):
             self.domains = PacsDomain(domains)
         elif isinstance(domains, list):

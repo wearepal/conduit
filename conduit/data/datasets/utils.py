@@ -281,7 +281,7 @@ def make_subset(
 
 def infer_sample_cls(
     sample: Union[List[LoadedData], Tuple[LoadedData, ...], Dict[str, LoadedData], LoadedData]
-) -> Type[NamedSample]:
+) -> Type[SampleBase]:
     """ "Attempt to infer the appropriate sample class based on the length of the input."""
     if not isinstance(sample, (list, tuple, dict)) or (len(sample) == 1):
         return NamedSample
@@ -385,7 +385,7 @@ class cdt_collate:
         return collated_batch
 
 
-I = TypeVar("I", bound=NamedSample)
+I = TypeVar("I", bound=SampleBase, covariant=True)
 
 
 class _DataLoaderKwargs(TypedDict, total=False):

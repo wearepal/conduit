@@ -24,6 +24,7 @@ from conduit.data.structures import (
     BinarySample,
     LoadedData,
     NamedSample,
+    SampleBase,
     SizedDataset,
     SubgroupSample,
     TargetData,
@@ -39,7 +40,7 @@ __all__ = ["CdtDataset", "I", "S", "X", "Y"]
 X = TypeVar("X", bound=UnloadedData)
 S = TypeVar("S", bound=Optional[Tensor])
 Y = TypeVar("Y", bound=Optional[Tensor])
-I = TypeVar("I", bound=NamedSample, covariant=True)
+I = TypeVar("I", bound=SampleBase, covariant=True)
 
 
 class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
@@ -81,7 +82,7 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         return self._logger
 
     @overload
-    def _sample_x(self, index: IndexType, *, coerce_to_tensor: Literal[True] = ...) -> Tensor:
+    def _sample_x(self, index: IndexType, *, coerce_to_tensor: Literal[True]) -> Tensor:
         ...
 
     @overload

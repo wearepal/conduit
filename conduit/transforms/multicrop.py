@@ -56,6 +56,7 @@ class MultiViewPair(InputContainer):
     def size(self) -> torch.Size:
         return self.v1.size()
 
+    @property
     def shape(self) -> torch.Size:
         return self.v1.shape
 
@@ -102,7 +103,7 @@ class MultiCropOutput(InputContainer):
 
     @property
     def global_crop_size(self) -> Tuple[int, int, int]:
-        return self.global_views.shape[1:]  # type: ignore
+        return self.global_views.shape[1:]
 
     @property
     def local_crop_size(self) -> Tuple[int, int, int]:
@@ -111,7 +112,7 @@ class MultiCropOutput(InputContainer):
         return self.local_views.shape[1:]
 
     @property
-    def shape(self):
+    def shape(self) -> torch.Size:
         """Shape of the global crops."""
         return self.global_views.shape
 
@@ -172,7 +173,7 @@ class MultiCropTransform(Generic[LT]):
         self.local_crops_number = local_crops_number
 
     @staticmethod
-    def _apply_transform(image: RawImage, transform: ImageTform):
+    def _apply_transform(image: RawImage, transform: ImageTform) -> Tensor:
         view = apply_image_transform(image, transform=transform)
         if not isinstance(view, Tensor):
             view = img_to_tensor(view)

@@ -73,7 +73,9 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
         ...
 
     @overload
-    def _sample_x(self, index: List[int], *, coerce_to_tensor: bool = ...) -> List[ItemType]:
+    def _sample_x(
+        self, index: Union[List[int], slice], *, coerce_to_tensor: bool = ...
+    ) -> List[ItemType]:
         ...
 
     @override

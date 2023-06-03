@@ -215,16 +215,19 @@ class SampleBase(InputContainer, Generic[X]):
         return len(self.__dataclass_fields__)
 
     @abstractmethod
-    def __iter__(self) -> Iterator[X]:
+    def __iter__(self) -> Iterator[Union[X, Tensor]]:
         ...
 
     @override
     def __add__(self, other: Self) -> Self:
+        return self._get_copy(other, is_batched=True)
+
+    def _get_copy(self, other: Self, is_batched: bool) -> Self:
         copy = gcopy(self, deep=False)
-        copy.x = concatenate_inputs(copy.x, other.x, is_batched=True)
+        copy.x = concatenate_inputs(copy.x, other.x, is_batched=is_batched)
         return copy
 
-    def astuple(self, deep: bool = False) -> Tuple[X]:
+    def astuple(self, deep: bool = False) -> Tuple[Union[X, Tensor], ...]:
         tuple_ = tuple(iter(self))
         if deep:
             tuple_ = gcopy(tuple_, deep=True)
@@ -240,30 +243,259 @@ class SampleBase(InputContainer, Generic[X]):
 
 
 @dataclass
+class _BinarySampleMixin:
+    y: Tensor
+
+    def _add_to_y(self, other: Self) -> None:
+        self.y = torch.cat([self.y, other.y], dim=0)
+
+
+@dataclass
+class _SubgroupSampleMixin:
+    s: Tensor
+
+    def _add_to_s(self, other: Self) -> None:
+        self.s = torch.cat([self.s, other.s], dim=0)
+
+
+@dataclass
+class _IwMixin:
+    iw: Tensor
+
+    def _add_to_iw(self, other: Self) -> None:
+        self.iw = torch.cat([self.iw, other.iw], dim=0)
+
+
+@dataclass
+class TernarySampleIW(_IwMixin, _BinarySampleMixin, _SubgroupSampleMixin, SampleBase[X]):
+    def add_field(self) -> Self:
+        return self
+
+    @override
+    def __iter__(self) -> Iterator[Union[X, Tensor]]:
+        yield from (self.x, self.y, self.s, self.iw)
+
+    @override
+    def __add__(self, other: Self) -> Self:
+        copy = self._get_copy(other, is_batched=len(self.y) > 1)
+        copy._add_to_y(other)
+        copy._add_to_s(other)
+        copy._add_to_iw(other)
+        return copy
+
+    @override
+    def __getitem__(self: "TernarySampleIW[XI]", index: IndexType) -> "TernarySampleIW[XI]":
+        return gcopy(
+            self, deep=False, x=self.x[index], y=self.y[index], s=self.s[index], iw=self.iw[index]
+        )
+
+
+@dataclass
+class TernarySample(_BinarySampleMixin, _SubgroupSampleMixin, SampleBase[X]):
+    @overload
+    def add_field(self, iw: None = ...) -> Self:
+        ...
+
+    @overload
+    def add_field(self, iw: Tensor) -> TernarySampleIW:
+        ...
+
+    def add_field(self, iw: Optional[Tensor] = None) -> Union[Self, TernarySampleIW]:
+        if iw is not None:
+            return TernarySampleIW(x=self.x, s=self.s, y=self.y, iw=iw)
+        return self
+
+    @override
+    def __iter__(self) -> Iterator[Union[X, Tensor]]:
+        yield from (self.x, self.y, self.s)
+
+    @override
+    def __add__(self, other: Self) -> Self:
+        copy = self._get_copy(other, is_batched=len(self.y) > 1)
+        copy._add_to_y(other)
+        copy._add_to_s(other)
+        return copy
+
+    @override
+    def __getitem__(self: "TernarySample[XI]", index: IndexType) -> "TernarySample[XI]":
+        return gcopy(self, deep=False, x=self.x[index], y=self.y[index], s=self.s[index])
+
+
+@dataclass
+class BinarySampleIW(_IwMixin, _BinarySampleMixin, SampleBase[X]):
+    @overload
+    def add_field(self, s: None = ...) -> Self:
+        ...
+
+    @overload
+    def add_field(self, s: Tensor) -> TernarySampleIW:
+        ...
+
+    def add_field(self, s: Optional[Tensor] = None) -> Union[Self, TernarySampleIW]:
+        if s is not None:
+            return TernarySampleIW(x=self.x, s=s, y=self.y, iw=self.iw)
+        return self
+
+    @override
+    def __iter__(self) -> Iterator[Union[X, Tensor]]:
+        yield from (self.x, self.y, self.iw)
+
+    @override
+    def __add__(self, other: Self) -> Self:
+        copy = self._get_copy(other, is_batched=len(self.y) > 1)
+        copy._add_to_y(other)
+        copy._add_to_iw(other)
+        return copy
+
+    @override
+    def __getitem__(self: "BinarySampleIW[XI]", index: IndexType) -> "BinarySampleIW[XI]":
+        return gcopy(self, deep=False, x=self.x[index], y=self.y[index], iw=self.iw[index])
+
+
+@dataclass
+class BinarySample(_BinarySampleMixin, SampleBase[X]):
+    @overload
+    def add_field(self, *, s: None = ..., iw: None = ...) -> Self:
+        ...
+
+    @overload
+    def add_field(self, *, s: None = ..., iw: Tensor) -> BinarySampleIW:
+        ...
+
+    @overload
+    def add_field(self, *, s: Tensor, iw: None = ...) -> TernarySample:
+        ...
+
+    @overload
+    def add_field(self, *, s: Tensor, iw: Tensor) -> TernarySampleIW:
+        ...
+
+    def add_field(
+        self, *, s: Optional[Tensor] = None, iw: Optional[Tensor] = None
+    ) -> Union[Self, BinarySampleIW, TernarySample, TernarySampleIW]:
+        if s is not None:
+            if iw is not None:
+                return TernarySampleIW(x=self.x, s=s, y=self.y, iw=iw)
+            return TernarySample(x=self.x, s=s, y=self.y)
+        if iw is not None:
+            return BinarySampleIW(x=self.x, y=self.y, iw=iw)
+        return self
+
+    @override
+    def __iter__(self) -> Iterator[Union[X, Tensor]]:
+        yield from (self.x, self.y)
+
+    @override
+    def __add__(self, other: Self) -> Self:
+        copy = self._get_copy(other, is_batched=len(self.y) > 1)
+        copy._add_to_y(other)
+        return copy
+
+    @override
+    def __getitem__(self: "BinarySample[XI]", index: IndexType) -> "BinarySample[XI]":
+        return gcopy(self, deep=False, x=self.x[index], y=self.y[index])
+
+
+@dataclass
+class SubgroupSampleIW(SampleBase[X], _SubgroupSampleMixin, _IwMixin):
+    @overload
+    def add_field(self, y: None = ...) -> Self:
+        ...
+
+    @overload
+    def add_field(self, y: Tensor) -> TernarySampleIW:
+        ...
+
+    def add_field(self, y: Optional[Tensor] = None) -> Union[Self, TernarySampleIW]:
+        if y is not None:
+            return TernarySampleIW(x=self.x, s=self.s, y=y, iw=self.iw)
+        return self
+
+    @override
+    def __iter__(self) -> Iterator[Union[X, Tensor]]:
+        yield from (self.x, self.s, self.iw)
+
+    @override
+    def __add__(self, other: Self) -> Self:
+        copy = self._get_copy(other, is_batched=len(self.s) > 1)
+        copy._add_to_s(other)
+        copy._add_to_iw(other)
+        return copy
+
+    @override
+    def __getitem__(self: "SubgroupSampleIW[XI]", index: IndexType) -> "SubgroupSampleIW[XI]":
+        return gcopy(self, deep=False, x=self.x[index], s=self.s[index], iw=self.iw[index])
+
+
+@dataclass
+class SubgroupSample(_SubgroupSampleMixin, SampleBase[X]):
+    @overload
+    def add_field(self, *, y: None = ..., iw: None = ...) -> Self:
+        ...
+
+    @overload
+    def add_field(self, *, y: None = ..., iw: Tensor) -> SubgroupSampleIW:
+        ...
+
+    @overload
+    def add_field(self, *, y: Tensor, iw: None = ...) -> TernarySample:
+        ...
+
+    @overload
+    def add_field(self, *, y: Tensor, iw: Tensor) -> TernarySampleIW:
+        ...
+
+    def add_field(
+        self, *, y: Optional[Tensor] = None, iw: Optional[Tensor] = None
+    ) -> Union[Self, SubgroupSampleIW, TernarySample, TernarySampleIW]:
+        if y is not None:
+            if iw is not None:
+                return TernarySampleIW(x=self.x, s=self.s, y=y, iw=iw)
+            return TernarySample(x=self.x, s=self.s, y=y)
+        if iw is not None:
+            return SubgroupSampleIW(x=self.x, s=self.s, iw=iw)
+        return self
+
+    @override
+    def __iter__(self) -> Iterator[Union[X, Tensor]]:
+        yield from (self.x, self.s)
+
+    @override
+    def __add__(self, other: Self) -> Self:
+        copy = self._get_copy(other, is_batched=len(self.s) > 1)
+        copy._add_to_s(other)
+        return copy
+
+    @override
+    def __getitem__(self: "SubgroupSample[XI]", index: IndexType) -> "SubgroupSample[XI]":
+        return gcopy(self, deep=False, x=self.x[index], s=self.s[index])
+
+
+@dataclass
 class NamedSample(SampleBase[X]):
     @overload
     def add_field(self, *, y: None = ..., s: None = ..., iw: None = ...) -> Self:
         ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: None = ..., iw: None = ...) -> "BinarySample":
+    def add_field(self, *, y: Tensor, s: None = ..., iw: None = ...) -> BinarySample:
         ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: None = ..., iw: Tensor) -> "BinarySampleIW":
+    def add_field(self, *, y: Tensor, s: None = ..., iw: Tensor) -> BinarySampleIW:
         ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: Tensor, iw: None = ...) -> "TernarySample":
+    def add_field(self, *, y: Tensor, s: Tensor, iw: None = ...) -> TernarySample:
         ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: Tensor, iw: Tensor) -> "TernarySampleIW":
+    def add_field(self, *, y: Tensor, s: Tensor, iw: Tensor) -> TernarySampleIW:
         ...
 
     def add_field(
         self, *, y: Optional[Tensor] = None, s: Optional[Tensor] = None, iw: Optional[Tensor] = None
-    ) -> Union[Self, "BinarySample", "BinarySampleIW", "TernarySample", "TernarySampleIW"]:
+    ) -> Union[Self, BinarySample, BinarySampleIW, TernarySample, TernarySampleIW]:
         if y is not None:
             if s is not None:
                 if iw is not None:
@@ -281,223 +513,6 @@ class NamedSample(SampleBase[X]):
     @override
     def __getitem__(self: "NamedSample[XI]", index: IndexType) -> "NamedSample[XI]":
         return gcopy(self, deep=False, x=self.x[index])
-
-
-@dataclass
-class _BinarySampleMixin:
-    y: Tensor
-
-
-@dataclass
-class _SubgroupSampleMixin:
-    s: Tensor
-
-
-@dataclass
-class BinarySample(NamedSample[X], _BinarySampleMixin):
-    @overload
-    def add_field(self, *, s: None = ..., iw: None = ...) -> Self:
-        ...
-
-    @overload
-    def add_field(self, *, s: None = ..., iw: Tensor = ...) -> "BinarySampleIW":
-        ...
-
-    @overload
-    def add_field(self, *, s: Tensor = ..., iw: None = ...) -> "TernarySample":
-        ...
-
-    @overload
-    def add_field(self, *, s: Tensor = ..., iw: Tensor = ...) -> "TernarySampleIW":
-        ...
-
-    def add_field(
-        self, *, s: Optional[Tensor] = None, iw: Optional[Tensor] = None
-    ) -> Union[Self, "BinarySampleIW", "TernarySample", "TernarySampleIW"]:
-        if s is not None:
-            if iw is not None:
-                return TernarySampleIW(x=self.x, s=s, y=self.y, iw=iw)
-            return TernarySample(x=self.x, s=s, y=self.y)
-        if iw is not None:
-            return BinarySampleIW(x=self.x, y=self.y, iw=iw)
-        return self
-
-    @override
-    def __iter__(self) -> Iterator[LoadedData]:  # type: ignore
-        yield from (self.x, self.y)
-
-    @override
-    def __add__(self, other: Self) -> Self:
-        copy = gcopy(self, deep=False)
-        copy.y = torch.cat([copy.y, other.y], dim=0)
-        copy.x = concatenate_inputs(copy.x, other.x, is_batched=len(copy.y) > 1)
-        return copy
-
-    @override
-    def __getitem__(self: "BinarySample[XI]", index: IndexType) -> "BinarySample[XI]":
-        return gcopy(self, deep=False, x=self.x[index], y=self.y[index])
-
-
-@dataclass
-class SubgroupSample(NamedSample[X], _SubgroupSampleMixin):
-    @overload
-    def add_field(self, *, y: None = ..., iw: None = ...) -> Self:
-        ...
-
-    @overload
-    def add_field(self, *, y: None = ..., iw: Tensor = ...) -> "SubgroupSampleIW":
-        ...
-
-    @overload
-    def add_field(self, *, y: Tensor = ..., iw: None = ...) -> "TernarySample":
-        ...
-
-    @overload
-    def add_field(self, *, y: Tensor = ..., iw: Tensor = ...) -> "TernarySampleIW":
-        ...
-
-    def add_field(
-        self, *, y: Optional[Tensor] = None, iw: Optional[Tensor] = None
-    ) -> Union[Self, "SubgroupSampleIW", "TernarySample", "TernarySampleIW"]:
-        if y is not None:
-            if iw is not None:
-                return TernarySampleIW(x=self.x, s=self.s, y=y, iw=iw)
-            return TernarySample(x=self.x, s=self.s, y=y)
-        if iw is not None:
-            return SubgroupSampleIW(x=self.x, s=self.s, iw=iw)
-        return self
-
-    @override
-    def __iter__(self) -> Iterator[LoadedData]:  # type: ignore
-        yield from (self.x, self.s)
-
-    @override
-    def __add__(self, other: Self) -> Self:
-        copy = gcopy(self, deep=False)
-        copy.s = torch.cat([copy.s, other.s], dim=0)
-        copy.x = concatenate_inputs(copy.x, other.x, is_batched=len(copy.s) > 1)
-        return copy
-
-    @override
-    def __getitem__(self: "SubgroupSample[XI]", index: IndexType) -> "SubgroupSample[XI]":
-        return gcopy(self, deep=False, x=self.x[index], s=self.s[index])
-
-
-@dataclass
-class _IwMixin:
-    iw: Tensor
-
-
-@dataclass
-class BinarySampleIW(BinarySample[X], _BinarySampleMixin, _IwMixin):
-    @overload
-    def add_field(self, s: None = ...) -> Self:
-        ...
-
-    @overload
-    def add_field(self, s: Tensor = ...) -> "TernarySampleIW":
-        ...
-
-    def add_field(self, s: Optional[Tensor] = None) -> Union[Self, "TernarySampleIW"]:
-        if s is not None:
-            return TernarySampleIW(x=self.x, s=s, y=self.y, iw=self.iw)
-        return self
-
-    @override
-    def __iter__(self) -> Iterator[LoadedData]:
-        yield from (self.x, self.y, self.iw)
-
-    @override
-    def __add__(self, other: Self) -> Self:
-        copy = super().__add__(other)
-        copy.iw = torch.cat([copy.iw, other.iw], dim=0)
-        return copy
-
-    @override
-    def __getitem__(self: "BinarySampleIW[XI]", index: IndexType) -> "BinarySampleIW[XI]":
-        return gcopy(self, deep=False, x=self.x[index], y=self.y[index], iw=self.iw[index])
-
-
-@dataclass
-class SubgroupSampleIW(SubgroupSample[X], _IwMixin):
-    @overload
-    def add_field(self, y: None = ...) -> Self:
-        ...
-
-    @overload
-    def add_field(self, y: Tensor = ...) -> "TernarySampleIW":
-        ...
-
-    def add_field(self, y: Optional[Tensor] = None) -> Union[Self, "TernarySampleIW"]:
-        if y is not None:
-            return TernarySampleIW(x=self.x, s=self.s, y=y, iw=self.iw)
-        return self
-
-    @override
-    def __iter__(self) -> Iterator[LoadedData]:
-        yield from (self.x, self.s, self.iw)
-
-    @override
-    def __add__(self, other: Self) -> Self:
-        copy = super().__add__(other)
-        copy.iw = torch.cat([copy.iw, other.iw], dim=0)
-        return copy
-
-    @override
-    def __getitem__(self: "SubgroupSampleIW[XI]", index: IndexType) -> "SubgroupSampleIW[XI]":
-        return gcopy(self, deep=False, x=self.x[index], s=self.s[index], iw=self.iw[index])
-
-
-@dataclass
-class TernarySample(BinarySample[X], _SubgroupSampleMixin):
-    @overload
-    def add_field(self, iw: None = ...) -> Self:
-        ...
-
-    @overload
-    def add_field(self, iw: Tensor) -> "TernarySampleIW":
-        ...
-
-    def add_field(self, iw: Optional[Tensor] = None) -> Union[Self, "TernarySampleIW"]:
-        if iw is not None:
-            return TernarySampleIW(x=self.x, s=self.s, y=self.y, iw=iw)
-        return self
-
-    @override
-    def __iter__(self) -> Iterator[LoadedData]:
-        yield from (self.x, self.y, self.s)
-
-    @override
-    def __add__(self, other: Self) -> Self:
-        copy = super().__add__(other)
-        copy.s = torch.cat([copy.s, other.s], dim=0)
-        return copy
-
-    @override
-    def __getitem__(self: "TernarySample[XI]", index: IndexType) -> "TernarySample[XI]":
-        return gcopy(self, deep=False, x=self.x[index], y=self.y[index], s=self.s[index])
-
-
-@dataclass
-class TernarySampleIW(TernarySample[X], _IwMixin):
-    def add_field(self) -> Self:
-        return self
-
-    @override
-    def __iter__(self) -> Iterator[LoadedData]:
-        yield from (self.x, self.y, self.s, self.iw)
-
-    @override
-    def __add__(self, other: Self) -> Self:
-        copy = super().__add__(other)
-        copy.iw = torch.cat([copy.iw, other.iw], dim=0)
-        return copy
-
-    @override
-    def __getitem__(self: "TernarySampleIW[XI]", index: IndexType) -> "TernarySampleIW[XI]":
-        return gcopy(
-            self, deep=False, x=self.x[index], y=self.y[index], s=self.s[index], iw=self.iw[index]
-        )
 
 
 def shallow_astuple(dataclass: object) -> Tuple[Any, ...]:
