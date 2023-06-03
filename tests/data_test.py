@@ -371,11 +371,12 @@ def test_vision_dummy_data(
         if s_card is None:
             assert isinstance(sample, (NamedSample, BinarySample))
         else:
+            assert isinstance(sample, (SubgroupSample, TernarySample))
             assert sample.s.shape == (batch_size,)
         if y_card is None:
-            assert isinstance(sample, (NamedSample))
+            assert isinstance(sample, (NamedSample, SubgroupSample))
         else:
-            assert isinstance(sample, (BinarySample))
+            assert isinstance(sample, (BinarySample, TernarySample))
             assert sample.y.shape == (batch_size,)
 
 
