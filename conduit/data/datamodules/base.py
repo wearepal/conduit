@@ -18,19 +18,14 @@ from conduit.data.datasets.utils import (
     get_group_ids,
 )
 from conduit.data.datasets.wrappers import InstanceWeightedDataset
-from conduit.data.structures import (
-    Dataset,
-    NamedSample,
-    SizedDataset,
-    TrainValTestSplit,
-)
+from conduit.data.structures import Dataset, SampleBase, SizedDataset, TrainValTestSplit
 from conduit.logging import init_logger
 from conduit.types import Stage
 
 __all__ = ["CdtDataModule"]
 
 D = TypeVar("D", bound=SizedDataset)
-I = TypeVar("I", bound=NamedSample, covariant=True)
+I = TypeVar("I", bound=SampleBase, covariant=True)
 
 
 @attr.define(kw_only=True)

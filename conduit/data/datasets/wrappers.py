@@ -15,7 +15,6 @@ from conduit.data.structures import (
     BinarySampleIW,
     Dataset,
     DatasetWrapper,
-    NamedSample,
     SampleBase,
     SubgroupSample,
     TernarySample,
@@ -127,7 +126,7 @@ class InstanceWeightedDataset(DatasetWrapper[Any]):
         self.iw = compute_instance_weights(dataset)
 
     @override
-    def __getitem__(self, index: int) -> Union[NamedSample, Tuple[Any, ...]]:
+    def __getitem__(self, index: int) -> Union[SampleBase, Tuple[Any, ...]]:
         sample = self.dataset[index]
         iw = self.iw[index]
         if isinstance(sample, (BinarySample, SubgroupSample, TernarySample)):
