@@ -14,6 +14,7 @@ from conduit.data import (
     BinarySampleIW,
     NamedSample,
     SampleBase,
+    SubgroupSample,
     TernarySample,
     TernarySampleIW,
 )
@@ -259,6 +260,48 @@ def test_add_field() -> None:
     assert isinstance(tsi.add_field(), TernarySampleIW)
 
 
+def test_sample_add() -> None:
+    x = torch.rand(3, 2)
+    s = torch.randint(0, 2, (1,))
+    y = torch.randint(0, 2, (1,))
+
+    ns = NamedSample(x=x)
+    assert (ns + ns).x.shape[0] == 6
+
+    bs = BinarySample(x=x, y=y)
+    assert (bs + bs).y.shape[0] == 2
+    assert (bs + bs).x.shape[0] == 2
+
+    ss = SubgroupSample(x=x, s=s)
+    assert (ss + ss).s.shape[0] == 2
+    assert (ss + ss).x.shape[0] == 2
+
+    ts = TernarySample(x=x, s=s, y=y)
+    assert (ts + ts).s.shape[0] == 2
+    assert (ts + ts).x.shape[0] == 2
+
+
+def test_sample_add_batched() -> None:
+    x_batched = torch.rand(3, 2)
+    s_batched = torch.randint(0, 2, (3, 1))
+    y_batched = torch.randint(0, 2, (3, 1))
+
+    ns_batched = NamedSample(x=x_batched)
+    assert (ns_batched + ns_batched).x.shape[0] == 6
+
+    bs_batched = BinarySample(x=x_batched, y=y_batched)
+    assert (bs_batched + bs_batched).y.shape[0] == 6
+    assert (bs_batched + bs_batched).x.shape[0] == 6
+
+    ss_batched = SubgroupSample(x=x_batched, s=s_batched)
+    assert (ss_batched + ss_batched).s.shape[0] == 6
+    assert (ss_batched + ss_batched).x.shape[0] == 6
+
+    ts_batched = TernarySample(x=x_batched, s=s_batched, y=y_batched)
+    assert (ts_batched + ts_batched).s.shape[0] == 6
+    assert (ts_batched + ts_batched).x.shape[0] == 6
+
+
 @pytest.mark.parametrize("batch_size", [8, 32])
 @pytest.mark.parametrize("disc_feats", [1, 100])
 @pytest.mark.parametrize("cont_feats", [1, 10])
@@ -283,11 +326,12 @@ def test_tabular_dummy_data(
         if s_card is None:
             assert isinstance(sample, (NamedSample, BinarySample))
         else:
+            assert isinstance(sample, (SubgroupSample, TernarySample))
             assert sample.s.shape == (batch_size,)
         if y_card is None:
-            assert isinstance(sample, (NamedSample))
+            assert isinstance(sample, (NamedSample, SubgroupSample))
         else:
-            assert isinstance(sample, BinarySample)
+            assert isinstance(sample, (BinarySample, TernarySample))
             assert sample.y.shape == (batch_size,)
         assert dm.train_data.feature_groups is not None
         for group in dm.train_data.feature_groups:
