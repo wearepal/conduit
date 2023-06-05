@@ -59,6 +59,7 @@ __all__ = [
     "shallow_asdict",
     "shallow_astuple",
 ]
+x: int = "foo"
 
 
 @runtime_checkable
