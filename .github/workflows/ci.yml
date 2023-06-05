@@ -71,12 +71,12 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: "18"
-    - name: Install pyright
-      run: npm install -g pyright
-    - name: Run pyright
-      run: |
-        poetry run pyright conduit
-        poetry run pyright tests
+    - name: Set python path for all subsequent actions
+      run: echo "$(poetry env info --path)/bin" >> $GITHUB_PATH
+    - uses: jakebailey/pyright-action@v1
+      with:
+        # don't show warnings
+        level: error
     - name: Test with pytest
       run: |
         poetry run python -m pytest -vv tests/
