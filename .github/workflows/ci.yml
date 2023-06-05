@@ -75,8 +75,8 @@ jobs:
       run: echo "$(poetry env info --path)/bin" >> $GITHUB_PATH
     - uses: jakebailey/pyright-action@v1
       with:
+        # don't show warnings
         level: error
-        project: .
     - name: Test with pytest
       run: |
         poetry run python -m pytest -vv tests/

@@ -44,8 +44,6 @@ from conduit.data.datasets.vision import (
 )
 from conduit.fair.data.datasets import DummyDataset
 
-x: int = "foo"
-
 
 @pytest.mark.parametrize("greyscale", [True, False])
 @pytest.mark.parametrize("black", [True, False])
