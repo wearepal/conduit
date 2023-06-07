@@ -33,7 +33,7 @@ filelock = "*"
 jinja2 = "*"
 networkx = "*"
 sympy = "*"
-pillow = ">=5.3.0,<8.3.0 || >=8.4.0"
+pillow = ">=5.3.0,!=8.3.*"
 requests = "*"
 
 # NOTE: the following has to be kept in sync with the groups below
