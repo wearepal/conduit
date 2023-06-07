@@ -1,5 +1,6 @@
 """Test DataModules."""
 from __future__ import annotations
+from functools import partial
 from pathlib import Path
 from typing import Any, Final, Type
 
@@ -26,8 +27,8 @@ def _create_dm(
     extra_args: dict[str, Any] | None = None,
 ) -> EthicMlDataModule:
     extra_args = {} if extra_args is None else extra_args
-    dm_kwargs = dict(train_batch_size=BATCHSIZE, stratified_sampling=stratified, **extra_args)
-    dm = dm_cls(**dm_kwargs)
+    dm_partial = partial(dm_cls, train_batch_size=BATCHSIZE, stratified_sampling=stratified)
+    dm = dm_partial(**extra_args)
     dm.prepare_data()
     dm.setup()
     return dm
