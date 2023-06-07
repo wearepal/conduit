@@ -174,7 +174,7 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
                 req.raise_for_status()
                 image_path = raw_image_dir / f"{i}.zip"
                 with image_path.open("wb") as f:
-                    shutil.copyfileobj(req.raw, f)
+                    shutil.copyfileobj(req.raw, f)  # pyright: ignore
                 del req
                 pbar.update()
 

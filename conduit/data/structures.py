@@ -551,14 +551,14 @@ class ImageSize(Sequence):
         yield from (self.c, self.h, self.w)
 
     @overload
-    def __getitem__(self, index: int, /) -> int:
+    def __getitem__(self, index: int) -> int:
         ...
 
     @overload
-    def __getitem__(self, index: slice, /) -> Sequence[int]:
+    def __getitem__(self, index: slice) -> Sequence[int]:
         ...
 
-    def __getitem__(self, index: Union[int, slice], /) -> Union[int, Sequence[int]]:
+    def __getitem__(self, index: Union[int, slice]) -> Union[int, Sequence[int]]:
         return (self.c, self.h, self.w)[index]
 
     def __len__(self) -> int:

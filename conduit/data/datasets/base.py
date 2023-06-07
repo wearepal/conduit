@@ -82,16 +82,28 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         return self._logger
 
     @overload
-    def _sample_x(self, index: IndexType, *, coerce_to_tensor: Literal[True]) -> Tensor:
+    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[True]) -> Tensor:
         ...
 
     @overload
-    def _sample_x(self, index: IndexType, *, coerce_to_tensor: Literal[False] = ...) -> LoadedData:
+    def _sample_x(
+        self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[True]
+    ) -> Union[Tensor, Sequence[Tensor]]:
+        ...
+
+    @overload
+    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[False] = ...) -> LoadedData:
+        ...
+
+    @overload
+    def _sample_x(
+        self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[False] = ...
+    ) -> Union[LoadedData, Sequence[LoadedData]]:
         ...
 
     def _sample_x(
         self, index: IndexType, *, coerce_to_tensor: bool = False
-    ) -> Union[LoadedData, Tensor]:
+    ) -> Union[LoadedData, Tensor, Sequence[LoadedData]]:
         x = self.x[index]
         if coerce_to_tensor and (not isinstance(x, Tensor)):
             x = torch.as_tensor(x)
@@ -302,7 +314,7 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
             return superset
 
     @override
-    def __getitem__(self: Self, index: IndexType) -> I:
+    def __getitem__(self: Self, index: int) -> I:
         x = self._sample_x(index, coerce_to_tensor=False)
         y = self._sample_y(index)
         s = self._sample_s(index)
