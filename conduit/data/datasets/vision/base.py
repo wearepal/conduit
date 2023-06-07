@@ -1,7 +1,7 @@
 from functools import reduce
 import operator
 from pathlib import Path
-from typing import List, Optional, Sequence, Union, cast, overload
+from typing import List, Literal, Optional, Sequence, Union, cast, overload
 from typing_extensions import Self, TypeAlias, override
 
 import numpy as np
@@ -25,7 +25,7 @@ from conduit.types import IndexType
 
 __all__ = ["CdtVisionDataset"]
 
-ItemType: TypeAlias = Union[RawImage, Tensor, Sequence[RawImage], Sequence[Tensor]]
+ItemType: TypeAlias = Union[RawImage, Tensor]
 
 
 class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
@@ -69,33 +69,44 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
         return load_image(self.image_dir / filepath, backend=self._il_backend)
 
     @overload
-    def _sample_x(self, index: int, *, coerce_to_tensor: bool = ...) -> ItemType:
+    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[True]) -> Tensor:
         ...
 
     @overload
     def _sample_x(
-        self, index: Union[List[int], slice], *, coerce_to_tensor: bool = ...
-    ) -> List[ItemType]:
+        self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[True]
+    ) -> Union[Tensor, Sequence[Tensor]]:
+        ...
+
+    @overload
+    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[False] = ...) -> ItemType:
+        ...
+
+    @overload
+    def _sample_x(
+        self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[False] = ...
+    ) -> Union[ItemType, Sequence[ItemType]]:
         ...
 
     @override
     def _sample_x(
         self, index: IndexType, *, coerce_to_tensor: bool = False
-    ) -> Union[ItemType, List[ItemType]]:
+    ) -> Union[ItemType, Sequence[ItemType]]:
         if isinstance(index, slice):
             index = list(range(len(self)))[index]
         if isinstance(index, list):
-            sample_ls = [self._sample_x(index=i, coerce_to_tensor=coerce_to_tensor) for i in index]
+            sample_ls: List[ItemType] = [
+                self._sample_x(index=i, coerce_to_tensor=coerce_to_tensor)  # type: ignore
+                for i in index
+            ]
             elem = sample_ls[0]
             if isinstance(elem, Addable):
                 summed = reduce(operator.add, sample_ls)
                 return cast(ItemType, summed)
             if isinstance(elem, Tensor):
-                sample_ls = cast(List[Tensor], sample_ls)
-                return torch.stack(sample_ls, dim=0)
+                return torch.stack(cast(List[Tensor], sample_ls), dim=0)
             elif isinstance(sample_ls[0], np.ndarray):
-                sample_ls = cast(List[np.ndarray], sample_ls)
-                return np.stack(sample_ls, axis=0)
+                return np.stack(cast(List[np.ndarray], sample_ls), axis=0)
             return sample_ls
 
         image = self._load_image(index)

@@ -308,6 +308,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
         return self._train_data is not None
 
     def _setup(self, stage: Optional[Stage] = None) -> None:
+        train_data: Union[None, D, InstanceWeightedDataset]
         train_data, self._val_data, self._test_data = self._get_splits()
         if self.instance_weighting:
             train_data = InstanceWeightedDataset(train_data)

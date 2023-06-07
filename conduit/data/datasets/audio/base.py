@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional, Union, overload
+from typing import List, Literal, Optional, Sequence, Union, overload
 from typing_extensions import override
 
 import numpy as np
@@ -70,16 +70,28 @@ class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
         return torch.cat([_load(filepath) for filepath in self.x[index]], dim=0)
 
     @overload
-    def _sample_x(self, index: int, *, coerce_to_tensor: bool = ...) -> Tensor:
+    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[True]) -> Tensor:
         ...
 
     @overload
-    def _sample_x(self, index: List[int], *, coerce_to_tensor: bool = ...) -> List[Tensor]:
+    def _sample_x(
+        self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[True]
+    ) -> Union[Tensor, Sequence[Tensor]]:
+        ...
+
+    @overload
+    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[False] = ...) -> Tensor:
+        ...
+
+    @overload
+    def _sample_x(
+        self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[False] = ...
+    ) -> Union[Tensor, Sequence[Tensor]]:
         ...
 
     @override
     def _sample_x(
         self, index: IndexType, *, coerce_to_tensor: bool = False
-    ) -> Union[Tensor, List[Tensor]]:
+    ) -> Union[Tensor, Sequence[Tensor]]:
         waveform = self.load_sample(index)
         return apply_audio_transform(waveform, transform=None)
