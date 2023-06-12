@@ -1455,13 +1455,13 @@ files = [
 
 [[package]]
 name = "pytest"
-version = "7.3.1"
+version = "7.3.2"
 description = "pytest: simple powerful testing with Python"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pytest-7.3.1-py3-none-any.whl", hash = "sha256:3799fa815351fea3a5e96ac7e503a96fa51cc9942c3753cda7651b93c1cfa362"},
-    {file = "pytest-7.3.1.tar.gz", hash = "sha256:434afafd78b1d78ed0addf160ad2b77a30d35d4bdf8af234fe621919d9ed15e3"},
+    {file = "pytest-7.3.2-py3-none-any.whl", hash = "sha256:cdcbd012c9312258922f8cd3f1b62a6580fdced17db6014896053d47cddf9295"},
+    {file = "pytest-7.3.2.tar.gz", hash = "sha256:ee990a3cc55ba808b80795a79944756f315c67c12b56abd3ac993a7b8c17030b"},
 ]
 
 [package.dependencies]
@@ -1473,7 +1473,7 @@ pluggy = ">=0.12,<2.0"
 tomli = {version = ">=1.0.0", markers = "python_version < \"3.11\""}
 
 [package.extras]
-testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.7.2)", "requests", "xmlschema"]
+testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.7.2)", "requests", "setuptools", "xmlschema"]
 
 [[package]]
 name = "python-dateutil"
@@ -2019,9 +2019,9 @@ files = [
 [[package]]
 name = "torch"
 version = "2.0.1+cpu"
-description = ""
+description = "Tensors and Dynamic neural networks in Python with strong GPU acceleration"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8.0"
 files = [
     {file = "torch-2.0.1+cpu-cp310-cp310-linux_x86_64.whl", hash = "sha256:fec257249ba014c68629a1994b0c6e7356e20e1afc77a87b9941a40e5095285d"},
     {file = "torch-2.0.1+cpu-cp310-cp310-win_amd64.whl", hash = "sha256:ca88b499973c4c027e32c4960bf20911d7e984bd0c55cda181dc643559f3d93f"},
@@ -2033,6 +2033,16 @@ files = [
     {file = "torch-2.0.1+cpu-cp39-cp39-win_amd64.whl", hash = "sha256:f263f8e908288427ae81441fef540377f61e339a27632b1bbe33cf78292fdaea"},
 ]
 
+[package.dependencies]
+filelock = "*"
+jinja2 = "*"
+networkx = "*"
+sympy = "*"
+typing-extensions = "*"
+
+[package.extras]
+opt-einsum = ["opt-einsum (>=3.3)"]
+
 [package.source]
 type = "legacy"
 url = "https://download.pytorch.org/whl/cpu"
@@ -2041,7 +2051,7 @@ reference = "torchcpu"
 [[package]]
 name = "torchaudio"
 version = "2.0.2+cpu"
-description = ""
+description = "An audio package for PyTorch"
 optional = false
 python-versions = "*"
 files = [
@@ -2054,6 +2064,9 @@ files = [
     {file = "torchaudio-2.0.2+cpu-cp39-cp39-linux_x86_64.whl", hash = "sha256:30fc6926b51892cda933e98616fcdbc1f53084680210809cbc03c301d585ed9c"},
     {file = "torchaudio-2.0.2+cpu-cp39-cp39-win_amd64.whl", hash = "sha256:aa7425184157a0356fe08deb74a517f5a0e1f27722f362a5ac3089904bf17001"},
 ]
+
+[package.dependencies]
+torch = "2.0.1"
 
 [package.source]
 type = "legacy"
@@ -2091,9 +2104,9 @@ text = ["nltk (>=3.6)", "regex (>=2021.9.24)", "tqdm (>=4.41.0)"]
 [[package]]
 name = "torchvision"
 version = "0.15.2+cpu"
-description = ""
+description = "image and video datasets and models for torch deep learning"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
     {file = "torchvision-0.15.2+cpu-cp310-cp310-linux_x86_64.whl", hash = "sha256:aae0be6883d2cd5a23cb544ee0928288a27df0455430ef9dd6e631c5464095f5"},
     {file = "torchvision-0.15.2+cpu-cp310-cp310-win_amd64.whl", hash = "sha256:44d4b8976b5aaf97811ec05cb526531ac08dc5c76c2f5bc1c919b9a653cbc206"},
@@ -2104,6 +2117,15 @@ files = [
     {file = "torchvision-0.15.2+cpu-cp39-cp39-linux_x86_64.whl", hash = "sha256:e1e3988373afa29c813b140dbb5b7a074214813fd0ef97d2538966b9bd8d92d9"},
     {file = "torchvision-0.15.2+cpu-cp39-cp39-win_amd64.whl", hash = "sha256:b9c2745a966d5ffcad7b17807ef3acf4149f497c80f5f4571f69a1817436e56f"},
 ]
+
+[package.dependencies]
+numpy = "*"
+pillow = ">=5.3.0,<8.3.dev0 || >=8.4.dev0"
+requests = "*"
+torch = "2.0.1"
+
+[package.extras]
+scipy = ["scipy"]
 
 [package.source]
 type = "legacy"
