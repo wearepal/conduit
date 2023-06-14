@@ -5,7 +5,16 @@ from itertools import islice
 import os
 from pathlib import Path
 import shutil
-from typing import ClassVar, Iterable, Iterator, List, Optional, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    ClassVar,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+)
 from typing_extensions import TypeAlias
 import zipfile
 
@@ -22,6 +31,9 @@ from conduit.data.structures import TernarySample
 
 from .base import CdtVisionDataset
 from .utils import ImageTform
+
+if TYPE_CHECKING:
+    from _typeshed import SupportsRead
 
 __all__ = ["IsicAttr", "ISIC"]
 
@@ -174,7 +186,8 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
                 req.raise_for_status()
                 image_path = raw_image_dir / f"{i}.zip"
                 with image_path.open("wb") as f:
-                    shutil.copyfileobj(req.raw, f)  # pyright: ignore
+                    raw: SupportsRead[bytes] = req.raw
+                    shutil.copyfileobj(raw, f)
                 del req
                 pbar.update()
 
