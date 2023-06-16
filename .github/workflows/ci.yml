@@ -42,7 +42,7 @@ jobs:
     - name: Install minimal dependencies
       run: |
         poetry env use 3.8
-        poetry install --no-interaction --no-root --with torch --without image --without hydra --without download --without logging --without dev
+        poetry install --no-interaction --no-root --with torchcpu --without image --without hydra --without download --without logging --without dev
     - name: Verify audio datamodule can be imported
       run: |
         poetry run python -c "from conduit.data.datamodules.audio import EcoacousticsDataModule"
@@ -66,7 +66,7 @@ jobs:
     - name: Install dependencies
       run: |
         poetry env use 3.8
-        poetry install --no-interaction --no-root --with torch --with fair
+        poetry install --no-interaction --no-root --with torchcpu --with fair
     - name: Set python path for all subsequent actions
       run: echo "$(poetry env info --path)/bin" >> $GITHUB_PATH
     #----------------------------------------------
