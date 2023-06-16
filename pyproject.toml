@@ -98,10 +98,10 @@ name = "torchcpu"
 url = "https://download.pytorch.org/whl/cpu"
 priority = "explicit"
 
-[tool.poetry.group.torch]
+[tool.poetry.group.torchcpu]
 optional = true
 
-[tool.poetry.group.torch.dependencies]
+[tool.poetry.group.torchcpu.dependencies]
 pytorch-lightning = "^2.0.1.post0"
 torch = { version = "*", source = "torchcpu", markers = "sys_platform == 'linux'" }
 torchvision = { version = "*", source = "torchcpu", markers = "sys_platform == 'linux'" }
@@ -115,7 +115,7 @@ mypy = "*"
 neoconfigen = {version = ">=2.3.3"}
 pre-commit = "*"
 pytest = "*"
-python-type-stubs = {git = "https://github.com/wearepal/python-type-stubs.git", rev = "2ea8053"}
+python-type-stubs = {git = "https://github.com/wearepal/python-type-stubs.git", rev = "6767223"}
 pandas-stubs = "*"
 types-tqdm = "*"
 
