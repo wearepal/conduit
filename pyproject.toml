@@ -118,6 +118,7 @@ pytest = "*"
 python-type-stubs = {git = "https://github.com/wearepal/python-type-stubs.git", rev = "6767223"}
 pandas-stubs = "*"
 types-tqdm = "*"
+types-pillow = "^9.5.0.4"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -219,18 +220,11 @@ exclude = ["conf.py"]
 [[tool.mypy.overrides]]
 module = [
     "albumentations.*",
-    "cv2.*",
     "flash.*",
     "gdown.*",
     "git.*",
-    "PIL.*",
     "pl_bolts.*",
-    "pytest.*",
-    "pytorch_lightning.*",
     "requests.*",
-    "scipy.*",
-    "sklearn.*",
-    "torch.*",
     "torchmetrics.*",
     "torchvision.*",
     "typing_inspect.*",
@@ -240,7 +234,6 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = [
-    "torch.*",
     "torchmetrics.*"
 ]
 follow_imports = "skip"
