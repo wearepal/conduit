@@ -37,7 +37,7 @@ def load_image(
 
 
 @overload
-def load_image(filepath: Union[Path, str], *, backend: Literal["pillow"] = ...) -> Image.Image:
+def load_image(filepath: Union[Path, str], *, backend: Literal["pillow"]) -> Image.Image:
     ...
 
 

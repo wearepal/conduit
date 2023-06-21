@@ -2159,6 +2159,17 @@ slack = ["slack-sdk"]
 telegram = ["requests"]
 
 [[package]]
+name = "types-pillow"
+version = "9.5.0.4"
+description = "Typing stubs for Pillow"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-Pillow-9.5.0.4.tar.gz", hash = "sha256:f1b6af47abd151847ee25911ffeba784899bc7dc7f9eba8ca6a5aac522b012ef"},
+    {file = "types_Pillow-9.5.0.4-py3-none-any.whl", hash = "sha256:69427d9fa4320ff6e30f00fb9c0dd71185dc0a16de4757774220104759483466"},
+]
+
+[[package]]
 name = "types-pytz"
 version = "2022.6.0.1"
 description = "Typing stubs for pytz"
@@ -2368,4 +2379,4 @@ logging = ["rich"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0,<3.12"
-content-hash = "0640c3b77528d7fee905745999fd9f0924c446a41eb41640c052c0d0347520a9"
+content-hash = "2dd625ede9d408780e3d9c15b75382b4eccb8ed2c400ddef553dbeea52feeb3d"
