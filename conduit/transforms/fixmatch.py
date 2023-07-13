@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import Callable, Generic, List, Optional, TypeVar, Union
 from typing_extensions import Self, override
 
-import numpy as np
 from PIL import Image
+import numpy as np
 from ranzen.misc import gcopy
 from torch import Tensor
 
