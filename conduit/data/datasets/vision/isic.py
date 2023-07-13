@@ -18,8 +18,8 @@ from typing import (
 from typing_extensions import TypeAlias
 import zipfile
 
-import pandas as pd
 from PIL import Image
+import pandas as pd
 from ranzen import StrEnum, flatten_dict
 from ranzen.decorators import parsable
 import requests

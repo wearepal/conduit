@@ -5,7 +5,7 @@ import torch
 from torch import Tensor, nn
 import torch.nn.functional as F
 
-from conduit.types import Indexable, IndexType, Sized
+from conduit.types import IndexType, Indexable, Sized
 
 __all__ = ["MemoryBank"]
 

@@ -2,8 +2,8 @@ from dataclasses import replace
 from typing import Any, Optional, Tuple, Union
 from typing_extensions import override
 
-import numpy as np
 from PIL import Image
+import numpy as np
 import torch
 from torch import Tensor
 

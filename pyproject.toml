@@ -110,13 +110,13 @@ torchaudio = { version = "*", source = "torchcpu", markers = "sys_platform == 'l
 [tool.poetry.group.dev.dependencies]
 black = "*"
 darglint = "^1.8.0"
-isort = "*"
 mypy = "*"
 neoconfigen = {version = ">=2.3.3"}
 pre-commit = "*"
 pytest = "*"
 python-type-stubs = {git = "https://github.com/wearepal/python-type-stubs.git", rev = "6767223"}
 pandas-stubs = "*"
+ruff = "*"
 types-tqdm = "*"
 types-pillow = "^9.5.0.4"
 
@@ -169,6 +169,7 @@ ignore = [
     "E741", # ambiguous variable name
     "F541", # f-string without placeholder
     "PLW2901", # overwriting loop variable
+    "PLC0105", # covariant typevars have to end in "_co"
 ]
 target-version = "py38"
 
@@ -182,6 +183,7 @@ no-lines-before = ["future", "standard-library"]
 force-sort-within-sections = true
 split-on-trailing-comma = false
 classes = ["MISSING", "NICO", "PACS", "SSRP", "ISIC"]
+case-sensitive = true
 
 [tool.pyright]
 typeCheckingMode = "strict"

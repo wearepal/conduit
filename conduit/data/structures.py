@@ -21,10 +21,10 @@ from typing import (
 )
 from typing_extensions import Self, TypeAlias, override
 
+from PIL import Image
 import attr
 import numpy as np
 import numpy.typing as npt
-from PIL import Image
 from ranzen.misc import gcopy, reduce_add
 from ranzen.types import Addable
 import torch
