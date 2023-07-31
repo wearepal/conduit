@@ -27,7 +27,7 @@ class ColoredMNISTDataModule(CdtVisionDataModule[SampleType]):
     image_size: int = 32
     use_predefined_splits: bool = False
     # Colorization settings
-    label_map: Optional[Dict[str, int]] = None
+    label_map: Optional[Dict[int, int]] = None
     colors: Optional[List[int]] = None
     num_colors: int = 10
     scale: float = 0.2

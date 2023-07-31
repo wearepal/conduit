@@ -106,7 +106,7 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
             if isinstance(elem, Tensor):
                 return torch.stack(cast(List[Tensor], sample_ls), dim=0)
             elif isinstance(sample_ls[0], np.ndarray):
-                return np.stack(cast(List[np.ndarray], sample_ls), axis=0)
+                return np.stack(cast(List[npt.NDArray[np.integer]], sample_ls), axis=0)
             return sample_ls
 
         image = self._load_image(index)

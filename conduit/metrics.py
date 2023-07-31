@@ -261,6 +261,7 @@ def _apply_groupwise_metric(
         group_ids_ls = list(group_ids)
         first_elem = group_ids_ls.pop().clone().squeeze()
         index_set = first_elem.unique(return_inverse=True)[1]
+        assert isinstance(index_set, Tensor)  # pyright was complaining without this
 
         for elem in group_ids_ls:
             if len(y_pred) != len(y_true) != len(elem):
