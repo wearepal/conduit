@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Optional
 from typing_extensions import Self, override
 
 import torch
@@ -30,24 +30,19 @@ class MemoryBank(nn.Module, Indexable, Sized):
     @classmethod
     @torch.no_grad()
     def with_l2_hypersphere_init(cls, capacity: int, *, dim: int) -> Self:
-        return MemoryBank(l2_hypersphere_init(capacity=capacity, dim=dim))
+        return cls(l2_hypersphere_init(capacity=capacity, dim=dim))
 
     @classmethod
     @torch.no_grad()
     def with_randint_init(cls, capacity: int, *, dim: int, high: int, low: int = 0) -> Self:
-        return MemoryBank(torch.randint(low=low, high=high, size=(capacity, dim)))
+        return cls(torch.randint(low=low, high=high, size=(capacity, dim)))
 
     @classmethod
     @torch.no_grad()
     def with_constant_init(
-        cls: Type[Self],
-        capacity: int,
-        *,
-        dim: int,
-        value: float,
-        dtype: Optional[torch.dtype] = None,
+        cls, capacity: int, *, dim: int, value: float, dtype: Optional[torch.dtype] = None
     ) -> Self:
-        return MemoryBank(torch.full(size=(capacity, dim), fill_value=value, dtype=dtype))
+        return cls(torch.full(size=(capacity, dim), fill_value=value, dtype=dtype))
 
     def clone(self) -> Tensor:
         return self.memory.clone()
