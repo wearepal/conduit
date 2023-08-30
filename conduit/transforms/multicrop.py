@@ -24,11 +24,7 @@ from conduit.data.structures import (
 
 from .image import RandomGaussianBlur, RandomSolarize
 
-__all__ = [
-    "MultiCropOutput",
-    "MultiCropTransform",
-    "MultiViewPair",
-]
+__all__ = ["MultiCropOutput", "MultiCropTransform", "MultiViewPair"]
 
 
 @dataclass
@@ -103,13 +99,13 @@ class MultiCropOutput(InputContainer):
 
     @property
     def global_crop_size(self) -> Tuple[int, int, int]:
-        return self.global_views.shape[1:]
+        return (self.global_views.shape[1], self.global_views.shape[2], self.global_views.shape[3])
 
     @property
     def local_crop_size(self) -> Tuple[int, int, int]:
         if self.local_views is None:
             raise AttributeError("Cannot retrieve the local-crop size as 'local_' is 'None'.")
-        return self.local_views.shape[1:]
+        return (self.local_views.shape[1], self.local_views.shape[2], self.local_views.shape[3])
 
     @property
     def shape(self) -> torch.Size:
