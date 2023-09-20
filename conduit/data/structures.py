@@ -238,7 +238,8 @@ class SampleBase(InputContainer, Generic[X]):
             asdict(self)
         return shallow_asdict(self)
 
-    def __getitem__(self: "SampleBase[XI]", index: IndexType) -> "SampleBase[XI]":
+    def __getitem__(self, index: IndexType) -> Self:
+        assert isinstance(self.x, (Tensor, np.ndarray)), "x is not indexable"
         return gcopy(self, deep=False, x=self.x[index])
 
 
@@ -284,7 +285,8 @@ class TernarySampleIW(_IwMixin, _BinarySampleMixin, _SubgroupSampleMixin, Sample
         return copy
 
     @override
-    def __getitem__(self: "TernarySampleIW[XI]", index: IndexType) -> "TernarySampleIW[XI]":
+    def __getitem__(self, index: IndexType) -> Self:
+        assert isinstance(self.x, (Tensor, np.ndarray)), "x is not indexable"
         return gcopy(
             self, deep=False, x=self.x[index], y=self.y[index], s=self.s[index], iw=self.iw[index]
         )
@@ -317,7 +319,8 @@ class TernarySample(_BinarySampleMixin, _SubgroupSampleMixin, SampleBase[X]):
         return copy
 
     @override
-    def __getitem__(self: "TernarySample[XI]", index: IndexType) -> "TernarySample[XI]":
+    def __getitem__(self, index: IndexType) -> Self:
+        assert isinstance(self.x, (Tensor, np.ndarray)), "x is not indexable"
         return gcopy(self, deep=False, x=self.x[index], y=self.y[index], s=self.s[index])
 
 
@@ -348,7 +351,8 @@ class BinarySampleIW(_IwMixin, _BinarySampleMixin, SampleBase[X]):
         return copy
 
     @override
-    def __getitem__(self: "BinarySampleIW[XI]", index: IndexType) -> "BinarySampleIW[XI]":
+    def __getitem__(self, index: IndexType) -> Self:
+        assert isinstance(self.x, (Tensor, np.ndarray)), "x is not indexable"
         return gcopy(self, deep=False, x=self.x[index], y=self.y[index], iw=self.iw[index])
 
 
@@ -392,7 +396,8 @@ class BinarySample(_BinarySampleMixin, SampleBase[X]):
         return copy
 
     @override
-    def __getitem__(self: "BinarySample[XI]", index: IndexType) -> "BinarySample[XI]":
+    def __getitem__(self, index: IndexType) -> Self:
+        assert isinstance(self.x, (Tensor, np.ndarray)), "x is not indexable"
         return gcopy(self, deep=False, x=self.x[index], y=self.y[index])
 
 
@@ -423,7 +428,8 @@ class SubgroupSampleIW(SampleBase[X], _SubgroupSampleMixin, _IwMixin):
         return copy
 
     @override
-    def __getitem__(self: "SubgroupSampleIW[XI]", index: IndexType) -> "SubgroupSampleIW[XI]":
+    def __getitem__(self, index: IndexType) -> Self:
+        assert isinstance(self.x, (Tensor, np.ndarray)), "x is not indexable"
         return gcopy(self, deep=False, x=self.x[index], s=self.s[index], iw=self.iw[index])
 
 
@@ -467,7 +473,8 @@ class SubgroupSample(_SubgroupSampleMixin, SampleBase[X]):
         return copy
 
     @override
-    def __getitem__(self: "SubgroupSample[XI]", index: IndexType) -> "SubgroupSample[XI]":
+    def __getitem__(self, index: IndexType) -> Self:
+        assert isinstance(self.x, (Tensor, np.ndarray)), "x is not indexable"
         return gcopy(self, deep=False, x=self.x[index], s=self.s[index])
 
 
@@ -511,7 +518,8 @@ class NamedSample(SampleBase[X]):
         yield self.x
 
     @override
-    def __getitem__(self: "NamedSample[XI]", index: IndexType) -> "NamedSample[XI]":
+    def __getitem__(self, index: IndexType) -> Self:
+        assert isinstance(self.x, (Tensor, np.ndarray)), "x is not indexable"
         return gcopy(self, deep=False, x=self.x[index])
 
 
