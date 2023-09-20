@@ -1,4 +1,6 @@
 """Dummy data-module."""
+from pathlib import Path
+from typing import Union
 from typing_extensions import override
 
 import attr
@@ -12,7 +14,7 @@ from conduit.data.datasets.vision.dummy import DummyVisionDataset, SampleType
 class DummyVisionDataModule(CdtVisionDataModule[SampleType]):
     num_samples: int = 1_000
     seed: int = 8
-    root: str = ""
+    root: Union[str, Path] = ""
     height: int = 32
     width: int = 32
     channels: int = 3
