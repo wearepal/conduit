@@ -424,21 +424,27 @@ files = [
 
 [[package]]
 name = "ethicml"
-version = "1.2.1"
+version = "1.2.2"
 description = "EthicML is a library for performing and assessing algorithmic fairness. Unlike other libraries, EthicML isn't an education tool, but rather a researcher's toolkit."
 optional = false
 python-versions = ">=3.8,<3.12"
 files = [
-    {file = "ethicml-1.2.1-py3-none-any.whl", hash = "sha256:673aa63bb1dedea8968f83083fb660c7d26a2f4dabe0ad6a759d649f2f90918f"},
-    {file = "ethicml-1.2.1.tar.gz", hash = "sha256:684c36a96451162d33ef462fe9ec7e528a3dcb4436bab662f454ba6b5323a9a2"},
+    {file = "ethicml-1.2.2-py3-none-any.whl", hash = "sha256:1e457a705aa8d3b39de921228a7aa8e87f2fa519339fb930d31bdc0834fff720"},
+    {file = "ethicml-1.2.2.tar.gz", hash = "sha256:72c321794832b6eec3c27e9d6a5ee22c96c5cbe9c6735265255728fd197de07f"},
 ]
 
 [package.dependencies]
+filelock = "*"
 folktables = {version = ">=0.0.11,<0.0.12", optional = true, markers = "extra == \"data\" or extra == \"all\""}
+jinja2 = "*"
 joblib = ">=1.1.0,<2.0.0"
+networkx = "*"
 numpy = ">=1.23.2"
 pandas = ">=1.5.0"
+pillow = ">=8.4.0"
 ranzen = ">=2.0.1,<2.1.0 || >2.1.0,<3.0.0"
+requests = "*"
+sympy = ">=1.12,<2.0"
 teext = ">=0.1.3,<0.2.0"
 typing-extensions = ">=4.5"
 
