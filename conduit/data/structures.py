@@ -22,7 +22,7 @@ from typing import (
 from typing_extensions import Self, TypeAlias, override
 
 from PIL import Image
-import attr
+from attrs import define
 import numpy as np
 import numpy.typing as npt
 from ranzen.misc import gcopy, reduce_add
@@ -537,7 +537,7 @@ def shallow_asdict(dataclass: object) -> Dict[str, Any]:
     return {field.name: getattr(dataclass, field.name) for field in fields(dataclass)}
 
 
-@attr.define
+@define
 class ImageSize(Sequence):
     c: int
     h: int
@@ -545,7 +545,7 @@ class ImageSize(Sequence):
 
     def __mul__(self, other: Union[Self, float]) -> Self:
         copy = gcopy(self, deep=False)
-        if isinstance(other, float):
+        if isinstance(other, (float, int)):
             copy.c = round(copy.c * other)
             copy.h = round(copy.h * other)
             copy.w = round(copy.w * other)
@@ -577,7 +577,7 @@ class ImageSize(Sequence):
         return sum(iter(self))
 
 
-@attr.define(kw_only=True)
+@define(kw_only=True)
 class MeanStd:
     mean: Union[Tuple[float, ...], List[float]]
     std: Union[Tuple[float, ...], List[float]]
@@ -661,7 +661,7 @@ class DatasetWrapper(SizedDataset[R_co], Protocol):
         return None
 
 
-@attr.define(kw_only=True)
+@define(kw_only=True)
 class TrainTestSplit(Generic[D]):
     train: D
     test: D
@@ -670,7 +670,7 @@ class TrainTestSplit(Generic[D]):
         yield from (self.train, self.test)
 
 
-@attr.define(kw_only=True)
+@define(kw_only=True)
 class TrainValTestSplit(TrainTestSplit[D]):
     val: D
 

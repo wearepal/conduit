@@ -28,15 +28,9 @@ METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
 
 
 class Loss(Protocol):
+    reduction: Union[ReductionType, str]
+
     def __call__(self, input: Tensor, target: Tensor, **kwargs: Any) -> Tensor:
-        ...
-
-    @property
-    def reduction(self) -> Union[ReductionType, str]:
-        ...
-
-    @reduction.setter
-    def reduction(self, value: Union[ReductionType, str]) -> None:
         ...
 
 

@@ -19,9 +19,9 @@ def generator() -> torch.Generator:
 
 
 def assert_close(a: Tensor | np.ndarray | float, b: Tensor | np.ndarray | float, /) -> None:
-    if isinstance(a, (np.ndarray, float)):
+    if isinstance(a, (np.ndarray, float, int)):
         a = torch.as_tensor(a, dtype=torch.float32)
-    if isinstance(b, (np.ndarray, float)):
+    if isinstance(b, (np.ndarray, float, int)):
         b = torch.as_tensor(b, dtype=torch.float32)
     a = torch.nan_to_num(a, nan=torch.inf)
     b = torch.nan_to_num(b, nan=torch.inf)
