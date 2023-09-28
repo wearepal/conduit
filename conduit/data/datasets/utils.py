@@ -696,7 +696,7 @@ def stratified_split(
                     f"No samples belonging to superclass 'y={superclass}' exist in the dataset of "
                     f"type {dataset.__class__.__name__}."
                 )
-            if isinstance(value, float):
+            if isinstance(value, (float, int)):
                 if not 0 <= value <= 1:
                     raise ValueError(
                         "All splitting proportions speicfied in 'train_props' must be in the "
