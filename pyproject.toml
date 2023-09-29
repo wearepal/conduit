@@ -52,6 +52,7 @@ hydra-core = {version = "^1.1.1", optional = true}
 rich = {version = "^12.5.1", optional = true}
 # fair
 ethicml = {version = "^1.2.1", extras = ["data"], optional = true}
+folktables = {version = "0.0.12", optional = true}
 
 [tool.poetry.group.download.dependencies]
 gdown = "^3.13.0"

@@ -424,18 +424,18 @@ files = [
 
 [[package]]
 name = "ethicml"
-version = "1.2.2"
+version = "1.2.3"
 description = "EthicML is a library for performing and assessing algorithmic fairness. Unlike other libraries, EthicML isn't an education tool, but rather a researcher's toolkit."
 optional = false
 python-versions = ">=3.8,<3.12"
 files = [
-    {file = "ethicml-1.2.2-py3-none-any.whl", hash = "sha256:1e457a705aa8d3b39de921228a7aa8e87f2fa519339fb930d31bdc0834fff720"},
-    {file = "ethicml-1.2.2.tar.gz", hash = "sha256:72c321794832b6eec3c27e9d6a5ee22c96c5cbe9c6735265255728fd197de07f"},
+    {file = "ethicml-1.2.3-py3-none-any.whl", hash = "sha256:a07c25ddee4f37db39dd4ad2a932385faac1b037384ebf519c1363d8d35603d5"},
+    {file = "ethicml-1.2.3.tar.gz", hash = "sha256:a592b7340f277f861646c09bf62d7d7f3fd20489a08d919e9e2c6165201262ed"},
 ]
 
 [package.dependencies]
 filelock = "*"
-folktables = {version = ">=0.0.11,<0.0.12", optional = true, markers = "extra == \"data\" or extra == \"all\""}
+folktables = {version = ">=0.0.12", optional = true, markers = "extra == \"data\" or extra == \"all\""}
 jinja2 = "*"
 joblib = ">=1.1.0,<2.0.0"
 networkx = "*"
@@ -449,8 +449,8 @@ teext = ">=0.1.3,<0.2.0"
 typing-extensions = ">=4.5"
 
 [package.extras]
-all = ["GitPython (>=3.1.20,<4.0.0)", "cloudpickle (>=2.0.0,<3.0.0)", "fairlearn (==0.8.0)", "folktables (>=0.0.11,<0.0.12)", "gitdb2 (==4.0.2)", "matplotlib (>=3.0.2)", "pdm (>=2.4.0,<3.0.0)", "scikit-learn (>=0.20.1)", "scipy (>=1.7.2,<2.0.0)", "seaborn (>=0.9.0)", "smmap2 (==3.0.1)"]
-data = ["folktables (>=0.0.11,<0.0.12)"]
+all = ["GitPython (>=3.1.20,<4.0.0)", "cloudpickle (>=2.0.0,<3.0.0)", "fairlearn (==0.8.0)", "folktables (>=0.0.12)", "gitdb2 (==4.0.2)", "matplotlib (>=3.0.2)", "pdm (>=2.4.0,<3.0.0)", "scikit-learn (>=0.20.1)", "scipy (>=1.7.2,<2.0.0)", "seaborn (>=0.9.0)", "smmap2 (==3.0.1)"]
+data = ["folktables (>=0.0.12)"]
 metrics = ["scikit-learn (>=0.20.1)"]
 models = ["GitPython (>=3.1.20,<4.0.0)", "cloudpickle (>=2.0.0,<3.0.0)", "fairlearn (==0.8.0)", "gitdb2 (==4.0.2)", "pdm (>=2.4.0,<3.0.0)", "scikit-learn (>=0.20.1)", "scipy (>=1.7.2,<2.0.0)", "smmap2 (==3.0.1)"]
 plot = ["matplotlib (>=3.0.2)", "seaborn (>=0.9.0)"]
@@ -487,19 +487,20 @@ typing = ["typing-extensions (>=4.7.1)"]
 
 [[package]]
 name = "folktables"
-version = "0.0.11"
+version = "0.0.12"
 description = "New machine learning benchmarks from tabular datasets."
 optional = true
 python-versions = ">=3.7"
 files = [
-    {file = "folktables-0.0.11.tar.gz", hash = "sha256:e8e133e08975d9c28800fee0385a45fe123d26dad6b887bef7177360217f279d"},
+    {file = "folktables-0.0.12-py3-none-any.whl", hash = "sha256:979cda1900094b845ab3a8a3ae1b848f0138b780d5f8d17eeb6eb04c3c0c6617"},
+    {file = "folktables-0.0.12.tar.gz", hash = "sha256:e83dde0cbcdd54c7c39b175006a50bdfc4adc351f69d4389f82aaba3eee02115"},
 ]
 
 [package.dependencies]
 numpy = "*"
 pandas = "*"
 requests = "*"
-sklearn = "*"
+scikit-learn = "*"
 
 [[package]]
 name = "frozenlist"
@@ -1911,16 +1912,6 @@ files = [
 ]
 
 [[package]]
-name = "sklearn"
-version = "0.0.post1"
-description = "deprecated sklearn package, use scikit-learn instead"
-optional = true
-python-versions = "*"
-files = [
-    {file = "sklearn-0.0.post1.tar.gz", hash = "sha256:76b9ed1623775168657b86b5fe966d45752e5c87f528de6240c38923b94147c5"},
-]
-
-[[package]]
 name = "soundfile"
 version = "0.12.1"
 description = "An audio library based on libsndfile, CFFI and NumPy"
@@ -2043,9 +2034,9 @@ files = [
 [[package]]
 name = "torch"
 version = "2.0.1+cpu"
-description = "Tensors and Dynamic neural networks in Python with strong GPU acceleration"
+description = ""
 optional = false
-python-versions = ">=3.8.0"
+python-versions = "*"
 files = [
     {file = "torch-2.0.1+cpu-cp310-cp310-linux_x86_64.whl", hash = "sha256:fec257249ba014c68629a1994b0c6e7356e20e1afc77a87b9941a40e5095285d"},
     {file = "torch-2.0.1+cpu-cp310-cp310-win_amd64.whl", hash = "sha256:ca88b499973c4c027e32c4960bf20911d7e984bd0c55cda181dc643559f3d93f"},
@@ -2057,16 +2048,6 @@ files = [
     {file = "torch-2.0.1+cpu-cp39-cp39-win_amd64.whl", hash = "sha256:f263f8e908288427ae81441fef540377f61e339a27632b1bbe33cf78292fdaea"},
 ]
 
-[package.dependencies]
-filelock = "*"
-jinja2 = "*"
-networkx = "*"
-sympy = "*"
-typing-extensions = "*"
-
-[package.extras]
-opt-einsum = ["opt-einsum (>=3.3)"]
-
 [package.source]
 type = "legacy"
 url = "https://download.pytorch.org/whl/cpu"
@@ -2075,7 +2056,7 @@ reference = "torchcpu"
 [[package]]
 name = "torchaudio"
 version = "2.0.2+cpu"
-description = "An audio package for PyTorch"
+description = ""
 optional = false
 python-versions = "*"
 files = [
@@ -2088,9 +2069,6 @@ files = [
     {file = "torchaudio-2.0.2+cpu-cp39-cp39-linux_x86_64.whl", hash = "sha256:30fc6926b51892cda933e98616fcdbc1f53084680210809cbc03c301d585ed9c"},
     {file = "torchaudio-2.0.2+cpu-cp39-cp39-win_amd64.whl", hash = "sha256:aa7425184157a0356fe08deb74a517f5a0e1f27722f362a5ac3089904bf17001"},
 ]
-
-[package.dependencies]
-torch = "2.0.1"
 
 [package.source]
 type = "legacy"
@@ -2128,9 +2106,9 @@ text = ["nltk (>=3.6)", "regex (>=2021.9.24)", "tqdm (>=4.41.0)"]
 [[package]]
 name = "torchvision"
 version = "0.15.2+cpu"
-description = "image and video datasets and models for torch deep learning"
+description = ""
 optional = false
-python-versions = ">=3.8"
+python-versions = "*"
 files = [
     {file = "torchvision-0.15.2+cpu-cp310-cp310-linux_x86_64.whl", hash = "sha256:aae0be6883d2cd5a23cb544ee0928288a27df0455430ef9dd6e631c5464095f5"},
     {file = "torchvision-0.15.2+cpu-cp310-cp310-win_amd64.whl", hash = "sha256:44d4b8976b5aaf97811ec05cb526531ac08dc5c76c2f5bc1c919b9a653cbc206"},
@@ -2141,15 +2119,6 @@ files = [
     {file = "torchvision-0.15.2+cpu-cp39-cp39-linux_x86_64.whl", hash = "sha256:e1e3988373afa29c813b140dbb5b7a074214813fd0ef97d2538966b9bd8d92d9"},
     {file = "torchvision-0.15.2+cpu-cp39-cp39-win_amd64.whl", hash = "sha256:b9c2745a966d5ffcad7b17807ef3acf4149f497c80f5f4571f69a1817436e56f"},
 ]
-
-[package.dependencies]
-numpy = "*"
-pillow = ">=5.3.0,<8.3.dev0 || >=8.4.dev0"
-requests = "*"
-torch = "2.0.1"
-
-[package.extras]
-scipy = ["scipy"]
 
 [package.source]
 type = "legacy"
@@ -2408,4 +2377,4 @@ logging = ["rich"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0,<3.12"
-content-hash = "d281b4f8cab070e757d1452dc704df33f19ef3a90fa65080f3f3edc4d8744558"
+content-hash = "08ff20b80f00a89efd29a3a1906705e0fe7a121f72806b90a65c47bcf3d5c4bb"
