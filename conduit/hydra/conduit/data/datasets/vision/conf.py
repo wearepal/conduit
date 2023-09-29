@@ -5,21 +5,18 @@
 # flake8: noqa
 
 from dataclasses import dataclass, field
-from conduit.data.datasets.audio.ecoacoustics import SoundscapeAttr
 from conduit.data.datasets.vision.camelyon17 import Camelyon17Attr
 from conduit.data.datasets.vision.camelyon17 import Camelyon17Split
 from conduit.data.datasets.vision.camelyon17 import Camelyon17SplitScheme
 from conduit.data.datasets.vision.celeba import CelebASplit
 from conduit.data.datasets.vision.celeba import CelebAttr
-from conduit.data.datasets.vision.cmnist import ColoredMNISTSplit
 from conduit.data.datasets.vision.isic import IsicAttr
 from conduit.data.datasets.vision.nico import NicoSuperclass
 from conduit.data.datasets.vision.ssrp import SSRPSplit
-from conduit.data.datasets.vision.waterbirds import WaterbirdsSplit
+from conduit.data.datasets.vision.waterbirds.waterbirds import WaterbirdsSplit
 from omegaconf import MISSING
 from pathlib import Path
 from typing import Any
-from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Union
@@ -27,7 +24,7 @@ from typing import Union
 
 @dataclass
 class CelebAConf:
-    _target_: str = "conduit.data.datasets.CelebA"
+    _target_: str = "conduit.data.datasets.vision.CelebA"
     root: Union[str, Path] = MISSING
     download: bool = True
     superclass: Union[CelebAttr, str] = CelebAttr.SMILING
@@ -38,11 +35,11 @@ class CelebAConf:
 
 @dataclass
 class ColoredMNISTConf:
-    _target_: str = "conduit.data.datasets.ColoredMNIST"
+    _target_: str = "conduit.data.datasets.vision.ColoredMNIST"
     root: Union[str, Path] = MISSING
     download: bool = True
     transform: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
-    label_map: Optional[Dict[str, int]] = None
+    label_map: Any = None  # Optional[Dict[int, int]]
     colors: Optional[List[int]] = None
     num_colors: int = 10
     scale: float = 0.2
@@ -51,24 +48,24 @@ class ColoredMNISTConf:
     greyscale: bool = False
     background: bool = False
     black: bool = True
-    split: Optional[Union[ColoredMNISTSplit, str]] = None
+    split: Any = None  # Optional[Union[ColoredMNISTSplit, str, List[int]]]
     seed: Optional[int] = 42
 
 
 @dataclass
 class ISICConf:
-    _target_: str = "conduit.data.datasets.ISIC"
+    _target_: str = "conduit.data.datasets.vision.ISIC"
     root: Union[str, Path] = MISSING
     download: bool = True
     max_samples: int = 25000
-    context_attr: IsicAttr = IsicAttr.HISTO
     target_attr: IsicAttr = IsicAttr.MALIGNANT
+    context_attr: IsicAttr = IsicAttr.HISTO
     transform: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
 
 
 @dataclass
 class NICOConf:
-    _target_: str = "conduit.data.datasets.NICO"
+    _target_: str = "conduit.data.datasets.vision.NICO"
     root: Union[str, Path] = MISSING
     download: bool = True
     transform: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
@@ -77,7 +74,7 @@ class NICOConf:
 
 @dataclass
 class SSRPConf:
-    _target_: str = "conduit.data.datasets.SSRP"
+    _target_: str = "conduit.data.datasets.vision.SSRP"
     root: Union[str, Path] = MISSING
     split: Union[SSRPSplit, str] = SSRPSplit.PRETRAIN
     download: bool = True
@@ -86,16 +83,17 @@ class SSRPConf:
 
 @dataclass
 class WaterbirdsConf:
-    _target_: str = "conduit.data.datasets.Waterbirds"
+    _target_: str = "conduit.data.datasets.vision.Waterbirds"
     root: Union[str, Path] = MISSING
     download: bool = True
     transform: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
     split: Optional[Union[WaterbirdsSplit, str]] = None
+    fixed: bool = False
 
 
 @dataclass
 class Camelyon17Conf:
-    _target_: str = "conduit.data.datasets.Camelyon17"
+    _target_: str = "conduit.data.datasets.vision.Camelyon17"
     root: Union[str, Path] = MISSING
     download: bool = True
     transform: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
@@ -103,14 +101,3 @@ class Camelyon17Conf:
     split_scheme: Union[Camelyon17SplitScheme, str] = Camelyon17SplitScheme.OFFICIAL
     superclass: Union[Camelyon17Attr, str] = Camelyon17Attr.TUMOR
     subclass: Union[Camelyon17Attr, str] = Camelyon17Attr.CENTER
-
-
-@dataclass
-class EcoacousticsConf:
-    _target_: str = "conduit.data.datasets.Ecoacoustics"
-    root: str = MISSING
-    target_attrs: List[SoundscapeAttr] = MISSING
-    transform: Any = None  # Optional[Callable[[Tensor], Tensor]]
-    download: bool = True
-    segment_len: float = 15
-    sample_rate: int = 48000
