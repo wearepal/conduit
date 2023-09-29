@@ -2377,4 +2377,4 @@ logging = ["rich"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0,<3.12"
-content-hash = "08ff20b80f00a89efd29a3a1906705e0fe7a121f72806b90a65c47bcf3d5c4bb"
+content-hash = "d281b4f8cab070e757d1452dc704df33f19ef3a90fa65080f3f3edc4d8744558"
