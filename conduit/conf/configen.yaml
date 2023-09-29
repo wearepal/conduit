@@ -23,7 +23,7 @@ configen:
     - name: conduit.models.self_supervised.memory_bank
       classes:
         - MemoryBank
-    - name: conduit.data.datasets
+    - name: conduit.data.datasets.vision
       classes:
         - CelebA
         - ColoredMNIST
@@ -32,15 +32,21 @@ configen:
         - SSRP
         - Waterbirds
         - Camelyon17
+
+    - name: conduit.data.datasets.audio
+      classes:
         - Ecoacoustics
 
-    - name: conduit.data.datamodules
+    - name: conduit.data.datamodules.vision
       classes:
         - CelebADataModule
         - ColoredMNISTDataModule
         - NICODataModule
         - WaterbirdsDataModule
         - Camelyon17DataModule
+
+    - name: conduit.data.datamodules.audio
+      classes:
         - EcoacousticsDataModule
 
     - name: conduit.fair.data.datamodules
