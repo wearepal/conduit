@@ -1048,13 +1048,13 @@ files = [
 
 [[package]]
 name = "neoconfigen"
-version = "2.3.3"
+version = "2.3.4"
 description = "A fork of hydra-core's configen with extended type-compatibility."
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = ">=3.8,<3.12"
 files = [
-    {file = "neoconfigen-2.3.3-py3-none-any.whl", hash = "sha256:e9f3040baefb380b12b6f65d52525bc6b0a330c1446f5161fa85483e1062e5b0"},
-    {file = "neoconfigen-2.3.3.tar.gz", hash = "sha256:dfaa72b5c5503866a49186d1f8e8f8c685466ff28cb6ed7445058d71e0c4b07b"},
+    {file = "neoconfigen-2.3.4-py3-none-any.whl", hash = "sha256:b7627107c80c8aba16f6511d71b01d7d8dc3d136c66461693d566618c5b2ecd8"},
+    {file = "neoconfigen-2.3.4.tar.gz", hash = "sha256:811cdeed79d90647d46f5f993783817444d8fee2b5cac69cf92bdcc3e5ebdde1"},
 ]
 
 [package.dependencies]
@@ -2034,9 +2034,9 @@ files = [
 [[package]]
 name = "torch"
 version = "2.0.1+cpu"
-description = ""
+description = "Tensors and Dynamic neural networks in Python with strong GPU acceleration"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8.0"
 files = [
     {file = "torch-2.0.1+cpu-cp310-cp310-linux_x86_64.whl", hash = "sha256:fec257249ba014c68629a1994b0c6e7356e20e1afc77a87b9941a40e5095285d"},
     {file = "torch-2.0.1+cpu-cp310-cp310-win_amd64.whl", hash = "sha256:ca88b499973c4c027e32c4960bf20911d7e984bd0c55cda181dc643559f3d93f"},
@@ -2048,6 +2048,16 @@ files = [
     {file = "torch-2.0.1+cpu-cp39-cp39-win_amd64.whl", hash = "sha256:f263f8e908288427ae81441fef540377f61e339a27632b1bbe33cf78292fdaea"},
 ]
 
+[package.dependencies]
+filelock = "*"
+jinja2 = "*"
+networkx = "*"
+sympy = "*"
+typing-extensions = "*"
+
+[package.extras]
+opt-einsum = ["opt-einsum (>=3.3)"]
+
 [package.source]
 type = "legacy"
 url = "https://download.pytorch.org/whl/cpu"
@@ -2056,7 +2066,7 @@ reference = "torchcpu"
 [[package]]
 name = "torchaudio"
 version = "2.0.2+cpu"
-description = ""
+description = "An audio package for PyTorch"
 optional = false
 python-versions = "*"
 files = [
@@ -2069,6 +2079,9 @@ files = [
     {file = "torchaudio-2.0.2+cpu-cp39-cp39-linux_x86_64.whl", hash = "sha256:30fc6926b51892cda933e98616fcdbc1f53084680210809cbc03c301d585ed9c"},
     {file = "torchaudio-2.0.2+cpu-cp39-cp39-win_amd64.whl", hash = "sha256:aa7425184157a0356fe08deb74a517f5a0e1f27722f362a5ac3089904bf17001"},
 ]
+
+[package.dependencies]
+torch = "2.0.1"
 
 [package.source]
 type = "legacy"
@@ -2106,9 +2119,9 @@ text = ["nltk (>=3.6)", "regex (>=2021.9.24)", "tqdm (>=4.41.0)"]
 [[package]]
 name = "torchvision"
 version = "0.15.2+cpu"
-description = ""
+description = "image and video datasets and models for torch deep learning"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
     {file = "torchvision-0.15.2+cpu-cp310-cp310-linux_x86_64.whl", hash = "sha256:aae0be6883d2cd5a23cb544ee0928288a27df0455430ef9dd6e631c5464095f5"},
     {file = "torchvision-0.15.2+cpu-cp310-cp310-win_amd64.whl", hash = "sha256:44d4b8976b5aaf97811ec05cb526531ac08dc5c76c2f5bc1c919b9a653cbc206"},
@@ -2119,6 +2132,15 @@ files = [
     {file = "torchvision-0.15.2+cpu-cp39-cp39-linux_x86_64.whl", hash = "sha256:e1e3988373afa29c813b140dbb5b7a074214813fd0ef97d2538966b9bd8d92d9"},
     {file = "torchvision-0.15.2+cpu-cp39-cp39-win_amd64.whl", hash = "sha256:b9c2745a966d5ffcad7b17807ef3acf4149f497c80f5f4571f69a1817436e56f"},
 ]
+
+[package.dependencies]
+numpy = "*"
+pillow = ">=5.3.0,<8.3.dev0 || >=8.4.dev0"
+requests = "*"
+torch = "2.0.1"
+
+[package.extras]
+scipy = ["scipy"]
 
 [package.source]
 type = "legacy"
