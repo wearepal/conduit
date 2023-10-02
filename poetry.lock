@@ -1048,13 +1048,13 @@ files = [
 
 [[package]]
 name = "neoconfigen"
-version = "2.3.3"
+version = "2.3.4"
 description = "A fork of hydra-core's configen with extended type-compatibility."
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = ">=3.8,<3.12"
 files = [
-    {file = "neoconfigen-2.3.3-py3-none-any.whl", hash = "sha256:e9f3040baefb380b12b6f65d52525bc6b0a330c1446f5161fa85483e1062e5b0"},
-    {file = "neoconfigen-2.3.3.tar.gz", hash = "sha256:dfaa72b5c5503866a49186d1f8e8f8c685466ff28cb6ed7445058d71e0c4b07b"},
+    {file = "neoconfigen-2.3.4-py3-none-any.whl", hash = "sha256:b7627107c80c8aba16f6511d71b01d7d8dc3d136c66461693d566618c5b2ecd8"},
+    {file = "neoconfigen-2.3.4.tar.gz", hash = "sha256:811cdeed79d90647d46f5f993783817444d8fee2b5cac69cf92bdcc3e5ebdde1"},
 ]
 
 [package.dependencies]
