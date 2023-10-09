@@ -27,12 +27,6 @@ python = ">=3.10,<3.12"
 ranzen = ">=2.0.0"
 scikit-learn = "^1.2.0"
 typing-extensions = ">=4.4.0"
-filelock = "*"
-jinja2 = "*"
-networkx = "*"
-sympy = "*"
-pillow = ">=5.3.0,!=8.3.*"
-requests = "*"
 
 # NOTE: the following has to be kept in sync with the groups below
 # download
@@ -112,7 +106,6 @@ mypy = "*"
 neoconfigen = {version = ">=2.3.3"}
 pre-commit = "*"
 pytest = "*"
-python-type-stubs = {git = "https://github.com/wearepal/python-type-stubs.git", rev = "6767223"}
 pandas-stubs = "*"
 ruff = "*"
 types-tqdm = "*"
