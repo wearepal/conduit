@@ -1,7 +1,7 @@
 """Base class from which all data-modules in conduit inherit."""
 from abc import abstractmethod
 import logging
-from typing import Generic, Optional, Sequence, Tuple, TypeVar, Union, cast, final
+from typing import Generic, List, Optional, Sequence, Tuple, TypeVar, Union, cast, final
 from typing_extensions import override
 
 import attr
@@ -112,7 +112,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
         batch_size: int,
         shuffle: bool = False,
         drop_last: bool = False,
-        batch_sampler: Optional[Sampler[Sequence[int]]] = None,
+        batch_sampler: Optional[Sampler[List[int]]] = None,
     ) -> CdtDataLoader[I]:
         """Make DataLoader."""
         return CdtDataLoader(
