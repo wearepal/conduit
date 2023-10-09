@@ -394,7 +394,7 @@ class _DataLoaderKwargs(TypedDict, total=False):
     batch_size: Optional[int]
     shuffle: bool
     sampler: Optional[Sampler[int]]
-    batch_sampler: Optional[Sampler[Sequence[int]]]
+    batch_sampler: Optional[Sampler[List[int]]]
     num_workers: int
     pin_memory: bool
     drop_last: bool

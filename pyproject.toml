@@ -188,6 +188,7 @@ reportUnnecessaryTypeIgnoreComment = "warning"
 reportUnnecessaryIsInstance = "warning"
 reportUnnecessaryCast = "warning"
 reportUnnecessaryComparison = "warning"
+reportMissingTypeStubs = "warning"
 # these errors are a bit annoying
 reportUnknownMemberType = "none"
 reportUnknownVariableType = "none"
