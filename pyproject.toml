@@ -9,8 +9,6 @@ packages = [
 ]
 include=["conduit/py.typed"]
 classifiers=[
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "License :: OSI Approved :: Apache Software License",
@@ -25,16 +23,10 @@ readme="README.md"
 attrs = ">=21.2.0"
 numpy = "^1.22.3"
 pandas = ">=1.3.3,<3.0"
-python = ">=3.8.0,<3.12"
-ranzen = {version = ">=2.0.0"}
+python = ">=3.10,<3.12"
+ranzen = ">=2.0.0"
 scikit-learn = "^1.2.0"
 typing-extensions = ">=4.4.0"
-filelock = "*"
-jinja2 = "*"
-networkx = "*"
-sympy = "*"
-pillow = ">=5.3.0,!=8.3.*"
-requests = "*"
 
 # NOTE: the following has to be kept in sync with the groups below
 # download
@@ -114,7 +106,6 @@ mypy = "*"
 neoconfigen = {version = ">=2.3.3"}
 pre-commit = "*"
 pytest = "*"
-python-type-stubs = {git = "https://github.com/wearepal/python-type-stubs.git", rev = "6767223"}
 pandas-stubs = "*"
 ruff = "*"
 types-tqdm = "*"
@@ -126,7 +117,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 100
-target-version = ['py38']
+target-version = ['py310']
 skip-string-normalization = true
 include = '\.pyi?$'
 exclude = '''
@@ -171,7 +162,7 @@ ignore = [
     "PLW2901", # overwriting loop variable
     "PLC0105", # covariant typevars have to end in "_co"
 ]
-target-version = "py38"
+target-version = "py310"
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F403"]
@@ -187,7 +178,7 @@ case-sensitive = true
 
 [tool.pyright]
 typeCheckingMode = "strict"
-pythonVersion = "3.8"
+pythonVersion = "3.10"
 reportMissingTypeArgument = "none"
 reportCallInDefaultInitializer = "warning"
 reportPropertyTypeMismatch = "none"
@@ -197,6 +188,7 @@ reportUnnecessaryTypeIgnoreComment = "warning"
 reportUnnecessaryIsInstance = "warning"
 reportUnnecessaryCast = "warning"
 reportUnnecessaryComparison = "warning"
+reportMissingTypeStubs = "warning"
 # these errors are a bit annoying
 reportUnknownMemberType = "none"
 reportUnknownVariableType = "none"
@@ -205,7 +197,7 @@ reportUnknownArgumentType = "none"
 ignore = ["conduit/hydra/**"]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.10"
 no_implicit_optional = true
 allow_redefinition = true
 strict_equality = true

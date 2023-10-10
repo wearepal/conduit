@@ -175,7 +175,7 @@ class NIHChestXRays(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         y = torch.as_tensor(findings_ml.to_numpy(), dtype=torch.long)
 
         filepaths = (
-            pd.Series(self._base_dir.glob("*/*/*"), dtype=str)
+            pd.Series(list(self._base_dir.glob("*/*/*")), dtype=str)
             .sort_values()
             .str.split("/", expand=True, n=4)[4]
             .rename("Image Path")

@@ -1,5 +1,5 @@
 """Ecoacoustics data-module."""
-from typing import Any, List, Optional, Sequence
+from typing import Any, List, Optional
 from typing_extensions import override
 
 import attr
@@ -36,7 +36,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[BinarySample]):
         batch_size: int,
         shuffle: bool = False,
         drop_last: bool = False,
-        batch_sampler: Optional[Sampler[Sequence[int]]] = None,
+        batch_sampler: Optional[Sampler[List[int]]] = None,
     ) -> CdtDataLoader[BinarySample]:
         """Make DataLoader."""
         return CdtDataLoader(
