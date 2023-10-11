@@ -1,5 +1,4 @@
 """Data structures."""
-from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field, fields, is_dataclass
