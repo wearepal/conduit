@@ -1,5 +1,4 @@
 """ISIC Dataset."""
-from __future__ import annotations
 from enum import auto
 from itertools import islice
 import os
