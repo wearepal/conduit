@@ -10,22 +10,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Install poetry
+      run: pipx install poetry
     - uses: actions/setup-python@v4
       with:
         python-version: '3.11'  # may as well use 3.11 as it's faster
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install ruff black darglint
+        poetry env use 3.11
+        poetry install --no-interaction --no-root --only lint
     - name: Format with black
       run: |
-        python -m black --check .
+        poetry run black --check .
     - name: Lint with ruff
       run: |
-        ruff check --output-format=github .
+        poetry run ruff check --output-format=github .
     - name: Lint with darglint
       run: |
-        darglint --verbosity 2 --docstring-style sphinx -z long conduit
+        poetry run darglint --verbosity 2 --docstring-style sphinx -z long conduit
 
   test_minimal_dependencies:
     needs: [linters]
@@ -42,7 +44,7 @@ jobs:
     - name: Install minimal dependencies
       run: |
         poetry env use 3.10
-        poetry install --no-interaction --no-root --with torchcpu --without image --without hydra --without download --without logging --without dev
+        poetry install --no-interaction --no-root --with torchcpu --without dev,test,typecheck,lint
     - name: Verify audio datamodule can be imported
       run: |
         poetry run python -c "from conduit.data.datamodules.audio import EcoacousticsDataModule"
@@ -66,7 +68,7 @@ jobs:
     - name: Install dependencies
       run: |
         poetry env use 3.10
-        poetry install --no-interaction --no-root --with torchcpu --with fair
+        poetry install --no-interaction --no-root --all-extras --with torchcpu --without lint
     - name: Set python path for all subsequent actions
       run: echo "$(poetry env info --path)/bin" >> $GITHUB_PATH
     #----------------------------------------------
