@@ -21,13 +21,13 @@ jobs:
         poetry install --no-interaction --no-root --only lint
     - name: Format with black
       run: |
-        python -m black --check .
+        poetry run black --check .
     - name: Lint with ruff
       run: |
-        ruff check --output-format=github .
+        poetry run ruff check --output-format=github .
     - name: Lint with darglint
       run: |
-        darglint --verbosity 2 --docstring-style sphinx -z long conduit
+        poetry run darglint --verbosity 2 --docstring-style sphinx -z long conduit
 
   test_minimal_dependencies:
     needs: [linters]
