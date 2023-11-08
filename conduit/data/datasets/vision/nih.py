@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import ClassVar, Optional, Union, cast
 from typing_extensions import TypeAlias
 
+from numpy import typing as npt
 import pandas as pd
 from ranzen import parsable, str_to_enum
 from sklearn.preprocessing import MultiLabelBinarizer
@@ -161,7 +162,7 @@ class NIHChestXRays(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         findings_str = self.metadata["Finding Labels"].str.split("|")
         self.encoder = MultiLabelBinarizer().fit(findings_str)
         findings_ml = pd.DataFrame(
-            self.encoder.transform(findings_str), columns=self.encoder.classes_
+            cast(npt.NDArray, self.encoder.transform(findings_str)), columns=self.encoder.classes_
         )
         self.metadata = pd.concat((self.metadata, findings_ml), axis=1)
         if self.target is None:
