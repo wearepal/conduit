@@ -10,7 +10,7 @@ from conduit.types import IndexType, Indexable, Sized
 __all__ = ["MemoryBank"]
 
 
-@torch.no_grad()
+@torch.no_grad()  # pyright: ignore
 def l2_hypersphere_init(capacity: int, *, dim: int) -> Tensor:
     return F.normalize(torch.randn(capacity, dim), dim=1)
 
@@ -28,17 +28,17 @@ class MemoryBank(nn.Module, Indexable, Sized):
         self._ptr_pos = 0
 
     @classmethod
-    @torch.no_grad()
+    @torch.no_grad()  # pyright: ignore
     def with_l2_hypersphere_init(cls, capacity: int, *, dim: int) -> Self:
         return cls(l2_hypersphere_init(capacity=capacity, dim=dim))
 
     @classmethod
-    @torch.no_grad()
+    @torch.no_grad()  # pyright: ignore
     def with_randint_init(cls, capacity: int, *, dim: int, high: int, low: int = 0) -> Self:
         return cls(torch.randint(low=low, high=high, size=(capacity, dim)))
 
     @classmethod
-    @torch.no_grad()
+    @torch.no_grad()  # pyright: ignore
     def with_constant_init(
         cls, capacity: int, *, dim: int, value: float, dtype: Optional[torch.dtype] = None
     ) -> Self:
@@ -47,7 +47,7 @@ class MemoryBank(nn.Module, Indexable, Sized):
     def clone(self) -> Tensor:
         return self.memory.clone()
 
-    @torch.no_grad()
+    @torch.no_grad()  # pyright: ignore
     def push(self, values: Tensor) -> None:
         values = values.detach()
         num_values = values.size(0)

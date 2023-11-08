@@ -16,7 +16,7 @@ __all__ = [
 EPOCH_OUTPUT = List[STEP_OUTPUT]
 
 
-@torch.no_grad()
+@torch.no_grad()  # pyright: ignore
 def aggregate_over_epoch(outputs: EPOCH_OUTPUT, *, metric: str) -> Tensor:
     return torch.cat([step_output[metric] for step_output in outputs])  # type: ignore
 
