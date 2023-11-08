@@ -54,13 +54,13 @@ __all__ = [
 ]
 
 
-@torch.no_grad()
+@torch.no_grad()  # pyright: ignore
 def hard_prediction(logits: Tensor) -> Tensor:
     logits = logits.squeeze(1) if logits.ndim == 2 else torch.atleast_1d(logits)
     return (logits > 0).long() if logits.ndim == 1 else logits.argmax(dim=1)
 
 
-@torch.no_grad()
+@torch.no_grad()  # pyright: ignore
 def precision_at_k(
     y_pred: Tensor, *, y_true: Tensor, top_k: Union[int, Tuple[int, ...]] = (1,)
 ) -> List[Tensor]:
@@ -102,27 +102,27 @@ C = TypeVar("C", bound=Comparator)
 C_co = TypeVar("C_co", bound=Comparator, covariant=True)
 
 
-@torch.no_grad()
+@torch.no_grad()  # pyright: ignore
 def nanmax(x: Tensor) -> Tensor:
     return torch.amax(torch.nan_to_num(x, nan=-torch.inf))
 
 
-@torch.no_grad()
+@torch.no_grad()  # pyright: ignore
 def nanmin(x: Tensor) -> Tensor:
     return torch.amin(torch.nan_to_num(x, nan=torch.inf))
 
 
-@torch.no_grad()
+@torch.no_grad()  # pyright: ignore
 def pdist_1d(x: Tensor) -> Tensor:
     return (x - x.unsqueeze(-1)).abs().squeeze()
 
 
-@torch.no_grad()
+@torch.no_grad()  # pyright: ignore
 def max_difference_1d(x: Tensor) -> Tensor:
     return nanmax(pdist_1d(x))
 
 
-@torch.no_grad()
+@torch.no_grad()  # pyright: ignore
 def weighted_nanmean(x: Tensor, *, weights: Tensor) -> Tensor:
     if x.numel() != weights.numel():
         raise RuntimeError(
@@ -155,7 +155,7 @@ class Aggregator(Enum):
         :param fn: Aggregation function."""
         self.fn = fn
 
-    @torch.no_grad()
+    @torch.no_grad()  # pyright: ignore
     def __call__(self, x: Tensor) -> Tensor:
         """Apply the aggregation function associated with the enum member to the input.
 
@@ -227,7 +227,7 @@ def nans_like(tensor: Tensor, *, device: Optional[torch.device] = None) -> Tenso
     return torch.full_like(tensor, fill_value=torch.nan, device=device)
 
 
-@torch.no_grad()
+@torch.no_grad()  # pyright: ignore
 def _apply_groupwise_metric(
     *group_ids: Tensor,
     comparator: Comparator,
@@ -424,7 +424,7 @@ def conditional_equal(
     return comps, mask
 
 
-@torch.no_grad()
+@torch.no_grad()  # pyright: ignore
 def accuracy(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
     """Computes the (aggregate) accuracy given predicted and ground-truth labels.
 
@@ -476,7 +476,7 @@ robust_tnr = subclasswise_metric(
 )
 
 
-@torch.no_grad()
+@torch.no_grad()  # pyright: ignore
 def pad_to_size(size: int, *, src: Tensor, index: Tensor, value: float = 0.0) -> Tensor:
     padding = src.new_full((size,), fill_value=value)
     return padding.scatter_(dim=0, src=src, index=index)

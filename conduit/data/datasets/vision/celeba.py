@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import ClassVar, List, Optional, Union
 from typing_extensions import TypeAlias
 
-import numpy as np
 from numpy import typing as npt
+import numpy as np
 import pandas as pd
 from ranzen import parsable
 import torch
