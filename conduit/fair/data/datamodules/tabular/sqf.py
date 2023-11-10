@@ -1,5 +1,6 @@
 """Law Admissions Dataset."""
-import attr
+from dataclasses import dataclass
+
 from ethicml.data import Dataset, Sqf
 from ethicml.data import SqfSplits as SqfSens
 
@@ -8,7 +9,7 @@ from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 __all__ = ["SqfDataModule", "SqfSens"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class SqfDataModule(EthicMlDataModule):
     """NYC Stop, Question, Frisk Dataset."""
 

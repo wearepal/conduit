@@ -1,4 +1,5 @@
-import attr
+from dataclasses import dataclass
+
 from ethicml.data import Dataset, Health
 from ethicml.data import HealthSplits as HealthSens
 
@@ -7,7 +8,7 @@ from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 __all__ = ["HealthDataModule", "HealthSens"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class HealthDataModule(EthicMlDataModule):
     """Data Module for the Heritage Health Dataset."""
 

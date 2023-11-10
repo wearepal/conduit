@@ -1,10 +1,21 @@
 """Base class from which all data-modules in conduit inherit."""
 from abc import abstractmethod
+from dataclasses import dataclass, field
 import logging
-from typing import Generic, List, Optional, Sequence, Tuple, TypeVar, Union, cast, final
-from typing_extensions import override
+from typing import (
+    Any,
+    Generic,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+    final,
+)
+from typing_extensions import Self, override
 
-import attr
 import pytorch_lightning as pl
 from ranzen.torch import SequentialBatchSampler, StratifiedBatchSampler, TrainingMode
 from ranzen.torch.data import num_batches_per_epoch
@@ -28,7 +39,7 @@ D = TypeVar("D", bound=SizedDataset)
 I = TypeVar("I", bound=SampleBase, covariant=True)
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True, eq=False)
 class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     """Base DataModule for both Tabular and Vision data-modules.
 
@@ -60,7 +71,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     """
 
     train_batch_size: int = 64
-    _eval_batch_size: Optional[int] = attr.field(alias="eval_batch_size", default=None)
+    eval_batch_size: Optional[int] = field(default=None)
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -71,29 +82,32 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
 
-    _logger: Optional[logging.Logger] = attr.field(default=None, init=False)
+    _logger: Optional[logging.Logger] = field(default=None, init=False)
 
-    _train_data_base: Optional[Dataset] = attr.field(default=None, init=False)
-    _val_data_base: Optional[Dataset] = attr.field(default=None, init=False)
-    _test_data_base: Optional[Dataset] = attr.field(default=None, init=False)
+    _train_data_base: Optional[Dataset] = field(default=None, init=False)
+    _val_data_base: Optional[Dataset] = field(default=None, init=False)
+    _test_data_base: Optional[Dataset] = field(default=None, init=False)
 
-    _train_data: Union[None, D, InstanceWeightedDataset] = attr.field(default=None, init=False)
-    _val_data: Optional[D] = attr.field(default=None, init=False)
-    _test_data: Optional[D] = attr.field(default=None, init=False)
-    _card_s: Optional[int] = attr.field(default=None, init=False)
-    _card_y: Optional[int] = attr.field(default=None, init=False)
-    _dim_s: Optional[torch.Size] = attr.field(default=None, init=False)
-    _dim_y: Optional[torch.Size] = attr.field(default=None, init=False)
-    _dim_x: Optional[Tuple[int, ...]] = attr.field(default=None, init=False)
+    _train_data: Union[None, D, InstanceWeightedDataset] = field(default=None, init=False)
+    _val_data: Optional[D] = field(default=None, init=False)
+    _test_data: Optional[D] = field(default=None, init=False)
+    _card_s: Optional[int] = field(default=None, init=False)
+    _card_y: Optional[int] = field(default=None, init=False)
+    _dim_s: Optional[torch.Size] = field(default=None, init=False)
+    _dim_y: Optional[torch.Size] = field(default=None, init=False)
+    _dim_x: Optional[Tuple[int, ...]] = field(default=None, init=False)
 
-    def __attrs_pre_init__(self) -> None:
-        super().__init__()
+    @final
+    def __new__(cls, *args: Any, **kwargs: Any) -> Self:
+        obj = object.__new__(cls)
+        pl.LightningDataModule.__init__(obj)
+        return obj
 
     @property
-    def eval_batch_size(self) -> int:
-        if self._eval_batch_size is None:
+    def eval_bs(self) -> int:
+        if self.eval_batch_size is None:
             return self.train_batch_size
-        return self._eval_batch_size
+        return self.eval_batch_size
 
     @property
     def logger(self) -> logging.Logger:
@@ -188,11 +202,11 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
 
     @override
     def val_dataloader(self) -> CdtDataLoader[I]:
-        return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.val_data)
+        return self.make_dataloader(batch_size=self.eval_bs, ds=self.val_data)
 
     @override
     def test_dataloader(self) -> CdtDataLoader[I]:
-        return self.make_dataloader(batch_size=self.eval_batch_size, ds=self.test_data)
+        return self.make_dataloader(batch_size=self.eval_bs, ds=self.test_data)
 
     @property
     def dim_x(self) -> Sequence[int]:

@@ -1,9 +1,9 @@
 """Waterbirds data-module."""
+from dataclasses import dataclass
 from typing import Any
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
-import attr
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision.waterbirds import Waterbirds
@@ -12,7 +12,7 @@ from conduit.data.structures import TrainValTestSplit
 __all__ = ["WaterbirdsDataModule"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class WaterbirdsDataModule(CdtVisionDataModule[Waterbirds.SampleType]):
     """Data-module for the Waterbirds dataset."""
 

@@ -1,9 +1,9 @@
 """CelebA data-module."""
+from dataclasses import dataclass
 from typing import Any
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
-import attr
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision.celeba import (
@@ -17,7 +17,7 @@ from conduit.data.structures import TrainValTestSplit
 __all__ = ["CelebADataModule"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class CelebADataModule(CdtVisionDataModule[SampleType]):
     """Data-module for the CelebA dataset."""
 

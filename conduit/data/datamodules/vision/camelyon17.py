@@ -1,9 +1,9 @@
 """Camelyon17 data-module."""
+from dataclasses import dataclass
 from typing import Any
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
-import attr
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision.camelyon17 import (
@@ -18,7 +18,7 @@ from conduit.data.structures import TrainValTestSplit
 __all__ = ["Camelyon17DataModule"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class Camelyon17DataModule(CdtVisionDataModule[SampleType]):
     """Data-module for the Camelyon17 dataset."""
 

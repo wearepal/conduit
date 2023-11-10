@@ -1,12 +1,12 @@
 """Base class for vision datasets."""
 from abc import abstractmethod
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Union, final
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
 from albumentations.pytorch import ToTensorV2  # type: ignore
-import attr
 from torch import Tensor
 
 from conduit.data.constants import IMAGENET_STATS
@@ -23,12 +23,12 @@ from conduit.data.structures import ImageSize, MeanStd, TrainValTestSplit
 __all__ = ["CdtVisionDataModule"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class CdtVisionDataModule(CdtDataModule[ImageTransformer, I]):
-    root: Union[str, Path] = attr.field(kw_only=False)
+    root: Union[str, Path] = field(kw_only=False)
     _train_transforms: Optional[ImageTform] = None
     _test_transforms: Optional[ImageTform] = None
-    norm_values: Optional[MeanStd] = attr.field(default=IMAGENET_STATS, init=False)
+    norm_values: Optional[MeanStd] = field(default=IMAGENET_STATS, init=False)
 
     @property
     @final

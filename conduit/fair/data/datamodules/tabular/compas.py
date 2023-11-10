@@ -1,5 +1,6 @@
 """COMPAS Dataset."""
-import attr
+from dataclasses import dataclass
+
 from ethicml.data import Compas, Dataset
 from ethicml.data import CompasSplits as CompasSens
 
@@ -8,7 +9,7 @@ from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 __all__ = ["CompasDataModule", "CompasSens"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class CompasDataModule(EthicMlDataModule):
     """COMPAS Dataset."""
 

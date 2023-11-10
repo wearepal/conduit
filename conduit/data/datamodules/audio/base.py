@@ -1,9 +1,9 @@
 """Base class for audio datasets."""
 from abc import abstractmethod
+from dataclasses import dataclass, field
 from typing import Optional, final
 from typing_extensions import override
 
-import attr
 from torch import Tensor
 import torchaudio.transforms as T  # type: ignore
 
@@ -17,9 +17,9 @@ from conduit.data.structures import TrainValTestSplit
 __all__ = ["CdtAudioDataModule"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class CdtAudioDataModule(CdtDataModule[AudioTransformer, I]):
-    root: str = attr.field(kw_only=False)
+    root: str = field(kw_only=False)
     _train_transforms: Optional[AudioTform] = None
     _test_transforms: Optional[AudioTform] = None
 

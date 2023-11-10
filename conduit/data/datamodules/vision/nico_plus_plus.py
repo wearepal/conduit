@@ -1,9 +1,9 @@
 """NICO++ data-module."""
+from dataclasses import dataclass
 from typing import Any, List, Optional
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
-import attr
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision import NICOPP, NicoPPSplit, NicoPPTarget, SampleType
@@ -12,7 +12,7 @@ from conduit.data.structures import TrainValTestSplit
 __all__ = ["NICOPPDataModule"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class NICOPPDataModule(CdtVisionDataModule[SampleType]):
     """Data-module for the NICO dataset."""
 
