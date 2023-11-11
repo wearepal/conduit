@@ -20,7 +20,6 @@ import zipfile
 from PIL import Image
 import pandas as pd
 from ranzen import StrEnum, flatten_dict
-from ranzen.decorators import parsable
 import requests
 import torch
 from torch import Tensor
@@ -60,7 +59,6 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
     _PBAR_COL: ClassVar[str] = "#fac000"
     _REST_API_URL: ClassVar[str] = "https://isic-archive.com/api/v1"
 
-    @parsable
     def __init__(
         self,
         root: Union[str, Path],

@@ -4,7 +4,6 @@ from typing import ClassVar, Optional, Union
 from typing_extensions import TypeAlias
 
 import pandas as pd
-from ranzen.decorators import parsable
 from ranzen.misc import StrEnum
 import torch
 from torch import Tensor
@@ -103,7 +102,6 @@ class Camelyon17(CdtVisionDataset[SampleType, Tensor, Tensor]):
     _TEST_CENTER: ClassVar[int] = 2
     _VAL_CENTER: ClassVar[int] = 1
 
-    @parsable
     def __init__(
         self,
         root: Union[str, Path],

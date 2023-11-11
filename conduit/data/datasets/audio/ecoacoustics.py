@@ -16,7 +16,7 @@ import zipfile
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_categorical_dtype, is_object_dtype
-from ranzen import StrEnum, parsable
+from ranzen import StrEnum
 import torch
 from torch import Tensor
 import torchaudio  # type: ignore
@@ -72,7 +72,6 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
     num_frames_in_segment: int
     _MAX_AUDIO_LEN: Final[int] = 60
 
-    @parsable
     def __init__(
         self,
         root: str,

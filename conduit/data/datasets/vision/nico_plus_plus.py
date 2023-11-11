@@ -8,7 +8,7 @@ from typing import ClassVar, Dict, List, Literal, Optional, Sequence, Set, Tuple
 from typing_extensions import TypeAlias
 
 import pandas as pd
-from ranzen import StrEnum, parsable
+from ranzen import StrEnum
 import torch
 from torch import Tensor
 
@@ -117,7 +117,6 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     num_samples_val_test: ClassVar[int] = 75  # this is the number from the paper
     subpath: ClassVar[Path] = Path("public_dg_0416") / "train"
 
-    @parsable
     def __init__(
         self,
         root: Union[str, Path],

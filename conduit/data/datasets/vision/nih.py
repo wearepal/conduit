@@ -5,7 +5,7 @@ from typing_extensions import TypeAlias
 
 from numpy import typing as npt
 import pandas as pd
-from ranzen import parsable, str_to_enum
+from ranzen import str_to_enum
 from sklearn.preprocessing import MultiLabelBinarizer
 import torch
 from torch import Tensor
@@ -89,7 +89,6 @@ class NIHChestXRays(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     _METADATA_FILENAME: ClassVar[str] = "Data_Entry_2017.csv"
     _BASE_DIR_NAME: ClassVar[str] = "nih_chest_x_rays"
 
-    @parsable
     def __init__(
         self,
         root: Union[Path, str],

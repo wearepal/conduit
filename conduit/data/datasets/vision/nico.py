@@ -6,7 +6,7 @@ from typing_extensions import TypeAlias
 
 from PIL import Image, UnidentifiedImageError
 import pandas as pd
-from ranzen import StrEnum, parsable
+from ranzen import StrEnum
 import torch
 from torch import Tensor
 
@@ -44,7 +44,6 @@ class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         md5="78c686f84e31ad6b6c052f97ed5f532b",
     )
 
-    @parsable
     def __init__(
         self,
         root: Union[str, Path],

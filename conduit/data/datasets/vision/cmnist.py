@@ -7,7 +7,7 @@ from typing_extensions import TypeAlias, override
 from PIL import Image
 import numpy as np
 import numpy.typing as npt
-from ranzen import StrEnum, parsable
+from ranzen import StrEnum
 import torch
 from torch import Tensor
 from torchvision.datasets import MNIST  # type: ignore
@@ -166,7 +166,6 @@ SampleType: TypeAlias = TernarySample
 class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
     x: npt.NDArray[np.uint8]
 
-    @parsable
     def __init__(
         self,
         root: Union[str, Path],
