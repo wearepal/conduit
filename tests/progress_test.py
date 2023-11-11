@@ -50,6 +50,7 @@ class DummyModel(pl.LightningModule):
 @pytest.mark.parametrize("theme", list(CdtProgressBar.Theme))
 def test_cdt_progbar(training_mode: TrainingMode, theme: CdtProgressBar.Theme):
     dm = DummyVisionDataModule(num_workers=4, training_mode=training_mode)
+    assert isinstance(dm.y_card, int)
     model = DummyModel(feature_dim=1, out_dim=dm.y_card, wait_time=0.0)
     trainer = pl.Trainer(
         max_steps=2,

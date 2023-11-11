@@ -198,7 +198,7 @@ def test_ecoacoustics_dm(root: Path):
         root=str(root),
         segment_len=30.0,
         target_attrs=[SoundscapeAttr.HABITAT],
-        # train_transforms=AT.Spectrogram(),
+        # train_tf=AT.Spectrogram(),
     )
     dm.prepare_data()
     dm.setup()
@@ -222,7 +222,7 @@ def test_ecoacoustics_dm_batch_multi_label(root: Path, train_batch_size: int) ->
         segment_len=30.0,
         train_batch_size=train_batch_size,
         target_attrs=target_attrs,
-        # train_transforms=AT.Spectrogram(),
+        # train_tf=AT.Spectrogram(),
     )
     data_module.prepare_data()
     data_module.setup()
@@ -360,8 +360,8 @@ def test_vision_dummy_data(
         s_card=s_card,
         y_card=y_card,
         channels=channels,
-        train_transforms=transforms,  # type: ignore
-        test_transforms=transforms,  # type: ignore
+        train_tf=transforms,
+        test_tf=transforms,
     )
     dm.prepare_data()
     dm.setup()
