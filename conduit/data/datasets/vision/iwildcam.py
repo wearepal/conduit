@@ -3,7 +3,7 @@ from typing import ClassVar, Optional, Union
 from typing_extensions import TypeAlias
 
 import pandas as pd
-from ranzen import StrEnum, parsable
+from ranzen import StrEnum
 import torch
 from torch import Tensor
 
@@ -61,7 +61,6 @@ class IWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         md5=None,
     )
 
-    @parsable
     def __init__(
         self,
         root: Union[str, Path],
@@ -145,7 +144,6 @@ class IWildCamUnlabeled(CdtVisionDataset[SubgroupSample, None, Tensor]):
         md5=None,
     )
 
-    @parsable
     def __init__(
         self,
         root: Union[str, Path],

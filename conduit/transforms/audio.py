@@ -1,7 +1,6 @@
 from typing import Callable, List, Optional
 
 import numpy as np
-from ranzen import parsable
 import torch
 from torch import Tensor, nn
 import torchaudio.transforms as T  # type: ignore
@@ -12,7 +11,6 @@ __all__ = ["LogMelSpectrogram", "Framing", "Compose"]
 
 
 class LogMelSpectrogram(T.MelSpectrogram):
-    @parsable
     def __init__(
         self,
         sample_rate: int = 16000,

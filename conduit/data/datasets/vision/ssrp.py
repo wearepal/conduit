@@ -5,7 +5,6 @@ from typing import ClassVar, List, Optional, Union, cast
 from typing_extensions import TypeAlias
 
 import pandas as pd
-from ranzen import parsable
 import torch
 from torch import Tensor
 
@@ -31,7 +30,6 @@ class SSRP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         name="ghaziabad.zip", id="1RE4srtC63VnyU0e1qx16QNdjyyQXg2hj"
     )
 
-    @parsable
     def __init__(
         self,
         root: Union[str, Path],

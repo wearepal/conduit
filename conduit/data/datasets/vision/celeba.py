@@ -7,7 +7,6 @@ from typing_extensions import TypeAlias
 from numpy import typing as npt
 import numpy as np
 import pandas as pd
-from ranzen import parsable
 import torch
 from torch import Tensor
 
@@ -100,7 +99,6 @@ class CelebA(CdtVisionDataset[SampleType, Tensor, Tensor]):
         ),
     ]
 
-    @parsable
     def __init__(
         self,
         root: Union[str, Path],

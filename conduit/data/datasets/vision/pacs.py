@@ -6,7 +6,7 @@ from typing_extensions import Self, TypeAlias
 
 import numpy as np
 import pandas as pd
-from ranzen import StrEnum, parsable, str_to_enum
+from ranzen import StrEnum, str_to_enum
 import torch
 from torch import Tensor
 
@@ -50,7 +50,6 @@ class PACS(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         md5="5e43a6e01e53567923621ae5ce025f4e",
     )
 
-    @parsable
     def __init__(
         self,
         root: Union[str, Path],
