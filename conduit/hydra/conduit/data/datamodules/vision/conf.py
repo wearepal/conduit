@@ -5,7 +5,6 @@
 # flake8: noqa
 
 from dataclasses import dataclass, field
-from builtins import dict
 from conduit.data.datasets.vision.camelyon17 import Camelyon17Attr
 from conduit.data.datasets.vision.camelyon17 import Camelyon17SplitScheme
 from conduit.data.datasets.vision.celeba import CelebAttr
@@ -22,6 +21,7 @@ from typing import Union
 @dataclass
 class CelebADataModuleConf:
     _target_: str = "conduit.data.datamodules.vision.CelebADataModule"
+    root: Union[Path, str] = MISSING
     train_batch_size: int = 64
     eval_batch_size: Optional[int] = None
     val_prop: float = 0.2
@@ -33,9 +33,8 @@ class CelebADataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    root: Union[str, Path] = MISSING
-    train_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
-    test_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    train_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    test_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
     image_size: int = 224
     superclass: CelebAttr = CelebAttr.SMILING
     subclass: CelebAttr = CelebAttr.MALE
@@ -45,6 +44,7 @@ class CelebADataModuleConf:
 @dataclass
 class ColoredMNISTDataModuleConf:
     _target_: str = "conduit.data.datamodules.vision.ColoredMNISTDataModule"
+    root: Union[Path, str] = MISSING
     train_batch_size: int = 64
     eval_batch_size: Optional[int] = None
     val_prop: float = 0.2
@@ -56,9 +56,8 @@ class ColoredMNISTDataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    root: Union[str, Path] = MISSING
-    train_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
-    test_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    train_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    test_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
     image_size: int = 32
     use_predefined_splits: bool = False
     label_map: Any = None  # Optional[Dict[int, int]]
@@ -75,6 +74,7 @@ class ColoredMNISTDataModuleConf:
 @dataclass
 class NICODataModuleConf:
     _target_: str = "conduit.data.datamodules.vision.NICODataModule"
+    root: Union[Path, str] = MISSING
     train_batch_size: int = 64
     eval_batch_size: Optional[int] = None
     val_prop: float = 0.2
@@ -86,9 +86,8 @@ class NICODataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    root: Union[str, Path] = MISSING
-    train_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
-    test_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    train_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    test_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
     image_size: int = 224
     class_train_props: Optional[dict] = None
     superclass: NicoSuperclass = NicoSuperclass.ANIMALS
@@ -97,6 +96,7 @@ class NICODataModuleConf:
 @dataclass
 class WaterbirdsDataModuleConf:
     _target_: str = "conduit.data.datamodules.vision.WaterbirdsDataModule"
+    root: Union[Path, str] = MISSING
     train_batch_size: int = 64
     eval_batch_size: Optional[int] = None
     val_prop: float = 0.2
@@ -108,9 +108,8 @@ class WaterbirdsDataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    root: Union[str, Path] = MISSING
-    train_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
-    test_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    train_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    test_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
     image_size: int = 224
     use_predefined_splits: bool = False
 
@@ -118,6 +117,7 @@ class WaterbirdsDataModuleConf:
 @dataclass
 class Camelyon17DataModuleConf:
     _target_: str = "conduit.data.datamodules.vision.Camelyon17DataModule"
+    root: Union[Path, str] = MISSING
     train_batch_size: int = 64
     eval_batch_size: Optional[int] = None
     val_prop: float = 0.2
@@ -129,9 +129,8 @@ class Camelyon17DataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    root: Union[str, Path] = MISSING
-    train_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
-    test_transforms: Any = None  # Optional[Union[Compose, BasicTransform, Callable[[Image], Any]]]
+    train_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    test_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
     image_size: int = 96
     superclass: Camelyon17Attr = Camelyon17Attr.TUMOR
     subclass: Camelyon17Attr = Camelyon17Attr.CENTER

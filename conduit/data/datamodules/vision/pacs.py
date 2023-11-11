@@ -1,9 +1,9 @@
 """PACS datamodule."""
+from dataclasses import dataclass
 from typing import Any
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
-import attr
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.vision.pacs import PACS, SampleType
@@ -12,7 +12,7 @@ from conduit.data.structures import TrainValTestSplit
 __all__ = ["PACSDataModule"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class PACSDataModule(CdtVisionDataModule[SampleType]):
     """PyTorch Lightning Datamodule for the PACS dataset."""
 

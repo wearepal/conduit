@@ -1,9 +1,9 @@
 """NICO data-module."""
+from dataclasses import dataclass
 from typing import Any, Optional
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
-import attr
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
 from conduit.data.datasets.utils import stratified_split
@@ -13,7 +13,7 @@ from conduit.data.structures import TrainValTestSplit
 __all__ = ["NICODataModule"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class NICODataModule(CdtVisionDataModule[SampleType]):
     """Data-module for the NICO dataset."""
 

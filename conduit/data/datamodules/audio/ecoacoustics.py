@@ -1,8 +1,8 @@
 """Ecoacoustics data-module."""
+from dataclasses import dataclass
 from typing import Any, List, Optional
 from typing_extensions import override
 
-import attr
 from torch.utils.data import Sampler
 
 from conduit.data.datasets.audio.ecoacoustics import Ecoacoustics, SoundscapeAttr
@@ -16,7 +16,7 @@ from .base import CdtAudioDataModule
 __all__ = ["EcoacousticsDataModule"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class EcoacousticsDataModule(CdtAudioDataModule[BinarySample]):
     """Data-module for the Ecoacoustics dataset."""
 

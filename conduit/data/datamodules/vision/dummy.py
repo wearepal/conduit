@@ -1,16 +1,15 @@
 """Dummy data-module."""
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Union
 from typing_extensions import override
-
-import attr
 
 from conduit.data import TrainValTestSplit
 from conduit.data.datamodules.vision import CdtVisionDataModule
 from conduit.data.datasets.vision.dummy import DummyVisionDataset, SampleType
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class DummyVisionDataModule(CdtVisionDataModule[SampleType]):
     num_samples: int = 1_000
     seed: int = 8
@@ -19,8 +18,8 @@ class DummyVisionDataModule(CdtVisionDataModule[SampleType]):
     width: int = 32
     channels: int = 3
     batch_size: int = 32
-    s_card: int = 2
-    y_card: int = 2
+    s_card: int | None = 2
+    y_card: int | None = 2
 
     @override
     def _get_image_splits(self) -> TrainValTestSplit[DummyVisionDataset]:

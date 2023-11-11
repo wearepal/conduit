@@ -1,5 +1,6 @@
 """Adult Income Dataset."""
-import attr
+from dataclasses import dataclass
+
 from ethicml.data import Adult, Dataset
 from ethicml.data import AdultSplits as AdultSens
 
@@ -8,7 +9,7 @@ from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 __all__ = ["AdultDataModule", "AdultSens"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class AdultDataModule(EthicMlDataModule):
     """UCI Adult Income Dataset."""
 

@@ -21,7 +21,6 @@ from typing import (
 from typing_extensions import Self, TypeAlias, override
 
 from PIL import Image
-from attrs import define
 import numpy as np
 import numpy.typing as npt
 from ranzen.misc import gcopy, reduce_add
@@ -536,7 +535,7 @@ def shallow_asdict(dataclass: object) -> Dict[str, Any]:
     return {field.name: getattr(dataclass, field.name) for field in fields(dataclass)}
 
 
-@define
+@dataclass
 class ImageSize(Sequence):
     c: int
     h: int
@@ -576,7 +575,7 @@ class ImageSize(Sequence):
         return sum(iter(self))
 
 
-@define(kw_only=True)
+@dataclass(kw_only=True)
 class MeanStd:
     mean: Union[Tuple[float, ...], List[float]]
     std: Union[Tuple[float, ...], List[float]]
@@ -660,7 +659,7 @@ class DatasetWrapper(SizedDataset[R_co], Protocol):
         return None
 
 
-@define(kw_only=True)
+@dataclass(kw_only=True)
 class TrainTestSplit(Generic[D]):
     train: D
     test: D
@@ -669,7 +668,7 @@ class TrainTestSplit(Generic[D]):
         yield from (self.train, self.test)
 
 
-@define(kw_only=True)
+@dataclass(kw_only=True)
 class TrainValTestSplit(TrainTestSplit[D]):
     val: D
 

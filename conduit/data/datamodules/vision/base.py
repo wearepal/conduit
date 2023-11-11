@@ -1,12 +1,12 @@
 """Base class for vision datasets."""
 from abc import abstractmethod
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Union, final
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
 from albumentations.pytorch import ToTensorV2  # type: ignore
-import attr
 from torch import Tensor
 
 from conduit.data.constants import IMAGENET_STATS
@@ -23,41 +23,33 @@ from conduit.data.structures import ImageSize, MeanStd, TrainValTestSplit
 __all__ = ["CdtVisionDataModule"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class CdtVisionDataModule(CdtDataModule[ImageTransformer, I]):
-    root: Union[str, Path] = attr.field(kw_only=False)
-    _train_transforms: Optional[ImageTform] = None
-    _test_transforms: Optional[ImageTform] = None
-    norm_values: Optional[MeanStd] = attr.field(default=IMAGENET_STATS, init=False)
+    root: Union[str, Path] = field(kw_only=False)
+    train_tf: Optional[ImageTform] = None
+    test_tf: Optional[ImageTform] = None
+    norm_values: Optional[MeanStd] = field(default=IMAGENET_STATS, init=False)
 
     @property
     @final
     def train_transforms(self) -> ImageTform:
-        return (
-            self._default_train_transforms
-            if self._train_transforms is None
-            else self._train_transforms
-        )
+        return self._default_train_transforms if self.train_tf is None else self.train_tf
 
     @train_transforms.setter
     def train_transforms(self, transform: Optional[ImageTform]) -> None:
-        self._train_transforms = transform
+        self.train_tf = transform
         if isinstance(self._train_data, ImageTransformer):
             self._train_data.transform = transform
 
     @property
     @final
     def test_transforms(self) -> ImageTform:
-        return (
-            self._default_test_transforms
-            if self._test_transforms is None
-            else self._test_transforms
-        )
+        return self._default_test_transforms if self.test_tf is None else self.test_tf
 
     @test_transforms.setter
     @final
     def test_transforms(self, transform: Optional[ImageTform]) -> None:
-        self._test_transforms = transform
+        self.test_tf = transform
         if isinstance(self._val_data, ImageTransformer):
             self._val_data.transform = transform
         if isinstance(self._test_data, ImageTransformer):
@@ -70,7 +62,9 @@ class CdtVisionDataModule(CdtDataModule[ImageTransformer, I]):
             # `max_pixel_value` has to be 1.0 here because of `ToFloat()`
             transform_ls.append(
                 A.Normalize(
-                    mean=self.norm_values.mean, std=self.norm_values.std, max_pixel_value=1.0
+                    mean=self.norm_values.mean,
+                    std=self.norm_values.std,
+                    max_pixel_value=1.0,
                 )
             )
         transform_ls.append(ToTensorV2())

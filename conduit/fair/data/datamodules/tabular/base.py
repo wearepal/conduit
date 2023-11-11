@@ -1,9 +1,9 @@
 """Tabular data-module."""
 from abc import abstractmethod
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union, cast, final
 from typing_extensions import override
 
-import attr
 import ethicml as em
 from ethicml.data import Dataset, FeatureOrder
 from sklearn.preprocessing import StandardScaler
@@ -16,21 +16,19 @@ from conduit.fair.data.datasets import DataTupleDataset
 __all__ = ["EthicMlDataModule"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class EthicMlDataModule(CdtDataModule[DataTupleDataset, TernarySample[Tensor]]):
     """Base data-module for tabular datasets."""
 
-    scaler: em.ScalerType = attr.field(factory=StandardScaler)
+    scaler: em.ScalerType = field(default_factory=StandardScaler)  # pyright: ignore
     invert_s: bool = False
-    _datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
-    _train_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
-    _val_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
-    _test_datatuple: Optional[em.DataTuple] = attr.field(default=None, init=False)
-    _cont_features: Optional[List[str]] = attr.field(default=None, init=False)
-    _disc_features: Optional[List[str]] = attr.field(default=None, init=False)
-    _feature_groups: Optional[Dict[str, Optional[List[slice]]]] = attr.field(
-        default=None, init=False
-    )
+    _datatuple: Optional[em.DataTuple] = field(default=None, init=False)
+    _train_datatuple: Optional[em.DataTuple] = field(default=None, init=False)
+    _val_datatuple: Optional[em.DataTuple] = field(default=None, init=False)
+    _test_datatuple: Optional[em.DataTuple] = field(default=None, init=False)
+    _cont_features: Optional[List[str]] = field(default=None, init=False)
+    _disc_features: Optional[List[str]] = field(default=None, init=False)
+    _feature_groups: Optional[Dict[str, Optional[List[slice]]]] = field(default=None, init=False)
 
     @property
     @final

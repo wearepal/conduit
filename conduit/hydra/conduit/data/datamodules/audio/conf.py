@@ -16,6 +16,7 @@ from typing import Optional
 @dataclass
 class EcoacousticsDataModuleConf:
     _target_: str = "conduit.data.datamodules.audio.EcoacousticsDataModule"
+    root: str = MISSING
     train_batch_size: int = 64
     eval_batch_size: Optional[int] = None
     val_prop: float = 0.2
@@ -27,9 +28,8 @@ class EcoacousticsDataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    root: str = MISSING
-    train_transforms: Any = None  # Optional[Callable[[Tensor], Tensor]]
-    test_transforms: Any = None  # Optional[Callable[[Tensor], Tensor]]
+    train_tf: Any = None  # Optional[Callable[[Tensor], Tensor]]
+    test_tf: Any = None  # Optional[Callable[[Tensor], Tensor]]
     segment_len: float = 15
     sample_rate: int = 48000
     target_attrs: List[SoundscapeAttr] = MISSING

@@ -1,11 +1,11 @@
 """ColoredMNIST data-module."""
+from dataclasses import dataclass
 from functools import partial
 from typing import Any, Dict, List, Optional
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
 from albumentations.pytorch.transforms import ToTensorV2  # type: ignore
-import attr
 import numpy as np
 from torchvision.datasets import MNIST  # type: ignore
 
@@ -20,7 +20,7 @@ from conduit.data.structures import MeanStd, TrainValTestSplit
 __all__ = ["ColoredMNISTDataModule"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class ColoredMNISTDataModule(CdtVisionDataModule[SampleType]):
     """Data-module for the ColoredMNIST dataset."""
 

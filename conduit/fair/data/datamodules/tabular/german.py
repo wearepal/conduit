@@ -1,4 +1,5 @@
-import attr
+from dataclasses import dataclass
+
 from ethicml.data import Dataset, German
 from ethicml.data import GermanSplits as GermanSens
 
@@ -7,7 +8,7 @@ from conduit.fair.data.datamodules.tabular.base import EthicMlDataModule
 __all__ = ["GermanDataModule", "GermanSens"]
 
 
-@attr.define(kw_only=True)
+@dataclass(kw_only=True)
 class GermanDataModule(EthicMlDataModule):
     """Data Module for the German Credit Dataset."""
 
