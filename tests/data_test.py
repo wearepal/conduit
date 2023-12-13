@@ -30,7 +30,6 @@ from conduit.data.datamodules.vision import (
 from conduit.data.datamodules.vision.dummy import DummyVisionDataModule
 from conduit.data.datasets import get_group_ids, stratified_split
 from conduit.data.datasets.audio import Ecoacoustics, SoundscapeAttr
-from conduit.data.datasets.tabular import ACSDataset
 from conduit.data.datasets.vision import (
     Camelyon17,
     CelebA,
@@ -43,7 +42,7 @@ from conduit.data.datasets.vision import (
     SSRP,
     Waterbirds,
 )
-from conduit.fair.data.datasets import DummyDataset
+from conduit.fair.data.datasets import ACSDataset, DummyDataset
 
 
 @pytest.mark.parametrize("greyscale", [True, False])
