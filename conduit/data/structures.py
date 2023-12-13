@@ -591,16 +591,16 @@ class MeanStd:
     def __mul__(self, value: float) -> Self:
         copy = gcopy(self, deep=True)
         copy *= value
-        return copy  # pyright: ignore
+        return copy
 
     def __idiv__(self, value: float) -> Self:
         self *= 1 / value
-        return self  # pyright: ignore
+        return self
 
     def __div__(self, value: float) -> Self:
         copy = gcopy(self, deep=True)
         copy *= 1 / value
-        return copy  # pyright: ignore
+        return copy
 
 
 R_co = TypeVar("R_co", covariant=True)

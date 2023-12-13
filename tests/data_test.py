@@ -30,6 +30,7 @@ from conduit.data.datamodules.vision import (
 from conduit.data.datamodules.vision.dummy import DummyVisionDataModule
 from conduit.data.datasets import get_group_ids, stratified_split
 from conduit.data.datasets.audio import Ecoacoustics, SoundscapeAttr
+from conduit.data.datasets.tabular import ACSDataset
 from conduit.data.datasets.vision import (
     Camelyon17,
     CelebA,
@@ -427,3 +428,13 @@ def test_stratified_split():
 
     assert n_train == pytest.approx(0.45 * n_all, abs=1)
     assert n_test == pytest.approx(0.55 * n_all, abs=1)
+
+
+def test_acs_dataset() -> None:
+    acs_income = ACSDataset(setting=ACSDataset.Setting.income)
+    assert acs_income.feature_groups is not None
+    assert acs_income.feature_groups[0] == slice(2, 10)
+    assert acs_income.x.shape == (22_268, 729)
+    assert acs_income.s.shape == (22_268,)
+    assert acs_income.y.shape == (22_268,)
+    assert acs_income.cont_indexes == [0, 1]
