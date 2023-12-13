@@ -36,8 +36,8 @@ class CdtTabularDataset(CdtDataset[I, Tensor, Y, S]):
 
         if self.transform is not None:
             self.x = self.transform(self.x)
-        if self.target_transform is not None:
-            self.y = self.target_transform(self.x)
+        if self.target_transform is not None and self.y is not None:
+            self.y = self.target_transform(self.y)
 
         self.cont_indexes = cont_indexes
         self.disc_indexes = disc_indexes
