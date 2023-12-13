@@ -43,6 +43,7 @@ hydra-core = {version = "^1.1.1", optional = true}
 rich = {version = "^12.5.1", optional = true}
 # fair
 ethicml = {version = "^1.2.1", extras = ["data"], optional = true}
+folktables = {version = "^0.0.12", optional = true}
 
 [tool.poetry.extras]
 download = ["gdown", "kaggle"]
@@ -50,14 +51,14 @@ image = ["albumentations", "opencv-python"]
 audio = ["soundfile", "sox"]
 hydra = ["hydra-core"]
 logging = ["rich"]
-fair = ["ethicml"]
+fair = ["ethicml", "folktables"]
 all = [
     "gdown", "kaggle",  # download
     "albumentations", "opencv-python",  # image
     "soundfile", "sox",  # audio
     "hydra-core",  # hydra
     "rich",  # logging
-    "ethicml",  # fair
+    "ethicml", "folktables",  # fair
 ]
 
 [[tool.poetry.source]]
