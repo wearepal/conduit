@@ -119,9 +119,7 @@ class ACSDataset(CdtTabularDataset[TernarySample, Tensor, Tensor]):
         data_source = ACSDataSource(
             survey_year=survey_year.value, horizon=horizon.value, survey=survey.value
         )
-        acs_data = data_source.get_data(
-            states=[state.name for state in states], download=True
-        )
+        acs_data = data_source.get_data(states=[state.name for state in states], download=True)
         dataset: BasicProblem = setting.value
 
         # `generate_categories` is only available for years >= 2017.
@@ -136,9 +134,7 @@ class ACSDataset(CdtTabularDataset[TernarySample, Tensor, Tensor]):
                 acs_data, categories=categories, dummies=True
             )
 
-            feature_groups, disc_indexes = feature_groups_from_categories(
-                categories, features_df
-            )
+            feature_groups, disc_indexes = feature_groups_from_categories(categories, features_df)
             label = label_df.to_numpy(dtype=np.int64)
             group = group_df.to_numpy(dtype=np.int64)
             features = features_df.to_numpy(dtype=np.float32)
