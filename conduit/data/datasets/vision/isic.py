@@ -4,16 +4,7 @@ from itertools import islice
 import os
 from pathlib import Path
 import shutil
-from typing import (
-    TYPE_CHECKING,
-    ClassVar,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    TypeVar,
-    Union,
-)
+from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, List, Optional, TypeVar, Union
 from typing_extensions import TypeAlias
 import zipfile
 

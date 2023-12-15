@@ -6,12 +6,7 @@ from typing_extensions import override
 import albumentations as A  # type: ignore
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
-from conduit.data.datasets.vision.celeba import (
-    CelebA,
-    CelebASplit,
-    CelebAttr,
-    SampleType,
-)
+from conduit.data.datasets.vision.celeba import CelebA, CelebASplit, CelebAttr, SampleType
 from conduit.data.structures import TrainValTestSplit
 
 __all__ = ["CelebADataModule"]

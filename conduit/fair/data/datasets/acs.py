@@ -2,13 +2,7 @@ from collections.abc import Iterable
 from enum import Enum, auto
 from typing import TypeAlias
 
-from folktables import (
-    ACSDataSource,
-    ACSEmployment,
-    ACSIncome,
-    BasicProblem,
-    generate_categories,
-)
+from folktables import ACSDataSource, ACSEmployment, ACSIncome, BasicProblem, generate_categories
 import numpy as np
 import pandas as pd
 from torch import Tensor
@@ -17,10 +11,10 @@ from conduit.data.datasets.tabular.base import CdtTabularDataset
 from conduit.data.structures import TernarySample
 from conduit.transforms.tabular import TabularTransform
 
-__all__ = ["ACSSetting", "ACSDataset", "ACSState", "ACSHorizon", "ACSSurvey", "SurveyYear"]
+__all__ = ["ACSSetting", "ACSDataset", "ACSState", "ACSHorizon", "ACSSurvey", "ACSSurveyYear"]
 
 
-class SurveyYear(Enum):
+class ACSSurveyYear(Enum):
     YEAR_2014 = "2014"
     YEAR_2015 = "2015"
     YEAR_2016 = "2016"
@@ -104,7 +98,7 @@ class ACSDataset(CdtTabularDataset[TernarySample, Tensor, Tensor]):
     Horizon: TypeAlias = ACSHorizon
     State: TypeAlias = ACSState
     Survey: TypeAlias = ACSSurvey
-    SurveyYear: TypeAlias = SurveyYear
+    SurveyYear: TypeAlias = ACSSurveyYear
 
     def __init__(
         self,

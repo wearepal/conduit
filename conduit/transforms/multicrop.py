@@ -15,12 +15,7 @@ from conduit.data.datasets.vision.utils import (
     apply_image_transform,
     img_to_tensor,
 )
-from conduit.data.structures import (
-    InputContainer,
-    MeanStd,
-    RawImage,
-    concatenate_inputs,
-)
+from conduit.data.structures import InputContainer, MeanStd, RawImage, concatenate_inputs
 
 from .image import RandomGaussianBlur, RandomSolarize
 

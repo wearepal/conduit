@@ -5,11 +5,7 @@ from typing_extensions import override
 
 from torch import Tensor
 
-from conduit.data.datasets.utils import (
-    AudioTform,
-    apply_audio_transform,
-    compute_instance_weights,
-)
+from conduit.data.datasets.utils import AudioTform, apply_audio_transform, compute_instance_weights
 from conduit.data.structures import (
     BinarySample,
     BinarySampleIW,
