@@ -11,7 +11,7 @@ class DataSource(ABC):
     """Provides access to data source."""
 
     @abstractmethod
-    def get_data(self, **kwargs):
+    def get_data(self, **kwargs):  # type: ignore
         """Get data sample from universe.
 
         Returns:
@@ -46,9 +46,9 @@ class BasicProblem(Problem):
         target: str,
         target_transform: Callable[[float], bool] | None = None,
         group: str | None = None,
-        group_transform: Callable = lambda x: x,
+        group_transform: Callable = lambda x: x,  # type: ignore
         preprocess: Callable[[pd.DataFrame], pd.DataFrame] = lambda x: x,
-        postprocess: Callable = lambda x: x,
+        postprocess: Callable = lambda x: x,  # type: ignore
     ):
         """Initialize BasicProblem.
 
