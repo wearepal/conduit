@@ -35,10 +35,7 @@ from ranzen.torch.data import Subset, prop_random_split
 import torch
 from torch import Tensor
 from torch.utils.data import ConcatDataset
-from torch.utils.data._utils.collate import (
-    default_collate_err_msg_format,
-    np_str_obj_array_pattern,
-)
+from torch.utils.data._utils.collate import default_collate_err_msg_format, np_str_obj_array_pattern
 from torch.utils.data.dataloader import DataLoader, _worker_init_fn_t
 from torch.utils.data.sampler import Sampler
 from torchvision.datasets.utils import (  # type: ignore

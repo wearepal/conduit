@@ -10,11 +10,7 @@ import numpy as np
 from torchvision.datasets import MNIST  # type: ignore
 
 from conduit.data.datamodules.vision.base import CdtVisionDataModule
-from conduit.data.datasets.vision.cmnist import (
-    ColoredMNIST,
-    ColoredMNISTSplit,
-    SampleType,
-)
+from conduit.data.datasets.vision.cmnist import ColoredMNIST, ColoredMNISTSplit, SampleType
 from conduit.data.structures import MeanStd, TrainValTestSplit
 
 __all__ = ["ColoredMNISTDataModule"]

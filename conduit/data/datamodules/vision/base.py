@@ -12,11 +12,7 @@ from torch import Tensor
 from conduit.data.constants import IMAGENET_STATS
 from conduit.data.datamodules.base import CdtDataModule
 from conduit.data.datasets.base import I
-from conduit.data.datasets.vision import (
-    AlbumentationsTform,
-    ImageTform,
-    ImageTransformer,
-)
+from conduit.data.datasets.vision import AlbumentationsTform, ImageTform, ImageTransformer
 from conduit.data.datasets.vision.base import CdtVisionDataset
 from conduit.data.structures import ImageSize, MeanStd, TrainValTestSplit
 

@@ -2,18 +2,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass, field
 import logging
-from typing import (
-    Any,
-    Generic,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    TypeVar,
-    Union,
-    cast,
-    final,
-)
+from typing import Any, Generic, List, Optional, Sequence, Tuple, TypeVar, Union, cast, final
 from typing_extensions import Self, override
 
 import pytorch_lightning as pl
@@ -23,11 +12,7 @@ import torch
 from torch.utils.data import Sampler
 
 from conduit.data.datasets.base import CdtDataset
-from conduit.data.datasets.utils import (
-    CdtDataLoader,
-    extract_base_dataset,
-    get_group_ids,
-)
+from conduit.data.datasets.utils import CdtDataLoader, extract_base_dataset, get_group_ids
 from conduit.data.datasets.wrappers import InstanceWeightedDataset
 from conduit.data.structures import Dataset, SampleBase, SizedDataset, TrainValTestSplit
 from conduit.logging import init_logger

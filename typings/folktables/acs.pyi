@@ -30,7 +30,7 @@ class ACSDataSource(folktables.DataSource):
             ACSDataSource
         """
     @override
-    def get_data(
+    def get_data(  # type: ignore
         self,
         *,
         states: list[str] | None = None,
