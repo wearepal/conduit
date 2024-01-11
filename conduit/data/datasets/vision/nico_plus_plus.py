@@ -172,11 +172,12 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
     def _get_label_mapping(self, level: Literal["y", "a"]) -> List[Tuple[str, int]]:
         """Get a list of all possible (name, numerical value) pairs."""
-        return list(
-            self.metadata[[f"{level}_name", level]]
+        return [
+            (name, num)
+            for num, name in self.metadata[[f"{level}_name", level]]
             .drop_duplicates()
             .itertuples(index=False, name=None)
-        )
+        ]
 
     def _check_unzipped(self) -> bool:
         if not all((self._base_dir / self.subpath / attr).exists() for attr in NicoPPAttr):
