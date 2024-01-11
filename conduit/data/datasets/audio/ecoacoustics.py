@@ -15,7 +15,7 @@ import zipfile
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_categorical_dtype, is_object_dtype
+from pandas.api.types import is_object_dtype
 from ranzen import StrEnum
 import torch
 from torch import Tensor
@@ -150,13 +150,13 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         """Label encode the extracted concept/context/superclass information."""
         data = data.copy(deep=not inplace)
         if isinstance(data, pd.Series):
-            if is_object_dtype(data) or is_categorical_dtype(data):
+            if is_object_dtype(data) or isinstance(data.dtype, pd.CategoricalDtype):
                 data.update(data.factorize()[0])  # type: ignore
                 data = data.astype(np.int64)
         else:
             for col in data.columns:
                 # Add a new column containing the label-encoded data
-                if is_object_dtype(data[col]) or is_categorical_dtype(data[col]):
+                if is_object_dtype(data[col]) or isinstance(data.dtype, pd.CategoricalDtype):
                     data[col] = data[col].factorize()[0]
         return data
 

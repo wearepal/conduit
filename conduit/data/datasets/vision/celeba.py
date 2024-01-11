@@ -142,7 +142,7 @@ class CelebA(CdtVisionDataset[SampleType, Tensor, Tensor]):
             self._base_dir / "list_attr_celeba.txt",
             delim_whitespace=True,
             header=1,
-            usecols=[self.superclass.value, self.subclass.value],
+            usecols=[self.superclass.value, self.subclass.value],  # type: ignore
             skiprows=skiprows,  # type: ignore
         )
 
@@ -150,8 +150,8 @@ class CelebA(CdtVisionDataset[SampleType, Tensor, Tensor]):
         s_unmapped = torch.as_tensor(attrs[self.subclass.value].to_numpy())
         y_unmapped = torch.as_tensor(attrs[self.superclass.value].to_numpy())
         # map from {-1, 1} to {0, 1}
-        s_binary = torch.div(s_unmapped + 1, 2, rounding_mode='floor')
-        y_binary = torch.div(y_unmapped + 1, 2, rounding_mode='floor')
+        s_binary = torch.div(s_unmapped + 1, 2, rounding_mode="floor")
+        y_binary = torch.div(y_unmapped + 1, 2, rounding_mode="floor")
 
         super().__init__(x=x, y=y_binary, s=s_binary, transform=transform, image_dir=image_dir)
 
