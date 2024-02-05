@@ -122,16 +122,22 @@ exclude = '''
 '''
 [tool.ruff]
 line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
 select = [
     "E", # pycodestyle
     "F", # pyflakes
     "I", # isort
     # "N", # naming
+    "NPY", # numpy
+    "PIE",
     "PLC", # pylint convention
     "PLE", # pylint error
     # "PLR", # pylint refactor
     "PLW", # pylint warning
     "PTH", # use-pathlib
+    "SIM", # simplify
     # "UP", # pyupgrade
     "W",
 ]
@@ -140,15 +146,16 @@ ignore = [
     "E721", # `isinstance()` vs `type() == type()`
     "E741", # ambiguous variable name
     "F541", # f-string without placeholder
+    "NPY002", # np.random
     "PLW2901", # overwriting loop variable
     "PLC0105", # covariant typevars have to end in "_co"
+    "SIM108", # ternary operator
 ]
-target-version = "py310"
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F403"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-third-party = ["PIL", "albumentations", "attr", "cv2", "ethicml", "hydra", "numpy", "omegaconf", "pandas", "pytest", "pytorch_lightning", "ranzen", "requests", "rich", "sklearn", "torch", "torchaudio", "torchmetrics", "torchvision", "tqdm"]
 extra-standard-library = ["typing_extensions"]
 no-lines-before = ["future", "standard-library"]

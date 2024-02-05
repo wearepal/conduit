@@ -28,11 +28,11 @@ __all__ = ["CdtVisionDataset"]
 ItemType: TypeAlias = Union[RawImage, Tensor]
 
 
-class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
+class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.bytes_], Y, S]):
     def __init__(
         self,
         *,
-        x: npt.NDArray[np.string_],
+        x: npt.NDArray[np.bytes_],
         image_dir: Union[Path, str],
         y: Optional[TargetData] = None,
         s: Optional[TargetData] = None,

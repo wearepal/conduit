@@ -1,3 +1,4 @@
+from contextlib import suppress
 from pathlib import Path
 from typing import Optional, Tuple, Union
 from typing_extensions import Type
@@ -106,7 +107,7 @@ def test_vision_datasets(
 
 def test_str_for_enum(root: Path) -> None:
     """Confirm that the conversion from ``str`` to ``Enum`` works."""
-    try:
+    with suppress(FileNotFoundError):
         Camelyon17(
             root,
             download=False,
@@ -115,33 +116,21 @@ def test_str_for_enum(root: Path) -> None:
             split_scheme="official",
             split="id_val",
         )
-    except FileNotFoundError:
-        pass
 
-    try:
+    with suppress(FileNotFoundError):
         CelebA(root, download=False, superclass="Smiling", subclass="Male", split="val")
-    except FileNotFoundError:
-        pass
 
-    try:
+    with suppress(FileNotFoundError):
         NICO(root, download=False, superclass="animals")
-    except FileNotFoundError:
-        pass
 
-    try:
+    with suppress(FileNotFoundError):
         PACS(root, download=False, domains="photo")
-    except FileNotFoundError:
-        pass
 
-    try:
+    with suppress(FileNotFoundError):
         Ecoacoustics(str(root), download=False, target_attrs=[SoundscapeAttr.N0])
-    except FileNotFoundError:
-        pass
 
-    try:
+    with suppress(FileNotFoundError):
         SSRP(str(root), download=False, split="Pre_Train")
-    except FileNotFoundError:
-        pass
 
 
 @pytest.mark.slow

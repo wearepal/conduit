@@ -97,7 +97,7 @@ RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
 UnloadedData: TypeAlias = Union[
     npt.NDArray[np.floating],
     npt.NDArray[np.integer],
-    npt.NDArray[np.string_],
+    npt.NDArray[np.bytes_],
     Tensor,
 ]
 LoadedData: TypeAlias = Union[
@@ -105,12 +105,12 @@ LoadedData: TypeAlias = Union[
     Image.Image,
     npt.NDArray[np.floating],
     npt.NDArray[np.integer],
-    npt.NDArray[np.string_],
+    npt.NDArray[np.bytes_],
     Dict[str, Tensor],
     Dict[str, Image.Image],
     Dict[str, npt.NDArray[np.floating]],
     Dict[str, npt.NDArray[np.integer]],
-    Dict[str, npt.NDArray[np.string_]],
+    Dict[str, npt.NDArray[np.bytes_]],
     List[Image.Image],
     InputContainer,
 ]
@@ -118,7 +118,7 @@ IndexabledData: TypeAlias = Union[
     Tensor,
     npt.NDArray[np.floating],
     npt.NDArray[np.integer],
-    npt.NDArray[np.string_],
+    npt.NDArray[np.bytes_],
 ]
 
 X = TypeVar("X", bound=LoadedData)

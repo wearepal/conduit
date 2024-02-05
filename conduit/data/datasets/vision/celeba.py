@@ -147,7 +147,7 @@ class CelebA(CdtVisionDataset[SampleType, Tensor, Tensor]):
             skiprows=skiprows,  # type: ignore
         )
 
-        x: npt.NDArray[np.string_] = np.array(attrs.index)
+        x: npt.NDArray[np.bytes_] = np.array(attrs.index)
         s_unmapped = torch.as_tensor(attrs[self.subclass.value].to_numpy())
         y_unmapped = torch.as_tensor(attrs[self.superclass.value].to_numpy())
         # map from {-1, 1} to {0, 1}
