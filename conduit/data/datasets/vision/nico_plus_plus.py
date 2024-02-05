@@ -1,4 +1,5 @@
 """NICO Dataset."""
+
 from enum import Enum, auto
 from functools import cached_property
 import json

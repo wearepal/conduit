@@ -1,4 +1,5 @@
 """CelebA Dataset."""
+
 from enum import Enum
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union

@@ -1,4 +1,5 @@
 """Datasets from EthicML."""
+
 from itertools import groupby
 from typing import Iterator, List, Tuple
 

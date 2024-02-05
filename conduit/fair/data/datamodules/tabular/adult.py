@@ -1,4 +1,5 @@
 """Adult Income Dataset."""
+
 from dataclasses import dataclass
 
 from ethicml.data import Adult, Dataset

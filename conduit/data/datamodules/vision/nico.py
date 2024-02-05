@@ -1,4 +1,5 @@
 """NICO data-module."""
+
 from dataclasses import dataclass
 from typing import Any, Optional
 from typing_extensions import override

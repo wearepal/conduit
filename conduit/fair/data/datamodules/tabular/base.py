@@ -1,4 +1,5 @@
 """Tabular data-module."""
+
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union, cast, final
@@ -38,8 +39,7 @@ class EthicMlDataModule(CdtDataModule[DataTupleDataset, TernarySample[Tensor]]):
 
     @property
     @abstractmethod
-    def em_dataset(self) -> Dataset:
-        ...
+    def em_dataset(self) -> Dataset: ...
 
     @staticmethod
     def _get_split_sizes(train_len: int, *, test_prop: Union[int, float]) -> List[int]:
