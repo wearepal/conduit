@@ -239,7 +239,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
                 segment_filename = f"{waveform_filename}_{seg_idx}.wav"
                 segment_filepath = processed_audio_dir / segment_filename
                 torchaudio.save(  # type: ignore
-                    filepath=segment_filepath,
+                    segment_filepath,
                     src=segment,
                     sample_rate=sr,
                 )
@@ -266,7 +266,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
 
         # get random sub-sample
         high = max(1, metadata.num_frames - num_frames_segment)
-        frame_offset = torch.randint(low=0, high=high, size=(1,))
+        frame_offset: int = torch.randint(low=0, high=high, size=(1,)).item()  # type: ignore
 
         # load segment
         waveform, _ = torchaudio.load(  # type: ignore
