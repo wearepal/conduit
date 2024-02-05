@@ -21,16 +21,16 @@ from conduit.types import IndexType
 __all__ = ["CdtAudioDataset"]
 
 
-class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
+class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.bytes_], Y, S]):
     """Base dataset for audio data."""
 
-    x: npt.NDArray[np.string_]
+    x: npt.NDArray[np.bytes_]
 
     def __init__(
         self,
         audio_dir: Union[Path, str],
         *,
-        x: npt.NDArray[np.string_],
+        x: npt.NDArray[np.bytes_],
         y: Optional[TargetData] = None,
         s: Optional[TargetData] = None,
         transform: Optional[AudioTform] = None,
@@ -70,24 +70,20 @@ class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
         return torch.cat([_load(filepath) for filepath in self.x[index]], dim=0)
 
     @overload
-    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[True]) -> Tensor:
-        ...
+    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[True]) -> Tensor: ...
 
     @overload
     def _sample_x(
         self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[True]
-    ) -> Union[Tensor, Sequence[Tensor]]:
-        ...
+    ) -> Union[Tensor, Sequence[Tensor]]: ...
 
     @overload
-    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[False] = ...) -> Tensor:
-        ...
+    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[False] = ...) -> Tensor: ...
 
     @overload
     def _sample_x(
         self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[False] = ...
-    ) -> Union[Tensor, Sequence[Tensor]]:
-        ...
+    ) -> Union[Tensor, Sequence[Tensor]]: ...
 
     @override
     def _sample_x(

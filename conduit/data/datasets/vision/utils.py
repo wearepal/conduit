@@ -1,4 +1,5 @@
 """Utils for vision datasets."""
+
 from pathlib import Path
 from typing import Any, Callable, Literal, Optional, Union, get_args, overload
 from typing_extensions import TypeAlias
@@ -32,13 +33,11 @@ ImageLoadingBackend: TypeAlias = Literal["opencv", "pillow"]
 @overload
 def load_image(
     filepath: Union[Path, str], *, backend: Literal["opencv"] = ...
-) -> npt.NDArray[np.integer]:
-    ...
+) -> npt.NDArray[np.integer]: ...
 
 
 @overload
-def load_image(filepath: Union[Path, str], *, backend: Literal["pillow"]) -> Image.Image:
-    ...
+def load_image(filepath: Union[Path, str], *, backend: Literal["pillow"]) -> Image.Image: ...
 
 
 def load_image(filepath: Union[Path, str], *, backend: ImageLoadingBackend = "opencv") -> RawImage:

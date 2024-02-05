@@ -1,4 +1,5 @@
 """ISIC Dataset."""
+
 from enum import auto
 from itertools import islice
 import os

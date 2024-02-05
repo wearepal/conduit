@@ -1,4 +1,5 @@
 """Test metrics."""
+
 from typing import Final
 
 import numpy as np

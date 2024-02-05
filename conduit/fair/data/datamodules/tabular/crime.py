@@ -1,4 +1,5 @@
 """Crime Dataset."""
+
 from dataclasses import dataclass
 
 from ethicml.data import Crime, Dataset

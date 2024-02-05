@@ -1,4 +1,5 @@
 """Credit Dataset."""
+
 from dataclasses import dataclass
 
 from ethicml.data import Credit, Dataset

@@ -1,4 +1,5 @@
 """Data source and problem definitions for American Community Survey (ACS) Public Use Microdata Sample (PUMS)."""
+
 from typing import Literal, TypeAlias
 from typing_extensions import override
 
@@ -29,6 +30,7 @@ class ACSDataSource(folktables.DataSource):
         Returns:
             ACSDataSource
         """
+
     @override
     def get_data(  # type: ignore
         self,
@@ -40,6 +42,7 @@ class ACSDataSource(folktables.DataSource):
         download: bool = False,
     ) -> pd.DataFrame:
         """Get data from given list of states, density, and random seed. Optionally add household features."""
+
     def get_definitions(self, download: bool = False) -> pd.DataFrame:
         """
         Gets categorical data definitions dataframe.

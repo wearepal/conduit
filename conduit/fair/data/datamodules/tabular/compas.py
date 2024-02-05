@@ -1,4 +1,5 @@
 """COMPAS Dataset."""
+
 from dataclasses import dataclass
 
 from ethicml.data import Compas, Dataset

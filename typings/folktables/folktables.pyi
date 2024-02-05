@@ -28,10 +28,12 @@ class Problem(ABC):
     @abstractmethod
     def target(self) -> str:
         pass
+
     @property
     @abstractmethod
     def features(self):
         pass
+
     @property
     @abstractmethod
     def target_transform(self):
@@ -61,6 +63,7 @@ class BasicProblem(Problem):
             preprocess: function applied to initial data frame
             postprocess: function applied to final numpy data array
         """
+
     @override
     def df_to_numpy(self, df: pd.DataFrame) -> tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
         """Return data frame as numpy array.
@@ -70,6 +73,7 @@ class BasicProblem(Problem):
 
         Returns:
             Numpy array, numpy array, numpy array"""
+
     def df_to_pandas(
         self,
         df: pd.DataFrame,
@@ -87,6 +91,7 @@ class BasicProblem(Problem):
 
         Returns:
             pandas.DataFrame."""
+
     @property
     def target(self) -> str: ...
     @property

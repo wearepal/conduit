@@ -1,4 +1,5 @@
 """Data structures."""
+
 from abc import abstractmethod
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field, fields, is_dataclass
@@ -78,8 +79,7 @@ class InputContainer(Sized, Addable, Protocol):
         ...
 
     @override
-    def __add__(self, other: Self) -> Self:
-        ...
+    def __add__(self, other: Self) -> Self: ...
 
     def to(
         self,
@@ -97,7 +97,7 @@ RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
 UnloadedData: TypeAlias = Union[
     npt.NDArray[np.floating],
     npt.NDArray[np.integer],
-    npt.NDArray[np.string_],
+    npt.NDArray[np.bytes_],
     Tensor,
 ]
 LoadedData: TypeAlias = Union[
@@ -105,12 +105,12 @@ LoadedData: TypeAlias = Union[
     Image.Image,
     npt.NDArray[np.floating],
     npt.NDArray[np.integer],
-    npt.NDArray[np.string_],
+    npt.NDArray[np.bytes_],
     Dict[str, Tensor],
     Dict[str, Image.Image],
     Dict[str, npt.NDArray[np.floating]],
     Dict[str, npt.NDArray[np.integer]],
-    Dict[str, npt.NDArray[np.string_]],
+    Dict[str, npt.NDArray[np.bytes_]],
     List[Image.Image],
     InputContainer,
 ]
@@ -118,7 +118,7 @@ IndexabledData: TypeAlias = Union[
     Tensor,
     npt.NDArray[np.floating],
     npt.NDArray[np.integer],
-    npt.NDArray[np.string_],
+    npt.NDArray[np.bytes_],
 ]
 
 X = TypeVar("X", bound=LoadedData)
@@ -213,8 +213,7 @@ class SampleBase(InputContainer, Generic[X]):
         return len(self.__dataclass_fields__)
 
     @abstractmethod
-    def __iter__(self) -> Iterator[Union[X, Tensor]]:
-        ...
+    def __iter__(self) -> Iterator[Union[X, Tensor]]: ...
 
     @override
     def __add__(self, other: Self) -> Self:
@@ -293,12 +292,10 @@ class TernarySampleIW(_IwMixin, _BinarySampleMixin, _SubgroupSampleMixin, Sample
 @dataclass
 class TernarySample(_BinarySampleMixin, _SubgroupSampleMixin, SampleBase[X]):
     @overload
-    def add_field(self, iw: None = ...) -> Self:
-        ...
+    def add_field(self, iw: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, iw: Tensor) -> TernarySampleIW:
-        ...
+    def add_field(self, iw: Tensor) -> TernarySampleIW: ...
 
     def add_field(self, iw: Optional[Tensor] = None) -> Union[Self, TernarySampleIW]:
         if iw is not None:
@@ -325,12 +322,10 @@ class TernarySample(_BinarySampleMixin, _SubgroupSampleMixin, SampleBase[X]):
 @dataclass
 class BinarySampleIW(_IwMixin, _BinarySampleMixin, SampleBase[X]):
     @overload
-    def add_field(self, s: None = ...) -> Self:
-        ...
+    def add_field(self, s: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, s: Tensor) -> TernarySampleIW:
-        ...
+    def add_field(self, s: Tensor) -> TernarySampleIW: ...
 
     def add_field(self, s: Optional[Tensor] = None) -> Union[Self, TernarySampleIW]:
         if s is not None:
@@ -357,20 +352,16 @@ class BinarySampleIW(_IwMixin, _BinarySampleMixin, SampleBase[X]):
 @dataclass
 class BinarySample(_BinarySampleMixin, SampleBase[X]):
     @overload
-    def add_field(self, *, s: None = ..., iw: None = ...) -> Self:
-        ...
+    def add_field(self, *, s: None = ..., iw: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, *, s: None = ..., iw: Tensor) -> BinarySampleIW:
-        ...
+    def add_field(self, *, s: None = ..., iw: Tensor) -> BinarySampleIW: ...
 
     @overload
-    def add_field(self, *, s: Tensor, iw: None = ...) -> TernarySample:
-        ...
+    def add_field(self, *, s: Tensor, iw: None = ...) -> TernarySample: ...
 
     @overload
-    def add_field(self, *, s: Tensor, iw: Tensor) -> TernarySampleIW:
-        ...
+    def add_field(self, *, s: Tensor, iw: Tensor) -> TernarySampleIW: ...
 
     def add_field(
         self, *, s: Optional[Tensor] = None, iw: Optional[Tensor] = None
@@ -402,12 +393,10 @@ class BinarySample(_BinarySampleMixin, SampleBase[X]):
 @dataclass
 class SubgroupSampleIW(SampleBase[X], _SubgroupSampleMixin, _IwMixin):
     @overload
-    def add_field(self, y: None = ...) -> Self:
-        ...
+    def add_field(self, y: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, y: Tensor) -> TernarySampleIW:
-        ...
+    def add_field(self, y: Tensor) -> TernarySampleIW: ...
 
     def add_field(self, y: Optional[Tensor] = None) -> Union[Self, TernarySampleIW]:
         if y is not None:
@@ -434,20 +423,16 @@ class SubgroupSampleIW(SampleBase[X], _SubgroupSampleMixin, _IwMixin):
 @dataclass
 class SubgroupSample(_SubgroupSampleMixin, SampleBase[X]):
     @overload
-    def add_field(self, *, y: None = ..., iw: None = ...) -> Self:
-        ...
+    def add_field(self, *, y: None = ..., iw: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, *, y: None = ..., iw: Tensor) -> SubgroupSampleIW:
-        ...
+    def add_field(self, *, y: None = ..., iw: Tensor) -> SubgroupSampleIW: ...
 
     @overload
-    def add_field(self, *, y: Tensor, iw: None = ...) -> TernarySample:
-        ...
+    def add_field(self, *, y: Tensor, iw: None = ...) -> TernarySample: ...
 
     @overload
-    def add_field(self, *, y: Tensor, iw: Tensor) -> TernarySampleIW:
-        ...
+    def add_field(self, *, y: Tensor, iw: Tensor) -> TernarySampleIW: ...
 
     def add_field(
         self, *, y: Optional[Tensor] = None, iw: Optional[Tensor] = None
@@ -479,24 +464,19 @@ class SubgroupSample(_SubgroupSampleMixin, SampleBase[X]):
 @dataclass
 class NamedSample(SampleBase[X]):
     @overload
-    def add_field(self, *, y: None = ..., s: None = ..., iw: None = ...) -> Self:
-        ...
+    def add_field(self, *, y: None = ..., s: None = ..., iw: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: None = ..., iw: None = ...) -> BinarySample:
-        ...
+    def add_field(self, *, y: Tensor, s: None = ..., iw: None = ...) -> BinarySample: ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: None = ..., iw: Tensor) -> BinarySampleIW:
-        ...
+    def add_field(self, *, y: Tensor, s: None = ..., iw: Tensor) -> BinarySampleIW: ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: Tensor, iw: None = ...) -> TernarySample:
-        ...
+    def add_field(self, *, y: Tensor, s: Tensor, iw: None = ...) -> TernarySample: ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: Tensor, iw: Tensor) -> TernarySampleIW:
-        ...
+    def add_field(self, *, y: Tensor, s: Tensor, iw: Tensor) -> TernarySampleIW: ...
 
     def add_field(
         self, *, y: Optional[Tensor] = None, s: Optional[Tensor] = None, iw: Optional[Tensor] = None
@@ -557,12 +537,10 @@ class ImageSize(Sequence):
         yield from (self.c, self.h, self.w)
 
     @overload
-    def __getitem__(self, index: int) -> int:
-        ...
+    def __getitem__(self, index: int) -> int: ...
 
     @overload
-    def __getitem__(self, index: slice) -> Sequence[int]:
-        ...
+    def __getitem__(self, index: slice) -> Sequence[int]: ...
 
     def __getitem__(self, index: Union[int, slice]) -> Union[int, Sequence[int]]:
         return (self.c, self.h, self.w)[index]
@@ -608,15 +586,13 @@ R_co = TypeVar("R_co", covariant=True)
 
 @runtime_checkable
 class Dataset(Protocol[R_co]):
-    def __getitem__(self, index: int) -> R_co:
-        ...
+    def __getitem__(self, index: int) -> R_co: ...
 
 
 @runtime_checkable
 class SizedDataset(Dataset[R_co], Sized, Protocol):
     @override
-    def __getitem__(self, index: int) -> R_co:
-        ...
+    def __getitem__(self, index: int) -> R_co: ...
 
     @override
     def __len__(self) -> Optional[int]:  # type: ignore
@@ -634,11 +610,9 @@ class PseudoCdtDataset(Protocol[R_co, X2, Y, S]):
     y: Y
     s: S
 
-    def __getitem__(self, index: int) -> R_co:
-        ...
+    def __getitem__(self, index: int) -> R_co: ...
 
-    def __len__(self) -> int:
-        ...
+    def __len__(self) -> int: ...
 
 
 D = TypeVar("D", bound=Union[Dataset, Tensor, List[int]], covariant=True)
@@ -649,8 +623,7 @@ class DatasetWrapper(SizedDataset[R_co], Protocol):
     dataset: Dataset
 
     @override
-    def __getitem__(self, index: int) -> R_co:
-        ...
+    def __getitem__(self, index: int) -> R_co: ...
 
     @override
     def __len__(self) -> Optional[int]:

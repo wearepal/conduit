@@ -1,4 +1,5 @@
 """Law Admissions Dataset."""
+
 from dataclasses import dataclass
 
 from ethicml.data import Dataset, Sqf

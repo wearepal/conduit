@@ -1,4 +1,5 @@
 """Load ACS PUMS data from Census CSV files."""
+
 from typing import Final, Literal, TypeAlias
 
 import pandas as pd

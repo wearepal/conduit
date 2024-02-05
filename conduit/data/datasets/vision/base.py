@@ -28,11 +28,11 @@ __all__ = ["CdtVisionDataset"]
 ItemType: TypeAlias = Union[RawImage, Tensor]
 
 
-class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
+class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.bytes_], Y, S]):
     def __init__(
         self,
         *,
-        x: npt.NDArray[np.string_],
+        x: npt.NDArray[np.bytes_],
         image_dir: Union[Path, str],
         y: Optional[TargetData] = None,
         s: Optional[TargetData] = None,
@@ -69,24 +69,20 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.string_], Y, S]):
         return load_image(self.image_dir / filepath, backend=self._il_backend)
 
     @overload
-    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[True]) -> Tensor:
-        ...
+    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[True]) -> Tensor: ...
 
     @overload
     def _sample_x(
         self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[True]
-    ) -> Union[Tensor, Sequence[Tensor]]:
-        ...
+    ) -> Union[Tensor, Sequence[Tensor]]: ...
 
     @overload
-    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[False] = ...) -> ItemType:
-        ...
+    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[False] = ...) -> ItemType: ...
 
     @overload
     def _sample_x(
         self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[False] = ...
-    ) -> Union[ItemType, Sequence[ItemType]]:
-        ...
+    ) -> Union[ItemType, Sequence[ItemType]]: ...
 
     @override
     def _sample_x(

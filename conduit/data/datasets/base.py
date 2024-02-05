@@ -82,24 +82,20 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         return self._logger
 
     @overload
-    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[True]) -> Tensor:
-        ...
+    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[True]) -> Tensor: ...
 
     @overload
     def _sample_x(
         self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[True]
-    ) -> Union[Tensor, Sequence[Tensor]]:
-        ...
+    ) -> Union[Tensor, Sequence[Tensor]]: ...
 
     @overload
-    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[False] = ...) -> LoadedData:
-        ...
+    def _sample_x(self, index: int, *, coerce_to_tensor: Literal[False] = ...) -> LoadedData: ...
 
     @overload
     def _sample_x(
         self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[False] = ...
-    ) -> Union[LoadedData, Sequence[LoadedData]]:
-        ...
+    ) -> Union[LoadedData, Sequence[LoadedData]]: ...
 
     def _sample_x(
         self, index: IndexType, *, coerce_to_tensor: bool = False
@@ -232,8 +228,7 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         deep: bool = ...,
         as_indices: Literal[False] = ...,
         seed: Optional[int] = ...,
-    ) -> List[Self]:
-        ...
+    ) -> List[Self]: ...
 
     @overload
     def random_split(
@@ -243,8 +238,7 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         deep: bool = ...,
         as_indices: Literal[True],
         seed: Optional[int] = ...,
-    ) -> List[List[int]]:
-        ...
+    ) -> List[List[int]]: ...
 
     def random_split(
         self: Self,
@@ -276,16 +270,13 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         return random_split(self, props=props, deep=deep, seed=seed, as_indices=as_indices)
 
     @overload
-    def cat(self, other: Self, *, inplace: Literal[True], deep: bool = ...) -> None:
-        ...
+    def cat(self, other: Self, *, inplace: Literal[True], deep: bool = ...) -> None: ...
 
     @overload
-    def cat(self, other: Self, *, inplace: Literal[False] = ..., deep: bool = ...) -> Self:
-        ...
+    def cat(self, other: Self, *, inplace: Literal[False] = ..., deep: bool = ...) -> Self: ...
 
     @overload
-    def cat(self, other: Self, *, inplace: bool = ..., deep: bool = ...) -> Optional[Self]:
-        ...
+    def cat(self, other: Self, *, inplace: bool = ..., deep: bool = ...) -> Optional[Self]: ...
 
     def cat(self, other: Self, *, inplace: bool = False, deep: bool = False) -> Optional[Self]:
         """Concatenate this ``self`` with another dataset of the same type.
