@@ -9,7 +9,6 @@ from torch import Tensor
 
 from conduit.data.datasets.tabular.base import CdtTabularDataset
 from conduit.data.structures import TernarySample
-from conduit.transforms.tabular import TabularTransform
 
 __all__ = ["ACSSetting", "ACSDataset", "ACSState", "ACSHorizon", "ACSSurvey", "ACSSurveyYear"]
 
@@ -107,8 +106,6 @@ class ACSDataset(CdtTabularDataset[TernarySample, Tensor, Tensor]):
         horizon: Horizon = Horizon.ONE_YEAR,
         survey: ACSSurvey = ACSSurvey.PERSON,
         states: Iterable[ACSState] = (ACSState.AL,),
-        transform: TabularTransform | None = None,
-        target_transform: TabularTransform | None = None,
     ):
         data_source = ACSDataSource(
             survey_year=survey_year.value, horizon=horizon.value, survey=survey.value
@@ -128,24 +125,21 @@ class ACSDataset(CdtTabularDataset[TernarySample, Tensor, Tensor]):
                 acs_data, categories=categories, dummies=True
             )
 
-            feature_groups, disc_indexes = feature_groups_from_categories(categories, features_df)
+            feature_groups, ohe_indexes = feature_groups_from_categories(categories, features_df)
             label = label_df.to_numpy(dtype=np.int64)
             group = group_df.to_numpy(dtype=np.int64)
             features = features_df.to_numpy(dtype=np.float32)
-            cont_indexes = list(set(range(features.shape[1])) - set(disc_indexes))
+            non_ohe_indexes = list(set(range(features.shape[1])) - set(ohe_indexes))
         else:
             # Categorical features are *not* one-hot encoded for years < 2017.
             features, label, group = dataset.df_to_numpy(acs_data)
-            cont_indexes, disc_indexes, feature_groups = None, None, None
+            non_ohe_indexes, feature_groups = None, None
 
         super().__init__(
             x=features,
             y=label,
             s=group,
-            transform=transform,
-            target_transform=target_transform,
-            cont_indexes=cont_indexes,
-            disc_indexes=disc_indexes,
+            non_ohe_indexes=non_ohe_indexes,
             feature_groups=feature_groups,
         )
 
