@@ -23,6 +23,7 @@ class CdtTabularDataset(CdtDataset[I, Tensor, Y, S]):
         non-one-hot-encoded features.
     :param feature_groups: List of one-hot-encoded feature groups. Each group is encoded as a slice.
     """
+
     x: Tensor
 
     def __init__(
