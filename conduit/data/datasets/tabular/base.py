@@ -2,6 +2,7 @@ from typing import List, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
+from ranzen import some
 import torch
 from torch.functional import Tensor
 
@@ -49,11 +50,11 @@ class CdtTabularDataset(CdtDataset[I, Tensor, Y, S]):
         return self.x[:, self.non_ohe_indexes]
 
     def fit_transform_(self, transform: TabularNormalize) -> None:
-        """Fit a transformation to the non-one-hot-encoded features and transfrom in-place."""
-        if (x_non_ohe := self.x_non_ohe) is not None:
+        """Fit a transformation to the non-one-hot-encoded features and transform in-place."""
+        if some(x_non_ohe := self.x_non_ohe):
             self.x[:, self.non_ohe_indexes] = transform.fit_transform(x_non_ohe)
 
     def transform_(self, transform: TabularNormalize) -> None:
         """Transform the non-one-hot-encoded features in-place."""
-        if (x_non_ohe := self.x_non_ohe) is not None:
+        if some(x_non_ohe := self.x_non_ohe):
             self.x[:, self.non_ohe_indexes] = transform.transform(x_non_ohe)
