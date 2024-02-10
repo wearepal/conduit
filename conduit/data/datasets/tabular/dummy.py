@@ -32,7 +32,7 @@ class RandomTabularDataset(CdtTabularDataset):
             prev += ohe_feats.shape[1]
 
         feats = pd.concat(feats_dict.values(), axis=1)
-        num_disc_feats = feats.shape[1]
+        num_ohe_feats = feats.shape[1]
 
         for i in range(num_cont_features):
             cont_feat = rng.random(num_samples)
@@ -53,6 +53,5 @@ class RandomTabularDataset(CdtTabularDataset):
             y=y,
             s=s,
             feature_groups=feature_groups,
-            disc_indexes=list(range(num_disc_feats)),
-            cont_indexes=list(range(num_disc_feats, feats.shape[1])),
+            non_ohe_indexes=list(range(num_ohe_feats, feats.shape[1])),
         )

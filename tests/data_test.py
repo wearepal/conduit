@@ -31,6 +31,7 @@ from conduit.data.datamodules.vision import (
 from conduit.data.datamodules.vision.dummy import DummyVisionDataModule
 from conduit.data.datasets import get_group_ids, stratified_split
 from conduit.data.datasets.audio import Ecoacoustics, SoundscapeAttr
+from conduit.data.datasets.tabular.dummy import RandomTabularDataset
 from conduit.data.datasets.vision import (
     Camelyon17,
     CelebA,
@@ -44,6 +45,7 @@ from conduit.data.datasets.vision import (
     Waterbirds,
 )
 from conduit.fair.data.datasets import ACSDataset, DummyDataset
+from conduit.transforms.tabular import ZScoreNormalize
 
 
 @pytest.mark.parametrize("greyscale", [True, False])
@@ -325,7 +327,7 @@ def test_tabular_dummy_data(
         assert dm.train_data.feature_groups is not None
         for group in dm.train_data.feature_groups:
             assert sample.x[:, group].sum() == batch_size
-        assert sample.x[:, dm.train_data.cont_indexes].shape == (batch_size, cont_feats)
+        assert sample.x[:, dm.train_data.non_ohe_indexes].shape == (batch_size, cont_feats)
 
 
 @pytest.mark.parametrize("batch_size", [8, 32])
@@ -422,7 +424,41 @@ def test_acs_dataset() -> None:
     acs_income = ACSDataset(setting=ACSDataset.Setting.income)
     assert acs_income.feature_groups is not None
     assert acs_income.feature_groups[0] == slice(2, 10)
+    assert acs_income.feature_groups[1] == slice(10, 33)
     assert acs_income.x.shape == (22_268, 729)
     assert acs_income.s.shape == (22_268,)
     assert acs_income.y.shape == (22_268,)
-    assert acs_income.cont_indexes == [0, 1]
+    assert acs_income.non_ohe_indexes == [0, 1]
+
+
+def test_tabular_transform() -> None:
+    data = RandomTabularDataset(
+        num_samples=1_000,
+        num_disc_features=3,
+        num_cont_features=4,
+        s_card=2,
+        y_card=2,
+    )
+    test, train = data.random_split(props=(0.2,))
+    train_non_ohe = train.x_non_ohe
+    assert train_non_ohe is not None
+    test_non_ohe = test.x_non_ohe
+    assert test_non_ohe is not None
+    assert train.feature_groups is not None
+    train_group_1 = train.x[:, train.feature_groups[0]]
+    assert test.feature_groups is not None
+    test_group_1 = test.x[:, test.feature_groups[0]]
+    tf = ZScoreNormalize()
+    train.fit_transform_(tf)
+    test.transform_(tf)
+
+    # Feature groups are not transformed.
+    assert torch.allclose(train.x[:, train.feature_groups[0]], train_group_1)
+    assert torch.allclose(test.x[:, test.feature_groups[0]], test_group_1)
+    # Non-one-hot-encoded features are transformed.
+    assert not torch.allclose(train.x_non_ohe, train_non_ohe)  # type: ignore
+    assert not torch.allclose(test.x_non_ohe, test_non_ohe)  # type: ignore
+
+    tf2 = ZScoreNormalize()
+    with pytest.raises(RuntimeError):
+        test.transform_(tf2)  # Not yet fitted.
