@@ -77,7 +77,7 @@ jobs:
       run: |
         poetry run python -c "from conduit.data.datamodules.audio import EcoacousticsDataModule"
   ci_suite:
-    needs: [linters]
+    needs: [lint, format, lint_docs]
     runs-on: ubuntu-latest
     steps:
     #----------------------------------------------
