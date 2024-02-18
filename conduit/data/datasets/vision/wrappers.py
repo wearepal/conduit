@@ -46,7 +46,7 @@ class ImageTransformer(DatasetWrapper[Any]):
         sample = self.dataset[index]
 
         def _transform_sample(
-            _sample: Union[RawImage, SampleBase, Tuple[Union[RawImage, Image.Image], ...]]
+            _sample: Union[RawImage, SampleBase, Tuple[Union[RawImage, Image.Image], ...]],
         ) -> Any:
             if self.transform is None:
                 return _sample

@@ -171,10 +171,12 @@ class MultiCropTransform(Generic[LT]):
         return view
 
     @overload
-    def __call__(self: "MultiCropTransform[ImageTform]", image: RawImage) -> MultiCropOutput: ...
+    def __call__(self: "MultiCropTransform[ImageTform]", image: RawImage) -> MultiCropOutput:
+        ...
 
     @overload
-    def __call__(self: "MultiCropTransform[None]", image: RawImage) -> MultiViewPair: ...
+    def __call__(self: "MultiCropTransform[None]", image: RawImage) -> MultiViewPair:
+        ...
 
     def __call__(
         self: "MultiCropTransform", image: RawImage
