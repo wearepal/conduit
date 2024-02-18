@@ -6,31 +6,59 @@ on:
     - main
 
 jobs:
-  linters:
+  lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install poetry
       run: pipx install poetry
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
-        python-version: '3.11'  # may as well use 3.11 as it's faster
+        python-version: '3.12'
     - name: Install dependencies
       run: |
-        poetry env use 3.11
+        poetry env use 3.12
         poetry install --no-interaction --no-root --only lint
-    - name: Format with black
-      run: |
-        poetry run black --check .
     - name: Lint with ruff
       run: |
         poetry run ruff check --output-format=github .
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install poetry
+      run: pipx install poetry
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: |
+        poetry env use 3.12
+        poetry install --no-interaction --no-root --only lint
+    - name: Format with ruff
+      run: |
+        poetry run ruff format --diff .
+
+  lint_docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install poetry
+      run: pipx install poetry
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: |
+        poetry env use 3.12
+        poetry install --no-interaction --no-root --only lint
     - name: Lint with darglint
       run: |
         poetry run darglint --verbosity 2 --docstring-style sphinx -z long conduit
 
   test_minimal_dependencies:
-    needs: [linters]
+    needs: [lint, format, lint_docs]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -49,7 +77,7 @@ jobs:
       run: |
         poetry run python -c "from conduit.data.datamodules.audio import EcoacousticsDataModule"
   ci_suite:
-    needs: [linters]
+    needs: [lint, format, lint_docs]
     runs-on: ubuntu-latest
     steps:
     #----------------------------------------------

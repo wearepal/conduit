@@ -300,7 +300,8 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
         return self._train_data_base
 
     @abstractmethod
-    def _get_splits(self) -> TrainValTestSplit[D]: ...
+    def _get_splits(self) -> TrainValTestSplit[D]:
+        ...
 
     @property
     def is_set_up(self) -> bool:

@@ -30,7 +30,8 @@ METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
 class Loss(Protocol):
     reduction: Union[ReductionType, str]
 
-    def __call__(self, input: Tensor, target: Tensor, **kwargs: Any) -> Tensor: ...
+    def __call__(self, input: Tensor, target: Tensor, **kwargs: Any) -> Tensor:
+        ...
 
 
 class Stage(StrEnum):
@@ -49,9 +50,11 @@ T_co = TypeVar("T_co", covariant=True)
 
 @runtime_checkable
 class Sized(Protocol[T_co]):
-    def __len__(self) -> int: ...
+    def __len__(self) -> int:
+        ...
 
 
 @runtime_checkable
 class Indexable(Protocol[T_co]):
-    def __getitem__(self, index: IndexType) -> Any: ...
+    def __getitem__(self, index: IndexType) -> Any:
+        ...

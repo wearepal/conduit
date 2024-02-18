@@ -97,13 +97,15 @@ def apply_audio_transform(waveform: Tensor, *, transform: Optional[AudioTform]) 
 @overload
 def extract_base_dataset(
     dataset: Dataset, *, return_subset_indices: Literal[True] = ...
-) -> Tuple[Dataset, Union[Tensor, slice]]: ...
+) -> Tuple[Dataset, Union[Tensor, slice]]:
+    ...
 
 
 @overload
 def extract_base_dataset(
     dataset: Dataset, *, return_subset_indices: Literal[False] = ...
-) -> Dataset: ...
+) -> Dataset:
+    ...
 
 
 def extract_base_dataset(
@@ -275,7 +277,7 @@ def make_subset(
 
 
 def infer_sample_cls(
-    sample: Union[List[LoadedData], Tuple[LoadedData, ...], Dict[str, LoadedData], LoadedData]
+    sample: Union[List[LoadedData], Tuple[LoadedData, ...], Dict[str, LoadedData], LoadedData],
 ) -> Type[SampleBase]:
     """ "Attempt to infer the appropriate sample class based on the length of the input."""
     if not isinstance(sample, (list, tuple, dict)) or (len(sample) == 1):
@@ -545,7 +547,8 @@ def random_split(
     deep: bool = ...,
     as_indices: Literal[True],
     seed: Optional[int] = ...,
-) -> List[List[int]]: ...
+) -> List[List[int]]:
+    ...
 
 
 @overload
@@ -556,7 +559,8 @@ def random_split(
     deep: bool = ...,
     as_indices: Literal[False] = ...,
     seed: Optional[int] = ...,
-) -> List[PCD]: ...
+) -> List[PCD]:
+    ...
 
 
 @overload
@@ -567,7 +571,8 @@ def random_split(
     deep: bool = ...,
     as_indices: bool,
     seed: Optional[int] = ...,
-) -> Union[List[PCD], List[List[int]]]: ...
+) -> Union[List[PCD], List[List[int]]]:
+    ...
 
 
 def random_split(
@@ -610,7 +615,8 @@ def stratified_split(
     train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = ...,
     seed: Optional[int] = ...,
     as_indices: Literal[True],
-) -> TrainTestSplit[List[int]]: ...
+) -> TrainTestSplit[List[int]]:
+    ...
 
 
 @overload
@@ -621,7 +627,8 @@ def stratified_split(
     train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = ...,
     seed: Optional[int] = ...,
     as_indices: Literal[False] = ...,
-) -> TrainTestSplit[PCD]: ...
+) -> TrainTestSplit[PCD]:
+    ...
 
 
 @overload
@@ -632,7 +639,8 @@ def stratified_split(
     train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = ...,
     seed: Optional[int] = ...,
     as_indices: bool,
-) -> Union[TrainTestSplit[PCD], TrainTestSplit[List[int]]]: ...
+) -> Union[TrainTestSplit[PCD], TrainTestSplit[List[int]]]:
+    ...
 
 
 def stratified_split(

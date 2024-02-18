@@ -88,41 +88,22 @@ types-tqdm = "*"
 types-pillow = "^9.5.0.4"
 
 [tool.poetry.group.lint.dependencies]
-black = "*"
 darglint = "^1.8.0"
-ruff = ">=0.1.0"
+ruff = ">=0.2.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.black]
-line-length = 100
-target-version = ['py310']
-skip-string-normalization = true
-include = '\.pyi?$'
-exclude = '''
-(
-  /(
-      \.eggs         # exclude a few common directories in the
-    | \.git          # root of the project
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-    | conduit/hydra
-  )/
-  | foo.py           # also separately exclude a file named foo.py in
-                     # the root of the project
-)
-'''
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.format]
+quote-style = "preserve"
+exclude = [
+    "conduit/hydra/**"
+]
 
 [tool.ruff.lint]
 select = [
