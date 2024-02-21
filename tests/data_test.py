@@ -44,6 +44,7 @@ from conduit.data.datasets.vision import (
     SSRP,
     Waterbirds,
 )
+from conduit.fair.data.datamodules.tabular import ACSDataModule
 from conduit.fair.data.datasets import ACSDataset, DummyDataset
 from conduit.transforms.tabular import ZScoreNormalize
 
@@ -462,3 +463,38 @@ def test_tabular_transform() -> None:
     tf2 = ZScoreNormalize()
     with pytest.raises(RuntimeError):
         test.transform_(tf2)  # Not yet fitted.
+
+
+def test_acs_datamodule() -> None:
+    acs_income = ACSDataModule(
+        setting=ACSDataset.Setting.income, val_prop=0.2, test_prop=0.2, seed=47
+    )
+    acs_income.prepare_data()
+    acs_income.setup()
+    assert acs_income.train_data.feature_groups is not None
+    assert acs_income.train_data.feature_groups[0] == slice(2, 10)
+    assert acs_income.train_data.feature_groups[1] == slice(10, 33)
+    assert acs_income.train_data.x.shape == (13_363, 729)
+    assert acs_income.train_data.s.shape == (13_363,)
+    assert acs_income.train_data.y.shape == (13_363,)
+    assert acs_income.train_data.non_ohe_indexes == [0, 1]
+
+    assert acs_income.val_data.x.shape == (4_452, 729)
+    assert acs_income.test_data.x.shape == (4_453, 729)
+    assert (
+        acs_income.num_train_samples + acs_income.num_val_samples + acs_income.num_test_samples
+    ) == 22_268
+
+    # Verify that the non-one-hot-encoded features are normalized.
+    assert acs_income.train_data.x[:, 0].mean() == pytest.approx(0.0, abs=1e-5)
+    assert acs_income.train_data.x[:, 0].std() == pytest.approx(1.0, abs=1e-5)
+    assert acs_income.train_data.x[:, 1].mean() == pytest.approx(0.0, abs=1e-5)
+
+    # Verify that the one-hot-encoded features are *not* normalized.
+    assert acs_income.train_data.x[:, 2].mean() != pytest.approx(0.0, abs=1e-5)
+
+    assert torch.allclose(
+        acs_income.train_data.x[:3, :2],
+        torch.tensor([[-1.4550, -1.4721], [0.4236, -0.1277], [0.9414, 0.1095]]),
+        atol=1e-3,
+    )

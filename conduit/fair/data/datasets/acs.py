@@ -1,12 +1,14 @@
 from collections.abc import Iterable
 from enum import Enum, auto
 from typing import TypeAlias
+from typing_extensions import Self, TypeAliasType
 
 from folktables import ACSDataSource, ACSEmployment, ACSIncome, BasicProblem, generate_categories
 import numpy as np
 import pandas as pd
 from torch import Tensor
 
+from conduit.data.datasets import random_split, stratified_split
 from conduit.data.datasets.tabular.base import CdtTabularDataset
 from conduit.data.structures import TernarySample
 
@@ -85,9 +87,52 @@ class ACSSurvey(Enum):
     HOUSEHOLD = "household"
 
 
+def _employment_filter(data: pd.DataFrame) -> pd.DataFrame:
+    """Custom filter.
+
+    (Age) must be greater than 16 and less than 90, and (Person weight) must be
+    greater than or equal to 1.
+    """
+    df = data
+    df = df[df['AGEP'] > 16]
+    df = df[df['AGEP'] < 90]
+    df = df[df['PWGTP'] >= 1]
+    return df
+
+
+_ACSEmploymentDisability = BasicProblem(
+    features=[
+        'AGEP',  # age; for range of values of features please check Appendix B.4 of Retiring Adult:
+        # New Datasets for Fair Machine Learning NeurIPS 2021 paper
+        'SCHL',  # educational attainment
+        'MAR',  # marital status
+        'RELP',  # relationship
+        'DIS',  # disability recode
+        'ESP',  # employment status of parents
+        'CIT',  # citizenship status
+        'MIG',  # mobility status (lived here 1 year ago)
+        'MIL',  # military service
+        'ANC',  # ancestry recode
+        'NATIVITY',  # nativity
+        'DEAR',  # hearing difficulty
+        'DEYE',  # vision difficulty
+        'DREM',  # cognitive difficulty
+        'SEX',  # sex
+        'RAC1P',  # recoded detailed race code
+        'GCL',  # grandparents living with grandchildren
+    ],
+    target='ESR',  # employment status recode
+    target_transform=lambda x: x == 1,
+    group='DIS',
+    preprocess=_employment_filter,
+    postprocess=lambda x: np.nan_to_num(x, nan=-1),
+)
+
+
 class ACSSetting(Enum):
     employment = ACSEmployment
     income = ACSIncome
+    employment_disability = _ACSEmploymentDisability
 
 
 class ACSDataset(CdtTabularDataset[TernarySample, Tensor, Tensor]):
@@ -143,9 +188,38 @@ class ACSDataset(CdtTabularDataset[TernarySample, Tensor, Tensor]):
             feature_groups=feature_groups,
         )
 
+    def subsampled_split(
+        self,
+        train_props: dict[int, dict[int, float]] | None,
+        *,
+        val_prop: float,
+        test_prop: float,
+        seed: int,
+    ) -> tuple[Self, Self, Self]:
+        """Create a split of the dataset in which the training set is missing certain groups.
 
-CategoryName: TypeAlias = str
-ValueName: TypeAlias = str
+        :param train_props: Specification for which groups to drop from the training set.
+        :param val_prop: Proportion of the data to use for the validation set.
+        :param test_prop: Proportion of the data to use for the test set.
+        :param seed: PRNG seed to use for splitting the data.
+        :returns: Random subsets of the data of the requested proportions.
+        """
+        val_test_prop = val_prop + test_prop
+        train_data, val_test_data = stratified_split(
+            self,
+            default_train_prop=1 - val_test_prop,
+            train_props=train_props,
+            seed=seed,
+            reproducible=True,
+        )
+        val_data, test_data = random_split(
+            val_test_data, props=val_prop / val_test_prop, seed=seed, reproducible=True
+        )
+        return train_data, val_data, test_data
+
+
+CategoryName = TypeAliasType("CategoryName", str)
+ValueName = TypeAliasType("ValueName", str)
 
 
 def feature_groups_from_categories(
