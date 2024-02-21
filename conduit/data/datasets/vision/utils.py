@@ -63,7 +63,7 @@ def load_image(filepath: Union[Path, str], *, backend: ImageLoadingBackend = "op
     return Image.open(filepath)
 
 
-AlbumentationsTform: TypeAlias = Union[A.Compose, A.BasicTransform]
+AlbumentationsTform: TypeAlias = Union[A.BaseCompose, A.BasicTransform]
 PillowTform: TypeAlias = Callable[[Image.Image], Any]
 ImageTform: TypeAlias = Union[AlbumentationsTform, PillowTform]
 
@@ -90,7 +90,7 @@ def apply_image_transform(
 ) -> Union[RawImage, Tensor]:
     image_ = image
     if transform is not None:
-        if isinstance(transform, (A.Compose, A.BasicTransform)):
+        if isinstance(transform, (A.BaseCompose, A.BasicTransform)):
             if isinstance(image, Image.Image):
                 image = np.array(image)
             image_ = transform(image=image)["image"]
