@@ -50,7 +50,7 @@ class BasicProblem(Problem):
         group: str | None = None,
         group_transform: Callable = lambda x: x,  # type: ignore
         preprocess: Callable[[pd.DataFrame], pd.DataFrame] = lambda x: x,
-        postprocess: Callable = lambda x: x,  # type: ignore
+        postprocess: Callable[[npt.NDArray], npt.NDArray] = lambda x: x,
     ):
         """Initialize BasicProblem.
 
