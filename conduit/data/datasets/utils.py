@@ -73,6 +73,7 @@ __all__ = [
     "infer_sample_cls",
     "is_tensor_list",
     "make_subset",
+    "random_split",
     "stratified_split",
 ]
 
@@ -547,6 +548,7 @@ def random_split(
     deep: bool = ...,
     as_indices: Literal[True],
     seed: Optional[int] = ...,
+    reproducible: bool = ...,
 ) -> List[List[int]]:
     ...
 
@@ -559,6 +561,7 @@ def random_split(
     deep: bool = ...,
     as_indices: Literal[False] = ...,
     seed: Optional[int] = ...,
+    reproducible: bool = ...,
 ) -> List[PCD]:
     ...
 
@@ -571,6 +574,7 @@ def random_split(
     deep: bool = ...,
     as_indices: bool,
     seed: Optional[int] = ...,
+    reproducible: bool = ...,
 ) -> Union[List[PCD], List[List[int]]]:
     ...
 
@@ -582,6 +586,7 @@ def random_split(
     deep: bool = False,
     as_indices: bool = False,
     seed: Optional[int] = None,
+    reproducible: bool = False,
 ) -> Union[List[PCD], List[List[int]]]:
     """Randomly split the dataset into subsets according to the given proportions.
 
@@ -598,9 +603,13 @@ def random_split(
 
     :param seed: PRNG seed to use for splitting the data.
 
+    :param reproducible: Whether to make the split reproducible.
+
     :returns: Random subsets of the data (or their associated indices) of the requested proportions.
     """
-    split_indices = prop_random_split(dataset, props=props, as_indices=True, seed=seed)
+    split_indices = prop_random_split(
+        dataset, props=props, as_indices=True, seed=seed, reproducible=reproducible
+    )
     if as_indices:
         return split_indices
     splits = [make_subset(dataset, indices=indices, deep=deep) for indices in split_indices]
@@ -615,6 +624,7 @@ def stratified_split(
     train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = ...,
     seed: Optional[int] = ...,
     as_indices: Literal[True],
+    reproducible: bool = False,
 ) -> TrainTestSplit[List[int]]:
     ...
 
@@ -627,6 +637,7 @@ def stratified_split(
     train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = ...,
     seed: Optional[int] = ...,
     as_indices: Literal[False] = ...,
+    reproducible: bool = False,
 ) -> TrainTestSplit[PCD]:
     ...
 
@@ -639,6 +650,7 @@ def stratified_split(
     train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = ...,
     seed: Optional[int] = ...,
     as_indices: bool,
+    reproducible: bool = False,
 ) -> Union[TrainTestSplit[PCD], TrainTestSplit[List[int]]]:
     ...
 
@@ -650,6 +662,7 @@ def stratified_split(
     train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = None,
     seed: Optional[int] = None,
     as_indices: bool = False,
+    reproducible: bool = False,
 ) -> Union[TrainTestSplit[PCD], TrainTestSplit[List[int]]]:
     """Splits the data into train/test sets conditional on super- and sub-class labels.
 
@@ -664,6 +677,7 @@ def stratified_split(
     :param as_indices: Whether to return the raw train/test indices instead of subsets of the
         dataset constructed from them.
     :param seed: PRNG seed to use for determining the splits.
+    :param reproducible: Whether to make the split reproducible.
     :returns: Train-test subsets (``as_indices=False``) or indices (``as_indices=True``).
     :raises TypeError: if no superclass labels are available.
     :raises ValueError: if the labels are not as expected.
@@ -673,10 +687,6 @@ def stratified_split(
             f"Dataset of type {dataset.__class__.__name__} has no superclass labels to use "
             "for stratification."
         )
-    train_props = {} if train_props is None else train_props
-    # Initialise the random-number generator
-    generator = torch.default_generator if seed is None else torch.Generator().manual_seed(seed)
-
     group_ids = get_group_ids(dataset)
     y_unique = dataset.y.unique()
     groups, id_counts = group_ids.unique(return_counts=True)
@@ -723,7 +733,18 @@ def stratified_split(
                     group_train_props[group_id] = train_prop
 
     # Shuffle the samples before sampling
-    perm_inds = torch.randperm(len(group_ids), generator=generator)
+    if reproducible:
+        if seed is None:
+            raise ValueError("Reproducible splits require a PRNG seed to be specified.")
+        # MT19937 isn't the best random number generator, but it's reproducible, so we're using it.
+        generator = np.random.Generator(np.random.MT19937(seed))
+        indices = np.arange(len(group_ids))
+        generator.shuffle(indices)  # Shuffle the indices in-place.
+        perm_inds = torch.from_numpy(indices)
+    else:
+        # Initialise the random-number generator
+        generator = torch.default_generator if seed is None else torch.Generator().manual_seed(seed)
+        perm_inds = torch.randperm(len(group_ids), generator=generator)
     group_ids_perm = group_ids[perm_inds]
 
     sort_inds = group_ids_perm.sort(dim=0, stable=True).indices
