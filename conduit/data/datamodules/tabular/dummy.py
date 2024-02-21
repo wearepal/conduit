@@ -3,13 +3,12 @@ from typing import Optional
 from typing_extensions import override
 
 from conduit.data import TrainValTestSplit
-from conduit.data.datamodules import CdtDataModule
+from conduit.data.datamodules.tabular import CdtTabularDataModule
 from conduit.data.datasets.tabular import RandomTabularDataset
-from conduit.data.structures import TernarySample
 
 
 @dataclass(kw_only=True)
-class DummyTabularDataModule(CdtDataModule[RandomTabularDataset, TernarySample]):
+class DummyTabularDataModule(CdtTabularDataModule[RandomTabularDataset]):
     num_samples: int
     num_disc_features: int
     num_cont_features: int
@@ -30,3 +29,7 @@ class DummyTabularDataModule(CdtDataModule[RandomTabularDataset, TernarySample])
         )
         val_data, test_data, train_data = data.random_split(props=(self.val_prop, self.test_prop))
         return TrainValTestSplit(train=train_data, val=val_data, test=test_data)
+
+    @override
+    def _default_transforms(self) -> None:
+        return None

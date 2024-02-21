@@ -20,7 +20,7 @@ from conduit.data import (
     TernarySampleIW,
 )
 from conduit.data.datamodules.audio import EcoacousticsDataModule
-from conduit.data.datamodules.tabular.dummy import DummyTabularDataModule
+from conduit.data.datamodules.tabular import DummyTabularDataModule
 from conduit.data.datamodules.vision import (
     CdtVisionDataModule,
     CelebADataModule,
