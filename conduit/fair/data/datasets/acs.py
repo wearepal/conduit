@@ -3,7 +3,7 @@ from enum import Enum, auto
 from typing import TypeAlias
 from typing_extensions import Self, TypeAliasType
 
-from folktables import ACSDataSource, ACSEmployment, ACSIncome, BasicProblem, generate_categories
+from folktables import ACSDataSource, BasicProblem, generate_categories
 import numpy as np
 import pandas as pd
 from torch import Tensor
@@ -100,7 +100,48 @@ def _employment_filter(data: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _adult_filter(data: pd.DataFrame) -> pd.DataFrame:
+    """Mimic the filters in place for Adult data.
+
+    Adult documentation notes: Extraction was done by Barry Becker from
+    the 1994 Census database. A set of reasonably clean records was extracted
+    using the following conditions: ((AAGE>16) && (AGI>100) && (AFNLWGT>1)&& (HRSWK>0))
+    """
+    df = data
+    df = df[df['AGEP'] > 16]
+    df = df[df['PINCP'] > 100]
+    df = df[df['WKHP'] > 0]
+    df = df[df['PWGTP'] >= 1]
+    return df
+
+
 _ACSEmploymentDisability = BasicProblem(
+    features=[
+        'AGEP',  # age; for range of values of features please check Appendix B.4 of Retiring Adult:
+        # New Datasets for Fair Machine Learning NeurIPS 2021 paper
+        'SCHL',  # educational attainment
+        'MAR',  # marital status
+        'RELP',  # relationship
+        'ESP',  # employment status of parents
+        'CIT',  # citizenship status
+        'MIG',  # mobility status (lived here 1 year ago)
+        'MIL',  # military service
+        'ANC',  # ancestry recode
+        'NATIVITY',  # nativity
+        'DEAR',  # hearing difficulty
+        'DEYE',  # vision difficulty
+        'DREM',  # cognitive difficulty
+        'SEX',  # sex
+        'RAC1P',  # recoded detailed race code
+        'GCL',  # grandparents living with grandchildren
+    ],
+    target='ESR',  # employment status recode
+    target_transform=lambda x: x == 1,
+    group='DIS',  # disability recode
+    preprocess=_employment_filter,
+    postprocess=lambda x: np.nan_to_num(x, nan=-1),
+)
+_ACSEmployment = BasicProblem(
     features=[
         'AGEP',  # age; for range of values of features please check Appendix B.4 of Retiring Adult:
         # New Datasets for Fair Machine Learning NeurIPS 2021 paper
@@ -118,20 +159,37 @@ _ACSEmploymentDisability = BasicProblem(
         'DEYE',  # vision difficulty
         'DREM',  # cognitive difficulty
         'SEX',  # sex
-        'RAC1P',  # recoded detailed race code
-        'GCL',  # grandparents living with grandchildren
     ],
-    target='ESR',  # employment status recode
+    target='ESR',
     target_transform=lambda x: x == 1,
-    group='DIS',
-    preprocess=_employment_filter,
+    group='RAC1P',  # recoded detailed race code
+    preprocess=lambda x: x,
+    postprocess=lambda x: np.nan_to_num(x, nan=-1),
+)
+_ACSIncome = BasicProblem(
+    features=[
+        'AGEP',  # age; for range of values of features please check Appendix B.4 of Retiring Adult:
+        # New Datasets for Fair Machine Learning NeurIPS 2021 paper
+        'COW',
+        'SCHL',  # educational attainment
+        'MAR',  # marital status
+        'OCCP',
+        'POBP',
+        'RELP',
+        'WKHP',
+        'SEX',  # sex
+    ],
+    target='PINCP',
+    target_transform=lambda x: x > 50000,
+    group='RAC1P',  # recoded detailed race code
+    preprocess=_adult_filter,
     postprocess=lambda x: np.nan_to_num(x, nan=-1),
 )
 
 
 class ACSSetting(Enum):
-    employment = ACSEmployment
-    income = ACSIncome
+    employment = _ACSEmployment
+    income = _ACSIncome
     employment_disability = _ACSEmploymentDisability
 
 
