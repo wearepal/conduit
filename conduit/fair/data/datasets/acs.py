@@ -238,6 +238,9 @@ class ACSDataset(CdtTabularDataset[TernarySample, Tensor, Tensor]):
             features, label, group = dataset.df_to_numpy(acs_data)
             non_ohe_indexes, feature_groups = None, None
 
+        # Make sure `group` is zero-indexed.
+        group -= group.min()
+
         super().__init__(
             x=features,
             y=label,

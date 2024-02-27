@@ -430,6 +430,8 @@ def test_acs_dataset() -> None:
     assert acs_income.s.shape == (22_268,)
     assert acs_income.y.shape == (22_268,)
     assert acs_income.non_ohe_indexes == [0, 1]
+    assert acs_income.y.unique().tolist() == [0, 1]
+    assert acs_income.s.unique().tolist() == [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
 
 def test_tabular_transform() -> None:
