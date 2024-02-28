@@ -75,9 +75,7 @@ def precision_at_k(
 
 class Comparator(Protocol):
     @abstractmethod
-    def __call__(
-        self, y_pred: Tensor, *, y_true: Tensor
-    ) -> Tensor | tuple[Tensor, Tensor | slice]:
+    def __call__(self, y_pred: Tensor, *, y_true: Tensor) -> Tensor | tuple[Tensor, Tensor | slice]:
         """Compare.
 
         :param y_pred: Predicted labels or raw logits of a classifier.
