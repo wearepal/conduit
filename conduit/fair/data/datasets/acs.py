@@ -3,8 +3,9 @@ from enum import Enum, auto
 from typing import TypeAlias
 from typing_extensions import Self, TypeAliasType
 
-from folktables import ACSDataSource, ACSEmployment, ACSIncome, BasicProblem, generate_categories
+from folktables import ACSDataSource, BasicProblem, generate_categories
 import numpy as np
+from numpy import typing as npt
 import pandas as pd
 from torch import Tensor
 
@@ -94,13 +95,47 @@ def _employment_filter(data: pd.DataFrame) -> pd.DataFrame:
     greater than or equal to 1.
     """
     df = data
-    df = df[df['AGEP'] > 16]
-    df = df[df['AGEP'] < 90]
-    df = df[df['PWGTP'] >= 1]
-    return df
+    return df[(df['AGEP'] > 16) & (df['AGEP'] < 90) & (df['PWGTP'] >= 1)]
+
+
+def _adult_filter(data: pd.DataFrame) -> pd.DataFrame:
+    """Mimic the filters in place for Adult data.
+
+    Adult documentation notes: Extraction was done by Barry Becker from
+    the 1994 Census database. A set of reasonably clean records was extracted
+    using the following conditions: ((AAGE>16) && (AGI>100) && (AFNLWGT>1)&& (HRSWK>0))
+    """
+    df = data
+    return df[(df['AGEP'] > 16) & (df['PINCP'] > 100) & (df['WKHP'] > 0) & (df['PWGTP'] >= 1)]
 
 
 _ACSEmploymentDisability = BasicProblem(
+    features=[
+        'AGEP',  # age; for range of values of features please check Appendix B.4 of Retiring Adult:
+        # New Datasets for Fair Machine Learning NeurIPS 2021 paper
+        'SCHL',  # educational attainment
+        'MAR',  # marital status
+        'RELP',  # relationship
+        'ESP',  # employment status of parents
+        'CIT',  # citizenship status
+        'MIG',  # mobility status (lived here 1 year ago)
+        'MIL',  # military service
+        'ANC',  # ancestry recode
+        'NATIVITY',  # nativity
+        'DEAR',  # hearing difficulty
+        'DEYE',  # vision difficulty
+        'DREM',  # cognitive difficulty
+        'SEX',  # sex
+        'RAC1P',  # recoded detailed race code
+        'GCL',  # grandparents living with grandchildren
+    ],
+    target='ESR',  # employment status recode
+    target_transform=lambda x: x == 1,
+    group='DIS',  # disability recode
+    preprocess=_employment_filter,
+    postprocess=lambda x: np.nan_to_num(x, nan=-1),
+)
+_ACSEmployment = BasicProblem(
     features=[
         'AGEP',  # age; for range of values of features please check Appendix B.4 of Retiring Adult:
         # New Datasets for Fair Machine Learning NeurIPS 2021 paper
@@ -118,20 +153,37 @@ _ACSEmploymentDisability = BasicProblem(
         'DEYE',  # vision difficulty
         'DREM',  # cognitive difficulty
         'SEX',  # sex
-        'RAC1P',  # recoded detailed race code
-        'GCL',  # grandparents living with grandchildren
     ],
-    target='ESR',  # employment status recode
+    target='ESR',
     target_transform=lambda x: x == 1,
-    group='DIS',
-    preprocess=_employment_filter,
+    group='RAC1P',  # recoded detailed race code
+    preprocess=lambda x: x,
+    postprocess=lambda x: np.nan_to_num(x, nan=-1),
+)
+_ACSIncome = BasicProblem(
+    features=[
+        'AGEP',  # age; for range of values of features please check Appendix B.4 of Retiring Adult:
+        # New Datasets for Fair Machine Learning NeurIPS 2021 paper
+        'COW',
+        'SCHL',  # educational attainment
+        'MAR',  # marital status
+        'OCCP',
+        'POBP',
+        'RELP',
+        'WKHP',
+        'SEX',  # sex
+    ],
+    target='PINCP',
+    target_transform=lambda x: x > 50000,
+    group='RAC1P',  # recoded detailed race code
+    preprocess=_adult_filter,
     postprocess=lambda x: np.nan_to_num(x, nan=-1),
 )
 
 
 class ACSSetting(Enum):
-    employment = ACSEmployment
-    income = ACSIncome
+    employment = _ACSEmployment
+    income = _ACSIncome
     employment_disability = _ACSEmploymentDisability
 
 
@@ -159,6 +211,7 @@ class ACSDataset(CdtTabularDataset[TernarySample, Tensor, Tensor]):
         dataset: BasicProblem = setting.value
 
         # `generate_categories` is only available for years >= 2017.
+        group: npt.NDArray
         if int(survey_year.value) >= 2017:
             categories = generate_categories(
                 features=dataset.features,
@@ -179,6 +232,11 @@ class ACSDataset(CdtTabularDataset[TernarySample, Tensor, Tensor]):
             # Categorical features are *not* one-hot encoded for years < 2017.
             features, label, group = dataset.df_to_numpy(acs_data)
             non_ohe_indexes, feature_groups = None, None
+
+        # Make sure `group` is zero-indexed.
+        group -= group.min()
+        s_values = np.unique(group)
+        assert np.array_equal(s_values, np.arange(len(s_values))), "Group vals should be contiguous"
 
         super().__init__(
             x=features,

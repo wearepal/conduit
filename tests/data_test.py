@@ -426,10 +426,12 @@ def test_acs_dataset() -> None:
     assert acs_income.feature_groups is not None
     assert acs_income.feature_groups[0] == slice(2, 10)
     assert acs_income.feature_groups[1] == slice(10, 33)
-    assert acs_income.x.shape == (22_268, 729)
+    assert acs_income.x.shape == (22_268, 720)
     assert acs_income.s.shape == (22_268,)
     assert acs_income.y.shape == (22_268,)
     assert acs_income.non_ohe_indexes == [0, 1]
+    assert acs_income.y.unique().tolist() == [0, 1]
+    assert acs_income.s.unique().tolist() == [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
 
 def test_tabular_transform() -> None:
@@ -474,13 +476,13 @@ def test_acs_datamodule() -> None:
     assert acs_income.train_data.feature_groups is not None
     assert acs_income.train_data.feature_groups[0] == slice(2, 10)
     assert acs_income.train_data.feature_groups[1] == slice(10, 33)
-    assert acs_income.train_data.x.shape == (13_363, 729)
+    assert acs_income.train_data.x.shape == (13_363, 720)
     assert acs_income.train_data.s.shape == (13_363,)
     assert acs_income.train_data.y.shape == (13_363,)
     assert acs_income.train_data.non_ohe_indexes == [0, 1]
 
-    assert acs_income.val_data.x.shape == (4_452, 729)
-    assert acs_income.test_data.x.shape == (4_453, 729)
+    assert acs_income.val_data.x.shape == (4_452, 720)
+    assert acs_income.test_data.x.shape == (4_453, 720)
     assert (
         acs_income.num_train_samples + acs_income.num_val_samples + acs_income.num_test_samples
     ) == 22_268
