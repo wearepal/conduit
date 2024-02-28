@@ -5,6 +5,7 @@ from typing_extensions import Self, TypeAliasType
 
 from folktables import ACSDataSource, BasicProblem, generate_categories
 import numpy as np
+from numpy import typing as npt
 import pandas as pd
 from torch import Tensor
 
@@ -94,10 +95,7 @@ def _employment_filter(data: pd.DataFrame) -> pd.DataFrame:
     greater than or equal to 1.
     """
     df = data
-    df = df[df['AGEP'] > 16]
-    df = df[df['AGEP'] < 90]
-    df = df[df['PWGTP'] >= 1]
-    return df
+    return df[(df['AGEP'] > 16) & (df['AGEP'] < 90) & (df['PWGTP'] >= 1)]
 
 
 def _adult_filter(data: pd.DataFrame) -> pd.DataFrame:
@@ -108,11 +106,7 @@ def _adult_filter(data: pd.DataFrame) -> pd.DataFrame:
     using the following conditions: ((AAGE>16) && (AGI>100) && (AFNLWGT>1)&& (HRSWK>0))
     """
     df = data
-    df = df[df['AGEP'] > 16]
-    df = df[df['PINCP'] > 100]
-    df = df[df['WKHP'] > 0]
-    df = df[df['PWGTP'] >= 1]
-    return df
+    return df[(df['AGEP'] > 16) & (df['PINCP'] > 100) & (df['WKHP'] > 0) & (df['PWGTP'] >= 1)]
 
 
 _ACSEmploymentDisability = BasicProblem(
@@ -217,6 +211,7 @@ class ACSDataset(CdtTabularDataset[TernarySample, Tensor, Tensor]):
         dataset: BasicProblem = setting.value
 
         # `generate_categories` is only available for years >= 2017.
+        group: npt.NDArray
         if int(survey_year.value) >= 2017:
             categories = generate_categories(
                 features=dataset.features,
@@ -240,6 +235,8 @@ class ACSDataset(CdtTabularDataset[TernarySample, Tensor, Tensor]):
 
         # Make sure `group` is zero-indexed.
         group -= group.min()
+        s_values = np.unique(group)
+        assert np.array_equal(s_values, np.arange(len(s_values))), "Group vals should be contiguous"
 
         super().__init__(
             x=features,
