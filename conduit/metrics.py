@@ -77,7 +77,7 @@ class Comparator(Protocol):
     @abstractmethod
     def __call__(
         self, y_pred: Tensor, *, y_true: Tensor
-    ) -> Tensor | Tuple[Tensor, Union[Tensor, slice]]:
+    ) -> Tensor | tuple[Tensor, Tensor | slice]:
         """Compare.
 
         :param y_pred: Predicted labels or raw logits of a classifier.
@@ -349,7 +349,7 @@ def subclasswise_metric(
 
 
 def classwise_metric(
-    comparator: Comparator, *, aggregator: Aggregator | None = None, cond_on_pred: bool = False
+    comparator: Comparator, *, aggregator: Aggregator | None, cond_on_pred: bool = False
 ) -> Metric:
     """Converts a given ``comparator`` and ``aggregator`` into a subclass-wise metric.
 
