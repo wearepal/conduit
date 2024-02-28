@@ -1,18 +1,7 @@
 from abc import abstractmethod
 from enum import Enum
 from functools import partial, wraps
-from typing import (
-    Callable,
-    List,
-    Literal,
-    Optional,
-    Protocol,
-    Tuple,
-    TypeVar,
-    Union,
-    cast,
-    overload,
-)
+from typing import Callable, List, Literal, Optional, Protocol, Tuple, Union, cast, overload
 
 from ranzen import some
 import torch
@@ -37,6 +26,8 @@ __all__ = [
     "nanmax",
     "nanmin",
     "pdist_1d",
+    "pos_preds",
+    "pos_preds_per_subclass",
     "precision_at_k",
     "robust_accuracy",
     "robust_fscore",
@@ -47,7 +38,9 @@ __all__ = [
     "robust_tpr",
     "subclass_balanced_accuracy",
     "subclasswise_metric",
+    "tnr",
     "tnr_per_subclass",
+    "tpr",
     "tpr_differences",
     "tpr_per_subclass",
     "weighted_nanmean",
@@ -80,12 +73,11 @@ def precision_at_k(
     return res
 
 
-R = TypeVar("R", Tensor, Tuple[Tensor, Union[Tensor, slice]], covariant=True)
-
-
-class Comparator(Protocol[R]):
+class Comparator(Protocol):
     @abstractmethod
-    def __call__(self, y_pred: Tensor, *, y_true: Tensor) -> R:
+    def __call__(
+        self, y_pred: Tensor, *, y_true: Tensor
+    ) -> Tensor | Tuple[Tensor, Union[Tensor, slice]]:
         """Compare.
 
         :param y_pred: Predicted labels or raw logits of a classifier.
@@ -96,10 +88,6 @@ class Comparator(Protocol[R]):
             comprise that subset.
         """
         ...
-
-
-C = TypeVar("C", bound=Comparator)
-C_co = TypeVar("C_co", bound=Comparator, covariant=True)
 
 
 @torch.no_grad()  # pyright: ignore
@@ -297,25 +285,21 @@ def _apply_groupwise_metric(
     return comps.mean()
 
 
-A = TypeVar("A", Aggregator, None)
-A_co = TypeVar("A_co", Aggregator, None, covariant=True)
-
-
-class Metric(Protocol[C_co, A_co]):
+class Metric(Protocol):
     @staticmethod
     def __call__(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
         ...
 
 
-class GroupwiseMetric(Protocol[C_co, A_co]):
+class GroupwiseMetric(Protocol):
     @staticmethod
     def __call__(y_pred: Tensor, *, y_true: Tensor, s: Tensor) -> Tensor:
         ...
 
 
 def groupwise_metric(
-    comparator: C, *, aggregator: A, cond_on_pred: bool = False
-) -> GroupwiseMetric[C, A]:
+    comparator: Comparator, *, aggregator: Aggregator | None, cond_on_pred: bool = False
+) -> GroupwiseMetric:
     """Converts a given ``comparator`` and ``aggregator`` into a group-wise metric.
 
     :param comparator: Function used to assess the correctness of ``y_pred`` with respect
@@ -342,10 +326,8 @@ def groupwise_metric(
 
 
 def subclasswise_metric(
-    comparator: C,
-    *,
-    aggregator: A,
-) -> GroupwiseMetric[C, A]:
+    comparator: Comparator, *, aggregator: Aggregator | None
+) -> GroupwiseMetric:
     """Converts a given ``comparator`` and ``aggregator`` into a subclass-wise metric.
 
     :param comparator: Function used to assess the correctness of ``y_pred`` with respect
@@ -367,11 +349,8 @@ def subclasswise_metric(
 
 
 def classwise_metric(
-    comparator: C,
-    *,
-    aggregator: A,
-    cond_on_pred: bool = False,
-) -> Metric[C, A]:
+    comparator: Comparator, *, aggregator: Aggregator | None = None, cond_on_pred: bool = False
+) -> Metric:
     """Converts a given ``comparator`` and ``aggregator`` into a subclass-wise metric.
 
     :param comparator: Function used to assess the correctness of ``y_pred`` with respect
@@ -398,6 +377,7 @@ def classwise_metric(
 
 
 def equal(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
+    """Comparator which tests whether ``y_pred`` and ``y_true`` are equal."""
     y_true = torch.atleast_1d(y_true.squeeze()).long()
     if len(y_pred) != len(y_true):
         raise ValueError("'y_pred' and 'y_true' must match in size at dimension 0.")
@@ -406,6 +386,12 @@ def equal(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
     if y_pred.is_floating_point():
         y_pred = hard_prediction(y_pred)
     return (y_pred == y_true).float()
+
+
+def nonzero_preds(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
+    if y_pred.is_floating_point():
+        y_pred = hard_prediction(y_pred)
+    return (y_pred != 0).float()
 
 
 def conditional_equal(
@@ -436,10 +422,29 @@ def accuracy(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
     return Aggregator.MEAN(equal(y_pred=y_pred.squeeze(), y_true=y_true.squeeze()))
 
 
+@torch.no_grad()  # pyright: ignore
+def pos_preds(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
+    """Computes the fraction of positive predictions in ``y_pred``."""
+    return nonzero_preds(y_pred=y_pred.squeeze(), y_true=y_true.squeeze()).mean()
+
+
+@torch.no_grad()  # pyright: ignore
+def tpr(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
+    """Computes the true positive rate (TPR) given predicted and ground-truth labels."""
+    return conditional_equal(y_pred.squeeze(), y_true=y_true.squeeze(), y_true_cond=1)[0].mean()
+
+
+@torch.no_grad()  # pyright: ignore
+def tnr(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
+    """Computes the true negative rate (TNR) given predicted and ground-truth labels."""
+    return conditional_equal(y_pred.squeeze(), y_true=y_true.squeeze(), y_true_cond=0)[0].mean()
+
+
 robust_accuracy = subclasswise_metric(comparator=equal, aggregator=Aggregator.MIN)
 accuracy_per_subclass = subclasswise_metric(comparator=equal, aggregator=None)
 subclass_balanced_accuracy = subclasswise_metric(comparator=equal, aggregator=Aggregator.MEAN)
 robust_gap = subclasswise_metric(comparator=equal, aggregator=Aggregator.MAX_DIFF)
+pos_preds_per_subclass = subclasswise_metric(comparator=nonzero_preds, aggregator=None)
 
 group_balanced_accuracy = groupwise_metric(comparator=equal, aggregator=Aggregator.MEAN)
 accuracy_per_group = groupwise_metric(comparator=equal, aggregator=None)
@@ -532,18 +537,10 @@ def fscore(
         target_size = card_y * card_s
 
     precs = _apply_groupwise_metric(
-        prec_ids,
-        comparator=equal,
-        y_pred=y_pred,
-        y_true=y_true,
-        aggregator=None,
+        prec_ids, comparator=equal, y_pred=y_pred, y_true=y_true, aggregator=None
     )
     recs = _apply_groupwise_metric(
-        rec_ids,
-        comparator=equal,
-        y_pred=y_pred,
-        y_true=y_true,
-        aggregator=None,
+        rec_ids, comparator=equal, y_pred=y_pred, y_true=y_true, aggregator=None
     )
 
     if len(precs) < target_size:

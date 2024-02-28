@@ -82,6 +82,41 @@ def test_groupwise_metrics(
         tps_ref = cdtm.nans(card_s)
     assert_close(tps_ref, tps)
 
+    pp = cdtm.pos_preds(y_pred=y_pred, y_true=y_true)
+    match card_y:
+        case 1:
+            if disjoint:  # all predictions are 1
+                assert_close(pp, 1.0)
+            else:  # all predictions are 0
+                assert_close(pp, 0.0)
+        case 2:
+            if disjoint:  # all predictions are 2 and 3
+                assert_close(pp, 1.0)
+            else:
+                assert_close(pp, y_pred.eq(1).float().mean())
+        case _:
+            assert_close(pp, 1 - y_pred.eq(0).float().mean())
+
+    ppps = cdtm.pos_preds_per_subclass(y_pred=y_pred, y_true=y_true, s=s)
+    match ppps.tolist():
+        case [pp]:
+            assert card_s == 1
+            if disjoint:
+                assert_close(pp, 1.0)
+        case [pp1, pp2]:
+            assert card_s == 2
+            if disjoint:
+                assert_close(pp1, 1.0)
+                assert_close(pp2, 1.0)
+        case [pp1, pp2, pp3]:
+            assert card_s == 3
+            if disjoint:
+                assert_close(pp1, 1.0)
+                assert_close(pp2, 1.0)
+                assert_close(pp3, 1.0)
+        case _:
+            raise ValueError("Unexpected number of subclasses")
+
     apc = cdtm.accuracy_per_class(y_pred=y_pred, y_true=y_true)
     _, y_counts = y_true.unique(return_counts=True)
     cw_hits = cdtm.nans(NUM_SAMPLES, card_y).scatter_(-1, index=y_true, src=hits)
@@ -101,6 +136,16 @@ def test_groupwise_metrics(
     td = cdtm.tpr_differences(y_pred=y_pred, y_true=y_true, s=s)
     td_ref = (tps - tps.unsqueeze(-1)).abs().squeeze()
     assert_close(td_ref, td)
+
+    tpr = cdtm.tpr(y_pred=y_pred, y_true=y_true)
+    match card_y:
+        case 1:
+            assert tpr.isnan()  # TPR is undefined because `y_true` is 0 everywhere.
+        case _:
+            if disjoint:
+                assert_close(tpr, 0.0)  # All predictions are wrong in the disjoint case.
+            else:
+                assert 0.0 < tpr.item() < 1.0
 
     apg = cdtm.accuracy_per_group(y_pred=y_pred, y_true=y_true, s=s)
     assert len(apg) == card_sy
