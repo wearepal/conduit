@@ -154,13 +154,11 @@ class Aggregator(Enum):
 @overload
 def merge_indices(
     *indices: Tensor, return_cardinalities: Literal[True]
-) -> Tuple[Tensor, List[int]]:
-    ...
+) -> Tuple[Tensor, List[int]]: ...
 
 
 @overload
-def merge_indices(*indices: Tensor, return_cardinalities: Literal[False] = ...) -> Tensor:
-    ...
+def merge_indices(*indices: Tensor, return_cardinalities: Literal[False] = ...) -> Tensor: ...
 
 
 def merge_indices(
@@ -285,14 +283,12 @@ def _apply_groupwise_metric(
 
 class Metric(Protocol):
     @staticmethod
-    def __call__(y_pred: Tensor, *, y_true: Tensor) -> Tensor:
-        ...
+    def __call__(y_pred: Tensor, *, y_true: Tensor) -> Tensor: ...
 
 
 class GroupwiseMetric(Protocol):
     @staticmethod
-    def __call__(y_pred: Tensor, *, y_true: Tensor, s: Tensor) -> Tensor:
-        ...
+    def __call__(y_pred: Tensor, *, y_true: Tensor, s: Tensor) -> Tensor: ...
 
 
 def groupwise_metric(

@@ -1,9 +1,9 @@
 """Ecoacostics dataset provided A. Eldridge et al.
-    Alice Eldridge, Paola Moscoso, Patrice Guyot, & Mika Peck. (2018).
-    Data for "Sounding out Ecoacoustic Metrics: Avian species richness
-    is predicted by acoustic indices in temperate but not tropical
-    habitats" (Final) [Data set].
-    Zenodo. https://doi.org/10.5281/zenodo.1255218
+Alice Eldridge, Paola Moscoso, Patrice Guyot, & Mika Peck. (2018).
+Data for "Sounding out Ecoacoustic Metrics: Avian species richness
+is predicted by acoustic indices in temperate but not tropical
+habitats" (Final) [Data set].
+Zenodo. https://doi.org/10.5281/zenodo.1255218
 """
 
 from enum import auto
