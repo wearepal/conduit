@@ -1,5 +1,4 @@
-from typing import Dict, Union
-from typing_extensions import TypeAlias
+from typing import TypeAlias
 
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR
 
@@ -11,5 +10,5 @@ __all__ = [
 ]
 
 
-LRScheduler: TypeAlias = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
-MetricDict: TypeAlias = Dict[str, METRIC_COLLECTION]
+LRScheduler: TypeAlias = CosineAnnealingWarmRestarts | ExponentialLR | StepLR
+MetricDict: TypeAlias = dict[str, METRIC_COLLECTION]

@@ -1,3 +1,4 @@
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import fields, is_dataclass
 from functools import lru_cache
 import logging
@@ -7,25 +8,17 @@ import platform
 import subprocess
 from typing import (
     Any,
-    Callable,
-    Dict,
     Final,
-    Iterator,
-    List,
     Literal,
-    Mapping,
     NamedTuple,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
+    TypeAlias,
+    TypeGuard,
     TypeVar,
     TypedDict,
-    Union,
     cast,
     overload,
 )
-from typing_extensions import TypeAlias, TypeGuard, Unpack
+from typing_extensions import Unpack
 from zipfile import BadZipFile
 
 import numpy as np
@@ -91,25 +84,28 @@ def infer_al_backend() -> AudioLoadingBackend:
 AudioTform: TypeAlias = Callable[[Tensor], Tensor]
 
 
-def apply_audio_transform(waveform: Tensor, *, transform: Optional[AudioTform]) -> Tensor:
+def apply_audio_transform(waveform: Tensor, *, transform: AudioTform | None) -> Tensor:
     return waveform if transform is None else transform(waveform)
 
 
-@overload
-def extract_base_dataset(
-    dataset: Dataset, *, return_subset_indices: Literal[True] = ...
-) -> Tuple[Dataset, Union[Tensor, slice]]: ...
+T = TypeVar("T")
 
 
 @overload
 def extract_base_dataset(
-    dataset: Dataset, *, return_subset_indices: Literal[False] = ...
-) -> Dataset: ...
+    dataset: Dataset[T], *, return_subset_indices: Literal[True] = ...
+) -> tuple[Dataset[T], Tensor | slice]: ...
+
+
+@overload
+def extract_base_dataset(
+    dataset: Dataset[T], *, return_subset_indices: Literal[False] = ...
+) -> Dataset[T]: ...
 
 
 def extract_base_dataset(
-    dataset: Dataset, *, return_subset_indices: bool = True
-) -> Union[Dataset, Tuple[Dataset, Union[Tensor, slice]]]:
+    dataset: Dataset[T], *, return_subset_indices: bool = True
+) -> Dataset[T] | tuple[Dataset[T], Tensor | slice]:
     """Extract the innermost dataset of a nesting of datasets.
 
     Nested datasets are inferred based on the existence of a 'dataset'
@@ -126,8 +122,8 @@ def extract_base_dataset(
     """
 
     def _closure(
-        dataset: Dataset, rel_indices_ls: Optional[List[List[int]]] = None
-    ) -> Union[Dataset, Tuple[Dataset, Union[Tensor, slice]]]:
+        dataset: Dataset[T], rel_indices_ls: list[list[int]] | None = None
+    ) -> Dataset[T] | tuple[Dataset[T], Tensor | slice]:
         if rel_indices_ls is None:
             rel_indices_ls = []
         if hasattr(dataset, "dataset"):
@@ -149,12 +145,12 @@ def extract_base_dataset(
 
 @lru_cache(typed=True)
 def extract_labels_from_dataset(
-    dataset: PseudoCdtDataset,
-) -> Tuple[Optional[Tensor], Optional[Tensor]]:
+    dataset: PseudoCdtDataset[SampleBase[Tensor], Tensor, Tensor | None, Tensor | None],
+) -> tuple[Tensor | None, Tensor | None]:
     """Attempt to extract s/y labels from a dataset."""
     base_dataset = dataset
 
-    def _closure(dataset: Dataset) -> Tuple[Optional[Tensor], Optional[Tensor]]:
+    def _closure(dataset: Dataset[SampleBase[Tensor]]) -> tuple[Tensor | None, Tensor | None]:
         base_dataset, indices = extract_base_dataset(dataset=dataset, return_subset_indices=True)
         _s = None
         _y = None
@@ -168,9 +164,10 @@ def extract_labels_from_dataset(
 
         return _s, _y
 
-    if isinstance(base_dataset, (ConcatDataset)):
-        s_all_ls: List[Tensor] = []
-        y_all_ls: List[Tensor] = []
+    if isinstance(base_dataset, ConcatDataset):
+        base_dataset = cast(ConcatDataset[SampleBase[Tensor]], base_dataset)
+        s_all_ls: list[Tensor] = []
+        y_all_ls: list[Tensor] = []
         for _dataset in base_dataset.datasets:
             s, y = _closure(_dataset)
             if s is not None:
@@ -184,7 +181,7 @@ def extract_labels_from_dataset(
     return s_all, y_all
 
 
-def get_group_ids(dataset: Dataset) -> Tensor:
+def get_group_ids(dataset: Dataset[SampleBase[Tensor]]) -> Tensor:
     s_all, y_all = extract_labels_from_dataset(dataset)
     # group_ids: Optional[Tensor] = None
     if s_all is None:
@@ -200,7 +197,9 @@ def get_group_ids(dataset: Dataset) -> Tensor:
     return group_ids.long()
 
 
-def compute_instance_weights(dataset: Dataset, *, upweight: bool = False) -> Tensor:
+def compute_instance_weights(
+    dataset: Dataset[SampleBase[Tensor]], *, upweight: bool = False
+) -> Tensor:
     group_ids = get_group_ids(dataset)
     _, inv_indexes, counts = group_ids.unique(return_inverse=True, return_counts=True)
     # Upweight samples according to the cardinality of their intersectional group
@@ -215,13 +214,13 @@ def compute_instance_weights(dataset: Dataset, *, upweight: bool = False) -> Ten
     return group_weights[inv_indexes]
 
 
-PCD = TypeVar("PCD", bound=PseudoCdtDataset)
+PCD = TypeVar("PCD", bound=PseudoCdtDataset[SampleBase[Tensor], Any, Tensor | None, Tensor | None])
 
 
 def make_subset(
-    dataset: Union[PCD, Subset[PCD]],
+    dataset: PCD | Subset[PCD],
     *,
-    indices: Optional[Union[List[int], npt.NDArray[np.uint64], Tensor, slice]],
+    indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice | None,
     deep: bool = False,
 ) -> PCD:
     """Create a subset of the dataset from the given indices.
@@ -241,7 +240,7 @@ def make_subset(
     if isinstance(indices, (np.ndarray, Tensor)):
         if indices.ndim > 1:
             raise ValueError("If 'indices' is an array it must be a 0- or 1-dimensional.")
-        indices = cast(List[int], indices.tolist())
+        indices = cast(list[int], indices.tolist())
 
     current_indices = None
     if isinstance(dataset, Subset):
@@ -259,12 +258,12 @@ def make_subset(
         base_dataset = dataset
     subset = gcopy(base_dataset, deep=deep)
 
-    def _subset_from_indices(_dataset: PCD, _indices: Union[List[int], slice]) -> PCD:
-        _dataset.x = _dataset.x[_indices]
+    def _subset_from_indices(_dataset: PCD, _indices: list[int] | slice) -> PCD:
+        _dataset.x = _dataset.x[_indices]  # type: ignore
         if _dataset.y is not None:
-            _dataset.y = _dataset.y[_indices]
+            _dataset.y = _dataset.y[_indices]  # type: ignore
         if _dataset.s is not None:
-            _dataset.s = _dataset.s[_indices]
+            _dataset.s = _dataset.s[_indices]  # type: ignore
         return _dataset
 
     if current_indices is not None:
@@ -276,8 +275,8 @@ def make_subset(
 
 
 def infer_sample_cls(
-    sample: Union[List[LoadedData], Tuple[LoadedData, ...], Dict[str, LoadedData], LoadedData],
-) -> Type[SampleBase]:
+    sample: list[LoadedData] | tuple[LoadedData, ...] | dict[str, LoadedData] | LoadedData,
+) -> type[SampleBase]:
     """ "Attempt to infer the appropriate sample class based on the length of the input."""
     if not isinstance(sample, (list, tuple, dict)) or (len(sample) == 1):
         return NamedSample
@@ -291,7 +290,7 @@ def infer_sample_cls(
 
 class cdt_collate:
     def __init__(
-        self, cast_to_sample: bool = True, *, converter: Optional[Union[Type[Any], Callable]] = None
+        self, cast_to_sample: bool = True, *, converter: type[Any] | Callable | None = None
     ) -> None:
         self.cast_to_sample = cast_to_sample
         self.converter = converter
@@ -381,23 +380,23 @@ class cdt_collate:
         return collated_batch
 
 
-I = TypeVar("I", bound=SampleBase, covariant=True)
+I = TypeVar("I", bound=SampleBase[Tensor], covariant=True)
 
 
 class _DataLoaderKwargs(TypedDict, total=False):
     """Dictionary of keyword arguments used to avoid specifying the default values."""
 
-    batch_size: Optional[int]
+    batch_size: int | None
     shuffle: bool
-    sampler: Optional[Sampler[int]]
-    batch_sampler: Optional[Sampler[List[int]]]
+    sampler: Sampler[int] | None
+    batch_sampler: Sampler[list[int]] | None
     num_workers: int
     pin_memory: bool
     drop_last: bool
     timeout: float
-    worker_init_fn: Optional[_worker_init_fn_t]
-    multiprocessing_context: Optional[Union[BaseContext, str]]
-    generator: Optional[torch.Generator]
+    worker_init_fn: _worker_init_fn_t | None
+    multiprocessing_context: BaseContext | str | None
+    generator: torch.Generator | None
     prefetch_factor: int
     persistent_workers: bool
     pin_memory_device: str
@@ -409,7 +408,7 @@ class CdtDataLoader(DataLoader[I]):
         dataset: SizedDataset[I],
         *,
         cast_to_sample: bool = True,
-        converter: Optional[Union[Type[Any], Callable]] = None,
+        converter: type[Any] | Callable | None = None,
         **kwargs: Unpack[_DataLoaderKwargs],
     ) -> None:
         # pytorch_lightning inspects the signature and if it sees `**kwargs`, it assumes that
@@ -426,7 +425,7 @@ class CdtDataLoader(DataLoader[I]):
         return super().__iter__()
 
 
-def check_integrity(*, filepath: Path, md5: Optional[str]) -> None:
+def check_integrity(*, filepath: Path, md5: str | None) -> None:
     from torchvision.datasets.utils import check_integrity  # type: ignore
 
     ext = filepath.suffix
@@ -437,14 +436,14 @@ def check_integrity(*, filepath: Path, md5: Optional[str]) -> None:
 class UrlFileInfo(NamedTuple):
     name: str
     url: str
-    md5: Optional[str] = None
+    md5: str | None = None
 
 
 def download_from_url(
     *,
-    file_info: Union[UrlFileInfo, List[UrlFileInfo]],
-    root: Union[Path, str],
-    logger: Optional[logging.Logger] = None,
+    file_info: UrlFileInfo | list[UrlFileInfo],
+    root: Path | str,
+    logger: logging.Logger | None = None,
     remove_finished: bool = True,
 ) -> None:
     logger = logging.getLogger(__name__) if logger is None else logger
@@ -492,14 +491,14 @@ def download_from_url(
 class GdriveFileInfo(NamedTuple):
     name: str
     id: str
-    md5: Optional[str] = None
+    md5: str | None = None
 
 
 def download_from_gdrive(
     *,
-    file_info: Union[GdriveFileInfo, List[GdriveFileInfo]],
-    root: Union[Path, str],
-    logger: Optional[logging.Logger] = None,
+    file_info: GdriveFileInfo | list[GdriveFileInfo],
+    root: Path | str,
+    logger: logging.Logger | None = None,
 ) -> None:
     """Attempt to download data if files cannot be found in the root directory."""
 
@@ -540,49 +539,49 @@ def download_from_gdrive(
 
 @overload
 def random_split(
-    dataset: PseudoCdtDataset,
+    dataset: PseudoCdtDataset[SampleBase[Tensor], Tensor, Tensor | None, Tensor | None],
     *,
-    props: Union[Sequence[float], float],
+    props: Sequence[float] | float,
     deep: bool = ...,
     as_indices: Literal[True],
-    seed: Optional[int] = ...,
+    seed: int | None = ...,
     reproducible: bool = ...,
-) -> List[List[int]]: ...
+) -> list[list[int]]: ...
 
 
 @overload
 def random_split(
     dataset: PCD,
     *,
-    props: Union[Sequence[float], float],
+    props: Sequence[float] | float,
     deep: bool = ...,
     as_indices: Literal[False] = ...,
-    seed: Optional[int] = ...,
+    seed: int | None = ...,
     reproducible: bool = ...,
-) -> List[PCD]: ...
+) -> list[PCD]: ...
 
 
 @overload
 def random_split(
     dataset: PCD,
     *,
-    props: Union[Sequence[float], float],
+    props: Sequence[float] | float,
     deep: bool = ...,
     as_indices: bool,
-    seed: Optional[int] = ...,
+    seed: int | None = ...,
     reproducible: bool = ...,
-) -> Union[List[PCD], List[List[int]]]: ...
+) -> list[PCD] | list[list[int]]: ...
 
 
 def random_split(
     dataset: PCD,
     *,
-    props: Union[Sequence[float], float],
+    props: Sequence[float] | float,
     deep: bool = False,
     as_indices: bool = False,
-    seed: Optional[int] = None,
+    seed: int | None = None,
     reproducible: bool = False,
-) -> Union[List[PCD], List[List[int]]]:
+) -> list[PCD] | list[list[int]]:
     """Randomly split the dataset into subsets according to the given proportions.
 
     :param dataset: The dataset to split.
@@ -613,14 +612,14 @@ def random_split(
 
 @overload
 def stratified_split(
-    dataset: PseudoCdtDataset,
+    dataset: PseudoCdtDataset[Any, Any, Any, Any],
     *,
     default_train_prop: float,
-    train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = ...,
-    seed: Optional[int] = ...,
+    train_props: Mapping[int, dict[int, float] | float] | None = ...,
+    seed: int | None = ...,
     as_indices: Literal[True],
     reproducible: bool = False,
-) -> TrainTestSplit[List[int]]: ...
+) -> TrainTestSplit[list[int]]: ...
 
 
 @overload
@@ -628,8 +627,8 @@ def stratified_split(
     dataset: PCD,
     *,
     default_train_prop: float,
-    train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = ...,
-    seed: Optional[int] = ...,
+    train_props: Mapping[int, dict[int, float] | float] | None = ...,
+    seed: int | None = ...,
     as_indices: Literal[False] = ...,
     reproducible: bool = False,
 ) -> TrainTestSplit[PCD]: ...
@@ -640,22 +639,22 @@ def stratified_split(
     dataset: PCD,
     *,
     default_train_prop: float,
-    train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = ...,
-    seed: Optional[int] = ...,
+    train_props: Mapping[int, dict[int, float] | float] | None = ...,
+    seed: int | None = ...,
     as_indices: bool,
     reproducible: bool = False,
-) -> Union[TrainTestSplit[PCD], TrainTestSplit[List[int]]]: ...
+) -> TrainTestSplit[PCD] | TrainTestSplit[list[int]]: ...
 
 
 def stratified_split(
     dataset: PCD,
     *,
     default_train_prop: float,
-    train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = None,
-    seed: Optional[int] = None,
+    train_props: Mapping[int, dict[int, float] | float] | None = None,
+    seed: int | None = None,
     as_indices: bool = False,
     reproducible: bool = False,
-) -> Union[TrainTestSplit[PCD], TrainTestSplit[List[int]]]:
+) -> TrainTestSplit[PCD] | TrainTestSplit[list[int]]:
     """Splits the data into train/test sets conditional on super- and sub-class labels.
 
     :param dataset: The dataset to split.
@@ -680,7 +679,9 @@ def stratified_split(
             "for stratification."
         )
     group_ids = get_group_ids(dataset)
-    y_unique = dataset.y.unique()
+    y_unique: Tensor = dataset.y.unique()
+    groups: Tensor
+    id_counts: Tensor
     groups, id_counts = group_ids.unique(return_counts=True)
     card_s = None if dataset.s is None else len(dataset.s.unique())
     ncols = 1 if card_s is None else card_s
@@ -751,7 +752,7 @@ def stratified_split(
     test_inds = perm_inds[torch.cat(train_test_inds[1::2])]
 
     if as_indices:
-        return TrainTestSplit[List[int]](train=train_inds.tolist(), test=test_inds.tolist())
+        return TrainTestSplit[list[int]](train=train_inds.tolist(), test=test_inds.tolist())
 
     train_data = make_subset(dataset=dataset, indices=train_inds)
     test_data = make_subset(dataset=dataset, indices=test_inds)
@@ -759,5 +760,5 @@ def stratified_split(
     return TrainTestSplit[PCD](train=train_data, test=test_data)
 
 
-def is_tensor_list(ls: List[Any]) -> TypeGuard[List[Tensor]]:
+def is_tensor_list(ls: list[Any]) -> TypeGuard[list[Tensor]]:
     return isinstance(ls[0], Tensor)

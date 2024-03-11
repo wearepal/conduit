@@ -1,25 +1,10 @@
 """Data structures."""
 
 from abc import abstractmethod
-from collections.abc import Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import asdict, dataclass, field, fields, is_dataclass
-from typing import (
-    Any,
-    Dict,
-    Generic,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Protocol,
-    Tuple,
-    TypeVar,
-    Union,
-    cast,
-    overload,
-    runtime_checkable,
-)
-from typing_extensions import Self, TypeAlias, override
+from typing import Any, Generic, Protocol, TypeAlias, TypeVar, cast, overload, runtime_checkable
+from typing_extensions import Self, override
 
 from PIL import Image
 import numpy as np
@@ -61,7 +46,7 @@ __all__ = [
 
 
 @runtime_checkable
-class InputContainer(Sized, Addable, Protocol):
+class InputContainer(Sized, Addable["InputContainer", "InputContainer"], Protocol):
     @classmethod
     def fromiter(cls, sequence: Iterable[Self]) -> Self:
         """
@@ -83,7 +68,7 @@ class InputContainer(Sized, Addable, Protocol):
 
     def to(
         self,
-        device: Optional[Union[torch.device, str]],
+        device: torch.device | str | None,
         *,
         non_blocking: bool = False,
     ) -> Self:
@@ -93,43 +78,39 @@ class InputContainer(Sized, Addable, Protocol):
         return self
 
 
-RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
-UnloadedData: TypeAlias = Union[
-    npt.NDArray[np.floating],
-    npt.NDArray[np.integer],
-    npt.NDArray[np.bytes_],
-    Tensor,
-]
-LoadedData: TypeAlias = Union[
-    Tensor,
-    Image.Image,
-    npt.NDArray[np.floating],
-    npt.NDArray[np.integer],
-    npt.NDArray[np.bytes_],
-    Dict[str, Tensor],
-    Dict[str, Image.Image],
-    Dict[str, npt.NDArray[np.floating]],
-    Dict[str, npt.NDArray[np.integer]],
-    Dict[str, npt.NDArray[np.bytes_]],
-    List[Image.Image],
-    InputContainer,
-]
-IndexabledData: TypeAlias = Union[
-    Tensor,
-    npt.NDArray[np.floating],
-    npt.NDArray[np.integer],
-    npt.NDArray[np.bytes_],
-]
+RawImage: TypeAlias = npt.NDArray[np.integer[Any]] | Image.Image
+UnloadedData: TypeAlias = (
+    npt.NDArray[np.floating[Any]] | npt.NDArray[np.integer[Any]] | npt.NDArray[np.bytes_] | Tensor
+)
+LoadedData: TypeAlias = (
+    Tensor
+    | Image.Image
+    | npt.NDArray[np.floating[Any]]
+    | npt.NDArray[np.integer[Any]]
+    | npt.NDArray[np.bytes_]
+    | dict[str, Tensor]
+    | dict[str, Image.Image]
+    | dict[str, npt.NDArray[np.floating[Any]]]
+    | dict[str, npt.NDArray[np.integer[Any]]]
+    | dict[str, npt.NDArray[np.bytes_]]
+    | list[Image.Image]
+    | InputContainer
+)
+IndexabledData: TypeAlias = (
+    Tensor | npt.NDArray[np.floating[Any]] | npt.NDArray[np.integer[Any]] | npt.NDArray[np.bytes_]
+)
 
 X = TypeVar("X", bound=LoadedData)
 X_co = TypeVar("X_co", bound=LoadedData, covariant=True)
 XI = TypeVar("XI", bound=IndexabledData)
 
-TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
+TargetData: TypeAlias = Tensor | npt.NDArray[np.floating[Any]] | npt.NDArray[np.integer[Any]]
 
 
 def concatenate_inputs(x1: X, x2: X, *, is_batched: bool) -> X:
-    if type(x1) != type(x2) or (isinstance(x1, list) and type(x1[0]) != type(cast(List, x2)[0])):
+    if type(x1) != type(x2) or (
+        isinstance(x1, list) and type(x1[0]) != type(cast(list[Image.Image], x2)[0])
+    ):
         raise AttributeError("Only data of the same type can be concatenated (added) together.")
     if isinstance(x1, Tensor):
         # if the number of dimensions is different by 1, append a batch dimension.
@@ -166,19 +147,19 @@ def concatenate_inputs(x1: X, x2: X, *, is_batched: bool) -> X:
 
 @dataclass
 class MultiCropOutput(InputContainer):
-    global_crops: List[Tensor]
-    local_crops: List[Tensor] = field(default_factory=list)
+    global_crops: list[Tensor]
+    local_crops: list[Tensor] = field(default_factory=list)
 
     @property
-    def all_crops(self) -> List[Tensor]:
+    def all_crops(self) -> list[Tensor]:
         return self.global_crops + self.local_crops
 
     @property
-    def global_crop_sizes(self) -> List[torch.Size]:
+    def global_crop_sizes(self) -> list[torch.Size]:
         return [crop.shape[-3:] for crop in self.global_crops]
 
     @property
-    def local_crop_sizes(self) -> List[torch.Size]:
+    def local_crop_sizes(self) -> list[torch.Size]:
         return [crop.shape[-3:] for crop in self.local_crops]
 
     @property
@@ -213,7 +194,7 @@ class SampleBase(InputContainer, Generic[X]):
         return len(self.__dataclass_fields__)
 
     @abstractmethod
-    def __iter__(self) -> Iterator[Union[X, Tensor]]: ...
+    def __iter__(self) -> Iterator[X | Tensor]: ...
 
     @override
     def __add__(self, other: Self) -> Self:
@@ -224,13 +205,13 @@ class SampleBase(InputContainer, Generic[X]):
         copy.x = concatenate_inputs(copy.x, other.x, is_batched=is_batched)
         return copy
 
-    def astuple(self, deep: bool = False) -> Tuple[Union[X, Tensor], ...]:
+    def astuple(self, deep: bool = False) -> tuple[X | Tensor, ...]:
         tuple_ = tuple(iter(self))
         if deep:
             tuple_ = gcopy(tuple_, deep=True)
         return tuple_
 
-    def asdict(self, deep: bool = False) -> Dict[str, X]:
+    def asdict(self, deep: bool = False) -> dict[str, X]:
         if deep:
             asdict(self)
         return shallow_asdict(self)
@@ -270,7 +251,7 @@ class TernarySampleIW(_IwMixin, _BinarySampleMixin, _SubgroupSampleMixin, Sample
         return self
 
     @override
-    def __iter__(self) -> Iterator[Union[X, Tensor]]:
+    def __iter__(self) -> Iterator[X | Tensor]:
         yield from (self.x, self.y, self.s, self.iw)
 
     @override
@@ -295,15 +276,15 @@ class TernarySample(_BinarySampleMixin, _SubgroupSampleMixin, SampleBase[X]):
     def add_field(self, iw: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, iw: Tensor) -> TernarySampleIW: ...
+    def add_field(self, iw: Tensor) -> TernarySampleIW[X]: ...
 
-    def add_field(self, iw: Optional[Tensor] = None) -> Union[Self, TernarySampleIW]:
+    def add_field(self, iw: Tensor | None = None) -> Self | TernarySampleIW[X]:
         if iw is not None:
             return TernarySampleIW(x=self.x, s=self.s, y=self.y, iw=iw)
         return self
 
     @override
-    def __iter__(self) -> Iterator[Union[X, Tensor]]:
+    def __iter__(self) -> Iterator[X | Tensor]:
         yield from (self.x, self.y, self.s)
 
     @override
@@ -325,15 +306,15 @@ class BinarySampleIW(_IwMixin, _BinarySampleMixin, SampleBase[X]):
     def add_field(self, s: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, s: Tensor) -> TernarySampleIW: ...
+    def add_field(self, s: Tensor) -> TernarySampleIW[X]: ...
 
-    def add_field(self, s: Optional[Tensor] = None) -> Union[Self, TernarySampleIW]:
+    def add_field(self, s: Tensor | None = None) -> Self | TernarySampleIW[X]:
         if s is not None:
             return TernarySampleIW(x=self.x, s=s, y=self.y, iw=self.iw)
         return self
 
     @override
-    def __iter__(self) -> Iterator[Union[X, Tensor]]:
+    def __iter__(self) -> Iterator[X | Tensor]:
         yield from (self.x, self.y, self.iw)
 
     @override
@@ -355,17 +336,17 @@ class BinarySample(_BinarySampleMixin, SampleBase[X]):
     def add_field(self, *, s: None = ..., iw: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, *, s: None = ..., iw: Tensor) -> BinarySampleIW: ...
+    def add_field(self, *, s: None = ..., iw: Tensor) -> BinarySampleIW[X]: ...
 
     @overload
-    def add_field(self, *, s: Tensor, iw: None = ...) -> TernarySample: ...
+    def add_field(self, *, s: Tensor, iw: None = ...) -> TernarySample[X]: ...
 
     @overload
-    def add_field(self, *, s: Tensor, iw: Tensor) -> TernarySampleIW: ...
+    def add_field(self, *, s: Tensor, iw: Tensor) -> TernarySampleIW[X]: ...
 
     def add_field(
-        self, *, s: Optional[Tensor] = None, iw: Optional[Tensor] = None
-    ) -> Union[Self, BinarySampleIW, TernarySample, TernarySampleIW]:
+        self, *, s: Tensor | None = None, iw: Tensor | None = None
+    ) -> Self | BinarySampleIW[X] | TernarySample[X] | TernarySampleIW[X]:
         if s is not None:
             if iw is not None:
                 return TernarySampleIW(x=self.x, s=s, y=self.y, iw=iw)
@@ -375,7 +356,7 @@ class BinarySample(_BinarySampleMixin, SampleBase[X]):
         return self
 
     @override
-    def __iter__(self) -> Iterator[Union[X, Tensor]]:
+    def __iter__(self) -> Iterator[X | Tensor]:
         yield from (self.x, self.y)
 
     @override
@@ -396,15 +377,15 @@ class SubgroupSampleIW(SampleBase[X], _SubgroupSampleMixin, _IwMixin):
     def add_field(self, y: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, y: Tensor) -> TernarySampleIW: ...
+    def add_field(self, y: Tensor) -> TernarySampleIW[X]: ...
 
-    def add_field(self, y: Optional[Tensor] = None) -> Union[Self, TernarySampleIW]:
+    def add_field(self, y: Tensor | None = None) -> Self | TernarySampleIW[X]:
         if y is not None:
             return TernarySampleIW(x=self.x, s=self.s, y=y, iw=self.iw)
         return self
 
     @override
-    def __iter__(self) -> Iterator[Union[X, Tensor]]:
+    def __iter__(self) -> Iterator[X | Tensor]:
         yield from (self.x, self.s, self.iw)
 
     @override
@@ -426,17 +407,17 @@ class SubgroupSample(_SubgroupSampleMixin, SampleBase[X]):
     def add_field(self, *, y: None = ..., iw: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, *, y: None = ..., iw: Tensor) -> SubgroupSampleIW: ...
+    def add_field(self, *, y: None = ..., iw: Tensor) -> SubgroupSampleIW[X]: ...
 
     @overload
-    def add_field(self, *, y: Tensor, iw: None = ...) -> TernarySample: ...
+    def add_field(self, *, y: Tensor, iw: None = ...) -> TernarySample[X]: ...
 
     @overload
-    def add_field(self, *, y: Tensor, iw: Tensor) -> TernarySampleIW: ...
+    def add_field(self, *, y: Tensor, iw: Tensor) -> TernarySampleIW[X]: ...
 
     def add_field(
-        self, *, y: Optional[Tensor] = None, iw: Optional[Tensor] = None
-    ) -> Union[Self, SubgroupSampleIW, TernarySample, TernarySampleIW]:
+        self, *, y: Tensor | None = None, iw: Tensor | None = None
+    ) -> Self | SubgroupSampleIW[X] | TernarySample[X] | TernarySampleIW[X]:
         if y is not None:
             if iw is not None:
                 return TernarySampleIW(x=self.x, s=self.s, y=y, iw=iw)
@@ -446,7 +427,7 @@ class SubgroupSample(_SubgroupSampleMixin, SampleBase[X]):
         return self
 
     @override
-    def __iter__(self) -> Iterator[Union[X, Tensor]]:
+    def __iter__(self) -> Iterator[X | Tensor]:
         yield from (self.x, self.s)
 
     @override
@@ -467,20 +448,20 @@ class NamedSample(SampleBase[X]):
     def add_field(self, *, y: None = ..., s: None = ..., iw: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: None = ..., iw: None = ...) -> BinarySample: ...
+    def add_field(self, *, y: Tensor, s: None = ..., iw: None = ...) -> BinarySample[X]: ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: None = ..., iw: Tensor) -> BinarySampleIW: ...
+    def add_field(self, *, y: Tensor, s: None = ..., iw: Tensor) -> BinarySampleIW[X]: ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: Tensor, iw: None = ...) -> TernarySample: ...
+    def add_field(self, *, y: Tensor, s: Tensor, iw: None = ...) -> TernarySample[X]: ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: Tensor, iw: Tensor) -> TernarySampleIW: ...
+    def add_field(self, *, y: Tensor, s: Tensor, iw: Tensor) -> TernarySampleIW[X]: ...
 
     def add_field(
-        self, *, y: Optional[Tensor] = None, s: Optional[Tensor] = None, iw: Optional[Tensor] = None
-    ) -> Union[Self, BinarySample, BinarySampleIW, TernarySample, TernarySampleIW]:
+        self, *, y: Tensor | None = None, s: Tensor | None = None, iw: Tensor | None = None
+    ) -> Self | BinarySample[X] | BinarySampleIW[X] | TernarySample[X] | TernarySampleIW[X]:
         if y is not None:
             if s is not None:
                 if iw is not None:
@@ -501,14 +482,14 @@ class NamedSample(SampleBase[X]):
         return gcopy(self, deep=False, x=self.x[index])
 
 
-def shallow_astuple(dataclass: object) -> Tuple[Any, ...]:
+def shallow_astuple(dataclass: object) -> tuple[Any, ...]:
     """dataclasses.astuple() but without the deep-copying/recursion." """
     if not is_dataclass(dataclass):
         raise TypeError("shallow_astuple() should be called on dataclass instances")
     return tuple(getattr(dataclass, field.name) for field in fields(dataclass))
 
 
-def shallow_asdict(dataclass: object) -> Dict[str, Any]:
+def shallow_asdict(dataclass: object) -> dict[str, Any]:
     """dataclasses.asdict() but without the deep-copying/recursion." """
     if not is_dataclass(dataclass):
         raise TypeError("shallow_asdict() should be called on dataclass instances")
@@ -516,12 +497,12 @@ def shallow_asdict(dataclass: object) -> Dict[str, Any]:
 
 
 @dataclass
-class ImageSize(Sequence):
+class ImageSize(Sequence[int]):
     c: int
     h: int
     w: int
 
-    def __mul__(self, other: Union[Self, float]) -> Self:
+    def __mul__(self, other: Self | float) -> Self:
         copy = gcopy(self, deep=False)
         if isinstance(other, (float, int)):
             copy.c = round(copy.c * other)
@@ -542,7 +523,7 @@ class ImageSize(Sequence):
     @overload
     def __getitem__(self, index: slice) -> Sequence[int]: ...
 
-    def __getitem__(self, index: Union[int, slice]) -> Union[int, Sequence[int]]:
+    def __getitem__(self, index: int | slice) -> int | Sequence[int]:
         return (self.c, self.h, self.w)[index]
 
     def __len__(self) -> int:
@@ -555,10 +536,10 @@ class ImageSize(Sequence):
 
 @dataclass(kw_only=True)
 class MeanStd:
-    mean: Union[Tuple[float, ...], List[float]]
-    std: Union[Tuple[float, ...], List[float]]
+    mean: tuple[float, ...] | list[float]
+    std: tuple[float, ...] | list[float]
 
-    def __iter__(self) -> Iterator[Union[Tuple[float, ...], List[float]]]:
+    def __iter__(self) -> Iterator[tuple[float, ...] | list[float]]:
         yield from (self.mean, self.std)
 
     def __imul__(self, value: float) -> Self:
@@ -595,38 +576,42 @@ class SizedDataset(Dataset[R_co], Sized, Protocol):
     def __getitem__(self, index: int) -> R_co: ...
 
     @override
-    def __len__(self) -> Optional[int]:  # type: ignore
+    def __len__(self) -> int | None:  # type: ignore
         ...
 
 
-X2 = TypeVar("X2", bound=UnloadedData)
-Y = TypeVar("Y", Tensor, None)
-S = TypeVar("S", Tensor, None)
+X2 = TypeVar("X2", bound=UnloadedData, covariant=True)
+Y = TypeVar("Y", bound=Tensor | None, covariant=True)
+S = TypeVar("S", bound=Tensor | None, covariant=True)
 
 
 @runtime_checkable
 class PseudoCdtDataset(Protocol[R_co, X2, Y, S]):
-    x: X2
-    y: Y
-    s: S
+    @property
+    def x(self) -> X2: ...
+    @property
+    def y(self) -> Y: ...
+    @property
+    def s(self) -> S: ...
 
     def __getitem__(self, index: int) -> R_co: ...
 
     def __len__(self) -> int: ...
 
 
-D = TypeVar("D", bound=Union[Dataset, Tensor, List[int]], covariant=True)
+D = TypeVar("D", bound=Dataset[Any] | Tensor | list[int], covariant=True)
 
 
 @runtime_checkable
 class DatasetWrapper(SizedDataset[R_co], Protocol):
-    dataset: Dataset
+    @property
+    def dataset(self) -> Dataset[R_co]: ...
 
     @override
     def __getitem__(self, index: int) -> R_co: ...
 
     @override
-    def __len__(self) -> Optional[int]:
+    def __len__(self) -> int | None:
         if isinstance(self.dataset, SizedDataset):
             return len(self.dataset)  # type: ignore
         return None

@@ -1,9 +1,10 @@
 """Base class from which all data-modules in conduit inherit."""
 
 from abc import abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 import logging
-from typing import Any, Generic, List, Optional, Sequence, Tuple, TypeVar, Union, cast, final
+from typing import Any, Generic, TypeVar, cast, final
 from typing_extensions import Self, override
 
 import pytorch_lightning as pl
@@ -57,7 +58,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     """
 
     train_batch_size: int = 64
-    eval_batch_size: Optional[int] = field(default=None)
+    eval_batch_size: int | None = field(default=None)
     val_prop: float = 0.2
     test_prop: float = 0.2
     num_workers: int = 0
@@ -68,20 +69,20 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
 
-    _logger: Optional[logging.Logger] = field(default=None, init=False)
+    _logger: logging.Logger | None = field(default=None, init=False)
 
-    _train_data_base: Optional[Dataset] = field(default=None, init=False)
-    _val_data_base: Optional[Dataset] = field(default=None, init=False)
-    _test_data_base: Optional[Dataset] = field(default=None, init=False)
+    _train_data_base: Dataset | None = field(default=None, init=False)
+    _val_data_base: Dataset | None = field(default=None, init=False)
+    _test_data_base: Dataset | None = field(default=None, init=False)
 
-    _train_data: Union[None, D, InstanceWeightedDataset] = field(default=None, init=False)
-    _val_data: Optional[D] = field(default=None, init=False)
-    _test_data: Optional[D] = field(default=None, init=False)
-    _card_s: Optional[int] = field(default=None, init=False)
-    _card_y: Optional[int] = field(default=None, init=False)
-    _dim_s: Optional[torch.Size] = field(default=None, init=False)
-    _dim_y: Optional[torch.Size] = field(default=None, init=False)
-    _dim_x: Optional[Tuple[int, ...]] = field(default=None, init=False)
+    _train_data: None | D | InstanceWeightedDataset = field(default=None, init=False)
+    _val_data: D | None = field(default=None, init=False)
+    _test_data: D | None = field(default=None, init=False)
+    _card_s: int | None = field(default=None, init=False)
+    _card_y: int | None = field(default=None, init=False)
+    _dim_s: torch.Size | None = field(default=None, init=False)
+    _dim_y: torch.Size | None = field(default=None, init=False)
+    _dim_x: tuple[int, ...] | None = field(default=None, init=False)
 
     @final
     def __new__(cls, *args: Any, **kwargs: Any) -> Self:
@@ -112,7 +113,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
         batch_size: int,
         shuffle: bool = False,
         drop_last: bool = False,
-        batch_sampler: Optional[Sampler[List[int]]] = None,
+        batch_sampler: Sampler[list[int]] | None = None,
     ) -> CdtDataLoader[I]:
         """Make DataLoader."""
         return CdtDataLoader(
@@ -151,7 +152,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
         return cast(D, self._test_data)
 
     def train_dataloader(
-        self, *, shuffle: bool = False, drop_last: bool = False, batch_size: Optional[int] = None
+        self, *, shuffle: bool = False, drop_last: bool = False, batch_size: int | None = None
     ) -> CdtDataLoader[I]:
         batch_size = self.train_batch_size if batch_size is None else batch_size
 
@@ -252,13 +253,13 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
 
     @property
     @final
-    def dim_y(self) -> Tuple[int, ...]:
+    def dim_y(self) -> tuple[int, ...]:
         self._check_setup_called()
         return self._get_base_dataset().dim_y
 
     @property
     @final
-    def dim_s(self) -> Tuple[int, ...]:
+    def dim_s(self) -> tuple[int, ...]:
         self._check_setup_called()
         return self._get_base_dataset().dim_s
 
@@ -274,7 +275,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
         self._check_setup_called()
         return self._get_base_dataset().card_s
 
-    def _check_setup_called(self, caller: Optional[str] = None) -> None:
+    def _check_setup_called(self, caller: str | None = None) -> None:
         if not self.is_set_up:
             if caller is None:
                 # inspect the call stack to find out who called this function
@@ -306,8 +307,8 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     def is_set_up(self) -> bool:
         return self._train_data is not None
 
-    def _setup(self, stage: Optional[Stage] = None) -> None:
-        train_data: Union[None, D, InstanceWeightedDataset]
+    def _setup(self, stage: Stage | None = None) -> None:
+        train_data: None | D | InstanceWeightedDataset
         train_data, self._val_data, self._test_data = self._get_splits()
         if self.instance_weighting:
             train_data = InstanceWeightedDataset(train_data)
@@ -329,7 +330,7 @@ class CdtDataModule(pl.LightningDataModule, Generic[D, I]):
     @final
     def setup(  # type: ignore
         self,
-        stage: Optional[Stage] = None,
+        stage: Stage | None = None,
         force_reset: bool = False,
     ) -> None:
         # Only perform the setup if it hasn't already been done

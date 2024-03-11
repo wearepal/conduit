@@ -9,7 +9,6 @@ from conduit.data.datasets.audio.ecoacoustics import SoundscapeAttr
 from omegaconf import MISSING
 from ranzen.torch.data import TrainingMode
 from typing import Any
-from typing import List
 from typing import Optional
 
 
@@ -32,4 +31,4 @@ class EcoacousticsDataModuleConf:
     test_tf: Any = None  # Optional[Callable[[Tensor], Tensor]]
     segment_len: float = 15
     sample_rate: int = 48000
-    target_attrs: List[SoundscapeAttr] = MISSING
+    target_attrs: list[SoundscapeAttr] = MISSING

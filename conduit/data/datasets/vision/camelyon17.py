@@ -1,7 +1,6 @@
 from enum import Enum, auto
 from pathlib import Path
-from typing import ClassVar, Optional, Union
-from typing_extensions import TypeAlias
+from typing import ClassVar, TypeAlias
 
 import pandas as pd
 from ranzen.misc import StrEnum
@@ -104,14 +103,14 @@ class Camelyon17(CdtVisionDataset[SampleType, Tensor, Tensor]):
 
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str | Path,
         *,
         download: bool = True,
-        transform: Optional[ImageTform] = None,
-        split: Optional[Union[Camelyon17Split, str]] = None,
-        split_scheme: Union[Camelyon17SplitScheme, str] = Camelyon17SplitScheme.OFFICIAL,
-        superclass: Union[Camelyon17Attr, str] = Camelyon17Attr.TUMOR,
-        subclass: Union[Camelyon17Attr, str] = Camelyon17Attr.CENTER,
+        transform: ImageTform | None = None,
+        split: Camelyon17Split | str | None = None,
+        split_scheme: Camelyon17SplitScheme | str = Camelyon17SplitScheme.OFFICIAL,
+        superclass: Camelyon17Attr | str = Camelyon17Attr.TUMOR,
+        subclass: Camelyon17Attr | str = Camelyon17Attr.CENTER,
     ) -> None:
         self.superclass = Camelyon17Attr(superclass) if isinstance(split, str) else split
         self.subclass = Camelyon17Attr(subclass) if isinstance(split, str) else split

@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Union, final
+from typing import final
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
@@ -22,10 +22,10 @@ __all__ = ["CdtVisionDataModule"]
 
 @dataclass(kw_only=True)
 class CdtVisionDataModule(CdtDataModule[ImageTransformer, I]):
-    root: Union[str, Path] = field(kw_only=False)
-    train_tf: Optional[ImageTform] = None
-    test_tf: Optional[ImageTform] = None
-    norm_values: Optional[MeanStd] = field(default=IMAGENET_STATS, init=False)
+    root: str | Path = field(kw_only=False)
+    train_tf: ImageTform | None = None
+    test_tf: ImageTform | None = None
+    norm_values: MeanStd | None = field(default=IMAGENET_STATS, init=False)
 
     @property
     @final
@@ -33,7 +33,7 @@ class CdtVisionDataModule(CdtDataModule[ImageTransformer, I]):
         return self._default_train_transforms if self.train_tf is None else self.train_tf
 
     @train_transforms.setter
-    def train_transforms(self, transform: Optional[ImageTform]) -> None:
+    def train_transforms(self, transform: ImageTform | None) -> None:
         self.train_tf = transform
         if isinstance(self._train_data, ImageTransformer):
             self._train_data.transform = transform
@@ -45,7 +45,7 @@ class CdtVisionDataModule(CdtDataModule[ImageTransformer, I]):
 
     @test_transforms.setter
     @final
-    def test_transforms(self, transform: Optional[ImageTform]) -> None:
+    def test_transforms(self, transform: ImageTform | None) -> None:
         self.test_tf = transform
         if isinstance(self._val_data, ImageTransformer):
             self._val_data.transform = transform
@@ -54,7 +54,7 @@ class CdtVisionDataModule(CdtDataModule[ImageTransformer, I]):
 
     @property
     def _default_train_transforms(self) -> A.Compose:
-        transform_ls: List[AlbumentationsTform] = [A.ToFloat()]
+        transform_ls: list[AlbumentationsTform] = [A.ToFloat()]
         if self.norm_values is not None:
             # `max_pixel_value` has to be 1.0 here because of `ToFloat()`
             transform_ls.append(
@@ -87,7 +87,7 @@ class CdtVisionDataModule(CdtDataModule[ImageTransformer, I]):
 
     @property
     def _default_test_transforms(self) -> A.Compose:
-        transform_ls: List[AlbumentationsTform] = [A.ToFloat()]
+        transform_ls: list[AlbumentationsTform] = [A.ToFloat()]
         if self.norm_values is not None:
             transform_ls.append(A.Normalize(mean=self.norm_values.mean, std=self.norm_values.std))
         transform_ls.append(ToTensorV2())

@@ -1,7 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import ClassVar, Optional, Union, cast
-from typing_extensions import TypeAlias
+from typing import ClassVar, TypeAlias, cast
 
 from numpy import typing as npt
 import pandas as pd
@@ -91,13 +90,13 @@ class NIHChestXRays(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
     def __init__(
         self,
-        root: Union[Path, str],
+        root: Path | str,
         *,
-        target: Optional[Union[NIHTarget, str]] = NIHTarget.FINDING,
-        subgroup: Union[NIHSubgroup, str] = NIHSubgroup.GENDER,
-        split: Optional[Union[NIHSplit, str]] = None,
-        transform: Optional[ImageTform] = None,
-        num_quantiles: Optional[int] = 4,
+        target: NIHTarget | str | None = NIHTarget.FINDING,
+        subgroup: NIHSubgroup | str = NIHSubgroup.GENDER,
+        split: NIHSplit | str | None = None,
+        transform: ImageTform | None = None,
+        num_quantiles: int | None = 4,
         download: bool = True,
     ) -> None:
         """

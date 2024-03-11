@@ -1,7 +1,7 @@
 """NICO++ data-module."""
 
 from dataclasses import dataclass
-from typing import Any, List, Optional
+from typing import Any
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
@@ -18,7 +18,7 @@ class NICOPPDataModule(CdtVisionDataModule[SampleType]):
     """Data-module for the NICO dataset."""
 
     image_size: int = 224
-    superclasses: Optional[List[NicoPPTarget]] = None
+    superclasses: list[NicoPPTarget] | None = None
 
     @property
     @override

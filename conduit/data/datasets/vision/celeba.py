@@ -2,8 +2,7 @@
 
 from enum import Enum
 from pathlib import Path
-from typing import ClassVar, List, Optional, Union
-from typing_extensions import TypeAlias
+from typing import ClassVar, TypeAlias
 
 import numpy as np
 from numpy import typing as npt
@@ -82,7 +81,7 @@ class CelebA(CdtVisionDataset[SampleType, Tensor, Tensor]):
     # The data is downloaded to `download_dir` / `CelebA` / `_IMAGE_DIR`.
     _IMAGE_DIR: ClassVar[str] = "img_align_celeba"
     # Google drive IDs, MD5 hashes and filenames for the CelebA files.
-    _FILE_LIST: ClassVar[List[GdriveFileInfo]] = [
+    _FILE_LIST: ClassVar[list[GdriveFileInfo]] = [
         GdriveFileInfo(
             name="img_align_celeba.zip",
             id="1zmsC4yvw-e089uHXj5EdP0BSZ0AlDQRR",
@@ -102,13 +101,13 @@ class CelebA(CdtVisionDataset[SampleType, Tensor, Tensor]):
 
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str | Path,
         *,
         download: bool = True,
-        superclass: Union[CelebAttr, str] = CelebAttr.SMILING,
-        subclass: Union[CelebAttr, str] = CelebAttr.MALE,
-        transform: Optional[ImageTform] = None,
-        split: Optional[Union[CelebASplit, str]] = None,
+        superclass: CelebAttr | str = CelebAttr.SMILING,
+        subclass: CelebAttr | str = CelebAttr.MALE,
+        transform: ImageTform | None = None,
+        split: CelebASplit | str | None = None,
     ) -> None:
         self.superclass = CelebAttr(superclass) if isinstance(superclass, str) else superclass
         self.subclass = CelebAttr(subclass) if isinstance(subclass, str) else subclass

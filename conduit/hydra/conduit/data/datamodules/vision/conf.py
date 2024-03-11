@@ -13,7 +13,6 @@ from omegaconf import MISSING
 from pathlib import Path
 from ranzen.torch.data import TrainingMode
 from typing import Any
-from typing import List
 from typing import Optional
 from typing import Union
 
@@ -33,8 +32,8 @@ class CelebADataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    train_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
-    test_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    train_tf: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
+    test_tf: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
     image_size: int = 224
     superclass: CelebAttr = CelebAttr.SMILING
     subclass: CelebAttr = CelebAttr.MALE
@@ -56,12 +55,12 @@ class ColoredMNISTDataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    train_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
-    test_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    train_tf: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
+    test_tf: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
     image_size: int = 32
     use_predefined_splits: bool = False
-    label_map: Any = None  # Optional[Dict[int, int]]
-    colors: Optional[List[int]] = None
+    label_map: Any = None  # Optional[dict[int, int]]
+    colors: Optional[list[int]] = None
     num_colors: int = 10
     scale: float = 0.2
     correlation: float = 1.0
@@ -86,8 +85,8 @@ class NICODataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    train_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
-    test_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    train_tf: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
+    test_tf: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
     image_size: int = 224
     class_train_props: Optional[dict] = None
     superclass: NicoSuperclass = NicoSuperclass.ANIMALS
@@ -108,8 +107,8 @@ class WaterbirdsDataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    train_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
-    test_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    train_tf: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
+    test_tf: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
     image_size: int = 224
     use_predefined_splits: bool = False
 
@@ -129,8 +128,8 @@ class Camelyon17DataModuleConf:
     stratified_sampling: bool = False
     instance_weighting: bool = False
     training_mode: TrainingMode = TrainingMode.epoch
-    train_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
-    test_tf: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    train_tf: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
+    test_tf: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
     image_size: int = 96
     superclass: Camelyon17Attr = Camelyon17Attr.TUMOR
     subclass: Camelyon17Attr = Camelyon17Attr.CENTER

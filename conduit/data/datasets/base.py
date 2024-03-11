@@ -1,17 +1,6 @@
+from collections.abc import Sequence
 import logging
-from typing import (
-    ClassVar,
-    Generic,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    TypeVar,
-    Union,
-    cast,
-    final,
-    overload,
-)
+from typing import Any, ClassVar, Generic, Literal, TypeVar, cast, final, overload
 from typing_extensions import Self, override
 
 import numpy as np
@@ -38,18 +27,16 @@ from conduit.types import IndexType
 __all__ = ["CdtDataset", "I", "S", "X", "Y"]
 
 X = TypeVar("X", bound=UnloadedData)
-S = TypeVar("S", bound=Optional[Tensor])
-Y = TypeVar("Y", bound=Optional[Tensor])
-I = TypeVar("I", bound=SampleBase, covariant=True)
+S = TypeVar("S", bound=Tensor | None)
+Y = TypeVar("Y", bound=Tensor | None)
+I = TypeVar("I", bound=SampleBase[Any], covariant=True)
 
 
-class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
+class CdtDataset(SizedDataset[I], Generic[I, X, Y, S]):
     _repr_indent: ClassVar[int] = 4
-    _logger: Optional[logging.Logger] = None
+    _logger: logging.Logger | None = None
 
-    def __init__(
-        self, *, x: X, y: Optional[TargetData] = None, s: Optional[TargetData] = None
-    ) -> None:
+    def __init__(self, *, x: X, y: TargetData | None = None, s: TargetData | None = None) -> None:
         self.x = x
         if isinstance(y, np.ndarray):
             y = torch.as_tensor(y)
@@ -58,11 +45,11 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         self.y = cast(Y, y if y is None else y.squeeze())
         self.s = cast(S, s if s is None else s.squeeze())
 
-        self._dim_x: Optional[torch.Size] = None
-        self._dim_s: Optional[torch.Size] = None
-        self._dim_y: Optional[torch.Size] = None
-        self._card_y: Optional[int] = None
-        self._card_s: Optional[int] = None
+        self._dim_x: torch.Size | None = None
+        self._dim_s: torch.Size | None = None
+        self._dim_y: torch.Size | None = None
+        self._card_y: int | None = None
+        self._card_s: int | None = None
 
     def __repr__(self) -> str:
         head = f"Dataset {self.__class__.__name__}"
@@ -86,29 +73,29 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
 
     @overload
     def _sample_x(
-        self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[True]
-    ) -> Union[Tensor, Sequence[Tensor]]: ...
+        self, index: list[int] | slice, *, coerce_to_tensor: Literal[True]
+    ) -> Tensor | Sequence[Tensor]: ...
 
     @overload
     def _sample_x(self, index: int, *, coerce_to_tensor: Literal[False] = ...) -> LoadedData: ...
 
     @overload
     def _sample_x(
-        self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[False] = ...
-    ) -> Union[LoadedData, Sequence[LoadedData]]: ...
+        self, index: list[int] | slice, *, coerce_to_tensor: Literal[False] = ...
+    ) -> LoadedData | Sequence[LoadedData]: ...
 
     def _sample_x(
         self, index: IndexType, *, coerce_to_tensor: bool = False
-    ) -> Union[LoadedData, Tensor, Sequence[LoadedData]]:
+    ) -> LoadedData | Tensor | Sequence[LoadedData]:
         x = self.x[index]
         if coerce_to_tensor and (not isinstance(x, Tensor)):
             x = torch.as_tensor(x)
         return x
 
-    def _sample_s(self, index: IndexType) -> Optional[Tensor]:
+    def _sample_s(self, index: IndexType) -> Tensor | None:
         return None if self.s is None else self.s[index]
 
-    def _sample_y(self, index: IndexType) -> Optional[Tensor]:
+    def _sample_y(self, index: IndexType) -> Tensor | None:
         return None if self.y is None else self.y[index]
 
     @property
@@ -200,8 +187,8 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         return merge_indices(*indices, return_cardinalities=False)
 
     def subset(
-        self: Self,
-        indices: Union[List[int], npt.NDArray[np.uint64], Tensor, slice],
+        self,
+        indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice,
         *,
         deep: bool = False,
     ) -> Self:
@@ -222,12 +209,12 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
 
     def random_split(
         self: Self,
-        props: Union[Sequence[float], float],
+        props: Sequence[float] | float,
         *,
         deep: bool = False,
-        seed: Optional[int] = None,
+        seed: int | None = None,
         reproducible: bool = False,
-    ) -> List[Self]:
+    ) -> list[Self]:
         """Randomly split the dataset into subsets according to the given proportions.
 
         :param props: The fractional size of each subset into which to randomly split the data.
@@ -257,9 +244,9 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
     def cat(self, other: Self, *, inplace: Literal[False] = ..., deep: bool = ...) -> Self: ...
 
     @overload
-    def cat(self, other: Self, *, inplace: bool = ..., deep: bool = ...) -> Optional[Self]: ...
+    def cat(self, other: Self, *, inplace: bool = ..., deep: bool = ...) -> Self | None: ...
 
-    def cat(self, other: Self, *, inplace: bool = False, deep: bool = False) -> Optional[Self]:
+    def cat(self, other: Self, *, inplace: bool = False, deep: bool = False) -> Self | None:
         """Concatenate this ``self`` with another dataset of the same type.
 
         :param other: Other dataset to concatenate with this instance
@@ -276,7 +263,7 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         if isinstance(superset.x, np.ndarray):
             superset.x = np.concatenate(xs, axis=0)
         else:
-            superset.x = torch.cat(cast(List[Tensor], xs), dim=0)
+            superset.x = torch.cat(cast(list[Tensor], xs), dim=0)
         if (superset.s is not None) and (other.s is not None):
             superset.s = torch.cat([superset.s, other.s], dim=0)
         if (superset.y is not None) and (other.y is not None):

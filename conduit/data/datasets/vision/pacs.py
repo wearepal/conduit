@@ -2,8 +2,8 @@
 
 from enum import auto
 from pathlib import Path
-from typing import ClassVar, List, Optional, Union
-from typing_extensions import Self, TypeAlias
+from typing import ClassVar, TypeAlias
+from typing_extensions import Self
 
 import numpy as np
 import pandas as pd
@@ -53,13 +53,13 @@ class PACS(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str | Path,
         *,
         download: bool = True,
-        transform: Optional[ImageTform] = None,
-        domains: Optional[Union[Domain, str, List[Union[str, Domain]]]] = None,
+        transform: ImageTform | None = None,
+        domains: Domain | str | list[str | Domain] | None = None,
     ) -> None:
-        self.domains: Union[None, PacsDomain, List[PacsDomain]]
+        self.domains: None | PacsDomain | list[PacsDomain]
         if isinstance(domains, str):
             self.domains = PacsDomain(domains)
         elif isinstance(domains, list):
@@ -113,7 +113,7 @@ class PACS(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     def _extract_metadata(self) -> None:
         """Extract domain/class information from the image filepaths and it save to csv."""
         self.logger.info("Extracting metadata.")
-        image_paths: List[Path] = []
+        image_paths: list[Path] = []
         for ext in ("jpg", "jpeg", "png"):
             image_paths.extend(self._base_dir.glob(f"**/*.{ext}"))
         image_paths_str = [str(image.relative_to(self._base_dir)) for image in image_paths]
@@ -139,7 +139,7 @@ class PACS(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
     def domain_split(
         self,
-        target_domains: Union[PacsDomain, str, List[Union[str, PacsDomain]]],
+        target_domains: PacsDomain | str | list[str | PacsDomain],
     ) -> TrainTestSplit[Self]:
         if isinstance(target_domains, list):
             target_domains = [

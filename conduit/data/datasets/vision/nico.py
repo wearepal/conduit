@@ -2,8 +2,7 @@
 
 from enum import auto
 from pathlib import Path
-from typing import ClassVar, List, Optional, Union, cast
-from typing_extensions import TypeAlias
+from typing import ClassVar, TypeAlias, cast
 
 from PIL import Image, UnidentifiedImageError
 import pandas as pd
@@ -31,7 +30,7 @@ class NicoSuperclass(StrEnum):
 SampleType: TypeAlias = TernarySample
 
 
-class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
+class NICO(CdtVisionDataset[TernarySample[Tensor], Tensor, Tensor]):
     """Datset for Non-I.I.D. image classification introduced in
     'Towards Non-I.I.D. Image Classification: A Dataset and Baselines'
     """
@@ -47,11 +46,11 @@ class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str | Path,
         *,
         download: bool = True,
-        transform: Optional[ImageTform] = None,
-        superclass: Optional[Union[NicoSuperclass, str]] = NicoSuperclass.ANIMALS,
+        transform: ImageTform | None = None,
+        superclass: NicoSuperclass | str | None = NicoSuperclass.ANIMALS,
     ) -> None:
         self.superclass = NicoSuperclass(superclass) if isinstance(superclass, str) else superclass
         self.root = Path(root)
@@ -99,7 +98,7 @@ class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     def _extract_metadata(self) -> None:
         """Extract concept/context/superclass information from the image filepaths and it save to csv."""
         self.logger.info("Extracting metadata.")
-        image_paths: List[Path] = []
+        image_paths: list[Path] = []
         for ext in ("jpg", "jpeg", "png"):
             image_paths.extend(self._base_dir.glob(f"**/*.{ext}"))
         image_paths_str = [str(image.relative_to(self._base_dir)) for image in image_paths]
@@ -146,7 +145,7 @@ def preprocess_nico(path: Path) -> None:
         superclass_dir = path / superclass
         for class_dir in superclass_dir.glob("*"):
             for context_dir in class_dir.glob("*"):
-                images_paths: List[Path] = []
+                images_paths: list[Path] = []
                 for ext in ("jpg", "jpeg", "png", "gif"):
                     images_paths.extend(context_dir.glob(f"**/*.{ext}"))
                 for counter, image_path in enumerate(images_paths):

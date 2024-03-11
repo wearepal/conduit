@@ -1,5 +1,5 @@
 from dataclasses import replace
-from typing import Any, Optional, Tuple, Union
+from typing import Any
 from typing_extensions import override
 
 from PIL import Image
@@ -25,17 +25,21 @@ class ImageTransformer(DatasetWrapper[Any]):
     that share the same underlying dataset.
     """
 
-    def __init__(self, dataset: Dataset, *, transform: Optional[ImageTform]) -> None:
-        self.dataset = dataset
-        self._transform: Optional[ImageTform] = None
+    def __init__(self, dataset: Dataset, *, transform: ImageTform | None) -> None:
+        self._dataset = dataset
+        self._transform: ImageTform | None = None
         self.transform = transform
 
     @property
-    def transform(self) -> Optional[ImageTform]:
+    def dataset(self) -> Dataset:
+        return self._dataset
+
+    @property
+    def transform(self) -> ImageTform | None:
         return self._transform
 
     @transform.setter
-    def transform(self, transform: Optional[ImageTform]) -> None:
+    def transform(self, transform: ImageTform | None) -> None:
         base_dataset = extract_base_dataset(self.dataset, return_subset_indices=False)
         if isinstance(base_dataset, CdtVisionDataset):
             base_dataset.update_il_backend(transform)
@@ -46,7 +50,7 @@ class ImageTransformer(DatasetWrapper[Any]):
         sample = self.dataset[index]
 
         def _transform_sample(
-            _sample: Union[RawImage, SampleBase, Tuple[Union[RawImage, Image.Image], ...]],
+            _sample: RawImage | SampleBase | tuple[RawImage | Image.Image, ...],
         ) -> Any:
             if self.transform is None:
                 return _sample

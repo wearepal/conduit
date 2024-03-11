@@ -1,6 +1,7 @@
+from collections.abc import Mapping
 from enum import auto
-from typing import Any, Dict, List, Mapping, Protocol, TypeVar, Union, runtime_checkable
-from typing_extensions import TypeAlias
+from typing import Any, Protocol, TypeAlias, Union, runtime_checkable
+from typing_extensions import TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -22,13 +23,13 @@ __all__ = [
     "METRIC_COLLECTION",
 ]
 
-_NUMBER = Union[int, float]
-_METRIC = Union[Metric, Tensor, _NUMBER]
-METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
+_NUMBER = Union[int, float]  # noqa: UP007
+_METRIC = Union[Metric, Tensor, _NUMBER]  # noqa: UP007
+METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]  # noqa: UP007
 
 
 class Loss(Protocol):
-    reduction: Union[ReductionType, str]
+    reduction: ReductionType | str
 
     def __call__(self, input: Tensor, target: Tensor, **kwargs: Any) -> Tensor: ...
 
@@ -39,19 +40,19 @@ class Stage(StrEnum):
     TEST = auto()
 
 
-LRScheduler: TypeAlias = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
-MetricDict: TypeAlias = Dict[str, METRIC_COLLECTION]
-NDArrayR: TypeAlias = Union[npt.NDArray[np.floating], npt.NDArray[np.integer]]
-IndexType: TypeAlias = Union[int, List[int], slice]
+LRScheduler: TypeAlias = CosineAnnealingWarmRestarts | ExponentialLR | StepLR
+MetricDict: TypeAlias = dict[str, METRIC_COLLECTION]
+NDArrayR: TypeAlias = npt.NDArray[np.floating[Any]] | npt.NDArray[np.integer[Any]]
+IndexType: TypeAlias = int | list[int] | slice
 
-T_co = TypeVar("T_co", covariant=True)
+T_co = TypeVar("T_co", covariant=True, default=Any)
 
 
 @runtime_checkable
-class Sized(Protocol[T_co]):
+class Sized(Protocol):
     def __len__(self) -> int: ...
 
 
 @runtime_checkable
 class Indexable(Protocol[T_co]):
-    def __getitem__(self, index: IndexType) -> Any: ...
+    def __getitem__(self, index: IndexType) -> T_co: ...

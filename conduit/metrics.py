@@ -1,7 +1,8 @@
 from abc import abstractmethod
+from collections.abc import Callable
 from enum import Enum
 from functools import partial, wraps
-from typing import Callable, List, Literal, Optional, Protocol, Tuple, Union, cast, overload
+from typing import Literal, Protocol, cast, overload
 
 from ranzen import some
 import torch
@@ -55,8 +56,8 @@ def hard_prediction(logits: Tensor) -> Tensor:
 
 @torch.no_grad()  # pyright: ignore
 def precision_at_k(
-    y_pred: Tensor, *, y_true: Tensor, top_k: Union[int, Tuple[int, ...]] = (1,)
-) -> List[Tensor]:
+    y_pred: Tensor, *, y_true: Tensor, top_k: int | tuple[int, ...] = (1,)
+) -> list[Tensor]:
     """Computes the accuracy over the k top predictions for the specified values of k"""
     if isinstance(top_k, int):
         top_k = (top_k,)
@@ -66,7 +67,7 @@ def precision_at_k(
     pred = pred.t()
     correct = pred.eq(y_true.view(1, -1).expand_as(pred))
 
-    res: List[Tensor] = []
+    res: list[Tensor] = []
     for k in top_k:
         correct_k = correct[:k].contiguous().view(-1).float().sum(0, keepdim=True)
         res.append(correct_k.mul_(100.0 / batch_size))
@@ -154,7 +155,7 @@ class Aggregator(Enum):
 @overload
 def merge_indices(
     *indices: Tensor, return_cardinalities: Literal[True]
-) -> Tuple[Tensor, List[int]]: ...
+) -> tuple[Tensor, list[int]]: ...
 
 
 @overload
@@ -163,7 +164,7 @@ def merge_indices(*indices: Tensor, return_cardinalities: Literal[False] = ...) 
 
 def merge_indices(
     *indices: Tensor, return_cardinalities: bool = False
-) -> Union[Tensor, Tuple[Tensor, List[int]]]:
+) -> Tensor | tuple[Tensor, list[int]]:
     """
     Bijectively merge a sequence of index tensors into a single index tensor, such that each
     combination of possible indices from across the elements in ``group_ids`` is assigned a unique
@@ -175,7 +176,7 @@ def merge_indices(
 
     :raises TypeError: If any elemnts of ``indices`` do not have dtype ``torch.long``.
     """
-    cards: Optional[List[int]] = None
+    cards: list[int] | None = None
     if return_cardinalities:
         cards = []
     group_ids_ls = list(indices)
@@ -203,11 +204,11 @@ def merge_indices(
     return index_set, cards
 
 
-def nans(*sizes: int, device: Optional[torch.device] = None) -> Tensor:
+def nans(*sizes: int, device: torch.device | None = None) -> Tensor:
     return torch.full(tuple(sizes), fill_value=torch.nan, device=device)
 
 
-def nans_like(tensor: Tensor, *, device: Optional[torch.device] = None) -> Tensor:
+def nans_like(tensor: Tensor, *, device: torch.device | None = None) -> Tensor:
     return torch.full_like(tensor, fill_value=torch.nan, device=device)
 
 
@@ -215,7 +216,7 @@ def nans_like(tensor: Tensor, *, device: Optional[torch.device] = None) -> Tenso
 def _apply_groupwise_metric(
     *group_ids: Tensor,
     comparator: Comparator,
-    aggregator: Optional[Aggregator],
+    aggregator: Aggregator | None,
     y_pred: Tensor,
     y_true: Tensor,
 ) -> Tensor:
@@ -239,7 +240,7 @@ def _apply_groupwise_metric(
     """
     y_pred = y_pred.squeeze()
     y_true = y_true.squeeze()
-    index_set: Optional[Tensor] = None
+    index_set: Tensor | None = None
 
     if group_ids:
         group_ids_ls = list(group_ids)
@@ -392,9 +393,9 @@ def conditional_equal(
     y_pred: Tensor,
     *,
     y_true: Tensor,
-    y_pred_cond: Optional[int] = None,
-    y_true_cond: Optional[int] = None,
-) -> Tuple[Tensor, Tensor]:
+    y_pred_cond: int | None = None,
+    y_true_cond: int | None = None,
+) -> tuple[Tensor, Tensor]:
     mask = torch.ones_like(y_pred, dtype=torch.bool)
     if some(y_pred_cond):
         mask &= y_pred == y_pred_cond
@@ -485,11 +486,11 @@ def fscore(
     y_pred: Tensor,
     *,
     y_true: Tensor,
-    s: Optional[Tensor] = None,
+    s: Tensor | None = None,
     beta: float = 1.0,
-    inner_summand: Optional[Literal["y_true", "s"]] = None,
+    inner_summand: Literal["y_true", "s"] | None = None,
     ignore_unsupported: bool = True,
-    aggregator: Optional[Aggregator] = None,
+    aggregator: Aggregator | None = None,
 ) -> Tensor:
     """Computes F-beta score between ``y_pred`` and ``y_true`` with optional subclass-conditioning.
 

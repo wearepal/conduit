@@ -2,7 +2,7 @@
 
 from functools import partial
 from pathlib import Path
-from typing import Any, Final, Type
+from typing import Any, Final
 
 import ethicml as em
 import pytest
@@ -22,7 +22,7 @@ BATCHSIZE: Final[int] = 4
 
 
 def _create_dm(
-    dm_cls: Type[EthicMlDataModule],
+    dm_cls: type[EthicMlDataModule],
     stratified: bool = False,
     extra_args: dict[str, Any] | None = None,
 ) -> EthicMlDataModule:
@@ -46,7 +46,7 @@ def _create_dm(
         HealthDataModule,
     ],
 )
-def test_data_modules(dm_cls: Type[EthicMlDataModule], stratified: bool) -> None:
+def test_data_modules(dm_cls: type[EthicMlDataModule], stratified: bool) -> None:
     """Test the datamodules."""
     dm = _create_dm(dm_cls, stratified)
     loader = dm.train_dataloader()
@@ -79,7 +79,7 @@ def test_data_modules(dm_cls: Type[EthicMlDataModule], stratified: bool) -> None
         SqfDataModule,
     ],
 )
-def test_data_modules_props(dm_cls: Type[EthicMlDataModule]) -> None:
+def test_data_modules_props(dm_cls: type[EthicMlDataModule]) -> None:
     """Test the datamodules."""
     dm = _create_dm(dm_cls)
 

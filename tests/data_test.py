@@ -1,7 +1,5 @@
 from contextlib import suppress
 from pathlib import Path
-from typing import Optional, Tuple, Union
-from typing_extensions import Type
 
 from albumentations.pytorch import ToTensorV2  # type: ignore
 import numpy as np
@@ -55,7 +53,7 @@ from conduit.transforms.tabular import ZScoreNormalize
 @pytest.mark.parametrize("binarize", [True, False])
 @pytest.mark.parametrize("num_channels", [1, 3, None])
 def test_colorizer(
-    num_channels: Optional[int], binarize: bool, background: bool, black: bool, greyscale: bool
+    num_channels: int | None, binarize: bool, background: bool, black: bool, greyscale: bool
 ):
     """Test label dependent transforms."""
     image_shape = [4, 7, 7]
@@ -81,7 +79,7 @@ def test_colorizer(
 @pytest.mark.parametrize(
     "dm", [ColoredMNISTDataModule, CelebADataModule, NICODataModule, WaterbirdsDataModule]
 )
-def test_vision_datamodules(root: Path, dm: Type[CdtVisionDataModule]) -> None:
+def test_vision_datamodules(root: Path, dm: type[CdtVisionDataModule]) -> None:
     dm_ = dm(root=root)
     dm_.prepare_data()
     dm_.setup()
@@ -92,9 +90,12 @@ def test_vision_datamodules(root: Path, dm: Type[CdtVisionDataModule]) -> None:
 @pytest.mark.parametrize("ds_cls", [ColoredMNIST, ISIC, CelebA, NICO, SSRP, Waterbirds])
 def test_vision_datasets(
     root: Path,
-    ds_cls: Union[
-        Type[ColoredMNIST], Type[ISIC], Type[CelebA], Type[NICO], Type[SSRP], Type[Waterbirds]
-    ],
+    ds_cls: type[ColoredMNIST]
+    | type[ISIC]
+    | type[CelebA]
+    | type[NICO]
+    | type[SSRP]
+    | type[Waterbirds],
 ) -> None:
     """Basic test for datasets.
 
@@ -300,7 +301,7 @@ def test_sample_add_batched() -> None:
 @pytest.mark.parametrize("s_card", [None, 2, 10])
 @pytest.mark.parametrize("y_card", [None, 2, 10])
 def test_tabular_dummy_data(
-    batch_size: int, disc_feats: int, cont_feats: int, s_card: Optional[int], y_card: Optional[int]
+    batch_size: int, disc_feats: int, cont_feats: int, s_card: int | None, y_card: int | None
 ):
     dm = DummyTabularDataModule(
         num_samples=1_000,
@@ -339,9 +340,9 @@ def test_tabular_dummy_data(
 def test_vision_dummy_data(
     batch_size: int,
     size: int,
-    s_card: Optional[int],
-    y_card: Optional[int],
-    channels_transforms: Tuple[int, ImageTform],
+    s_card: int | None,
+    y_card: int | None,
+    channels_transforms: tuple[int, ImageTform],
 ):
     channels, transforms = channels_transforms
     dm = DummyVisionDataModule(

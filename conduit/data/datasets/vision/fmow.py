@@ -1,7 +1,6 @@
 from enum import auto
 from pathlib import Path
-from typing import ClassVar, Optional, Union
-from typing_extensions import TypeAlias
+from typing import ClassVar, TypeAlias
 
 import pandas as pd
 from ranzen import StrEnum
@@ -91,12 +90,12 @@ class FMoW(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str | Path,
         *,
-        split: Optional[Union[FMoWSplit, str]] = None,
-        split_scheme: Optional[Union[FMoWSplitScheme, str]] = FMoWSplitScheme.OFFICIAL,
+        split: FMoWSplit | str | None = None,
+        split_scheme: FMoWSplitScheme | str | None = FMoWSplitScheme.OFFICIAL,
         drop_other: bool = True,
-        transform: Optional[ImageTform] = None,
+        transform: ImageTform | None = None,
         download: bool = True,
     ) -> None:
         """

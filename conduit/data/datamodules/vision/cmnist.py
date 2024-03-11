@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Dict, List, Optional
+from typing import Any
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
@@ -24,8 +24,8 @@ class ColoredMNISTDataModule(CdtVisionDataModule[SampleType]):
     image_size: int = 32
     use_predefined_splits: bool = False
     # Colorization settings
-    label_map: Optional[Dict[int, int]] = None
-    colors: Optional[List[int]] = None
+    label_map: dict[int, int] | None = None
+    colors: list[int] | None = None
     num_colors: int = 10
     scale: float = 0.2
     correlation: float = 1.0

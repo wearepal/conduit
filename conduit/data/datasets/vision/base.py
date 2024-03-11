@@ -1,8 +1,9 @@
+from collections.abc import Sequence
 from functools import reduce
 import operator
 from pathlib import Path
-from typing import List, Literal, Optional, Sequence, Union, cast, overload
-from typing_extensions import Self, TypeAlias, override
+from typing import Literal, TypeAlias, cast, overload
+from typing_extensions import Self, override
 
 import numpy as np
 import numpy.typing as npt
@@ -25,7 +26,7 @@ from conduit.types import IndexType
 
 __all__ = ["CdtVisionDataset"]
 
-ItemType: TypeAlias = Union[RawImage, Tensor]
+ItemType: TypeAlias = RawImage | Tensor
 
 
 class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.bytes_], Y, S]):
@@ -33,10 +34,10 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.bytes_], Y, S]):
         self,
         *,
         x: npt.NDArray[np.bytes_],
-        image_dir: Union[Path, str],
-        y: Optional[TargetData] = None,
-        s: Optional[TargetData] = None,
-        transform: Optional[ImageTform] = None,
+        image_dir: Path | str,
+        y: TargetData | None = None,
+        s: TargetData | None = None,
+        transform: ImageTform | None = None,
     ) -> None:
         super().__init__(x=x, y=y, s=s)
         if isinstance(image_dir, str):
@@ -46,7 +47,7 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.bytes_], Y, S]):
         # infer the appropriate image-loading backend based on the type of 'transform'
         self._il_backend: ImageLoadingBackend = infer_il_backend(transform)
 
-    def update_il_backend(self, transform: Optional[ImageTform]) -> None:
+    def update_il_backend(self, transform: ImageTform | None) -> None:
         new_backend = infer_il_backend(transform)
         if new_backend != self._il_backend:
             self._il_backend = new_backend
@@ -73,25 +74,25 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.bytes_], Y, S]):
 
     @overload
     def _sample_x(
-        self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[True]
-    ) -> Union[Tensor, Sequence[Tensor]]: ...
+        self, index: list[int] | slice, *, coerce_to_tensor: Literal[True]
+    ) -> Tensor | Sequence[Tensor]: ...
 
     @overload
     def _sample_x(self, index: int, *, coerce_to_tensor: Literal[False] = ...) -> ItemType: ...
 
     @overload
     def _sample_x(
-        self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[False] = ...
-    ) -> Union[ItemType, Sequence[ItemType]]: ...
+        self, index: list[int] | slice, *, coerce_to_tensor: Literal[False] = ...
+    ) -> ItemType | Sequence[ItemType]: ...
 
     @override
     def _sample_x(
         self, index: IndexType, *, coerce_to_tensor: bool = False
-    ) -> Union[ItemType, Sequence[ItemType]]:
+    ) -> ItemType | Sequence[ItemType]:
         if isinstance(index, slice):
             index = list(range(len(self)))[index]
         if isinstance(index, list):
-            sample_ls: List[ItemType] = [
+            sample_ls: list[ItemType] = [
                 self._sample_x(index=i, coerce_to_tensor=coerce_to_tensor)  # type: ignore
                 for i in index
             ]
@@ -100,9 +101,9 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.bytes_], Y, S]):
                 summed = reduce(operator.add, sample_ls)
                 return cast(ItemType, summed)
             if isinstance(elem, Tensor):
-                return torch.stack(cast(List[Tensor], sample_ls), dim=0)
+                return torch.stack(cast(list[Tensor], sample_ls), dim=0)
             elif isinstance(sample_ls[0], np.ndarray):
-                return np.stack(cast(List[npt.NDArray[np.integer]], sample_ls), axis=0)
+                return np.stack(cast(list[npt.NDArray[np.integer]], sample_ls), axis=0)
             return sample_ls
 
         image = self._load_image(index)
@@ -117,10 +118,10 @@ class CdtVisionDataset(CdtDataset[I, npt.NDArray[np.bytes_], Y, S]):
     @override
     def subset(
         self,
-        indices: Union[List[int], npt.NDArray[np.uint64], Tensor, slice],
+        indices: list[int] | npt.NDArray[np.uint64] | Tensor | slice,
         *,
         deep: bool = False,
-        transform: Optional[ImageTform] = None,
+        transform: ImageTform | None = None,
     ) -> Self:
         """Create a subset of the dataset from the given indices.
 

@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Generic, List, Optional, Sequence, Tuple, TypeVar, Union, overload
+from typing import Generic, TypeVar, overload
 from typing_extensions import Self, override
 
 from ranzen.misc import gcopy
@@ -93,11 +94,11 @@ class MultiCropOutput(InputContainer):
         return self.num_global_crops + self.num_local_crops
 
     @property
-    def global_crop_size(self) -> Tuple[int, int, int]:
+    def global_crop_size(self) -> tuple[int, int, int]:
         return (self.global_views.shape[1], self.global_views.shape[2], self.global_views.shape[3])
 
     @property
-    def local_crop_size(self) -> Tuple[int, int, int]:
+    def local_crop_size(self) -> tuple[int, int, int]:
         if self.local_views is None:
             raise AttributeError("Cannot retrieve the local-crop size as 'local_' is 'None'.")
         return (self.local_views.shape[1], self.local_views.shape[2], self.local_views.shape[3])
@@ -107,11 +108,11 @@ class MultiCropOutput(InputContainer):
         """Shape of the global crops."""
         return self.global_views.shape
 
-    def astuple(self) -> Tuple[Tensor, Tensor]:
+    def astuple(self) -> tuple[Tensor, Tensor]:
         return (self.global_views.merge(), self.local_views)
 
     @property
-    def anchor(self) -> Tuple[Tensor, Tensor]:
+    def anchor(self) -> tuple[Tensor, Tensor]:
         return (self.global_views.v1, self.local_views)
 
     @property
@@ -140,7 +141,7 @@ class MultiCropOutput(InputContainer):
         return copy
 
 
-LT = TypeVar("LT", bound=Optional[ImageTform])
+LT = TypeVar("LT", bound=ImageTform | None)
 
 
 class MultiCropTransform(Generic[LT]):
@@ -148,7 +149,7 @@ class MultiCropTransform(Generic[LT]):
         self,
         *,
         global_transform_1: ImageTform,
-        global_transform_2: Optional[ImageTform] = None,
+        global_transform_2: ImageTform | None = None,
         local_transform: LT = None,
         local_crops_number: int = 8,
     ) -> None:
@@ -177,8 +178,8 @@ class MultiCropTransform(Generic[LT]):
     def __call__(self: "MultiCropTransform[None]", image: RawImage) -> MultiViewPair: ...
 
     def __call__(
-        self: "MultiCropTransform", image: RawImage
-    ) -> Union[MultiCropOutput, MultiViewPair]:
+        self: "MultiCropTransform[ImageTform] | MultiCropTransform[None]", image: RawImage
+    ) -> MultiCropOutput | MultiViewPair:
         global_crop_v1 = self._apply_transform(image, transform=self.global_transform_1)
         global_crop_v2 = self._apply_transform(image, transform=self.global_transform_2)
         gc_pair = MultiViewPair(v1=global_crop_v1, v2=global_crop_v2)
@@ -199,13 +200,13 @@ class MultiCropTransform(Generic[LT]):
     def with_dino_transform(
         cls,
         *,
-        global_crop_size: Union[int, Sequence[int]] = 224,
-        local_crop_size: Union[int, Sequence[int]] = 96,
-        norm_values: Optional[MeanStd] = IMAGENET_STATS,
-        global_crops_scale: Tuple[float, float] = (0.4, 1.0),
-        local_crops_scale: Tuple[float, float] = (0.05, 0.4),
+        global_crop_size: int | Sequence[int] = 224,
+        local_crop_size: int | Sequence[int] = 96,
+        norm_values: MeanStd | None = IMAGENET_STATS,
+        global_crops_scale: tuple[float, float] = (0.4, 1.0),
+        local_crops_scale: tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
-    ) -> "MultiCropTransform":
+    ) -> "MultiCropTransform[T.Compose | None]":
         flip_and_color_jitter = T.Compose(
             [
                 T.RandomHorizontalFlip(p=0.5),
@@ -215,7 +216,7 @@ class MultiCropTransform(Generic[LT]):
                 T.RandomGrayscale(p=0.2),
             ]
         )
-        normalize_ls: List[PillowTform] = [T.ToTensor()]
+        normalize_ls: list[PillowTform] = [T.ToTensor()]
         if norm_values is not None:
             normalize_ls.append(
                 T.Normalize(mean=norm_values.mean, std=norm_values.std),

@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 import random
-from typing import Sequence, Tuple, Union
 
 from PIL import Image, ImageFilter, ImageOps
 import torch
@@ -18,9 +18,9 @@ __all__ = [
 
 
 def _invert_norm_values(
-    mean: Union[float, Tensor, Sequence[float], NDArrayR],
-    std: Union[float, Tensor, Sequence[float], NDArrayR],
-) -> Tuple[Tensor, Tensor]:
+    mean: float | Tensor | Sequence[float] | NDArrayR,
+    std: float | Tensor | Sequence[float] | NDArrayR,
+) -> tuple[Tensor, Tensor]:
     mean = torch.as_tensor(mean)
     std = torch.as_tensor(std)
     std_inv = std.reciprocal().clip(torch.finfo(std.dtype).eps)
@@ -30,8 +30,8 @@ def _invert_norm_values(
 
 def denormalize(
     tensor: Tensor,
-    mean: Union[float, Tensor, Sequence[float], NDArrayR],
-    std: Union[float, Tensor, Sequence[float], NDArrayR],
+    mean: float | Tensor | Sequence[float] | NDArrayR,
+    std: float | Tensor | Sequence[float] | NDArrayR,
     inplace: bool = False,
 ) -> Tensor:
     """Denormalize a float tensor image with mean and standard deviation.
@@ -64,8 +64,8 @@ class Denormalize(T.Normalize):
 
     def __init__(
         self,
-        mean: Union[float, Tensor, Sequence[float], NDArrayR],
-        std: Union[float, Tensor, Sequence[float], NDArrayR],
+        mean: float | Tensor | Sequence[float] | NDArrayR,
+        std: float | Tensor | Sequence[float] | NDArrayR,
         inplace: bool = False,
     ) -> None:
         mean_inv, std_inv = _invert_norm_values(mean=mean, std=std)

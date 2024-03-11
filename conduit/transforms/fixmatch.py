@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Generic, List, Optional, TypeVar, Union
+from typing import Generic, TypeVar
 from typing_extensions import Self, override
 
 from PIL import Image
@@ -15,7 +16,7 @@ __all__ = [
     "FixMatchTransform",
 ]
 
-X = TypeVar("X", bound=Union[Tensor, RawImage, List[Image.Image]])
+X = TypeVar("X", bound=Tensor | RawImage | list[Image.Image])
 
 
 @dataclass
@@ -48,17 +49,15 @@ class FixMatchTransform(Generic[A]):
         strong_transform: A,
         *,
         weak_transform: A,
-        shared_transform_start: Optional[Callable[[Union[RawImage, Tensor]], RawImage]] = None,
-        shared_transform_end: Optional[
-            Callable[[Union[RawImage, Tensor]], Union[RawImage, Tensor]]
-        ] = None,
+        shared_transform_start: Callable[[RawImage | Tensor], RawImage] | None = None,
+        shared_transform_end: Callable[[RawImage | Tensor], RawImage | Tensor] | None = None,
     ) -> None:
         self.strong_transform = strong_transform
         self.weak_transform = weak_transform
         self.shared_transform_start = shared_transform_start
         self.shared_transform_end = shared_transform_end
 
-    def __call__(self, image: RawImage) -> FixMatchPair:
+    def __call__(self, image: RawImage) -> FixMatchPair[RawImage | Tensor]:
         if self.shared_transform_start is not None:
             image = self.shared_transform_start(image)
 

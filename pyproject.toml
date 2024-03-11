@@ -127,7 +127,7 @@ select = [
     "PLW", # pylint warning
     "PTH", # use-pathlib
     "SIM", # simplify
-    # "UP", # pyupgrade
+    "UP", # pyupgrade
     "W",
 ]
 ignore = [
@@ -139,6 +139,7 @@ ignore = [
     "PLW2901", # overwriting loop variable
     "PLC0105", # covariant typevars have to end in "_co"
     "SIM108",  # ternary operator
+    "UP038",  # isinstance calls with `X | Y`
 ]
 
 [tool.ruff.lint.per-file-ignores]
