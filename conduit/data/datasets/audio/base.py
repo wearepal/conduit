@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Literal, Optional, Sequence, Union, overload
+from typing import Literal, overload
 from typing_extensions import override
 
 import numpy as np
@@ -28,12 +29,12 @@ class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.bytes_], Y, S]):
 
     def __init__(
         self,
-        audio_dir: Union[Path, str],
+        audio_dir: Path | str,
         *,
         x: npt.NDArray[np.bytes_],
-        y: Optional[TargetData] = None,
-        s: Optional[TargetData] = None,
-        transform: Optional[AudioTform] = None,
+        y: TargetData | None = None,
+        s: TargetData | None = None,
+        transform: AudioTform | None = None,
     ) -> None:
         super().__init__(x=x, y=y, s=s)
 
@@ -74,20 +75,20 @@ class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.bytes_], Y, S]):
 
     @overload
     def _sample_x(
-        self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[True]
-    ) -> Union[Tensor, Sequence[Tensor]]: ...
+        self, index: list[int] | slice, *, coerce_to_tensor: Literal[True]
+    ) -> Tensor | Sequence[Tensor]: ...
 
     @overload
     def _sample_x(self, index: int, *, coerce_to_tensor: Literal[False] = ...) -> Tensor: ...
 
     @overload
     def _sample_x(
-        self, index: Union[List[int], slice], *, coerce_to_tensor: Literal[False] = ...
-    ) -> Union[Tensor, Sequence[Tensor]]: ...
+        self, index: list[int] | slice, *, coerce_to_tensor: Literal[False] = ...
+    ) -> Tensor | Sequence[Tensor]: ...
 
     @override
     def _sample_x(
         self, index: IndexType, *, coerce_to_tensor: bool = False
-    ) -> Union[Tensor, Sequence[Tensor]]:
+    ) -> Tensor | Sequence[Tensor]:
         waveform = self.load_sample(index)
         return apply_audio_transform(waveform, transform=None)

@@ -1,12 +1,12 @@
 """NICO Dataset."""
 
+from collections.abc import Sequence
 from enum import Enum, auto
 from functools import cached_property
 import json
 from pathlib import Path
 import random
-from typing import ClassVar, Dict, List, Literal, Optional, Sequence, Set, Tuple, Union
-from typing_extensions import TypeAlias
+from typing import ClassVar, Literal, TypeAlias
 
 import pandas as pd
 from ranzen import StrEnum
@@ -120,13 +120,13 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str | Path,
         *,
-        transform: Optional[ImageTform] = None,
-        superclasses: Optional[Sequence[Union[NicoPPTarget, str]]] = None,
-        split: Optional[Union[NicoPPSplit, str]] = None,
+        transform: ImageTform | None = None,
+        superclasses: Sequence[NicoPPTarget | str] | None = None,
+        split: NicoPPSplit | str | None = None,
     ) -> None:
-        self.superclasses: Optional[List[NicoPPTarget]] = None
+        self.superclasses: list[NicoPPTarget] | None = None
         if superclasses is not None:
             assert superclasses, "superclasses should be a non-empty list"
             self.superclasses = [NicoPPTarget(superclass) for superclass in superclasses]
@@ -160,18 +160,18 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
         super().__init__(x=x, y=y, s=s, transform=transform, image_dir=self._base_dir)
 
     @cached_property
-    def class_tree(self) -> Dict[str, Set[str]]:
+    def class_tree(self) -> dict[str, set[str]]:
         return self.metadata[["y", "a"]].drop_duplicates().groupby("y").agg(set).to_dict()["a"]
 
     @cached_property
-    def superclass_label_decoder(self) -> Dict[int, NicoPPTarget]:
+    def superclass_label_decoder(self) -> dict[int, NicoPPTarget]:
         return dict((val, NicoPPTarget(name)) for name, val in self._get_label_mapping("y"))
 
     @cached_property
-    def subclass_label_decoder(self) -> Dict[int, NicoPPAttr]:
+    def subclass_label_decoder(self) -> dict[int, NicoPPAttr]:
         return dict((val, NicoPPAttr(name)) for name, val in self._get_label_mapping("a"))
 
-    def _get_label_mapping(self, level: Literal["y", "a"]) -> List[Tuple[str, int]]:
+    def _get_label_mapping(self, level: Literal["y", "a"]) -> list[tuple[str, int]]:
         """Get a list of all possible (name, numerical value) pairs."""
         return [
             (name, num)

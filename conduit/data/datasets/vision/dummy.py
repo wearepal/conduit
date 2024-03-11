@@ -1,5 +1,5 @@
-from typing import Optional
-from typing_extensions import TypeAlias, override
+from typing import TypeAlias
+from typing_extensions import override
 
 import numpy as np
 import numpy.typing as npt
@@ -20,8 +20,8 @@ class DummyVisionDataset(CdtVisionDataset[SampleType, Tensor, Tensor]):
         channels: int,
         height: int,
         width: int,
-        s_card: Optional[int] = 2,
-        y_card: Optional[int] = 2,
+        s_card: int | None = 2,
+        y_card: int | None = 2,
         num_samples: int = 10_000,
     ) -> None:
         self.channels = channels

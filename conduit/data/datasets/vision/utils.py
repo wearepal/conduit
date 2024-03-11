@@ -1,8 +1,8 @@
 """Utils for vision datasets."""
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Literal, Optional, Union, get_args, overload
-from typing_extensions import TypeAlias
+from typing import Any, Literal, TypeAlias, get_args, overload
 
 from PIL import Image
 import albumentations as A  # type: ignore
@@ -32,15 +32,15 @@ ImageLoadingBackend: TypeAlias = Literal["opencv", "pillow"]
 
 @overload
 def load_image(
-    filepath: Union[Path, str], *, backend: Literal["opencv"] = ...
+    filepath: Path | str, *, backend: Literal["opencv"] = ...
 ) -> npt.NDArray[np.integer[Any]]: ...
 
 
 @overload
-def load_image(filepath: Union[Path, str], *, backend: Literal["pillow"]) -> Image.Image: ...
+def load_image(filepath: Path | str, *, backend: Literal["pillow"]) -> Image.Image: ...
 
 
-def load_image(filepath: Union[Path, str], *, backend: ImageLoadingBackend = "opencv") -> RawImage:
+def load_image(filepath: Path | str, *, backend: ImageLoadingBackend = "opencv") -> RawImage:
     """Load an image from disk using the requested backend.
 
     :param filepath: The path of the image-file to be loaded.
@@ -61,12 +61,12 @@ def load_image(filepath: Union[Path, str], *, backend: ImageLoadingBackend = "op
     return Image.open(filepath)
 
 
-AlbumentationsTform: TypeAlias = Union[A.BaseCompose, A.BasicTransform]
+AlbumentationsTform: TypeAlias = A.BaseCompose | A.BasicTransform
 PillowTform: TypeAlias = Callable[[Image.Image], Any]
-ImageTform: TypeAlias = Union[AlbumentationsTform, PillowTform]
+ImageTform: TypeAlias = AlbumentationsTform | PillowTform
 
 
-def infer_il_backend(transform: Optional[ImageTform]) -> ImageLoadingBackend:
+def infer_il_backend(transform: ImageTform | None) -> ImageLoadingBackend:
     """Infer which image-loading backend to use based on the type of the image-transform.
 
     :param transform: The image transform from which to infer the image-loading backend.
@@ -84,8 +84,8 @@ def infer_il_backend(transform: Optional[ImageTform]) -> ImageLoadingBackend:
 
 
 def apply_image_transform(
-    image: RawImage, *, transform: Optional[ImageTform]
-) -> Union[RawImage, Tensor]:
+    image: RawImage, *, transform: ImageTform | None
+) -> RawImage | Tensor:
     image_ = image
     if transform is not None:
         if isinstance(transform, (A.BaseCompose, A.BasicTransform)):
@@ -99,7 +99,7 @@ def apply_image_transform(
     return image_
 
 
-def img_to_tensor(img: Union[Image.Image, npt.NDArray[Any]]) -> Tensor:
+def img_to_tensor(img: Image.Image | npt.NDArray[Any]) -> Tensor:
     if isinstance(img, Image.Image):
         return TF.pil_to_tensor(img)
     return torch.from_numpy(

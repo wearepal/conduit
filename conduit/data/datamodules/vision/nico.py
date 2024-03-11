@@ -1,7 +1,7 @@
 """NICO data-module."""
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 from typing_extensions import override
 
 import albumentations as A  # type: ignore
@@ -19,7 +19,7 @@ class NICODataModule(CdtVisionDataModule[SampleType]):
     """Data-module for the NICO dataset."""
 
     image_size: int = 224
-    class_train_props: Optional[dict] = None
+    class_train_props: dict | None = None
     superclass: NicoSuperclass = NicoSuperclass.ANIMALS
 
     @property

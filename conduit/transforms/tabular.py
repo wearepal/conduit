@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import math
-from typing import ClassVar, List, Union, final
+from typing import ClassVar, final
 from typing_extensions import override
 
 import torch
@@ -27,7 +27,7 @@ class TabularNormalize(TabularTransform):
     _EPS: ClassVar[float] = torch.finfo(torch.float32).eps
 
     def __init__(
-        self, inplace: bool = False, indices: Union[slice, List[int]] = slice(None)
+        self, inplace: bool = False, indices: slice | list[int] = slice(None)
     ) -> None:
         self.inplace = inplace
         self.col_indices = indices

@@ -1,7 +1,7 @@
 """Dataset wrappers."""
 
 from dataclasses import is_dataclass, replace
-from typing import Any, Optional, Tuple, Union
+from typing import Any
 from typing_extensions import override
 
 from torch import Tensor
@@ -36,9 +36,9 @@ class AudioTransformer(DatasetWrapper[Any]):
     that share the same underlying dataset.
     """
 
-    def __init__(self, dataset: Dataset, *, transform: Optional[AudioTform]) -> None:
+    def __init__(self, dataset: Dataset, *, transform: AudioTform | None) -> None:
         self._dataset = dataset
-        self._transform: Optional[AudioTform] = None
+        self._transform: AudioTform | None = None
         self.transform = transform
 
     @property
@@ -78,8 +78,8 @@ class TabularTransformer(DatasetWrapper[Any]):
         self,
         dataset: Dataset,
         *,
-        transform: Optional[TabularTransform],
-        target_transform: Optional[TabularTransform],
+        transform: TabularTransform | None,
+        target_transform: TabularTransform | None,
     ) -> None:
         self._dataset = dataset
         self.transform = transform
@@ -135,7 +135,7 @@ class InstanceWeightedDataset(DatasetWrapper[Any]):
         return self._dataset
 
     @override
-    def __getitem__(self, index: int) -> Union[SampleBase, Tuple[Any, ...]]:
+    def __getitem__(self, index: int) -> SampleBase | tuple[Any, ...]:
         sample = self.dataset[index]
         iw = self.iw[index]
         if isinstance(sample, (BinarySample, SubgroupSample, TernarySample)):

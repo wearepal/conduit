@@ -10,8 +10,8 @@ from enum import auto
 import math
 from pathlib import Path
 import shutil
-from typing import ClassVar, Final, List, Optional, Tuple, Union
-from typing_extensions import TypeAlias, override
+from typing import ClassVar, Final, TypeAlias
+from typing_extensions import override
 import zipfile
 
 import numpy as np
@@ -52,7 +52,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
     _EC_LABELS_FILENAME: ClassVar[str] = "EC_AI.csv"
     _UK_LABELS_FILENAME: ClassVar[str] = "UK_AI.csv"
 
-    _FILE_INFO: List[UrlFileInfo] = [
+    _FILE_INFO: list[UrlFileInfo] = [
         UrlFileInfo(
             name="AvianID_AcousticIndices.zip",
             url="https://zenodo.org/record/1255218/files/AvianID_AcousticIndices.zip",
@@ -77,8 +77,8 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         self,
         root: str,
         *,
-        target_attrs: List[SoundscapeAttr],
-        transform: Optional[AudioTform] = None,
+        target_attrs: list[SoundscapeAttr],
+        transform: AudioTform | None = None,
         download: bool = True,
         segment_len: float = 15,
         sample_rate: int = 48_000,  # This is the value that is present in the dataset
@@ -146,8 +146,8 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
 
     @staticmethod
     def _label_encode(
-        data: Union[pd.DataFrame, pd.Series], inplace: bool = True
-    ) -> Union[pd.DataFrame, pd.Series]:
+        data: pd.DataFrame | pd.Series, inplace: bool = True
+    ) -> pd.DataFrame | pd.Series:
         """Label encode the extracted concept/context/superclass information."""
         data = data.copy(deep=not inplace)
         if isinstance(data, pd.Series):
@@ -202,7 +202,7 @@ class Ecoacoustics(CdtAudioDataset[SampleType, Tensor, Tensor]):
         processed_audio_dir.mkdir(parents=True, exist_ok=True)
 
         waveform_paths = self.base_dir / self.metadata["filePath"]  # type: ignore
-        segment_filenames: List[Tuple[str, str]] = []
+        segment_filenames: list[tuple[str, str]] = []
         for path in tqdm(waveform_paths, desc="Preprocessing", colour=self._PBAR_COL):
             waveform_filename = path.stem
             waveform, sr = torchaudio.load(path)  # type: ignore

@@ -2,7 +2,7 @@
 
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import Optional, final
+from typing import final
 from typing_extensions import override
 
 from torch import Tensor
@@ -21,8 +21,8 @@ __all__ = ["CdtAudioDataModule"]
 @dataclass(kw_only=True)
 class CdtAudioDataModule(CdtDataModule[AudioTransformer, I]):
     root: str = field(kw_only=False)
-    train_tf: Optional[AudioTform] = None
-    test_tf: Optional[AudioTform] = None
+    train_tf: AudioTform | None = None
+    test_tf: AudioTform | None = None
 
     @property
     @final
@@ -30,7 +30,7 @@ class CdtAudioDataModule(CdtDataModule[AudioTransformer, I]):
         return self._default_train_transforms if self.train_tf is None else self.train_tf
 
     @train_transforms.setter
-    def train_transforms(self, transform: Optional[AudioTform]) -> None:
+    def train_transforms(self, transform: AudioTform | None) -> None:
         self.train_tf = transform
         if isinstance(self._train_data, AudioTransformer):
             self._train_data.transform = transform
@@ -42,7 +42,7 @@ class CdtAudioDataModule(CdtDataModule[AudioTransformer, I]):
 
     @test_transforms.setter
     @final
-    def test_transforms(self, transform: Optional[AudioTform]) -> None:
+    def test_transforms(self, transform: AudioTform | None) -> None:
         self.test_tf = transform
         if isinstance(self._val_data, AudioTransformer):
             self._val_data.transform = transform

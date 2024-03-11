@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 from typing_extensions import override
 
 from conduit.data import TrainValTestSplit
@@ -13,8 +12,8 @@ class DummyTabularDataModule(CdtTabularDataModule[RandomTabularDataset]):
     num_disc_features: int
     num_cont_features: int
     seed: int = 8
-    s_card: Optional[int] = None
-    y_card: Optional[int] = None
+    s_card: int | None = None
+    y_card: int | None = None
 
     @override
     def _get_splits(self) -> TrainValTestSplit[RandomTabularDataset]:

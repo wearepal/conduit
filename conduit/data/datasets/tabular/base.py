@@ -1,4 +1,3 @@
-from typing import List, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -30,11 +29,11 @@ class CdtTabularDataset(CdtDataset[I, Tensor, Y, S]):
     def __init__(
         self,
         *,
-        x: Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]],
-        y: Optional[TargetData] = None,
-        s: Optional[TargetData] = None,
-        non_ohe_indexes: Optional[List[int]] = None,
-        feature_groups: Optional[List[slice]] = None,
+        x: Tensor | npt.NDArray[np.floating] | npt.NDArray[np.integer],
+        y: TargetData | None = None,
+        s: TargetData | None = None,
+        non_ohe_indexes: list[int] | None = None,
+        feature_groups: list[slice] | None = None,
     ) -> None:
         if isinstance(x, np.ndarray):
             x = torch.as_tensor(x, dtype=torch.float32)
@@ -44,7 +43,7 @@ class CdtTabularDataset(CdtDataset[I, Tensor, Y, S]):
         self.feature_groups = feature_groups
 
     @property
-    def x_non_ohe(self) -> Optional[Tensor]:
+    def x_non_ohe(self) -> Tensor | None:
         if self.non_ohe_indexes is None:
             return None
         return self.x[:, self.non_ohe_indexes]

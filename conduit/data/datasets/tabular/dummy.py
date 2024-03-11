@@ -1,4 +1,3 @@
-from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -16,12 +15,12 @@ class RandomTabularDataset(CdtTabularDataset):
         num_cont_features: int = 5,
         num_samples: int = 256,
         seed: int = 0,
-        s_card: Optional[int] = None,
-        y_card: Optional[int] = None,
+        s_card: int | None = None,
+        y_card: int | None = None,
     ) -> None:
         rng = np.random.default_rng(seed)
         feats_dict = {}
-        feature_groups: List[slice] = []
+        feature_groups: list[slice] = []
         prev = 0
         for i in range(num_disc_features):
             num_classes = int(rng.integers(low=2, high=10, size=1)[0])

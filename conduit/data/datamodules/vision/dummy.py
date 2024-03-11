@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union
 from typing_extensions import override
 
 from conduit.data import TrainValTestSplit
@@ -14,7 +13,7 @@ from conduit.data.datasets.vision.dummy import DummyVisionDataset, SampleType
 class DummyVisionDataModule(CdtVisionDataModule[SampleType]):
     num_samples: int = 1_000
     seed: int = 8
-    root: Union[str, Path] = ""
+    root: str | Path = ""
     height: int = 32
     width: int = 32
     channels: int = 3

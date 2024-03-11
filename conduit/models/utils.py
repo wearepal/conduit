@@ -1,5 +1,6 @@
+from collections.abc import Callable
 import inspect
-from typing import Any, Callable, Dict, List, TypeVar
+from typing import Any, TypeVar
 
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from ranzen.misc import gcopy
@@ -13,7 +14,7 @@ __all__ = [
     "make_no_grad",
     "prefix_keys",
 ]
-EPOCH_OUTPUT = List[STEP_OUTPUT]
+EPOCH_OUTPUT = list[STEP_OUTPUT]
 
 
 @torch.no_grad()  # pyright: ignore
@@ -21,7 +22,7 @@ def aggregate_over_epoch(outputs: EPOCH_OUTPUT, *, metric: str) -> Tensor:
     return torch.cat([step_output[metric] for step_output in outputs])  # type: ignore
 
 
-def prefix_keys(dict_: Dict[str, Any], *, prefix: str, sep: str = "/") -> Dict[str, Any]:
+def prefix_keys(dict_: dict[str, Any], *, prefix: str, sep: str = "/") -> dict[str, Any]:
     """Prepend the prefix to all keys of the dict"""
     return {f"{prefix}{sep}{key}": value for key, value in dict_.items()}
 

@@ -2,8 +2,8 @@
 
 from enum import auto
 from pathlib import Path
-from typing import ClassVar, Dict, List, Optional, Tuple, Union, cast
-from typing_extensions import TypeAlias, override
+from typing import ClassVar, TypeAlias, cast
+from typing_extensions import override
 
 from PIL import Image
 import numpy as np
@@ -51,8 +51,8 @@ class MNISTColorizer:
         background: bool = False,
         black: bool = True,
         greyscale: bool = False,
-        color_indices: Optional[Union[List[int], slice]] = None,
-        seed: Optional[int] = 42,
+        color_indices: list[int] | slice | None = None,
+        seed: int | None = 42,
     ) -> None:
         """
         Colorizes a grayscale image by sampling colors from multivariate normal distributions.
@@ -97,7 +97,7 @@ class MNISTColorizer:
         )
 
     def __call__(
-        self, images: Union[Tensor, NDArrayR], *, labels: Union[Tensor, NDArrayR]
+        self, images: Tensor | NDArrayR, *, labels: Tensor | NDArrayR
     ) -> Tensor:
         """Apply the transformation.
 
@@ -146,8 +146,8 @@ def _filter_data_by_labels(
     data: Tensor,
     *,
     targets: Tensor,
-    label_map: Dict[int, int],
-) -> Tuple[Tensor, Tensor]:
+    label_map: dict[int, int],
+) -> tuple[Tensor, Tensor]:
     final_mask = torch.zeros_like(targets).bool()
     for old_label, new_label in label_map.items():
         mask = targets == old_label
@@ -169,21 +169,21 @@ class ColoredMNIST(CdtVisionDataset[SampleType, Tensor, Tensor]):
 
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str | Path,
         *,
         download: bool = True,
-        transform: Optional[ImageTform] = None,
-        label_map: Optional[Dict[int, int]] = None,
-        colors: Optional[List[int]] = None,
+        transform: ImageTform | None = None,
+        label_map: dict[int, int] | None = None,
+        colors: list[int] | None = None,
         num_colors: int = 10,
         scale: float = 0.2,
-        correlation: Optional[float] = None,
+        correlation: float | None = None,
         binarize: bool = False,
         greyscale: bool = False,
         background: bool = False,
         black: bool = True,
-        split: Optional[Union[ColoredMNISTSplit, str, List[int]]] = None,
-        seed: Optional[int] = 42,
+        split: ColoredMNISTSplit | str | list[int] | None = None,
+        seed: int | None = 42,
     ) -> None:
         self.split = ColoredMNISTSplit(split) if isinstance(split, str) else split
         self.label_map = label_map

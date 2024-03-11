@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from enum import Enum
-from typing import Callable, Optional, Protocol, TypeVar, Union, cast
+from typing import Protocol, TypeVar, cast
 from typing_extensions import Self
 
 import torch
@@ -56,7 +57,7 @@ def maybe_synchronize(input: Tensor) -> Tensor:
 
 
 def logsumexp(
-    input: Tensor, *, dim: int, keepdim: bool = False, keep_mask: Optional[Tensor] = None
+    input: Tensor, *, dim: int, keepdim: bool = False, keep_mask: Tensor | None = None
 ) -> Tensor:
     """Numerically stable implementation of logsumexp that allows for masked summation."""
     if keep_mask is None:
@@ -76,7 +77,7 @@ def moco_v2_loss(
     *,
     positives: Tensor,
     negatives: Tensor,
-    temperature: Union[float, Tensor] = 1.0,
+    temperature: float | Tensor = 1.0,
     dcl: bool = True,
     normalize: bool = True,
 ) -> Tensor:
@@ -126,7 +127,7 @@ def simclr_loss(
     anchors: Tensor,
     *,
     targets: Tensor,
-    temperature: Union[float, Tensor] = 1.0,
+    temperature: float | Tensor = 1.0,
     dcl: bool = True,
     normalize: bool = True,
 ) -> Tensor:
@@ -168,7 +169,7 @@ def supcon_loss(
     anchor_labels: Tensor,
     candidates: T = None,
     candidate_labels: T = None,
-    temperature: Union[float, Tensor] = 0.1,
+    temperature: float | Tensor = 0.1,
     exclude_diagonal: bool = False,
     dcl: bool = True,
     margin: float = 0,
@@ -266,7 +267,7 @@ def soft_supcon_loss(
     p1: Tensor,
     z2: T = None,
     p2: T = None,
-    temperature: Union[float, Tensor] = 0.1,
+    temperature: float | Tensor = 0.1,
     exclude_diagonal: bool = False,
     dcl: bool = True,
     normalize: bool = True,
@@ -336,7 +337,7 @@ def decoupled_contrastive_loss(
     z2: Tensor,
     *,
     temperature: float = 0.1,
-    weight_fn: Optional[Callable[[Tensor, Tensor], Tensor]] = None,
+    weight_fn: Callable[[Tensor, Tensor], Tensor] | None = None,
 ) -> Tensor:
     """
     Calculates the one-way `decoupled constrastive loss <https://arxiv.org/pdf/2110.06848.pdf>`_.
@@ -374,7 +375,7 @@ class DecoupledContrastiveLoss(nn.Module):
         self,
         temperature: float = 0.1,
         *,
-        weight_fn: Optional[Callable[[Tensor, Tensor], Tensor]] = None,
+        weight_fn: Callable[[Tensor, Tensor], Tensor] | None = None,
     ) -> None:
         """
         :param weight_fn: The weighting function of the positive sample loss.

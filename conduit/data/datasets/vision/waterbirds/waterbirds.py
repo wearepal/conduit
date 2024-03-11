@@ -1,7 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import ClassVar, Optional, Union
-from typing_extensions import TypeAlias
+from typing import ClassVar, TypeAlias
 
 import pandas as pd
 import torch
@@ -71,11 +70,11 @@ class Waterbirds(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str | Path,
         *,
         download: bool = True,
-        transform: Optional[ImageTform] = None,
-        split: Optional[Union[WaterbirdsSplit, str]] = None,
+        transform: ImageTform | None = None,
+        split: WaterbirdsSplit | str | None = None,
         fixed: bool = False,
     ) -> None:
         self.split = WaterbirdsSplit[split.upper()] if isinstance(split, str) else split

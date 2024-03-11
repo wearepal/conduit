@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, Union, cast
-from typing_extensions import TypeAlias, override
+from typing import Any, TypeAlias, cast
+from typing_extensions import override
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.rich_progress import (
@@ -23,7 +24,7 @@ __all__ = ["CdtProgressBar", "ProgressBarTheme"]
 class _FixedLengthProcessionSpeed(ProcessingSpeedColumn):
     """Renders processing speed for the progress bar with fixes length"""
 
-    def __init__(self, style: Union[str, Any]) -> None:
+    def __init__(self, style: str | Any) -> None:
         super().__init__(style)
         self.max_length = len("0.00")
 
@@ -92,8 +93,8 @@ class CdtProgressBar(RichProgressBar):
         refresh_rate: int = 1,
         *,
         leave: bool = False,
-        theme: Union[RichProgressBarTheme, Theme] = Theme.CYBERPUNK,
-        console_kwargs: Optional[Dict[str, Any]] = None,
+        theme: RichProgressBarTheme | Theme = Theme.CYBERPUNK,
+        console_kwargs: dict[str, Any] | None = None,
         predict_description: str = "Predicting",
     ) -> None:
         if isinstance(theme, ProgressBarTheme):
@@ -134,7 +135,7 @@ class CdtProgressBar(RichProgressBar):
 
     @property
     @override
-    def total_train_batches(self) -> Union[int, float]:
+    def total_train_batches(self) -> int | float:
         """
         The total number of training batches, which may change from epoch to epoch.
 
@@ -148,7 +149,7 @@ class CdtProgressBar(RichProgressBar):
     @override
     def _add_task(  # type: ignore
         self, total_batches: float, description: str, visible: bool = True
-    ) -> Optional[TaskID]:
+    ) -> TaskID | None:
         if self.progress is not None:
             return self.progress.add_task(
                 f"[{self.theme.description}]{description}", total=total_batches, visible=visible
@@ -156,7 +157,7 @@ class CdtProgressBar(RichProgressBar):
 
     @override
     def _update(
-        self, progress_bar_id: Optional[TaskID], current: int, visible: bool = True
+        self, progress_bar_id: TaskID | None, current: int, visible: bool = True
     ) -> None:
         if self.progress is not None and self.is_enabled:
             assert progress_bar_id is not None
@@ -170,7 +171,7 @@ class CdtProgressBar(RichProgressBar):
             self.refresh()
 
     @override
-    def _get_train_description(self, current_epoch: Optional[int]) -> str:
+    def _get_train_description(self, current_epoch: int | None) -> str:
         train_description = f"Training"
         if current_epoch is not None:
             train_description += f" (Epoch: {current_epoch})"
@@ -186,11 +187,11 @@ class CdtProgressBar(RichProgressBar):
         return train_description
 
     @property
-    def _progress_bar_id(self) -> Optional[TaskID]:
+    def _progress_bar_id(self) -> TaskID | None:
         return getattr(self, "train_progress_bar_id", getattr(self, "main_progress_bar_id", None))
 
     @_progress_bar_id.setter
-    def _progress_bar_id(self, value: Optional[TaskID]) -> None:
+    def _progress_bar_id(self, value: TaskID | None) -> None:
         if hasattr(self, "train_progress_bar_id"):
             self.train_progress_bar_id = value
         if hasattr(self, "main_progress_bar_id"):
@@ -227,7 +228,7 @@ class CdtProgressBar(RichProgressBar):
         self,
         trainer: pl.Trainer,
         pl_module: pl.LightningModule,
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT | None,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,

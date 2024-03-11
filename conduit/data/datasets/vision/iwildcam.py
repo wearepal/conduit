@@ -1,6 +1,5 @@
 from pathlib import Path
-from typing import ClassVar, Optional, Union
-from typing_extensions import TypeAlias
+from typing import ClassVar, TypeAlias
 
 import pandas as pd
 from ranzen import StrEnum
@@ -63,11 +62,11 @@ class IWildCam(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str | Path,
         *,
         download: bool = True,
-        transform: Optional[ImageTform] = None,
-        split: Optional[Union[IWildCamSplit, str]] = None,
+        transform: ImageTform | None = None,
+        split: IWildCamSplit | str | None = None,
     ) -> None:
         """
         :param root: Root directory of the dataset.
@@ -146,10 +145,10 @@ class IWildCamUnlabeled(CdtVisionDataset[SubgroupSample, None, Tensor]):
 
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str | Path,
         *,
         download: bool = True,
-        transform: Optional[ImageTform] = None,
+        transform: ImageTform | None = None,
     ) -> None:
         self.root = Path(root)
         self._base_dir = self.root / self._BASE_DIR_NAME

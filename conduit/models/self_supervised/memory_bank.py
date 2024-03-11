@@ -1,4 +1,3 @@
-from typing import Optional
 from typing_extensions import Self, override
 
 import torch
@@ -40,7 +39,7 @@ class MemoryBank(nn.Module, Indexable, Sized):
     @classmethod
     @torch.no_grad()  # pyright: ignore
     def with_constant_init(
-        cls, capacity: int, *, dim: int, value: float, dtype: Optional[torch.dtype] = None
+        cls, capacity: int, *, dim: int, value: float, dtype: torch.dtype | None = None
     ) -> Self:
         return cls(torch.full(size=(capacity, dim), fill_value=value, dtype=dtype))
 

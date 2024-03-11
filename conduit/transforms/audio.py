@@ -1,4 +1,5 @@
-from typing import Any, Callable, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import torch
@@ -15,20 +16,20 @@ class LogMelSpectrogram(T.MelSpectrogram):
         self,
         sample_rate: int = 16000,
         n_fft: int = 400,
-        win_length: Optional[int] = None,
-        hop_length: Optional[int] = None,
+        win_length: int | None = None,
+        hop_length: int | None = None,
         f_min: float = 0.0,
-        f_max: Optional[float] = None,
+        f_max: float | None = None,
         pad: int = 0,
         n_mels: int = 128,
-        window_fn: Optional[Callable[..., Tensor]] = None,
+        window_fn: Callable[..., Tensor] | None = None,
         power: float = 2.0,
         normalized: bool = False,
-        wkwargs: Optional[dict[str, Any]] = None,
+        wkwargs: dict[str, Any] | None = None,
         center: bool = True,
         pad_mode: str = "reflect",
         onesided: bool = True,
-        norm: Optional[str] = None,
+        norm: str | None = None,
         mel_scale: str = "htk",
         log_offset: float = 0.0,
     ):
@@ -92,7 +93,7 @@ class Framing(nn.Module):
 
 
 class Compose(nn.Module):
-    def __init__(self, transforms: List[AudioTform]) -> None:
+    def __init__(self, transforms: list[AudioTform]) -> None:
         super().__init__()
         self.transforms = transforms
 

@@ -1,4 +1,3 @@
-from typing import Optional, Tuple
 
 import torch
 
@@ -16,7 +15,7 @@ class DummyDataset(CdtDataset):
     """
 
     def __init__(
-        self, *shapes: Tuple[int, ...], num_samples: int = 10000, seed: Optional[int] = None
+        self, *shapes: tuple[int, ...], num_samples: int = 10000, seed: int | None = None
     ) -> None:
         self.shapes = shapes
         self.num_samples = num_samples

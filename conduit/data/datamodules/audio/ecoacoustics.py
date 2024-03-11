@@ -1,7 +1,7 @@
 """Ecoacoustics data-module."""
 
 from dataclasses import dataclass
-from typing import Any, List, Optional
+from typing import Any
 from typing_extensions import override
 
 from torch.utils.data import Sampler
@@ -23,7 +23,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[BinarySample]):
 
     segment_len: float = 15
     sample_rate: int = 48_000
-    target_attrs: List[SoundscapeAttr]
+    target_attrs: list[SoundscapeAttr]
 
     @staticmethod
     def _batch_converter(batch: BinarySample) -> BinarySample:
@@ -37,7 +37,7 @@ class EcoacousticsDataModule(CdtAudioDataModule[BinarySample]):
         batch_size: int,
         shuffle: bool = False,
         drop_last: bool = False,
-        batch_sampler: Optional[Sampler[List[int]]] = None,
+        batch_sampler: Sampler[list[int]] | None = None,
     ) -> CdtDataLoader[BinarySample]:
         """Make DataLoader."""
         return CdtDataLoader(

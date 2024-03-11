@@ -2,8 +2,7 @@
 
 from enum import Enum
 from pathlib import Path
-from typing import ClassVar, List, Optional, Union, cast
-from typing_extensions import TypeAlias
+from typing import ClassVar, TypeAlias, cast
 
 import pandas as pd
 import torch
@@ -33,11 +32,11 @@ class SSRP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
 
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str | Path,
         *,
-        split: Union[SSRPSplit, str] = SSRPSplit.PRETRAIN,
+        split: SSRPSplit | str = SSRPSplit.PRETRAIN,
         download: bool = True,
-        transform: Optional[ImageTform] = None,
+        transform: ImageTform | None = None,
     ) -> None:
         self.root = Path(root)
         self._base_dir = self.root / self.__class__.__name__
@@ -69,7 +68,7 @@ class SSRP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     def _extract_metadata(self) -> None:
         """Extract concept/context/superclass information from the image filepaths and it save to csv."""
         self.logger.info("Extracting metadata.")
-        image_paths: List[Path] = []
+        image_paths: list[Path] = []
         for ext in ("jpg", "jpeg", "png"):
             # Glob images from child folders recusrively, excluding hidden files
             image_paths.extend(self._base_dir.glob(f"**/[!.]*.{ext}"))

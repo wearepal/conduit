@@ -1,12 +1,12 @@
 """ISIC Dataset."""
 
+from collections.abc import Iterable, Iterator
 from enum import auto
 from itertools import islice
 import os
 from pathlib import Path
 import shutil
-from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, List, Optional, TypeVar, Union
-from typing_extensions import TypeAlias
+from typing import TYPE_CHECKING, ClassVar, TypeAlias, TypeVar
 import zipfile
 
 from PIL import Image
@@ -53,13 +53,13 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
 
     def __init__(
         self,
-        root: Union[str, Path],
+        root: str | Path,
         *,
         download: bool = True,
         max_samples: int = 25_000,  # default is the number of samples used for the NSLB paper
         target_attr: IsicAttr = IsicAttr.MALIGNANT,
         context_attr: IsicAttr = IsicAttr.HISTO,
-        transform: Optional[ImageTform] = None,
+        transform: ImageTform | None = None,
     ) -> None:
         self.target_attr = IsicAttr(target_attr) if isinstance(target_attr, str) else target_attr
         self.context_attr = (
@@ -104,7 +104,7 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
         ).exists()
 
     @staticmethod
-    def chunk(it: Iterable[T], *, size: int) -> Iterator[List[T]]:
+    def chunk(it: Iterable[T], *, size: int) -> Iterator[list[T]]:
         """Divide any iterable into chunks of the given size."""
         it = iter(it)
         return iter(lambda: list(islice(it, size)), [])  # this is magic from stackoverflow
@@ -228,7 +228,7 @@ class ISIC(CdtVisionDataset[SampleType, Tensor, Tensor]):
                 with zipfile.ZipFile(file, "r") as zip_ref:
                     zip_ref.extractall(self._processed_dir)
                     pbar.update()
-        images: List[Path] = []
+        images: list[Path] = []
         for ext in ("jpg", "jpeg", "png", "gif"):
             images.extend(self._processed_dir.glob(f"**/*.{ext}"))
         with tqdm(total=len(images), desc="Processing images", colour=self._PBAR_COL) as pbar:
