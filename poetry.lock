@@ -124,26 +124,23 @@ frozenlist = ">=1.1.0"
 
 [[package]]
 name = "albumentations"
-version = "1.4.0"
+version = "1.4.1"
 description = "Fast image augmentation library and easy to use wrapper around other libraries"
 optional = true
 python-versions = ">=3.8"
 files = [
-    {file = "albumentations-1.4.0-py3-none-any.whl", hash = "sha256:129656a0abdf4bf5c62abf4c297ee251c0d933d7b7509762386a729d2991857d"},
-    {file = "albumentations-1.4.0.tar.gz", hash = "sha256:649f8a14896f788b356ecc70083c4fb91bedab4ff4e2b39ad217a824e189ded0"},
+    {file = "albumentations-1.4.1-py3-none-any.whl", hash = "sha256:7933aea451a5923bd1d6d16521ce87a9e03a500db3b19ac0ed3a9b3117a41862"},
+    {file = "albumentations-1.4.1.tar.gz", hash = "sha256:556c53a958bd26ce484f545058d755af55db13a80b8aef6946b87adcb38a5545"},
 ]
 
 [package.dependencies]
 numpy = ">=1.24.4"
-opencv-python = ">=4.9.0"
+opencv-python-headless = ">=4.9.0"
 PyYAML = "*"
-qudida = ">=0.0.4"
 scikit-image = ">=0.21.0"
+scikit-learn = ">=1.3.2"
 scipy = ">=1.10.0"
-
-[package.extras]
-develop = ["pytest"]
-tests = ["pytest"]
+typing-extensions = ">=4.9.0"
 
 [[package]]
 name = "antlr4-python3-runtime"
@@ -1130,23 +1127,24 @@ numpy = [
 
 [[package]]
 name = "opencv-python-headless"
-version = "4.8.1.78"
+version = "4.9.0.80"
 description = "Wrapper package for OpenCV python bindings."
 optional = true
 python-versions = ">=3.6"
 files = [
-    {file = "opencv-python-headless-4.8.1.78.tar.gz", hash = "sha256:bc7197b42352f6f865c302a49140b889ec7cd957dd697e2d7fc016ad0d3f28f1"},
-    {file = "opencv_python_headless-4.8.1.78-cp37-abi3-macosx_10_16_x86_64.whl", hash = "sha256:f3a33f644249f9ce1c913eac580e4b3ef4ce7cab0a71900274708959c2feb5e3"},
-    {file = "opencv_python_headless-4.8.1.78-cp37-abi3-macosx_11_0_arm64.whl", hash = "sha256:2c7d45721df9801c4dcd34683a15caa0e30f38b185263fec04a6eb274bc720f0"},
-    {file = "opencv_python_headless-4.8.1.78-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3b6bd6e1132b6f5dcb3a5bfe30fc4d341a7bfb26134da349a06c9255288ded94"},
-    {file = "opencv_python_headless-4.8.1.78-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:58e70d2f0915fe23e02c6e405588276c9397844a47d38b9c87fac5f7f9ba2dcc"},
-    {file = "opencv_python_headless-4.8.1.78-cp37-abi3-win32.whl", hash = "sha256:382f8c7a6a14f80091284eecedd52cee4812231ee0eff1118592197b538d9252"},
-    {file = "opencv_python_headless-4.8.1.78-cp37-abi3-win_amd64.whl", hash = "sha256:0a0f1e9f836f7d5bad1dd164694944c8761711cbdf4b36ebbd4815a8ef731079"},
+    {file = "opencv-python-headless-4.9.0.80.tar.gz", hash = "sha256:71a4cd8cf7c37122901d8e81295db7fb188730e33a0e40039a4e59c1030b0958"},
+    {file = "opencv_python_headless-4.9.0.80-cp37-abi3-macosx_10_16_x86_64.whl", hash = "sha256:2ea8a2edc4db87841991b2fbab55fc07b97ecb602e0f47d5d485bd75cee17c1a"},
+    {file = "opencv_python_headless-4.9.0.80-cp37-abi3-macosx_11_0_arm64.whl", hash = "sha256:e0ee54e27be493e8f7850847edae3128e18b540dac1d7b2e4001b8944e11e1c6"},
+    {file = "opencv_python_headless-4.9.0.80-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:57ce2865e8fec431c6f97a81e9faaf23fa5be61011d0a75ccf47a3c0d65fa73d"},
+    {file = "opencv_python_headless-4.9.0.80-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:976656362d68d9f40a5c66f83901430538002465f7db59142784f3893918f3df"},
+    {file = "opencv_python_headless-4.9.0.80-cp37-abi3-win32.whl", hash = "sha256:11e3849d83e6651d4e7699aadda9ec7ed7c38957cbbcb99db074f2a2d2de9670"},
+    {file = "opencv_python_headless-4.9.0.80-cp37-abi3-win_amd64.whl", hash = "sha256:a8056c2cb37cd65dfcdf4153ca16f7362afcf3a50d600d6bb69c660fc61ee29c"},
 ]
 
 [package.dependencies]
 numpy = [
-    {version = ">=1.23.5", markers = "python_version >= \"3.11\""},
+    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
+    {version = ">=1.23.5", markers = "python_version >= \"3.11\" and python_version < \"3.12\""},
     {version = ">=1.21.4", markers = "python_version >= \"3.10\" and platform_system == \"Darwin\" and python_version < \"3.11\""},
     {version = ">=1.21.2", markers = "platform_system != \"Darwin\" and python_version >= \"3.10\" and python_version < \"3.11\""},
 ]
@@ -1571,23 +1569,6 @@ files = [
     {file = "PyYAML-6.0.1-cp39-cp39-win_amd64.whl", hash = "sha256:510c9deebc5c0225e8c96813043e62b680ba2f9c50a08d3724c7f28a747d1486"},
     {file = "PyYAML-6.0.1.tar.gz", hash = "sha256:bfdf460b1736c775f2ba9f6a92bca30bc2095067b8a9d77876d1fad6cc3b4a43"},
 ]
-
-[[package]]
-name = "qudida"
-version = "0.0.4"
-description = "QUick and DIrty Domain Adaptation"
-optional = true
-python-versions = ">=3.5.0"
-files = [
-    {file = "qudida-0.0.4-py3-none-any.whl", hash = "sha256:4519714c40cd0f2e6c51e1735edae8f8b19f4efe1f33be13e9d644ca5f736dd6"},
-    {file = "qudida-0.0.4.tar.gz", hash = "sha256:db198e2887ab0c9aa0023e565afbff41dfb76b361f85fd5e13f780d75ba18cc8"},
-]
-
-[package.dependencies]
-numpy = ">=0.18.0"
-opencv-python-headless = ">=4.0.1"
-scikit-learn = ">=0.19.1"
-typing-extensions = "*"
 
 [[package]]
 name = "ranzen"
