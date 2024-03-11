@@ -61,7 +61,7 @@ __all__ = [
 
 
 @runtime_checkable
-class InputContainer(Sized, Addable, Protocol):
+class InputContainer(Sized, Addable["InputContainer", "InputContainer"], Protocol):
     @classmethod
     def fromiter(cls, sequence: Iterable[Self]) -> Self:
         """
@@ -93,31 +93,31 @@ class InputContainer(Sized, Addable, Protocol):
         return self
 
 
-RawImage: TypeAlias = Union[npt.NDArray[np.integer], Image.Image]
+RawImage: TypeAlias = Union[npt.NDArray[np.integer[Any]], Image.Image]
 UnloadedData: TypeAlias = Union[
-    npt.NDArray[np.floating],
-    npt.NDArray[np.integer],
+    npt.NDArray[np.floating[Any]],
+    npt.NDArray[np.integer[Any]],
     npt.NDArray[np.bytes_],
     Tensor,
 ]
 LoadedData: TypeAlias = Union[
     Tensor,
     Image.Image,
-    npt.NDArray[np.floating],
-    npt.NDArray[np.integer],
+    npt.NDArray[np.floating[Any]],
+    npt.NDArray[np.integer[Any]],
     npt.NDArray[np.bytes_],
     Dict[str, Tensor],
     Dict[str, Image.Image],
-    Dict[str, npt.NDArray[np.floating]],
-    Dict[str, npt.NDArray[np.integer]],
+    Dict[str, npt.NDArray[np.floating[Any]]],
+    Dict[str, npt.NDArray[np.integer[Any]]],
     Dict[str, npt.NDArray[np.bytes_]],
     List[Image.Image],
     InputContainer,
 ]
 IndexabledData: TypeAlias = Union[
     Tensor,
-    npt.NDArray[np.floating],
-    npt.NDArray[np.integer],
+    npt.NDArray[np.floating[Any]],
+    npt.NDArray[np.integer[Any]],
     npt.NDArray[np.bytes_],
 ]
 
@@ -125,11 +125,13 @@ X = TypeVar("X", bound=LoadedData)
 X_co = TypeVar("X_co", bound=LoadedData, covariant=True)
 XI = TypeVar("XI", bound=IndexabledData)
 
-TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating], npt.NDArray[np.integer]]
+TargetData: TypeAlias = Union[Tensor, npt.NDArray[np.floating[Any]], npt.NDArray[np.integer[Any]]]
 
 
 def concatenate_inputs(x1: X, x2: X, *, is_batched: bool) -> X:
-    if type(x1) != type(x2) or (isinstance(x1, list) and type(x1[0]) != type(cast(List, x2)[0])):
+    if type(x1) != type(x2) or (
+        isinstance(x1, list) and type(x1[0]) != type(cast(list[Image.Image], x2)[0])
+    ):
         raise AttributeError("Only data of the same type can be concatenated (added) together.")
     if isinstance(x1, Tensor):
         # if the number of dimensions is different by 1, append a batch dimension.
@@ -295,9 +297,9 @@ class TernarySample(_BinarySampleMixin, _SubgroupSampleMixin, SampleBase[X]):
     def add_field(self, iw: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, iw: Tensor) -> TernarySampleIW: ...
+    def add_field(self, iw: Tensor) -> TernarySampleIW[X]: ...
 
-    def add_field(self, iw: Optional[Tensor] = None) -> Union[Self, TernarySampleIW]:
+    def add_field(self, iw: Optional[Tensor] = None) -> Union[Self, TernarySampleIW[X]]:
         if iw is not None:
             return TernarySampleIW(x=self.x, s=self.s, y=self.y, iw=iw)
         return self
@@ -325,9 +327,9 @@ class BinarySampleIW(_IwMixin, _BinarySampleMixin, SampleBase[X]):
     def add_field(self, s: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, s: Tensor) -> TernarySampleIW: ...
+    def add_field(self, s: Tensor) -> TernarySampleIW[X]: ...
 
-    def add_field(self, s: Optional[Tensor] = None) -> Union[Self, TernarySampleIW]:
+    def add_field(self, s: Optional[Tensor] = None) -> Union[Self, TernarySampleIW[X]]:
         if s is not None:
             return TernarySampleIW(x=self.x, s=s, y=self.y, iw=self.iw)
         return self
@@ -355,17 +357,17 @@ class BinarySample(_BinarySampleMixin, SampleBase[X]):
     def add_field(self, *, s: None = ..., iw: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, *, s: None = ..., iw: Tensor) -> BinarySampleIW: ...
+    def add_field(self, *, s: None = ..., iw: Tensor) -> BinarySampleIW[X]: ...
 
     @overload
-    def add_field(self, *, s: Tensor, iw: None = ...) -> TernarySample: ...
+    def add_field(self, *, s: Tensor, iw: None = ...) -> TernarySample[X]: ...
 
     @overload
-    def add_field(self, *, s: Tensor, iw: Tensor) -> TernarySampleIW: ...
+    def add_field(self, *, s: Tensor, iw: Tensor) -> TernarySampleIW[X]: ...
 
     def add_field(
         self, *, s: Optional[Tensor] = None, iw: Optional[Tensor] = None
-    ) -> Union[Self, BinarySampleIW, TernarySample, TernarySampleIW]:
+    ) -> Union[Self, BinarySampleIW[X], TernarySample[X], TernarySampleIW[X]]:
         if s is not None:
             if iw is not None:
                 return TernarySampleIW(x=self.x, s=s, y=self.y, iw=iw)
@@ -396,9 +398,9 @@ class SubgroupSampleIW(SampleBase[X], _SubgroupSampleMixin, _IwMixin):
     def add_field(self, y: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, y: Tensor) -> TernarySampleIW: ...
+    def add_field(self, y: Tensor) -> TernarySampleIW[X]: ...
 
-    def add_field(self, y: Optional[Tensor] = None) -> Union[Self, TernarySampleIW]:
+    def add_field(self, y: Optional[Tensor] = None) -> Union[Self, TernarySampleIW[X]]:
         if y is not None:
             return TernarySampleIW(x=self.x, s=self.s, y=y, iw=self.iw)
         return self
@@ -426,17 +428,17 @@ class SubgroupSample(_SubgroupSampleMixin, SampleBase[X]):
     def add_field(self, *, y: None = ..., iw: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, *, y: None = ..., iw: Tensor) -> SubgroupSampleIW: ...
+    def add_field(self, *, y: None = ..., iw: Tensor) -> SubgroupSampleIW[X]: ...
 
     @overload
-    def add_field(self, *, y: Tensor, iw: None = ...) -> TernarySample: ...
+    def add_field(self, *, y: Tensor, iw: None = ...) -> TernarySample[X]: ...
 
     @overload
-    def add_field(self, *, y: Tensor, iw: Tensor) -> TernarySampleIW: ...
+    def add_field(self, *, y: Tensor, iw: Tensor) -> TernarySampleIW[X]: ...
 
     def add_field(
         self, *, y: Optional[Tensor] = None, iw: Optional[Tensor] = None
-    ) -> Union[Self, SubgroupSampleIW, TernarySample, TernarySampleIW]:
+    ) -> Union[Self, SubgroupSampleIW[X], TernarySample[X], TernarySampleIW[X]]:
         if y is not None:
             if iw is not None:
                 return TernarySampleIW(x=self.x, s=self.s, y=y, iw=iw)
@@ -467,20 +469,20 @@ class NamedSample(SampleBase[X]):
     def add_field(self, *, y: None = ..., s: None = ..., iw: None = ...) -> Self: ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: None = ..., iw: None = ...) -> BinarySample: ...
+    def add_field(self, *, y: Tensor, s: None = ..., iw: None = ...) -> BinarySample[X]: ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: None = ..., iw: Tensor) -> BinarySampleIW: ...
+    def add_field(self, *, y: Tensor, s: None = ..., iw: Tensor) -> BinarySampleIW[X]: ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: Tensor, iw: None = ...) -> TernarySample: ...
+    def add_field(self, *, y: Tensor, s: Tensor, iw: None = ...) -> TernarySample[X]: ...
 
     @overload
-    def add_field(self, *, y: Tensor, s: Tensor, iw: Tensor) -> TernarySampleIW: ...
+    def add_field(self, *, y: Tensor, s: Tensor, iw: Tensor) -> TernarySampleIW[X]: ...
 
     def add_field(
         self, *, y: Optional[Tensor] = None, s: Optional[Tensor] = None, iw: Optional[Tensor] = None
-    ) -> Union[Self, BinarySample, BinarySampleIW, TernarySample, TernarySampleIW]:
+    ) -> Union[Self, BinarySample[X], BinarySampleIW[X], TernarySample[X], TernarySampleIW[X]]:
         if y is not None:
             if s is not None:
                 if iw is not None:
@@ -516,7 +518,7 @@ def shallow_asdict(dataclass: object) -> Dict[str, Any]:
 
 
 @dataclass
-class ImageSize(Sequence):
+class ImageSize(Sequence[int]):
     c: int
     h: int
     w: int
@@ -599,28 +601,32 @@ class SizedDataset(Dataset[R_co], Sized, Protocol):
         ...
 
 
-X2 = TypeVar("X2", bound=UnloadedData)
-Y = TypeVar("Y", Tensor, None)
-S = TypeVar("S", Tensor, None)
+X2 = TypeVar("X2", bound=UnloadedData, covariant=True)
+Y = TypeVar("Y", bound=Tensor | None, covariant=True)
+S = TypeVar("S", bound=Tensor | None, covariant=True)
 
 
 @runtime_checkable
 class PseudoCdtDataset(Protocol[R_co, X2, Y, S]):
-    x: X2
-    y: Y
-    s: S
+    @property
+    def x(self) -> X2: ...
+    @property
+    def y(self) -> Y: ...
+    @property
+    def s(self) -> S: ...
 
     def __getitem__(self, index: int) -> R_co: ...
 
     def __len__(self) -> int: ...
 
 
-D = TypeVar("D", bound=Union[Dataset, Tensor, List[int]], covariant=True)
+D = TypeVar("D", bound=Union[Dataset[Any], Tensor, List[int]], covariant=True)
 
 
 @runtime_checkable
 class DatasetWrapper(SizedDataset[R_co], Protocol):
-    dataset: Dataset
+    @property
+    def dataset(self) -> Dataset[R_co]: ...
 
     @override
     def __getitem__(self, index: int) -> R_co: ...

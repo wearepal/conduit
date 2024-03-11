@@ -26,9 +26,13 @@ class ImageTransformer(DatasetWrapper[Any]):
     """
 
     def __init__(self, dataset: Dataset, *, transform: Optional[ImageTform]) -> None:
-        self.dataset = dataset
+        self._dataset = dataset
         self._transform: Optional[ImageTform] = None
         self.transform = transform
+
+    @property
+    def dataset(self) -> Dataset:
+        return self._dataset
 
     @property
     def transform(self) -> Optional[ImageTform]:

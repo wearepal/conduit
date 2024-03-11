@@ -95,21 +95,24 @@ def apply_audio_transform(waveform: Tensor, *, transform: Optional[AudioTform]) 
     return waveform if transform is None else transform(waveform)
 
 
-@overload
-def extract_base_dataset(
-    dataset: Dataset, *, return_subset_indices: Literal[True] = ...
-) -> Tuple[Dataset, Union[Tensor, slice]]: ...
+T = TypeVar("T")
 
 
 @overload
 def extract_base_dataset(
-    dataset: Dataset, *, return_subset_indices: Literal[False] = ...
-) -> Dataset: ...
+    dataset: Dataset[T], *, return_subset_indices: Literal[True] = ...
+) -> Tuple[Dataset[T], Union[Tensor, slice]]: ...
+
+
+@overload
+def extract_base_dataset(
+    dataset: Dataset[T], *, return_subset_indices: Literal[False] = ...
+) -> Dataset[T]: ...
 
 
 def extract_base_dataset(
-    dataset: Dataset, *, return_subset_indices: bool = True
-) -> Union[Dataset, Tuple[Dataset, Union[Tensor, slice]]]:
+    dataset: Dataset[T], *, return_subset_indices: bool = True
+) -> Union[Dataset[T], Tuple[Dataset[T], Union[Tensor, slice]]]:
     """Extract the innermost dataset of a nesting of datasets.
 
     Nested datasets are inferred based on the existence of a 'dataset'
@@ -126,8 +129,8 @@ def extract_base_dataset(
     """
 
     def _closure(
-        dataset: Dataset, rel_indices_ls: Optional[List[List[int]]] = None
-    ) -> Union[Dataset, Tuple[Dataset, Union[Tensor, slice]]]:
+        dataset: Dataset[T], rel_indices_ls: Optional[List[List[int]]] = None
+    ) -> Union[Dataset[T], Tuple[Dataset[T], Union[Tensor, slice]]]:
         if rel_indices_ls is None:
             rel_indices_ls = []
         if hasattr(dataset, "dataset"):
@@ -149,12 +152,12 @@ def extract_base_dataset(
 
 @lru_cache(typed=True)
 def extract_labels_from_dataset(
-    dataset: PseudoCdtDataset,
+    dataset: PseudoCdtDataset[SampleBase[Tensor], Tensor, Optional[Tensor], Optional[Tensor]],
 ) -> Tuple[Optional[Tensor], Optional[Tensor]]:
     """Attempt to extract s/y labels from a dataset."""
     base_dataset = dataset
 
-    def _closure(dataset: Dataset) -> Tuple[Optional[Tensor], Optional[Tensor]]:
+    def _closure(dataset: Dataset[SampleBase[Tensor]]) -> Tuple[Optional[Tensor], Optional[Tensor]]:
         base_dataset, indices = extract_base_dataset(dataset=dataset, return_subset_indices=True)
         _s = None
         _y = None
@@ -168,7 +171,8 @@ def extract_labels_from_dataset(
 
         return _s, _y
 
-    if isinstance(base_dataset, (ConcatDataset)):
+    if isinstance(base_dataset, ConcatDataset):
+        base_dataset = cast(ConcatDataset[SampleBase[Tensor]], base_dataset)
         s_all_ls: List[Tensor] = []
         y_all_ls: List[Tensor] = []
         for _dataset in base_dataset.datasets:
@@ -184,7 +188,7 @@ def extract_labels_from_dataset(
     return s_all, y_all
 
 
-def get_group_ids(dataset: Dataset) -> Tensor:
+def get_group_ids(dataset: Dataset[SampleBase[Tensor]]) -> Tensor:
     s_all, y_all = extract_labels_from_dataset(dataset)
     # group_ids: Optional[Tensor] = None
     if s_all is None:
@@ -200,7 +204,9 @@ def get_group_ids(dataset: Dataset) -> Tensor:
     return group_ids.long()
 
 
-def compute_instance_weights(dataset: Dataset, *, upweight: bool = False) -> Tensor:
+def compute_instance_weights(
+    dataset: Dataset[SampleBase[Tensor]], *, upweight: bool = False
+) -> Tensor:
     group_ids = get_group_ids(dataset)
     _, inv_indexes, counts = group_ids.unique(return_inverse=True, return_counts=True)
     # Upweight samples according to the cardinality of their intersectional group
@@ -215,7 +221,9 @@ def compute_instance_weights(dataset: Dataset, *, upweight: bool = False) -> Ten
     return group_weights[inv_indexes]
 
 
-PCD = TypeVar("PCD", bound=PseudoCdtDataset)
+PCD = TypeVar(
+    "PCD", bound=PseudoCdtDataset[SampleBase[Tensor], Any, Optional[Tensor], Optional[Tensor]]
+)
 
 
 def make_subset(
@@ -260,11 +268,11 @@ def make_subset(
     subset = gcopy(base_dataset, deep=deep)
 
     def _subset_from_indices(_dataset: PCD, _indices: Union[List[int], slice]) -> PCD:
-        _dataset.x = _dataset.x[_indices]
+        _dataset.x = _dataset.x[_indices]  # type: ignore
         if _dataset.y is not None:
-            _dataset.y = _dataset.y[_indices]
+            _dataset.y = _dataset.y[_indices]  # type: ignore
         if _dataset.s is not None:
-            _dataset.s = _dataset.s[_indices]
+            _dataset.s = _dataset.s[_indices]  # type: ignore
         return _dataset
 
     if current_indices is not None:
@@ -381,7 +389,7 @@ class cdt_collate:
         return collated_batch
 
 
-I = TypeVar("I", bound=SampleBase, covariant=True)
+I = TypeVar("I", bound=SampleBase[Tensor], covariant=True)
 
 
 class _DataLoaderKwargs(TypedDict, total=False):
@@ -540,7 +548,7 @@ def download_from_gdrive(
 
 @overload
 def random_split(
-    dataset: PseudoCdtDataset,
+    dataset: PseudoCdtDataset[SampleBase[Tensor], Tensor, Optional[Tensor], Optional[Tensor]],
     *,
     props: Union[Sequence[float], float],
     deep: bool = ...,
@@ -613,7 +621,7 @@ def random_split(
 
 @overload
 def stratified_split(
-    dataset: PseudoCdtDataset,
+    dataset: PseudoCdtDataset[Any, Any, Any, Any],
     *,
     default_train_prop: float,
     train_props: Optional[Mapping[int, Union[Dict[int, float], float]]] = ...,
@@ -680,7 +688,9 @@ def stratified_split(
             "for stratification."
         )
     group_ids = get_group_ids(dataset)
-    y_unique = dataset.y.unique()
+    y_unique: Tensor = dataset.y.unique()
+    groups: Tensor
+    id_counts: Tensor
     groups, id_counts = group_ids.unique(return_counts=True)
     card_s = None if dataset.s is None else len(dataset.s.unique())
     ncols = 1 if card_s is None else card_s

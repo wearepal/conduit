@@ -177,7 +177,7 @@ class MultiCropTransform(Generic[LT]):
     def __call__(self: "MultiCropTransform[None]", image: RawImage) -> MultiViewPair: ...
 
     def __call__(
-        self: "MultiCropTransform", image: RawImage
+        self: "MultiCropTransform[ImageTform] | MultiCropTransform[None]", image: RawImage
     ) -> Union[MultiCropOutput, MultiViewPair]:
         global_crop_v1 = self._apply_transform(image, transform=self.global_transform_1)
         global_crop_v2 = self._apply_transform(image, transform=self.global_transform_2)
@@ -205,7 +205,7 @@ class MultiCropTransform(Generic[LT]):
         global_crops_scale: Tuple[float, float] = (0.4, 1.0),
         local_crops_scale: Tuple[float, float] = (0.05, 0.4),
         local_crops_number: int = 8,
-    ) -> "MultiCropTransform":
+    ) -> "MultiCropTransform[T.Compose | None]":
         flip_and_color_jitter = T.Compose(
             [
                 T.RandomHorizontalFlip(p=0.5),

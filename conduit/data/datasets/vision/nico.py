@@ -31,7 +31,7 @@ class NicoSuperclass(StrEnum):
 SampleType: TypeAlias = TernarySample
 
 
-class NICO(CdtVisionDataset[TernarySample, Tensor, Tensor]):
+class NICO(CdtVisionDataset[TernarySample[Tensor], Tensor, Tensor]):
     """Datset for Non-I.I.D. image classification introduced in
     'Towards Non-I.I.D. Image Classification: A Dataset and Baselines'
     """

@@ -37,9 +37,13 @@ class AudioTransformer(DatasetWrapper[Any]):
     """
 
     def __init__(self, dataset: Dataset, *, transform: Optional[AudioTform]) -> None:
-        self.dataset = dataset
+        self._dataset = dataset
         self._transform: Optional[AudioTform] = None
         self.transform = transform
+
+    @property
+    def dataset(self) -> Dataset:
+        return self._dataset
 
     @override
     def __getitem__(self, index: int) -> Any:
@@ -77,9 +81,13 @@ class TabularTransformer(DatasetWrapper[Any]):
         transform: Optional[TabularTransform],
         target_transform: Optional[TabularTransform],
     ) -> None:
-        self.dataset = dataset
+        self._dataset = dataset
         self.transform = transform
         self.target_transform = target_transform
+
+    @property
+    def dataset(self) -> Dataset:
+        return self._dataset
 
     @override
     def __getitem__(self, index: int) -> Any:
@@ -119,8 +127,12 @@ class InstanceWeightedDataset(DatasetWrapper[Any]):
     """Wrapper endowing datasets with instance-weights."""
 
     def __init__(self, dataset: Dataset) -> None:
-        self.dataset = dataset
+        self._dataset = dataset
         self.iw = compute_instance_weights(dataset)
+
+    @property
+    def dataset(self) -> Dataset:
+        return self._dataset
 
     @override
     def __getitem__(self, index: int) -> Union[SampleBase, Tuple[Any, ...]]:

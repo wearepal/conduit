@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 import numpy as np
 import torch
@@ -21,10 +21,10 @@ class LogMelSpectrogram(T.MelSpectrogram):
         f_max: Optional[float] = None,
         pad: int = 0,
         n_mels: int = 128,
-        window_fn: Optional[Callable] = None,
+        window_fn: Optional[Callable[..., Tensor]] = None,
         power: float = 2.0,
         normalized: bool = False,
-        wkwargs: Optional[dict] = None,
+        wkwargs: Optional[dict[str, Any]] = None,
         center: bool = True,
         pad_mode: str = "reflect",
         onesided: bool = True,

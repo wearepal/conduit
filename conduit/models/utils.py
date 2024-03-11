@@ -27,12 +27,13 @@ def prefix_keys(dict_: Dict[str, Any], *, prefix: str, sep: str = "/") -> Dict[s
 
 
 T = TypeVar("T")
+F = TypeVar("F", bound=Callable[..., Any])
 
 
-def decorate_all_methods(decorator: Callable[[Callable], Callable], obj: T) -> T:
+def decorate_all_methods(decorator: Callable[[F], F], obj: T) -> T:
     methods = inspect.getmembers(obj, inspect.ismethod)
     for name, method in methods:
-        setattr(obj, name, decorator(method))
+        setattr(obj, name, decorator(method))  # type: ignore
     return obj
 
 

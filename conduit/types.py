@@ -1,6 +1,6 @@
 from enum import auto
-from typing import Any, Dict, List, Mapping, Protocol, TypeVar, Union, runtime_checkable
-from typing_extensions import TypeAlias
+from typing import Any, Dict, List, Mapping, Protocol, Union, runtime_checkable
+from typing_extensions import TypeAlias, TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -41,17 +41,17 @@ class Stage(StrEnum):
 
 LRScheduler: TypeAlias = Union[CosineAnnealingWarmRestarts, ExponentialLR, StepLR]
 MetricDict: TypeAlias = Dict[str, METRIC_COLLECTION]
-NDArrayR: TypeAlias = Union[npt.NDArray[np.floating], npt.NDArray[np.integer]]
+NDArrayR: TypeAlias = Union[npt.NDArray[np.floating[Any]], npt.NDArray[np.integer[Any]]]
 IndexType: TypeAlias = Union[int, List[int], slice]
 
-T_co = TypeVar("T_co", covariant=True)
+T_co = TypeVar("T_co", covariant=True, default=Any)
 
 
 @runtime_checkable
-class Sized(Protocol[T_co]):
+class Sized(Protocol):
     def __len__(self) -> int: ...
 
 
 @runtime_checkable
 class Indexable(Protocol[T_co]):
-    def __getitem__(self, index: IndexType) -> Any: ...
+    def __getitem__(self, index: IndexType) -> T_co: ...

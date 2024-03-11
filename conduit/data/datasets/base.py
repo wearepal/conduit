@@ -1,5 +1,6 @@
 import logging
 from typing import (
+    Any,
     ClassVar,
     Generic,
     List,
@@ -40,10 +41,10 @@ __all__ = ["CdtDataset", "I", "S", "X", "Y"]
 X = TypeVar("X", bound=UnloadedData)
 S = TypeVar("S", bound=Optional[Tensor])
 Y = TypeVar("Y", bound=Optional[Tensor])
-I = TypeVar("I", bound=SampleBase, covariant=True)
+I = TypeVar("I", bound=SampleBase[Any], covariant=True)
 
 
-class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
+class CdtDataset(SizedDataset[I], Generic[I, X, Y, S]):
     _repr_indent: ClassVar[int] = 4
     _logger: Optional[logging.Logger] = None
 
@@ -200,7 +201,7 @@ class CdtDataset(SizedDataset, Generic[I, X, Y, S]):
         return merge_indices(*indices, return_cardinalities=False)
 
     def subset(
-        self: Self,
+        self,
         indices: Union[List[int], npt.NDArray[np.uint64], Tensor, slice],
         *,
         deep: bool = False,

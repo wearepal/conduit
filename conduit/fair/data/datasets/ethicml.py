@@ -28,7 +28,7 @@ def grouped_features_indexes(disc_feats: List[str]) -> List[slice]:
     """
     group_iter = group_features(disc_feats)
 
-    feature_slices = []
+    feature_slices: list[slice] = []
     start_idx = 0
     for _, group in group_iter:
         len_group = len(list(group))

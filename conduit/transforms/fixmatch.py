@@ -58,7 +58,7 @@ class FixMatchTransform(Generic[A]):
         self.shared_transform_start = shared_transform_start
         self.shared_transform_end = shared_transform_end
 
-    def __call__(self, image: RawImage) -> FixMatchPair:
+    def __call__(self, image: RawImage) -> FixMatchPair[RawImage | Tensor]:
         if self.shared_transform_start is not None:
             image = self.shared_transform_start(image)
 

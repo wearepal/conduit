@@ -33,7 +33,7 @@ ImageLoadingBackend: TypeAlias = Literal["opencv", "pillow"]
 @overload
 def load_image(
     filepath: Union[Path, str], *, backend: Literal["opencv"] = ...
-) -> npt.NDArray[np.integer]: ...
+) -> npt.NDArray[np.integer[Any]]: ...
 
 
 @overload
@@ -99,7 +99,7 @@ def apply_image_transform(
     return image_
 
 
-def img_to_tensor(img: Union[Image.Image, np.ndarray]) -> Tensor:
+def img_to_tensor(img: Union[Image.Image, npt.NDArray[Any]]) -> Tensor:
     if isinstance(img, Image.Image):
         return TF.pil_to_tensor(img)
     return torch.from_numpy(
