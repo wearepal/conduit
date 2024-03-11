@@ -26,9 +26,7 @@ class TabularTransform(ABC):
 class TabularNormalize(TabularTransform):
     _EPS: ClassVar[float] = torch.finfo(torch.float32).eps
 
-    def __init__(
-        self, inplace: bool = False, indices: slice | list[int] = slice(None)
-    ) -> None:
+    def __init__(self, inplace: bool = False, indices: slice | list[int] = slice(None)) -> None:
         self.inplace = inplace
         self.col_indices = indices
         self._is_fitted = False

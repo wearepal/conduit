@@ -214,9 +214,7 @@ def compute_instance_weights(
     return group_weights[inv_indexes]
 
 
-PCD = TypeVar(
-    "PCD", bound=PseudoCdtDataset[SampleBase[Tensor], Any, Tensor | None, Tensor | None]
-)
+PCD = TypeVar("PCD", bound=PseudoCdtDataset[SampleBase[Tensor], Any, Tensor | None, Tensor | None])
 
 
 def make_subset(

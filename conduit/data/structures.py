@@ -79,9 +79,26 @@ class InputContainer(Sized, Addable["InputContainer", "InputContainer"], Protoco
 
 
 RawImage: TypeAlias = npt.NDArray[np.integer[Any]] | Image.Image
-UnloadedData: TypeAlias = npt.NDArray[np.floating[Any]] | npt.NDArray[np.integer[Any]] | npt.NDArray[np.bytes_] | Tensor
-LoadedData: TypeAlias = Tensor | Image.Image | npt.NDArray[np.floating[Any]] | npt.NDArray[np.integer[Any]] | npt.NDArray[np.bytes_] | dict[str, Tensor] | dict[str, Image.Image] | dict[str, npt.NDArray[np.floating[Any]]] | dict[str, npt.NDArray[np.integer[Any]]] | dict[str, npt.NDArray[np.bytes_]] | list[Image.Image] | InputContainer
-IndexabledData: TypeAlias = Tensor | npt.NDArray[np.floating[Any]] | npt.NDArray[np.integer[Any]] | npt.NDArray[np.bytes_]
+UnloadedData: TypeAlias = (
+    npt.NDArray[np.floating[Any]] | npt.NDArray[np.integer[Any]] | npt.NDArray[np.bytes_] | Tensor
+)
+LoadedData: TypeAlias = (
+    Tensor
+    | Image.Image
+    | npt.NDArray[np.floating[Any]]
+    | npt.NDArray[np.integer[Any]]
+    | npt.NDArray[np.bytes_]
+    | dict[str, Tensor]
+    | dict[str, Image.Image]
+    | dict[str, npt.NDArray[np.floating[Any]]]
+    | dict[str, npt.NDArray[np.integer[Any]]]
+    | dict[str, npt.NDArray[np.bytes_]]
+    | list[Image.Image]
+    | InputContainer
+)
+IndexabledData: TypeAlias = (
+    Tensor | npt.NDArray[np.floating[Any]] | npt.NDArray[np.integer[Any]] | npt.NDArray[np.bytes_]
+)
 
 X = TypeVar("X", bound=LoadedData)
 X_co = TypeVar("X_co", bound=LoadedData, covariant=True)

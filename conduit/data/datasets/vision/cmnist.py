@@ -96,9 +96,7 @@ class MNISTColorizer:
             / 255.0
         )
 
-    def __call__(
-        self, images: Tensor | NDArrayR, *, labels: Tensor | NDArrayR
-    ) -> Tensor:
+    def __call__(self, images: Tensor | NDArrayR, *, labels: Tensor | NDArrayR) -> Tensor:
         """Apply the transformation.
 
         :param images:  Greyscale images to be colorized. Expected to be unnormalized (in the range

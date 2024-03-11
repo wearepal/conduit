@@ -90,7 +90,12 @@ def test_vision_datamodules(root: Path, dm: type[CdtVisionDataModule]) -> None:
 @pytest.mark.parametrize("ds_cls", [ColoredMNIST, ISIC, CelebA, NICO, SSRP, Waterbirds])
 def test_vision_datasets(
     root: Path,
-    ds_cls: type[ColoredMNIST] | type[ISIC] | type[CelebA] | type[NICO] | type[SSRP] | type[Waterbirds],
+    ds_cls: type[ColoredMNIST]
+    | type[ISIC]
+    | type[CelebA]
+    | type[NICO]
+    | type[SSRP]
+    | type[Waterbirds],
 ) -> None:
     """Basic test for datasets.
 

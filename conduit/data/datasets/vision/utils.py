@@ -83,9 +83,7 @@ def infer_il_backend(transform: ImageTform | None) -> ImageLoadingBackend:
     return "pillow"
 
 
-def apply_image_transform(
-    image: RawImage, *, transform: ImageTform | None
-) -> RawImage | Tensor:
+def apply_image_transform(image: RawImage, *, transform: ImageTform | None) -> RawImage | Tensor:
     image_ = image
     if transform is not None:
         if isinstance(transform, (A.BaseCompose, A.BasicTransform)):

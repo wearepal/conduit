@@ -156,9 +156,7 @@ class CdtProgressBar(RichProgressBar):
             )
 
     @override
-    def _update(
-        self, progress_bar_id: TaskID | None, current: int, visible: bool = True
-    ) -> None:
+    def _update(self, progress_bar_id: TaskID | None, current: int, visible: bool = True) -> None:
         if self.progress is not None and self.is_enabled:
             assert progress_bar_id is not None
             total = self.progress.tasks[progress_bar_id].total

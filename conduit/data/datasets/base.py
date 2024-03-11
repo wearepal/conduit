@@ -36,9 +36,7 @@ class CdtDataset(SizedDataset[I], Generic[I, X, Y, S]):
     _repr_indent: ClassVar[int] = 4
     _logger: logging.Logger | None = None
 
-    def __init__(
-        self, *, x: X, y: TargetData | None = None, s: TargetData | None = None
-    ) -> None:
+    def __init__(self, *, x: X, y: TargetData | None = None, s: TargetData | None = None) -> None:
         self.x = x
         if isinstance(y, np.ndarray):
             y = torch.as_tensor(y)
