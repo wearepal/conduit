@@ -8,14 +8,13 @@ from dataclasses import dataclass, field
 from conduit.data.datasets.audio.ecoacoustics import SoundscapeAttr
 from omegaconf import MISSING
 from typing import Any
-from typing import List
 
 
 @dataclass
 class EcoacousticsConf:
     _target_: str = "conduit.data.datasets.audio.Ecoacoustics"
     root: str = MISSING
-    target_attrs: List[SoundscapeAttr] = MISSING
+    target_attrs: list[SoundscapeAttr] = MISSING
     transform: Any = None  # Optional[Callable[[Tensor], Tensor]]
     download: bool = True
     segment_len: float = 15

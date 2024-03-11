@@ -17,7 +17,6 @@ from conduit.data.datasets.vision.waterbirds.waterbirds import WaterbirdsSplit
 from omegaconf import MISSING
 from pathlib import Path
 from typing import Any
-from typing import List
 from typing import Optional
 from typing import Union
 
@@ -29,7 +28,7 @@ class CelebAConf:
     download: bool = True
     superclass: Union[CelebAttr, str] = CelebAttr.SMILING
     subclass: Union[CelebAttr, str] = CelebAttr.MALE
-    transform: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    transform: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
     split: Optional[Union[CelebASplit, str]] = None
 
 
@@ -38,9 +37,9 @@ class ColoredMNISTConf:
     _target_: str = "conduit.data.datasets.vision.ColoredMNIST"
     root: Union[Path, str] = MISSING
     download: bool = True
-    transform: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
-    label_map: Any = None  # Optional[Dict[int, int]]
-    colors: Optional[List[int]] = None
+    transform: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
+    label_map: Any = None  # Optional[dict[int, int]]
+    colors: Optional[list[int]] = None
     num_colors: int = 10
     scale: float = 0.2
     correlation: Optional[float] = None
@@ -48,7 +47,7 @@ class ColoredMNISTConf:
     greyscale: bool = False
     background: bool = False
     black: bool = True
-    split: Any = None  # Optional[Union[ColoredMNISTSplit, List[int], str]]
+    split: Any = None  # Optional[Union[ColoredMNISTSplit, list[int], str]]
     seed: Optional[int] = 42
 
 
@@ -60,7 +59,7 @@ class ISICConf:
     max_samples: int = 25000
     target_attr: IsicAttr = IsicAttr.MALIGNANT
     context_attr: IsicAttr = IsicAttr.HISTO
-    transform: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    transform: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
 
 
 @dataclass
@@ -68,7 +67,7 @@ class NICOConf:
     _target_: str = "conduit.data.datasets.vision.NICO"
     root: Union[Path, str] = MISSING
     download: bool = True
-    transform: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    transform: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
     superclass: Optional[Union[NicoSuperclass, str]] = NicoSuperclass.ANIMALS
 
 
@@ -78,7 +77,7 @@ class SSRPConf:
     root: Union[Path, str] = MISSING
     split: Union[SSRPSplit, str] = SSRPSplit.PRETRAIN
     download: bool = True
-    transform: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    transform: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
 
 
 @dataclass
@@ -86,7 +85,7 @@ class WaterbirdsConf:
     _target_: str = "conduit.data.datasets.vision.Waterbirds"
     root: Union[Path, str] = MISSING
     download: bool = True
-    transform: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    transform: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
     split: Optional[Union[WaterbirdsSplit, str]] = None
     fixed: bool = False
 
@@ -96,7 +95,7 @@ class Camelyon17Conf:
     _target_: str = "conduit.data.datasets.vision.Camelyon17"
     root: Union[Path, str] = MISSING
     download: bool = True
-    transform: Any = None  # Optional[Union[BasicTransform, Callable[[Image], Any], Compose]]
+    transform: Any = None  # Optional[Union[BaseCompose, BasicTransform, Callable[[Image], Any]]]
     split: Optional[Union[Camelyon17Split, str]] = None
     split_scheme: Union[Camelyon17SplitScheme, str] = Camelyon17SplitScheme.OFFICIAL
     superclass: Union[Camelyon17Attr, str] = Camelyon17Attr.TUMOR
