@@ -124,13 +124,13 @@ frozenlist = ">=1.1.0"
 
 [[package]]
 name = "albumentations"
-version = "1.4.1"
-description = "Fast image augmentation library and easy to use wrapper around other libraries"
+version = "1.4.2"
+description = "An efficient library for image augmentation, providing extensive transformations to support machine learning and computer vision tasks."
 optional = true
 python-versions = ">=3.8"
 files = [
-    {file = "albumentations-1.4.1-py3-none-any.whl", hash = "sha256:7933aea451a5923bd1d6d16521ce87a9e03a500db3b19ac0ed3a9b3117a41862"},
-    {file = "albumentations-1.4.1.tar.gz", hash = "sha256:556c53a958bd26ce484f545058d755af55db13a80b8aef6946b87adcb38a5545"},
+    {file = "albumentations-1.4.2-py3-none-any.whl", hash = "sha256:0a9db6e797b4d93b02d523b8817a0dd0e3ed691498b06f4fa4191debbf21f5da"},
+    {file = "albumentations-1.4.2.tar.gz", hash = "sha256:9739d62c9a1c5dd7f09e1019df757965d945080b0d6b4bbfae37e48e61c140e8"},
 ]
 
 [package.dependencies]
