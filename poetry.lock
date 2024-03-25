@@ -1841,21 +1841,21 @@ numpy = ["numpy"]
 
 [[package]]
 name = "sox"
-version = "1.4.1"
+version = "1.5.0"
 description = "Python wrapper around SoX."
 optional = true
 python-versions = "*"
 files = [
-    {file = "sox-1.4.1-py2.py3-none-any.whl", hash = "sha256:2458c8e71e229e7fb1a088874ad07906e0aedfb2874a6c4f0430efd6e7587129"},
-    {file = "sox-1.4.1.tar.gz", hash = "sha256:b0f2d13692450b889cd3f66127e96f801942ec2aac5bb21653dfd150e0d71055"},
+    {file = "sox-1.5.0.tar.gz", hash = "sha256:12c7be5bb1f548d891fe11e82c08cf5f1a1d74e225298f60082e5aeb2469ada0"},
 ]
 
 [package.dependencies]
 numpy = ">=1.9.0"
+typing-extensions = ">=3.7.4.2"
 
 [package.extras]
-docs = ["numpydoc", "sphinx (==1.2.3)", "sphinx-rtd-theme", "sphinxcontrib-napoleon"]
-tests = ["pysoundfile (>=0.9.0)", "pytest", "pytest-cov", "pytest-pep8"]
+docs = ["numpydoc", "sphinx (==1.2.3)", "sphinx_rtd_theme", "sphinxcontrib-napoleon"]
+tests = ["pytest", "pytest-cov", "pytest-pep8", "soundfile (>=0.11.0)"]
 
 [[package]]
 name = "sympy"
