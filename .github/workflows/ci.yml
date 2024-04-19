@@ -102,10 +102,20 @@ jobs:
     #----------------------------------------------
     # type check
     #----------------------------------------------
-    - uses: jakebailey/pyright-action@v1
+    - name: Get Pyright Version
+      id: pyright-version
+      run: |
+        PYRIGHT_VERSION=$(jq -r '.devDependencies.pyright' < package.json)
+        echo "found pyright version: $PYRIGHT_VERSION"
+        echo "version=$PYRIGHT_VERSION" >> $GITHUB_OUTPUT
+      working-directory: .github
+      shell: bash
+    - uses: jakebailey/pyright-action@v2
       with:
         # don't show warnings
         level: error
+        # use the version we extracted above
+        version: ${{ steps.pyright-version.outputs.version }}
     #----------------------------------------------
     # run tests
     #----------------------------------------------
