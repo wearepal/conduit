@@ -124,19 +124,19 @@ frozenlist = ">=1.1.0"
 
 [[package]]
 name = "albumentations"
-version = "1.4.4"
+version = "1.4.6"
 description = "An efficient library for image augmentation, providing extensive transformations to support machine learning and computer vision tasks."
 optional = true
 python-versions = ">=3.8"
 files = [
-    {file = "albumentations-1.4.4-py3-none-any.whl", hash = "sha256:6fbe041f15ee271cc7cea190fdba8298115ae93989a0d79f8ba4488006ab7ec7"},
-    {file = "albumentations-1.4.4.tar.gz", hash = "sha256:54da4294e05da1a40ea94f76326fd9e50ecff9f67347e9b8dd2140f694a2d4cd"},
+    {file = "albumentations-1.4.6-py3-none-any.whl", hash = "sha256:8e8c007f1d0743f0965da08e4308626a2a5d60b2ea2a2d0bbd41ffa4f5b4822d"},
+    {file = "albumentations-1.4.6.tar.gz", hash = "sha256:e77d2e82ca1d547b1288fa3f68da098cc8cc1a52a7cf8b138200e74b18f82a33"},
 ]
 
 [package.dependencies]
 numpy = ">=1.24.4"
 opencv-python-headless = ">=4.9.0"
-pydantic = ">=2.6.4"
+pydantic = ">=2.7.0"
 PyYAML = "*"
 scikit-image = ">=0.21.0"
 scikit-learn = ">=1.3.2"
