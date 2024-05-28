@@ -352,7 +352,7 @@ class cdt_collate:
             return elem_type({key: self._collate([d[key] for d in batch]) for key in elem})
         # NamedTuple
         elif isinstance(elem, tuple) and hasattr(elem, "_fields"):  # namedtuple
-            return elem_type(**(self._collate(samples) for samples in zip(*batch)))
+            return elem_type(*(self._collate(samples) for samples in zip(*batch)))
         # Tuple or List
         elif isinstance(elem, (tuple, list)):
             transposed = zip(*batch)
