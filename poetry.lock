@@ -112,34 +112,35 @@ frozenlist = ">=1.1.0"
 
 [[package]]
 name = "albucore"
-version = "0.0.7"
+version = "0.0.12"
 description = "A high-performance image processing library designed to optimize and extend the Albumentations library with specialized functions for advanced image transformations. Perfect for developers working in computer vision who require efficient and scalable image augmentation."
 optional = true
 python-versions = ">=3.8"
 files = [
-    {file = "albucore-0.0.7-py3-none-any.whl", hash = "sha256:b795d1b8153fd18edb4f4dfe8e5fac0a19af2d0a2f71e965ea7731ec1b6c7f2a"},
-    {file = "albucore-0.0.7.tar.gz", hash = "sha256:0fe9660956644b9ca021e9185827d0173cc9159bad2b5774d098ca5d476cd7b0"},
+    {file = "albucore-0.0.12-py3-none-any.whl", hash = "sha256:7289c4965915d521295843c1744d792069a6e630e1fafd40c151f1b958b57a48"},
+    {file = "albucore-0.0.12.tar.gz", hash = "sha256:f8b271f8130ef79434803de8fb58245ee8d6b6f846600471146558a98a18ae7d"},
 ]
 
 [package.dependencies]
-numpy = ">=1.24.4"
+numpy = ">=1.24.4,<2"
 opencv-python-headless = ">=4.9.0.80"
 tomli = ">=2.0.1"
+typing-extensions = ">=4.9.0"
 
 [[package]]
 name = "albumentations"
-version = "1.4.8"
+version = "1.4.10"
 description = "An efficient library for image augmentation, providing extensive transformations to support machine learning and computer vision tasks."
 optional = true
 python-versions = ">=3.8"
 files = [
-    {file = "albumentations-1.4.8-py3-none-any.whl", hash = "sha256:68b4fafb7cd9833ca8764694d6c1ccad40baf4552974b9407484fa8275be299f"},
-    {file = "albumentations-1.4.8.tar.gz", hash = "sha256:5c9db8f68e182ac338473670e281e930e374db3369ec6bab7b02c5f6ec225107"},
+    {file = "albumentations-1.4.10-py3-none-any.whl", hash = "sha256:157d252f1a46e3d8d2970553a8eaace39540c90b0395981b4def8660bb933948"},
+    {file = "albumentations-1.4.10.tar.gz", hash = "sha256:739e96afcd1065b3804a6d621b2a95dfec560010a83a2e55c39ba307bdd59f41"},
 ]
 
 [package.dependencies]
-albucore = ">=0.0.4"
-numpy = ">=1.24.4"
+albucore = ">=0.0.11"
+numpy = ">=1.24.4,<2"
 opencv-python-headless = ">=4.9.0.80"
 pydantic = ">=2.7.0"
 PyYAML = "*"
@@ -147,6 +148,9 @@ scikit-image = ">=0.21.0"
 scikit-learn = ">=1.3.2"
 scipy = ">=1.10.0"
 typing-extensions = ">=4.9.0"
+
+[package.extras]
+hub = ["huggingface-hub"]
 
 [[package]]
 name = "annotated-types"
@@ -1158,6 +1162,7 @@ optional = true
 python-versions = ">=3.6"
 files = [
     {file = "opencv-python-4.10.0.84.tar.gz", hash = "sha256:72d234e4582e9658ffea8e9cae5b63d488ad06994ef12d81dc303b17472f3526"},
+    {file = "opencv_python-4.10.0.84-cp37-abi3-macosx_11_0_arm64.whl", hash = "sha256:fc182f8f4cda51b45f01c64e4cbedfc2f00aff799debebc305d8d0210c43f251"},
     {file = "opencv_python-4.10.0.84-cp37-abi3-macosx_12_0_x86_64.whl", hash = "sha256:71e575744f1d23f79741450254660442785f45a0797212852ee5199ef12eed98"},
     {file = "opencv_python-4.10.0.84-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:09a332b50488e2dda866a6c5573ee192fe3583239fb26ff2f7f9ceb0bc119ea6"},
     {file = "opencv_python-4.10.0.84-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9ace140fc6d647fbe1c692bcb2abce768973491222c067c131d80957c595b71f"},
@@ -1167,10 +1172,10 @@ files = [
 
 [package.dependencies]
 numpy = [
-    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
     {version = ">=1.23.5", markers = "python_version >= \"3.11\" and python_version < \"3.12\""},
     {version = ">=1.21.4", markers = "python_version >= \"3.10\" and platform_system == \"Darwin\" and python_version < \"3.11\""},
     {version = ">=1.21.2", markers = "platform_system != \"Darwin\" and python_version >= \"3.10\" and python_version < \"3.11\""},
+    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
 ]
 
 [[package]]
@@ -1191,10 +1196,10 @@ files = [
 
 [package.dependencies]
 numpy = [
-    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
     {version = ">=1.23.5", markers = "python_version >= \"3.11\" and python_version < \"3.12\""},
     {version = ">=1.21.4", markers = "python_version >= \"3.10\" and platform_system == \"Darwin\" and python_version < \"3.11\""},
     {version = ">=1.21.2", markers = "platform_system != \"Darwin\" and python_version >= \"3.10\" and python_version < \"3.11\""},
+    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
 ]
 
 [[package]]
@@ -1248,9 +1253,9 @@ files = [
 
 [package.dependencies]
 numpy = [
-    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
     {version = ">=1.23.2", markers = "python_version == \"3.11\""},
     {version = ">=1.22.4", markers = "python_version < \"3.11\""},
+    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
 ]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
@@ -1294,8 +1299,8 @@ files = [
 
 [package.dependencies]
 numpy = [
-    {version = ">=1.26.0", markers = "python_version >= \"3.12\" and python_version < \"3.13\""},
     {version = ">=1.23.5", markers = "python_version >= \"3.9\" and python_version < \"3.12\""},
+    {version = ">=1.26.0", markers = "python_version >= \"3.12\" and python_version < \"3.13\""},
 ]
 types-pytz = ">=2022.1.1"
 
