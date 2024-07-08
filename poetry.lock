@@ -1652,13 +1652,13 @@ resolved_reference = "8d5f6089b412f1e013e0bf90bdd14c4a0fb11e6d"
 
 [[package]]
 name = "pytorch-lightning"
-version = "2.3.1"
+version = "2.3.3"
 description = "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers. Scale your models. Write less boilerplate."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pytorch-lightning-2.3.1.tar.gz", hash = "sha256:8cfcc585fdf6570add34cf2cf4cabc3984d0e2d8b4cee52226485b61d3b8366d"},
-    {file = "pytorch_lightning-2.3.1-py3-none-any.whl", hash = "sha256:19a6aa7f800f721240e46aa80e3f9ae0b5a13baf65f04028b2e8f231e20e6426"},
+    {file = "pytorch-lightning-2.3.3.tar.gz", hash = "sha256:5f974015425af6873b5689246c5495ca12686b446751479273c154b73aeea843"},
+    {file = "pytorch_lightning-2.3.3-py3-none-any.whl", hash = "sha256:4365e3f2874e223e63cb42628d24c88c2bdc8d1794453cac38c0619b31115fba"},
 ]
 
 [package.dependencies]
