@@ -1,5 +1,6 @@
 """Dataset wrappers."""
 
+from collections.abc import Sized
 from dataclasses import is_dataclass, replace
 from typing import Any
 from typing_extensions import override
@@ -148,6 +149,7 @@ class InstanceWeightedDataset(DatasetWrapper[Any]):
                 x, y, s = sample
                 return TernarySampleIW(x=x, y=y, s=s, iw=iw)
         elif is_dataclass(sample):
+            assert isinstance(sample, Sized)
             tuple_class = BinarySampleIW if len(sample) == 2 else TernarySampleIW
             attr_dict = shallow_asdict(sample)
             attr_dict["iw"] = iw  # Covers the corner-case of 'sample' already being an IW sample
