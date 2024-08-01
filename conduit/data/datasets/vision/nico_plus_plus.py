@@ -183,9 +183,7 @@ class NICOPP(CdtVisionDataset[TernarySample, Tensor, Tensor]):
     def _check_unzipped(self) -> bool:
         if not all((self._base_dir / self.subpath / attr).exists() for attr in NicoPPAttr):
             return False
-        if not (self._base_dir / "dg_label_id_mapping.json").exists():
-            return False
-        return True
+        return (self._base_dir / "dg_label_id_mapping.json").exists()
 
     def _extract_metadata(self) -> None:
         self.logger.info("Generating metadata for NICO++...")
