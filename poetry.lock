@@ -129,13 +129,13 @@ typing-extensions = ">=4.9.0"
 
 [[package]]
 name = "albumentations"
-version = "1.4.11"
+version = "1.4.12"
 description = "An efficient library for image augmentation, providing extensive transformations to support machine learning and computer vision tasks."
 optional = true
 python-versions = ">=3.8"
 files = [
-    {file = "albumentations-1.4.11-py3-none-any.whl", hash = "sha256:56ca1efd5e886d71c20dfa2f531d9519ec1a6a8dc0d4cdac8f3941969d127cff"},
-    {file = "albumentations-1.4.11.tar.gz", hash = "sha256:91164481d764c25a8ec9ad340e528b84d87ed2acca7298377dede2973457e367"},
+    {file = "albumentations-1.4.12-py3-none-any.whl", hash = "sha256:1da512fba0093e297fae387a0ecba0252054606680878bf71d5d5f63e88cde07"},
+    {file = "albumentations-1.4.12.tar.gz", hash = "sha256:092a9180a080e53870fb866243994bb778dd6253842f307b351855aeed7d7316"},
 ]
 
 [package.dependencies]
@@ -146,12 +146,12 @@ opencv-python-headless = ">=4.9.0.80"
 pydantic = ">=2.7.0"
 PyYAML = "*"
 scikit-image = ">=0.21.0"
-scikit-learn = ">=1.3.2"
 scipy = ">=1.10.0"
 typing-extensions = ">=4.9.0"
 
 [package.extras]
 hub = ["huggingface-hub"]
+text = ["pillow"]
 
 [[package]]
 name = "annotated-types"
