@@ -4,9 +4,10 @@ import pytest
 import pytorch_lightning as pl
 from ranzen.torch.data import TrainingMode
 from ranzen.torch.loss import cross_entropy_loss
-import torch
 from torch import Tensor
 import torch.nn as nn
+from torch.optim.adamw import AdamW
+from torch.optim.optimizer import Optimizer
 
 from conduit.data.datamodules.vision.dummy import DummyVisionDataModule
 from conduit.data.structures import TernarySample
@@ -23,8 +24,8 @@ class DummyModel(pl.LightningModule):
         )
         self.wait_time = wait_time
 
-    def configure_optimizers(self) -> torch.optim.Optimizer:
-        return torch.optim.AdamW(self.model.parameters())
+    def configure_optimizers(self) -> Optimizer:
+        return AdamW(self.model.parameters())
 
     def training_step(self, sample: TernarySample[Tensor], *args) -> Tensor:  # type: ignore
         logits = self.model(sample.x)
