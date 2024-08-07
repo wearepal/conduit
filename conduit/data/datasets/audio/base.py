@@ -22,7 +22,7 @@ from conduit.types import IndexType
 __all__ = ["CdtAudioDataset"]
 
 
-class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.bytes_], Y, S]):
+class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.uint8], Y, S]):
     """Base dataset for audio data."""
 
     x: npt.NDArray[np.bytes_]
@@ -31,7 +31,7 @@ class CdtAudioDataset(CdtDataset[I, npt.NDArray[np.bytes_], Y, S]):
         self,
         audio_dir: Path | str,
         *,
-        x: npt.NDArray[np.bytes_],
+        x: npt.NDArray[np.uint8],
         y: TargetData | None = None,
         s: TargetData | None = None,
         transform: AudioTform | None = None,
