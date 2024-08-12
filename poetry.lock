@@ -112,13 +112,13 @@ frozenlist = ">=1.1.0"
 
 [[package]]
 name = "albucore"
-version = "0.0.12"
+version = "0.0.13"
 description = "A high-performance image processing library designed to optimize and extend the Albumentations library with specialized functions for advanced image transformations. Perfect for developers working in computer vision who require efficient and scalable image augmentation."
 optional = true
 python-versions = ">=3.8"
 files = [
-    {file = "albucore-0.0.12-py3-none-any.whl", hash = "sha256:7289c4965915d521295843c1744d792069a6e630e1fafd40c151f1b958b57a48"},
-    {file = "albucore-0.0.12.tar.gz", hash = "sha256:f8b271f8130ef79434803de8fb58245ee8d6b6f846600471146558a98a18ae7d"},
+    {file = "albucore-0.0.13-py3-none-any.whl", hash = "sha256:5a00c931ff80149726b80ad0c4c0a8327048463f14cbdf0ca5ff34a051700a84"},
+    {file = "albucore-0.0.13.tar.gz", hash = "sha256:c36d0af878e06f6e97e7882731c5d29243e38c21caec2005ee420fe85db4a7bc"},
 ]
 
 [package.dependencies]
@@ -129,17 +129,17 @@ typing-extensions = ">=4.9.0"
 
 [[package]]
 name = "albumentations"
-version = "1.4.12"
+version = "1.4.13"
 description = "An efficient library for image augmentation, providing extensive transformations to support machine learning and computer vision tasks."
 optional = true
 python-versions = ">=3.8"
 files = [
-    {file = "albumentations-1.4.12-py3-none-any.whl", hash = "sha256:1da512fba0093e297fae387a0ecba0252054606680878bf71d5d5f63e88cde07"},
-    {file = "albumentations-1.4.12.tar.gz", hash = "sha256:092a9180a080e53870fb866243994bb778dd6253842f307b351855aeed7d7316"},
+    {file = "albumentations-1.4.13-py3-none-any.whl", hash = "sha256:fc4f154c7225dcf903f4a0116e7388885af6eb098fa759def76c7ba3e106e721"},
+    {file = "albumentations-1.4.13.tar.gz", hash = "sha256:57b131dccf4d5c45c6ec8f140511f827905f85188464884488643459d702641b"},
 ]
 
 [package.dependencies]
-albucore = ">=0.0.11"
+albucore = ">=0.0.13"
 eval-type-backport = "*"
 numpy = ">=1.24.4"
 opencv-python-headless = ">=4.9.0.80"
