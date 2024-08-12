@@ -786,12 +786,12 @@ files = [
 
 [[package]]
 name = "kaggle"
-version = "1.6.14"
+version = "1.6.17"
 description = "Kaggle API"
 optional = true
 python-versions = "*"
 files = [
-    {file = "kaggle-1.6.14.tar.gz", hash = "sha256:583532bdeca3c9e0cafc4931112c6737b5e68f187ab59ee77dffdf09fdf9dbd9"},
+    {file = "kaggle-1.6.17.tar.gz", hash = "sha256:439a7dea1d5039f320fd6ad5ec21b688dcfa70d405cb42095b81f41edc401b81"},
 ]
 
 [package.dependencies]
