@@ -129,13 +129,13 @@ typing-extensions = ">=4.9.0"
 
 [[package]]
 name = "albumentations"
-version = "1.4.13"
+version = "1.4.14"
 description = "An efficient library for image augmentation, providing extensive transformations to support machine learning and computer vision tasks."
 optional = true
 python-versions = ">=3.8"
 files = [
-    {file = "albumentations-1.4.13-py3-none-any.whl", hash = "sha256:fc4f154c7225dcf903f4a0116e7388885af6eb098fa759def76c7ba3e106e721"},
-    {file = "albumentations-1.4.13.tar.gz", hash = "sha256:57b131dccf4d5c45c6ec8f140511f827905f85188464884488643459d702641b"},
+    {file = "albumentations-1.4.14-py3-none-any.whl", hash = "sha256:a550bc2e182e4092ab9d914febd9c82a75fed88f0152d077fb323216b0b7ed51"},
+    {file = "albumentations-1.4.14.tar.gz", hash = "sha256:afc6caeba7eaf3c4e1128b2d9ff4475b03d1833f2f52f47a7e53a07afd5f72cc"},
 ]
 
 [package.dependencies]
